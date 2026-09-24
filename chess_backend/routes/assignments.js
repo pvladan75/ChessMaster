@@ -19,7 +19,7 @@ const { OWN_GAMES_SQL } = require('../services/archiveScope');
 const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
-const { exerciseColumns, firstMoveOf } = require('../services/exercise');
+const { exerciseColumns, firstMoveOf, reviewOf } = require('../services/exercise');
 const { stepsOfLesson } = require('../services/lessonSteps');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
@@ -284,7 +284,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     // One query establishes both that this assignment is the caller's own
     // homework and that the position is part of it.
     const item = await pool.query(
-      `SELECT ${exerciseColumns('cp')}, cp.instruction
+      `SELECT ${exerciseColumns('cp')}, cp.instruction, cp.review
          FROM assignment_items ai
          JOIN assignments a ON a.id = ai.assignment_id
          JOIN custom_puzzles cp ON cp.puzzle_id = ai.puzzle_id
@@ -325,12 +325,14 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
     });
 
     // The solution is released once the question has been answered, right or
-    // wrong, as it always has been.
+    // wrong, as it always has been — and with it the review of a puzzle from a
+    // game (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 2), never sooner.
     res.json({
       correct: verdict.correct,
       reason: verdict.reason,
       playedSan: verdict.playedSan,
       solutionSan: answer ? answer.solutionSan : null,
+      review: reviewOf(item.rows[0]),
     });
   } catch (err) {
     logger.error('Error judging custom attempt:', err);

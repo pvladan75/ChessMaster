@@ -13,7 +13,7 @@
 const { Chess } = require('chess.js');
 const { assignmentParticipant } = require('./assignmentService');
 const { stepsOfLesson } = require('./lessonSteps');
-const { exerciseColumns, exerciseOf, firstMoveOf } = require('./exercise');
+const { exerciseColumns, exerciseOf, firstMoveOf, reviewOf } = require('./exercise');
 
 /// Whether the answer may be shown to whoever is asking.
 ///
@@ -169,6 +169,8 @@ function shapeItem(row, { isTrainer, step, game = null }) {
       solutionHidden: !reveal && firstMoveOf(row) !== null,
       // The answer whole: the author's move and the ones accepted beside it.
       solution: reveal ? exerciseOf(row).solution : null,
+      // A puzzle from a game: what it reveals, on the same condition.
+      review: reveal ? reviewOf(row) : null,
     };
   }
 
@@ -211,7 +213,7 @@ async function buildReview(pool, assignmentId, viewerId) {
     `SELECT ai.id, ai.position, ai.puzzle_id, ai.puzzle_rating, ai.solved,
             ai.ms_taken, ai.played_san, ai.attempted_at,
             ai.game_moves, ai.game_ending, ai.judged_by,
-            cp.fen AS custom_fen, cp.instruction, ${exerciseColumns('cp')},
+            cp.fen AS custom_fen, cp.instruction, cp.review, ${exerciseColumns('cp')},
             cp.themes AS custom_themes, cp.source_title, cp.source_label,
             lp.fen AS lichess_fen, lp.moves AS lichess_moves,
             lp.themes AS lichess_themes, lp.rating AS lichess_rating

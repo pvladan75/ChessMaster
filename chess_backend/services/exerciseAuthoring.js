@@ -13,7 +13,9 @@
 const crypto = require('crypto');
 const { Chess } = require('chess.js');
 
-const { exerciseColumns, exerciseOf, readSolution, assignableProblem } = require('./exercise');
+const {
+  exerciseColumns, exerciseOf, readSolution, assignableProblem, readReview, reviewOf,
+} = require('./exercise');
 const { parseEngineGameTask } = require('./engineGameTask');
 const { cleanThemes, deriveInstruction } = require('./scanIntake');
 
@@ -26,7 +28,7 @@ const MAX_SOURCE_LABEL = 16;
 // What the row asks comes through the one reader's own column list, so this
 // file never names the columns it would be tempted to interpret.
 const COLUMNS = `puzzle_id, side_to_move, name, instruction, themes, origin, created_at,
-                 source_title, source_page, source_label, ${exerciseColumns()}`;
+                 source_title, source_page, source_label, review, ${exerciseColumns()}`;
 
 /// Reads what the editor sends, or says why it is not an exercise.
 ///
@@ -102,6 +104,18 @@ function parseExercise(raw, { keptFen = null } = {}) {
     source = { title: title || null, label: label || null };
   }
 
+  // The review a puzzle from a game carries (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md,
+  // phase 2). Three answers, all the way to the column (rule 11): absent
+  // leaves what is stored, `null` clears it, a value is replayed and written.
+  let review;
+  if (raw.review === null) {
+    review = null;
+  } else if (raw.review !== undefined) {
+    const read = readReview(fen, solution, raw.review);
+    if (!read.ok) return { ok: false, error: read.error };
+    review = read.review;
+  }
+
   const words = typeof raw.instruction === 'string' ? raw.instruction.trim().slice(0, MAX_INSTRUCTION) : '';
   return {
     ok: true,
@@ -116,6 +130,7 @@ function parseExercise(raw, { keptFen = null } = {}) {
       themes: cleanThemes(raw.themes),
       task,
       solution,
+      review,
     },
   };
 }
@@ -141,6 +156,8 @@ function present(row) {
     sourceLabel: row.source_label ?? null,
     task: read.task,
     solution: read.solution,
+    // The owner reads the review whole; a student only through an attempt.
+    review: reviewOf(row),
     needsReview: row.needs_review === true,
     assignable: problem === null,
     blockedReason: problem,
@@ -155,12 +172,13 @@ async function createExercise(pool, { ownerId, payload }) {
   const result = await pool.query(
     `INSERT INTO custom_puzzles
        (puzzle_id, owner_id, fen, side_to_move, name, instruction, themes, task, solution,
-        origin, source_title, source_label)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, $9, $10, $11, $12)
+        origin, source_title, source_label, review)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::varchar[], $8, $9, $10, $11, $12, $13)
      RETURNING ${COLUMNS}`,
     [puzzleId, ownerId, e.fen, e.side, e.name, e.instruction, e.themes,
       JSON.stringify(e.task), e.solution ? JSON.stringify(e.solution) : null,
-      e.origin, e.source.title, e.source.label]
+      e.origin, e.source.title, e.source.label,
+      e.review ? JSON.stringify(e.review) : null]
   );
   return { ok: true, exercise: present(result.rows[0]) };
 }
@@ -178,7 +196,7 @@ async function readExercise(pool, { ownerId, puzzleId }) {
 
 async function updateExercise(pool, { ownerId, puzzleId, payload }) {
   const found = await pool.query(
-    'SELECT fen FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
+    'SELECT fen, review FROM custom_puzzles WHERE puzzle_id = $1 AND owner_id = $2',
     [puzzleId, ownerId]
   );
   if (found.rowCount === 0) return { ok: false, status: 404, error: 'No such exercise.' };
@@ -186,13 +204,25 @@ async function updateExercise(pool, { ownerId, puzzleId, payload }) {
   const parsed = parseExercise(payload, { keptFen: found.rows[0].fen });
   if (!parsed.ok) return { ok: false, status: parsed.status ?? 422, error: parsed.error };
   const e = parsed.exercise;
+
+  // An edit that says nothing about the review keeps it — **while it still
+  // explains this exercise**. The editor sends no review, so a changed answer
+  // or a find turned into a game would otherwise keep lines that start with a
+  // move the exercise no longer asks for; such a review is cleared.
+  let review = e.review;
+  if (review === undefined) {
+    const kept = reviewOf(found.rows[0]);
+    review = kept && e.solution && readReview(e.fen, e.solution, kept).ok ? kept : null;
+  }
   const result = await pool.query(
     `UPDATE custom_puzzles
-        SET name = $3, instruction = $4, themes = $5::varchar[], task = $6, solution = $7
+        SET name = $3, instruction = $4, themes = $5::varchar[], task = $6, solution = $7,
+            review = $8
       WHERE puzzle_id = $1 AND owner_id = $2
       RETURNING ${COLUMNS}`,
     [puzzleId, ownerId, e.name, e.instruction, e.themes,
-      JSON.stringify(e.task), e.solution ? JSON.stringify(e.solution) : null]
+      JSON.stringify(e.task), e.solution ? JSON.stringify(e.solution) : null,
+      review ? JSON.stringify(review) : null]
   );
   return { ok: true, exercise: present(result.rows[0]) };
 }

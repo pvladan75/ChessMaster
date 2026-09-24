@@ -7694,3 +7694,34 @@ promocije (bez posledice danas, jer se gleda samo polje dolaska). 31 mutacija,
 svaka crvena na slučaju svog pravila, osim jedne ekvivalentne: bez čuvara „sve
 tri linije matiraju" drugi red je takođe mat, pa je `B` 0 i zagonetka ionako
 odbijena — čuvar samo drži indeks u opsegu.
+
+## 25.9.2026 — faza 2: sačuvan pregled zagonetke, i čuvar na dva mesta
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 2, prva po redosledu koji je vlasnik
+potvrdio 24.9 (2, 5, 4). `custom_puzzles.review JSONB`: potez iz partije, tri
+linije, reči i šanse. Pisac (`readReview`, u `exercise.js` pored
+`readSolution`) svaku liniju odigra chess.js-om — pobijanje od pozicije
+**posle** poteza iz partije — i odbija najbolju liniju koja ne počinje
+odgovorom zadatka. Čita se samo tamo gde je odgovor već pušten: vlasnikov
+editor, odgovor na pokušaj (sopstveni i domaći) i stavka domaćeg posle
+pokušaja. Pisano u radnom stablu i kopirano uz vlasnikov server ugašen
+(pravilo 20).
+
+Brojevi: backend 1842 → **1854** sa bazom (+12: šest čistih, šest na bazi),
+1697 → **1703** bez nje (+6 čistih); oba izmerena. Dva postojeća testa koja
+tvrde ceo odgovor pokušaja („the answer says four things") prošireni su
+otvoreno za `review: null` — njihov posao je da primete šta novo putuje, a ovo
+je namerno novo.
+
+**Čuvar na dva mesta.** „Samo zadatak nađi-potez ima pregled" stajalo je u
+`parseExercise` i u `readReview`; mutacija koja je uklonila prvi je preživela,
+jer je drugi odgovorio istom rečenicom. Obrisan je prvi, ne napisan test za
+njega — **jedna činjenica, jedan čuvar**, pa mutacija preostalog pocrveni.
+
+**„Bajt po bajt" nije moguće u JSONB-u**: čuva vrednosti, ključeve sortira na
+svoj način. Prvi nacrt je poredio bazin zapis sa samim sobom (zato je prošao);
+sada se poredi sa onim što je poslato, vrednost po vrednost.
+
+**Ispitna baza na Windows-u**: `pg_ctl … start | tail -1` nikad ne završi —
+proces baze nasledi cev, pa `tail` čeka zauvek, a suite iza njega ne krene.
+Pokretati sa `> fajl 2>&1`, bez cevi.

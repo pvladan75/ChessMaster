@@ -17,7 +17,9 @@
 // (`puzzleProgress.SERVER_JUDGED`). Nothing touches `assignment_items`: an
 // answer given alone is not homework handed in.
 
-const { exerciseColumns, exerciseOf, firstMoveOf, assignableProblem } = require('./exercise');
+const {
+  exerciseColumns, exerciseOf, firstMoveOf, assignableProblem, reviewOf,
+} = require('./exercise');
 const { judgeAttempt } = require('./customPuzzleJudge');
 const { judgeEngineGame } = require('./engineGameTask');
 const { attemptsOf, retryIds } = require('./puzzleProgress');
@@ -46,7 +48,7 @@ function present(row) {
 /**
  * One answer to one of the owner's own exercises.
  *
- * Answers `{ ok: true, result: { correct, reason, playedSan, solutionSan } }` —
+ * Answers `{ ok: true, result: { correct, reason, playedSan, solutionSan, review } }` —
  * the homework route's shape, which the app's `CustomAttemptResult` reads — or
  * `{ ok: false, status, error }`: 400 for no move, 404 for „no such exercise"
  * and „not yours" alike (as every route of `/exercises`), 409 for a row that
@@ -56,8 +58,9 @@ async function attemptOwn(pool, { ownerId, puzzleId, moveSan, msTaken }) {
   if (typeof puzzleId !== 'string' || typeof moveSan !== 'string' || !moveSan.trim()) {
     return { ok: false, status: 400, error: 'A move is required.' };
   }
+  // `review` only here, with the answer: it is released by the attempt.
   const found = await pool.query(
-    `SELECT puzzle_id, ${exerciseColumns()}
+    `SELECT puzzle_id, review, ${exerciseColumns()}
        FROM custom_puzzles
       WHERE puzzle_id = $1 AND owner_id = $2`,
     [puzzleId, ownerId]
@@ -89,6 +92,7 @@ async function attemptOwn(pool, { ownerId, puzzleId, moveSan, msTaken }) {
       reason: verdict.reason,
       playedSan: verdict.playedSan,
       solutionSan: answer ? answer.solutionSan : null,
+      review: reviewOf(row),
     },
   };
 }

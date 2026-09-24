@@ -1238,6 +1238,27 @@ Gate: route cases on the real-database half — a line that does not replay is
 refused, a `review` never reaches a student before the attempt, one that is
 kept round-trips byte for byte.
 
+*Built 25.9.2026 by the lead* (the owner's order of 24.9: 2, then 5, then 4;
+backend 1842 → **1854** with a database, 1697 → **1703** without, both
+measured; the app untouched). `custom_puzzles.review JSONB`; the reader
+`reviewOf` and the writer's rule `readReview` both in `services/exercise.js`,
+beside `readSolution`. Wire and storage use the exercise API's camelCase —
+`played`, `bestLine`, `refutationLine`, `secondLine`, `words`, `chances:
+{best, played, second}` — not the snake names of §4. Every line is replayed
+with chess.js, the refutation from the position **after** the game's move,
+and a best line that does not start with `accept[0]` is refused as the review
+of another puzzle. Three answers on `PUT` (rule 11): absent keeps the review
+**while it still fits the answer** — the editor sends none, so a changed
+answer would otherwise keep lines that start with a move no longer asked —
+`null` clears, a value is replayed and written. Released only where the
+answer already is: the owner's editor, the answer to an attempt (own and
+homework), and a homework item once attempted (`mayRevealSolution`); no other
+query selects the column. „Byte for byte" is value for value: JSONB keeps the
+values and orders the keys its own way. Thirteen mutations: twelve red on
+their own case, and one survivor, deleted rather than tested — the „only a
+find exercise has a review" guard stood in two places, and removing either
+left the other to answer; the one left in `readReview` is among the twelve.
+
 ### Phase 3 — the words for a review [lead, then implementer]
 
 §3a. A server route beside `routes/gameTutorialWords.js` (DeepSeek), taking the

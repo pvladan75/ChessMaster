@@ -825,6 +825,13 @@ async function initDB(target = pool) {
       ALTER TABLE custom_puzzles ADD CONSTRAINT custom_puzzles_solution_source_check
         CHECK (solution_source IS NULL OR solution_source IN ('book', 'engine'));
     `);
+    // What a puzzle from a game reveals once it is answered
+    // (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 2): the game's move and three
+    // lines, the words and the chances. Written only by `exerciseAuthoring.js`,
+    // after `readReview` has replayed every line; null on every other row.
+    await client.query(`
+      ALTER TABLE custom_puzzles ADD COLUMN IF NOT EXISTS review JSONB;
+    `);
     logger.info('Verified database table & indexes: custom_puzzles');
 
     // Create user_puzzle_attempts table.

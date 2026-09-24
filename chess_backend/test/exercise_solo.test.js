@@ -110,8 +110,11 @@ test('/queue is matched before /:id, or „queue" would be read as an id', () =>
 test('the author\'s move is correct, and the answer carries the solution', async () => {
   const out = await attempt({ body: { moveSan: 'Ra8#' } });
   assert.equal(out.status, 200);
+  // Since docs/PLAN-ZAGONETKE-IZ-PARTIJE.md phase 2 the answer also carries
+  // the puzzle's review — null here, where the exercise has none. The whole
+  // wire is still asserted, so anything else that starts travelling shows.
   assert.deepEqual(out.json, {
-    correct: true, reason: "the author's move", playedSan: 'Ra8#', solutionSan: 'Ra8#',
+    correct: true, reason: "the author's move", playedSan: 'Ra8#', solutionSan: 'Ra8#', review: null,
   });
 });
 

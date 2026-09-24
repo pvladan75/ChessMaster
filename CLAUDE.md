@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 4110 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
-cd chess_backend && npm test          # node --test, 1842 with TEST_DATABASE_URL, 1697 without
+cd chess_backend && npm test          # node --test, 1854 with TEST_DATABASE_URL, 1703 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -745,6 +745,10 @@ that fell silent, and the review counts silence honestly: **a fake that
 throws instead of answering hides behind the code that forgives silence.**
 And **run `dart format` after `pub get`**: without the package config it
 formats in the newest style, and the trailing commas it adds survive.
+Then its phase 2, built by the lead (backend → **1854 / 1703**, both
+measured): `custom_puzzles.review`, replayed on the way in and released only
+with the answer. **One fact guarded in two places survives the removal of
+either** — the second guard was deleted, not given a test.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

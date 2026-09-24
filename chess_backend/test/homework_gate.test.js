@@ -707,9 +707,11 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
 
     const r = await answer({ moveSan: 'Qf3' });
     assert.equal(r.status, 200);
-    // The whole wire: nothing of the line machinery travels any more.
+    // The whole wire: nothing of the line machinery travels any more. Since
+    // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md phase 2 it carries the puzzle's review
+    // too, released with the answer — null for an exercise that has none.
     assert.deepEqual(r.body, {
-      correct: true, reason: 'another correct move', playedSan: 'Qf3', solutionSan: 'Qh5',
+      correct: true, reason: 'another correct move', playedSan: 'Qf3', solutionSan: 'Qh5', review: null,
     });
     const written = await item();
     assert.notEqual(written.attempted_at, null);
