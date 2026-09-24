@@ -671,12 +671,69 @@ shape is how this repository once had a green suite over a `server.js` that did
 not parse. Whatever lands updates the counts in `CLAUDE.md`, or the next session
 cannot tell a shrinking suite from a passing one.
 
+## 9. The engine and the book over the tree
+
+The owner, 24.9.2026: the tree of the player's own games — `opening_nodes`,
+built like the masters book was built from the Lumbras base — is judged by the
+same system as a single game in `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`: the masters
+book first, then the engine in winning chances, the floor of its noise and the
+deepening where a loss sits near it. **The rule of what a mistake is comes
+from that plan's phase 1, imported, never a second copy** (rule 12).
+
+Section 1 counts results and nothing else. Its judge asks Lichess's cloud with
+the player's own token, paced, ten requests for a top-ten report. This section
+replaces that judge with local work: the server's own book
+(`services/openingBook.js`) and the device's engine, no token and no rate
+limit.
+
+1. **Only the frequent nodes**, never the archive: the positions reached at
+   least `minGames` times inside the window — 298 on the owner's archive of
+   30.8.2026. Per node, one two-line search (best and second) and one
+   `searchmoves` search for every move played there often enough to be a
+   habit. An engine pass over the whole archive stays out (§ „Costs and
+   limits").
+2. **Ranked by habit, not by one mistake**: chances lost × times played. A
+   loss of 5 played ninety times costs more than one blunder of 30. The floor
+   and the deepening apply before the multiplication, because ninety times
+   engine noise is still noise.
+3. **The result and the engine together say *why***:
+
+   | | the engine: the move holds | the engine: the move loses |
+   |---|---|---|
+   | **the player scores badly** | the move is not the problem — what follows is (plans, the middlegame) | **fix the move** — and the masters' moves are the answer |
+   | **the player scores well** | fine | **a trap nobody punishes at this level** — someone stronger will |
+
+   Section 1's report today shows the left column's top row and the right
+   column's top row as one thing.
+4. **The other side too**: nodes where the opponents keep leaving the book or
+   losing chances, and the player's reply does not take it — the missed chance,
+   repeated. **`opening_nodes` does not hold these today**: the importer
+   writes a row only where the subject moved (`gameArchive.js`, `move.color ===
+   color`), so the opponents' decisions need rows of their own — a schema
+   change, the lead's.
+5. **Into the drill that exists**: a node with a losing habit becomes a
+   `mistake_reviews` item through `POST /games/mistakes` („here you play X; the
+   best is Y"), with its lines — the puzzle of the other plan, made of a habit
+   instead of one game.
+
+The engine's answers come from **the one store by position** of `PLAN-ZAGONETKE-IZ-PARTIJE.md` §3 („The engine's answers are kept"), so a node already searched for a review or a tutorial is not searched again. The engine runs **where the engine is, the device**; the server's 960 MB
+droplet does not search (§ „Costs and limits"). The book is asked on the
+server, and what the device found is handed back and **checked like every
+engine finding** that door already takes — the game ids are the caller's own,
+the moves replay from the node.
+
+**Measured before anything is built**: on the owner's archive — how many nodes
+fall into each quadrant, how many habits the book and the engine find that the
+score alone does not, the opponents' repeated mistakes, and the minutes the
+engine takes. The owner reads those and decides whether the section is built.
+
 ## Costs and limits
 
 | Work | Volume | Feasible where |
 |---|---|---|
 | Opening leak report | 0 network, 0 engine | anywhere, instantly |
 | Syzygy audit | 8673 paced requests | server, ~22 min, cached |
+| Engine over the frequent nodes (§9) | a few hundred positions, a few searches each | the device, once per import — measured in §9 |
 | Full engine pass | ~273k positions (~136k for the user's own moves only), ~7–8 h at depth 14 single-threaded | desktop batch, overnight |
 | Cloud-eval for the same | ~273k requests | **never** — one IP, every user behind it |
 
