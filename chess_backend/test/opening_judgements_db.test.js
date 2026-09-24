@@ -29,6 +29,7 @@ function item(over = {}) {
     verdict: 'mistake',
     reason: 'lostChances',
     bookGames: 3,
+    lossCp: 60,
     engine: 'sf19',
     depth: 20,
     ...over,
@@ -136,6 +137,81 @@ describe('opening judgements on a real database', { skip: skip ? skip.skip : fal
        VALUES ($1, $2, 'f1c4', 55, 40, 'g1f3', '["Nf3"]', '["Bc4"]', 'mistake', NULL, 'e', 20)`,
       [me, KEY]
     ), /opening_judgements_reason/);
+  });
+
+  // ---- §9.4: losing habits into the drill ------------------------------------------
+
+  /// A game of [userId] on [playedAt] in which [san] was played at [fenKey].
+  async function playedOn(userId, fenKey, playedAt, { san = 'Bc4', ply = 3 } = {}) {
+    minted++;
+    const g = await pool.query(
+      `INSERT INTO user_games
+         (user_id, source, external_id, subject, subject_is_owner, subject_color,
+          result, subject_score, start_fen, moves, ply_count, min_men, played_at)
+       VALUES ($1, 'lichess', $2, 'me', true, 'w', '0-1', 0,
+               'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '{e2e4}', 1, 32, $3)
+       RETURNING id`,
+      [userId, `ext${minted}`, playedAt]
+    );
+    await pool.query(
+      `INSERT INTO opening_nodes (user_id, game_id, subject, subject_color, subject_score, ply, fen_key, san)
+       VALUES ($1, $2, 'me', 'w', 0, $3, $4, $5)`,
+      [userId, g.rows[0].id, ply, fenKey, san]
+    );
+    return g.rows[0].id;
+  }
+
+  // The habits live at ply 3, under the report's default window of 6–20.
+  const filters = { subject: 'me', fromPly: 1, minGames: 2 };
+
+  test('a losing habit goes into the drill once, on the latest game it was played in', async () => {
+    const me = await user();
+    await playedOn(me, KEY, '2024-01-01');
+    const latest = await playedOn(me, KEY, '2025-06-01');
+    await playedOn(me, KEY, '2023-01-01');
+    await judgements.recordJudgements(pool, me, [item({ lossCp: 60 })]);
+
+    const first = await judgements.drillLosingHabits(pool, me, filters);
+    assert.equal(first.habits, 1);
+    assert.equal(first.stored, 1);
+    const drilled = (await pool.query(
+      `SELECT game_id, ply, fen_before, played_uci, best_uci, theme, swing_cp, kind
+         FROM mistake_reviews WHERE user_id = $1`, [me])).rows;
+    assert.deepEqual(drilled, [{
+      game_id: latest, ply: 3, fen_before: `${KEY} 0 1`, played_uci: 'f1c4',
+      best_uci: 'g1f3', theme: 'opening habit', swing_cp: -60, kind: 'engine',
+    }]);
+
+    const again = await judgements.drillLosingHabits(pool, me, filters);
+    assert.equal(again.alreadyInDrill, 1);
+    assert.equal(again.stored, 0);
+    assert.equal(Number((await pool.query(
+      'SELECT COUNT(*) n FROM mistake_reviews WHERE user_id = $1', [me])).rows[0].n), 1);
+  });
+
+  test('a habit that holds is not drilled', async () => {
+    const me = await user();
+    for (const day of ['2024-01-01', '2024-02-01', '2024-03-01']) await playedOn(me, KEY, day);
+    await judgements.recordJudgements(pool, me, [item({ verdict: 'holds', reason: null, wMove: 54 })]);
+    const answer = await judgements.drillLosingHabits(pool, me, filters);
+    assert.equal(answer.habits, 0);
+    assert.equal(answer.stored, 0);
+  });
+
+  test('a judgement kept before the drill\'s measure is counted, not guessed', async () => {
+    const me = await user();
+    for (const day of ['2024-01-01', '2024-02-01', '2024-03-01']) await playedOn(me, KEY, day);
+    await pool.query(
+      `INSERT INTO opening_judgements
+         (user_id, fen_key, move_uci, w_best, w_move, best_uci, best_line, move_line,
+          verdict, reason, engine, depth)
+       VALUES ($1, $2, 'f1c4', 55, 40, 'g1f3', '["Nf3"]', '["Bc4"]', 'mistake', 'lostChances', 'e', 20)`,
+      [me, KEY]
+    );
+    const answer = await judgements.drillLosingHabits(pool, me, filters);
+    assert.equal(answer.habits, 1);
+    assert.equal(answer.withoutLoss, 1);
+    assert.equal(answer.stored, 0);
   });
 
   test('deleting an archive takes the judgements no other game still reaches', async () => {

@@ -49,6 +49,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
   bool? _engineAvailable;
 
   bool _judging = false;
+  bool _drillingHabits = false;
   int _judgeDone = 0;
   int _judgeTotal = 0;
   OpeningTreeJudge? _activeJudge;
@@ -361,22 +362,55 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     final flagged = report.nodes.map((n) => n.fenKey).toSet();
     final extra =
         report.losingHabits.where((h) => !flagged.contains(h.fenKey)).toList();
-    if (extra.isEmpty) return const SizedBox.shrink();
+    if (report.losingHabits.isEmpty) return const SizedBox.shrink();
+    final count = report.losingHabits.length;
 
     return Container(
       margin: const EdgeInsets.only(top: AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Losing habits your score doesn't show",
-            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+          if (extra.isNotEmpty) ...[
+            Text(
+              "Losing habits your score doesn't show",
+              style:
+                  AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            for (final habit in extra) _buildLosingHabitRow(context, habit),
+            const SizedBox(height: AppSpacing.sm),
+          ],
+          // Every losing habit, flagged or not — the drill asks „here you
+          // play X; find the better move" (§9.4).
+          OutlinedButton.icon(
+            key: const Key('drill-losing-habits'),
+            onPressed: _drillingHabits ? null : _drillHabits,
+            icon: const Icon(Icons.school_outlined),
+            label: Text(count == 1
+                ? 'Drill this losing habit'
+                : 'Drill these $count losing habits'),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          for (final habit in extra) _buildLosingHabitRow(context, habit),
         ],
       ),
     );
+  }
+
+  Future<void> _drillHabits() async {
+    setState(() => _drillingHabits = true);
+    try {
+      final answer = await ArchiveApiService.instance
+          .drillLosingHabits(subject: widget.subject, color: _color);
+      if (!mounted) return;
+      if (answer.complete) {
+        AppFeedback.success(context, answer.summary);
+      } else {
+        AppFeedback.warning(context, answer.summary);
+      }
+    } catch (e) {
+      if (mounted) AppFeedback.error(context, 'Not added to the drill: $e');
+    } finally {
+      if (mounted) setState(() => _drillingHabits = false);
+    }
   }
 
   Widget _buildLosingHabitRow(BuildContext context, LosingHabit habit) {

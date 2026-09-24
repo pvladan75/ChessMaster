@@ -1965,6 +1965,7 @@ async function initDB(target = pool) {
         reason VARCHAR(16)
           CHECK (reason IN ('lostChances', 'grossInBook', 'missedMate')),
         book_games INTEGER CHECK (book_games >= 0),
+        loss_cp INTEGER CHECK (loss_cp >= 0),
         engine VARCHAR(64) NOT NULL,
         depth SMALLINT NOT NULL CHECK (depth BETWEEN 1 AND 99),
         judged_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -1973,6 +1974,12 @@ async function initDB(target = pool) {
           CHECK ((verdict = 'mistake') = (reason IS NOT NULL))
       );
     `);
+    // The drill's own measure, the loss in capped centipawns (§9.4), added
+    // after the table was first written: a database made before it keeps its
+    // rows and gains the column.
+    await client.query(
+      'ALTER TABLE opening_judgements ADD COLUMN IF NOT EXISTS loss_cp INTEGER CHECK (loss_cp >= 0)'
+    );
     logger.info('Verified database table & indexes: opening_judgements');
 
 

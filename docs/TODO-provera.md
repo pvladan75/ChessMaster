@@ -5901,6 +5901,10 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
    presude za te pozicije).
 6. [ ] **Bez engine-a.** Na telefonu (ili bez preuzetog engine-a) dugme je
    sivo i piše zašto.
+7. [ ] **U dril** (faza 9.4). Ispod navika dugme „Drill these N losing
+   habits": poruka „Added N habits to My mistakes."; Practise → My mistakes →
+   Drill mistakes nudi te pozicije (tema „opening habit", gubitak u cp).
+   Ponovni pritisak: „N were already there." — ništa dvaput.
 
 ## 236. Knjiga čiji font nemamo čita se kao slike; svi Fritz dijagrami — 23.9.2026, nije viđeno uživo
 

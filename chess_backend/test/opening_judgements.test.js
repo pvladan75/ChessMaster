@@ -29,6 +29,7 @@ function item(over = {}) {
     verdict: 'holds',
     reason: null,
     bookGames: 5120,
+    lossCp: 40,
     engine: '123-456',
     depth: 20,
     ...over,
@@ -51,7 +52,7 @@ function stubPool({ reached = [KEY], answer = (n) => Array(n).fill({ inserted: t
         return { rows, rowCount: rows.length };
       }
       if (/INSERT INTO opening_judgements/.test(flat)) {
-        const rows = answer(params.length / 13);
+        const rows = answer(params.length / 14);
         return { rows, rowCount: rows.length };
       }
       return { rows: [], rowCount: 0 };
@@ -90,6 +91,10 @@ test('each thing a device could get wrong is refused by name', () => {
     [item({ depth: 20.5 }), 'no-depth'],
     [item({ engine: ' ' }), 'no-engine'],
     [item({ bookGames: -1 }), 'no-book-count'],
+    // The drill ranks by it (§9.4); a judgement without it cannot be drilled.
+    [item({ lossCp: undefined }), 'no-loss-cp'],
+    [item({ lossCp: -5 }), 'no-loss-cp'],
+    [item({ lossCp: 12.5 }), 'no-loss-cp'],
   ];
   for (const [it, reason] of cases) {
     assert.equal(whyNotStorable(it), reason, JSON.stringify(it));
@@ -126,8 +131,8 @@ test('two judgements of one move in one batch: the deeper is offered, the other 
   const pool = stubPool();
   const tally = await recordJudgements(pool, 5, [item({ depth: 18 }), item({ depth: 22 })]);
   const insert = pool.calls.find((c) => /INSERT/.test(c.text));
-  assert.equal(insert.params.length, 13, 'one row offered');
-  assert.equal(insert.params[12], 22, 'the deeper one');
+  assert.equal(insert.params.length, 14, 'one row offered');
+  assert.equal(insert.params[13], 22, 'the deeper one');
   assert.equal(tally.stored, 1);
   assert.equal(tally.kept_deeper, 1);
 });

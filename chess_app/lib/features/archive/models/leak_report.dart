@@ -404,3 +404,54 @@ class LeakReport {
     );
   }
 }
+
+/// What `POST /games/openings/habits/drill` did with every losing habit
+/// (`docs/PLAN-MOJE-PARTIJE.md` §9.4): added to the drill, already in it,
+/// judged before the drill's measure was kept, or refused by the drill's door.
+class HabitDrillAnswer {
+  const HabitDrillAnswer({
+    required this.habits,
+    required this.stored,
+    required this.alreadyInDrill,
+    required this.withoutLoss,
+    required this.rejected,
+  });
+
+  final int habits;
+  final int stored;
+  final int alreadyInDrill;
+  final int withoutLoss;
+  final int rejected;
+
+  factory HabitDrillAnswer.fromJson(Map<String, dynamic> json) {
+    int read(String key) => (json[key] as num?)?.toInt() ?? 0;
+    return HabitDrillAnswer(
+      habits: read('habits'),
+      stored: read('stored'),
+      alreadyInDrill: read('alreadyInDrill'),
+      withoutLoss: read('withoutLoss'),
+      // A habit the drill's door counted as a duplicate is one already there
+      // under the same game; the player need not tell the two apart.
+      rejected: read('rejected'),
+    );
+  }
+
+  /// Whether every habit ended up in the drill, now or before.
+  bool get complete => withoutLoss == 0 && rejected == 0;
+
+  /// One sentence for the screen, every part that was not added said too.
+  String get summary {
+    String n(int count, String one, String many) =>
+        count == 1 ? '1 $one' : '$count $many';
+    final parts = <String>[
+      if (stored > 0) 'Added ${n(stored, 'habit', 'habits')} to My mistakes.',
+      if (alreadyInDrill > 0)
+        '${n(alreadyInDrill, 'was', 'were')} already there.',
+      if (withoutLoss > 0)
+        '${n(withoutLoss, 'was', 'were')} judged before the drill could '
+            'rank it — judge with the engine again to add it.',
+      if (rejected > 0) '${n(rejected, 'was', 'were')} refused.',
+    ];
+    return parts.isEmpty ? 'No losing habit to add.' : parts.join(' ');
+  }
+}

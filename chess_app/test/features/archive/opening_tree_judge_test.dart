@@ -149,6 +149,8 @@ void main() {
       expect(item['moveLine'], ['e4']);
       expect((item['wBest'] as double) - (item['wMove'] as double),
           closeTo(17.62, 0.1));
+      // +2.00 against 0.00: the drill's own measure, kept with the verdict.
+      expect(item['lossCp'], 200);
     });
 
     test('the same loss holds when the masters play it 10 times', () async {

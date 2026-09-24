@@ -147,6 +147,18 @@ class FakeArchiveApiService implements ArchiveApiService {
           {required String subject, String? color}) async =>
       throw UnimplementedError();
 
+  /// §9.4: what the drill door answers, and who asked it.
+  HabitDrillAnswer drillAnswer = const HabitDrillAnswer(
+      habits: 0, stored: 0, alreadyInDrill: 0, withoutLoss: 0, rejected: 0);
+  final drillCalls = <({String subject, String? color})>[];
+
+  @override
+  Future<HabitDrillAnswer> drillLosingHabits(
+      {required String subject, String? color}) async {
+    drillCalls.add((subject: subject, color: color));
+    return drillAnswer;
+  }
+
   @override
   Future<JudgementTally> sendJudgements(
           List<Map<String, dynamic>> judgements) async =>
@@ -371,6 +383,63 @@ void main() {
       expect(find.textContaining('Nc3 — 6 of 20 games'), findsOneWidget);
       expect(find.textContaining('Loses 22 winning chances — Nf3 was better'),
           findsOneWidget);
+    });
+
+    // §9.4, added by the lead: every losing habit, flagged or not, goes to the
+    // drill from one button, and what happened is said.
+    testWidgets(
+        'the losing habits go to the drill, flagged ones included, and the '
+        'answer is said, on $size', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      // Only a habit of a node already flagged: no „doesn't show" section,
+      // and still something to drill.
+      api.losingHabits = const [
+        LosingHabit(
+          fenKey: 'fen1',
+          fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+          ply: 2,
+          nodeGames: 50,
+          nodeScore: 0.45,
+          san: 'c5',
+          uci: 'c7c5',
+          games: 40,
+          score: 0.60,
+          share: 0.8,
+          habit: true,
+          cost: 5,
+        ),
+      ];
+      api.drillAnswer = const HabitDrillAnswer(
+          habits: 1, stored: 1, alreadyInDrill: 0, withoutLoss: 0, rejected: 0);
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      expect(find.text("Losing habits your score doesn't show"), findsNothing);
+      final button = find.byKey(const Key('drill-losing-habits'));
+      await tester.scrollUntilVisible(button, 200,
+          scrollable: find.byType(Scrollable).first);
+      expect(find.text('Drill this losing habit'), findsOneWidget);
+
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      expect(api.drillCalls, [(subject: 'test_user', color: 'w')]);
+      expect(find.text('Added 1 habit to My mistakes.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('no losing habit, no drill button, on $size', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('drill-losing-habits')), findsNothing);
     });
 
     testWidgets(

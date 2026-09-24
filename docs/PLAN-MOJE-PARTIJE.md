@@ -889,6 +889,24 @@ with its swing — so the existing spaced repetition asks „here you play X;
 find the better move", from a habit rather than one game. Gate: the request
 on the client seam; a habit already in the drill is not sent twice.
 
+*Built 24.9.2026 by the lead* (app 3955 → **3965**, a full run; backend
+**1697 / 1842**, both measured), **not as briefed**: the server builds the drill
+items, because it already holds everything they need — the judgement, the
+latest game each habit was played in, the ply — and the device would only have
+carried them back. `POST /games/openings/habits/drill` sends every losing habit
+through the drill's own door (`recordMistakes`), so its checks hold for habits
+too; a habit already in the drill (same position and move, whatever the game)
+is not sent again. The drill ranks by `swing_cp`, which a judgement did not
+keep, so `loss_cp` joined `opening_judgements` — the loss in centipawns capped
+at a thousand either way (`lossInCentipawns`, beside the rule), recorded while
+the engine's values are on the device; a judgement from before it is counted
+as „judged before the drill could rank it", never guessed. On the screen, one
+button, „Drill these N losing habits", under the losing habits — every one,
+flagged or not — and one sentence for what happened. Ten mutations across
+server and app, each red. The first draft of the service method sent the
+colour unconverted; the service's own `_wireColor` exists for exactly that bug,
+found once before on the repertoire diff.
+
 **9.5 — the Lichess judge [lead, the owner's yes].** Section 1's optional
 judge (`&judge=true`, Lichess's cloud with the player's token) is superseded
 by 9.3. It is removed **after** the owner's live pass, not before.

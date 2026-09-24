@@ -32,6 +32,7 @@ const {
 } = require('../services/openingLeaks');
 const {
   recordJudgements, attachJudgements, attachBookCounts, losingHabits,
+  drillLosingHabits,
 } = require('../services/openingJudgements');
 const { sharedOpeningBook } = require('../services/openingBook');
 const {
@@ -495,6 +496,21 @@ router.post('/openings/backfill', authenticateToken, importLimiter, async (req, 
     return res.json(await backfillNodes(pool, req.user.id));
   } catch (err) {
     return fail(res, err, 'Failed to backfill openings.');
+  }
+});
+
+// POST /games/openings/habits/drill  { subject, color }
+//
+// The losing habits of the report into the mistake drill (§9.4), on the latest
+// game each was played in. Answered with what happened to every habit: stored,
+// already in the drill, judged before the drill's measure was kept, or refused
+// by the drill's own door with its reason.
+router.post('/openings/habits/drill', authenticateToken, judgementsLimiter, async (req, res) => {
+  try {
+    return res.json(await drillLosingHabits(pool, req.user.id, filtersOf(req.body ?? {})));
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Habits could not be added to the drill.');
   }
 });
 

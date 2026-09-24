@@ -290,6 +290,9 @@ class OpeningTreeJudge {
         'moveUci': uci,
         'wBest': winningChances(best),
         'wMove': winningChances(played),
+        // The drill's own measure (§9.4): kept now, while the engine's values
+        // are here, because a judgement read back later has only chances.
+        'lossCp': lossInCentipawns(best: best, played: played),
         'bestUci': bestLine.bestMoveLan,
         'bestLine': bestLine.sanMoveList,
         'moveLine': playedLine.sanMoveList,

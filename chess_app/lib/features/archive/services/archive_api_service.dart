@@ -258,6 +258,31 @@ class ArchiveApiService {
     throw Exception('Failed to store judgements: ${response.body}');
   }
 
+  /// Puts the losing habits of [subject]'s report into the mistake drill
+  /// (`POST /games/openings/habits/drill`, §9.4). The server builds each item
+  /// from what it already holds — the judgement, the latest game — so nothing
+  /// of it travels from here.
+  Future<HabitDrillAnswer> drillLosingHabits(
+      {required String subject, String? color}) async {
+    final uri = Uri.parse('$backendUrl/games/openings/habits/drill');
+    final response = await _post(
+      uri,
+      {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      jsonEncode({
+        'subject': subject,
+        if (_wireColor(color) != null) 'color': _wireColor(color),
+      }),
+    );
+    if (response.statusCode == 200) {
+      return HabitDrillAnswer.fromJson(
+          Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+    }
+    throw Exception('Habits could not be added to the drill: ${response.body}');
+  }
+
   Future<Map<String, int>> backfill() async {
     final uri = Uri.parse('$backendUrl/games/openings/backfill');
     final response =

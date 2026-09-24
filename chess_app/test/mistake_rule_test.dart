@@ -122,6 +122,23 @@ void main() {
     });
   });
 
+  group('the loss in centipawns, for the drill', () {
+    int loss(EngineValue best, EngineValue played) =>
+        lossInCentipawns(best: best, played: played);
+
+    test('the difference, never below zero', () {
+      expect(loss(EngineValue.cp(120), EngineValue.cp(-80)), 200);
+      expect(loss(EngineValue.cp(30), EngineValue.cp(45)), 0);
+    });
+
+    test('a value is capped at a thousand either way, a mate included', () {
+      // As Lichess counts average loss: a mate is a thousand, not infinity.
+      expect(loss(const EngineValue.mate(3), EngineValue.cp(800)), 200);
+      expect(loss(EngineValue.cp(1500), EngineValue.cp(900)), 100);
+      expect(loss(EngineValue.cp(200), const EngineValue.mate(-2)), 1200);
+    });
+  });
+
   test('a decided position is one side at 97 or more', () {
     expect(isDecided(97), isTrue);
     expect(isDecided(96.9), isFalse);

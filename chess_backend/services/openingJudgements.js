@@ -20,7 +20,8 @@
 // with it (archiveDeletion.js).
 
 const { Chess } = require('chess.js');
-const { fenFromKey } = require('./openingLeaks');
+const { fenFromKey, frequentNodesReport } = require('./openingLeaks');
+const { recordMistakes } = require('./mistakeReviews');
 const { OpeningBookUnavailable } = require('./openingBook');
 
 /// One batch from the device. The owner's archive holds 573 habit moves; a
@@ -88,6 +89,9 @@ function whyNotStorable(item) {
   if (!replays(fen, item.bestUci, item.bestLine)) return 'best-line-does-not-replay';
   if (!replays(fen, item.moveUci, item.moveLine)) return 'move-line-does-not-replay';
   if (!isChances(item.wBest) || !isChances(item.wMove)) return 'not-chances';
+  // The drill's measure (§9.4). Required: a habit the drill cannot rank is a
+  // habit it cannot show.
+  if (!Number.isInteger(item.lossCp) || item.lossCp < 0 || item.lossCp > 2000) return 'no-loss-cp';
   if (!VERDICTS.has(item.verdict)) return 'no-verdict';
   // A mistake says why, and a move that holds has no reason to give: the rule's
   // own shape, which the table's check holds as well.
@@ -163,7 +167,7 @@ async function recordJudgements(pool, userId, items = []) {
         userId, fenKey, item.moveUci, item.wBest, item.wMove, item.bestUci,
         JSON.stringify(item.bestLine), JSON.stringify(item.moveLine),
         item.verdict, item.verdict === 'mistake' ? item.reason : null,
-        item.bookGames ?? null, item.engine.trim(), item.depth,
+        item.bookGames ?? null, item.lossCp, item.engine.trim(), item.depth,
       ];
       const start = params.length;
       params.push(...values);
@@ -174,13 +178,14 @@ async function recordJudgements(pool, userId, items = []) {
     const result = await pool.query(
       `INSERT INTO opening_judgements
          (user_id, fen_key, move_uci, w_best, w_move, best_uci, best_line,
-          move_line, verdict, reason, book_games, engine, depth)
+          move_line, verdict, reason, book_games, loss_cp, engine, depth)
        VALUES ${tuples.join(', ')}
        ON CONFLICT (user_id, fen_key, move_uci) DO UPDATE SET
          w_best = EXCLUDED.w_best, w_move = EXCLUDED.w_move,
          best_uci = EXCLUDED.best_uci, best_line = EXCLUDED.best_line,
          move_line = EXCLUDED.move_line, verdict = EXCLUDED.verdict,
          reason = EXCLUDED.reason, book_games = EXCLUDED.book_games,
+         loss_cp = EXCLUDED.loss_cp,
          engine = EXCLUDED.engine, depth = EXCLUDED.depth, judged_at = NOW()
        WHERE opening_judgements.depth <= EXCLUDED.depth
        RETURNING (xmax = 0) AS inserted`,
@@ -217,7 +222,7 @@ async function judgementsOf(pool, userId, fenKeys) {
   if (fenKeys.length === 0) return byKey;
   const { rows } = await pool.query(
     `SELECT fen_key, move_uci, w_best, w_move, best_uci, best_line, move_line,
-            verdict, reason, book_games, engine, depth
+            verdict, reason, book_games, loss_cp, engine, depth
        FROM opening_judgements
       WHERE user_id = $1 AND fen_key = ANY($2::text[])`,
     [userId, fenKeys],
@@ -233,6 +238,7 @@ async function judgementsOf(pool, userId, fenKeys) {
       bestLine: r.best_line,
       moveLine: r.move_line,
       bookGames: r.book_games,
+      lossCp: r.loss_cp,
       depth: r.depth,
       engine: r.engine,
     });
@@ -311,6 +317,75 @@ function attachBookCounts(nodes, book) {
   }
 }
 
+/// The theme a habit is drilled under — one bucket in the drill's recurrence,
+/// beside the tactical motifs and the endgame signatures.
+const DRILL_THEME = 'opening habit';
+
+/// Puts the losing habits of [filters] into the mistake drill (§9.4): each on
+/// the latest game in which it was played, through the drill's own door
+/// (`recordMistakes`), so the drill's checks — the game is the caller's own —
+/// hold for habits as they do for everything else. A habit already in the drill
+/// is not sent again; a judgement from before the drill's measure was kept is
+/// counted, not guessed.
+async function drillLosingHabits(pool, userId, filters) {
+  const every = await frequentNodesReport(pool, userId, filters);
+  await attachJudgements(pool, userId, every.nodes);
+  const habits = losingHabits(every.nodes);
+  const answer = {
+    habits: habits.length,
+    alreadyInDrill: 0,
+    withoutLoss: 0,
+    read: 0,
+    stored: 0,
+    duplicate: 0,
+    rejected: 0,
+    rejected_by_reason: {},
+  };
+  if (habits.length === 0) return answer;
+
+  // Where each habit was last played: the game the drill opens it in.
+  const { rows: last } = await pool.query(
+    `SELECT DISTINCT ON (n.fen_key, n.san) n.fen_key, n.san, n.game_id, n.ply
+       FROM opening_nodes n
+       JOIN user_games g ON g.id = n.game_id
+      WHERE n.user_id = $1 AND n.subject = $2 AND n.fen_key = ANY($3::text[])
+      ORDER BY n.fen_key, n.san, g.played_at DESC NULLS LAST, n.game_id DESC`,
+    [userId, every.subject, [...new Set(habits.map((h) => h.fenKey))]],
+  );
+  const lastOf = new Map(last.map((r) => [`${r.fen_key}|${r.san}`, r]));
+
+  // A habit is the same habit in every game it was played in, so „already in
+  // the drill" is the position and the move, not the game.
+  const { rows: drilled } = await pool.query(
+    `SELECT fen_before, played_uci FROM mistake_reviews
+      WHERE user_id = $1 AND fen_before = ANY($2::text[])`,
+    [userId, [...new Set(habits.map((h) => h.fen))]],
+  );
+  const inDrill = new Set(drilled.map((r) => `${r.fen_before}|${r.played_uci}`));
+
+  const items = [];
+  for (const habit of habits) {
+    if (inDrill.has(`${habit.fen}|${habit.uci}`)) { answer.alreadyInDrill += 1; continue; }
+    if (habit.judgement.lossCp === null || habit.judgement.lossCp === undefined) {
+      answer.withoutLoss += 1;
+      continue;
+    }
+    const game = lastOf.get(`${habit.fenKey}|${habit.san}`);
+    items.push({
+      gameId: game ? game.game_id : null,
+      ply: game ? game.ply : null,
+      fenBefore: habit.fen,
+      playedUci: habit.uci,
+      bestUci: habit.judgement.bestUci,
+      theme: DRILL_THEME,
+      // The drill's sign: what the move did to the mover, so a loss is negative.
+      swingCp: -habit.judgement.lossCp,
+    });
+  }
+  if (items.length > 0) Object.assign(answer, await recordMistakes(pool, userId, items));
+  return answer;
+}
+
 /// Deletes the judgements of positions no game of [userId] reaches any more —
 /// called inside the transaction that deleted the games.
 async function reapOrphans(client, userId) {
@@ -330,6 +405,8 @@ module.exports = {
   attachJudgements,
   attachBookCounts,
   losingHabits,
+  drillLosingHabits,
+  DRILL_THEME,
   reapOrphans,
   whyNotStorable,
   uciOf,

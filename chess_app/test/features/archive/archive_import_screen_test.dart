@@ -35,6 +35,11 @@ class FakeArchiveApiService implements ArchiveApiService {
           {required String subject, String? color}) async =>
       throw UnimplementedError();
   @override
+  Future<HabitDrillAnswer> drillLosingHabits(
+          {required String subject, String? color}) async =>
+      throw UnimplementedError();
+
+  @override
   Future<JudgementTally> sendJudgements(
           List<Map<String, dynamic>> judgements) async =>
       throw UnimplementedError();

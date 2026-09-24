@@ -77,6 +77,24 @@ double winningChances(EngineValue value) {
   return 50 + 50 * (2 / (1 + math.exp(-0.00368208 * value.cp!)) - 1);
 }
 
+/// What a value is worth in centipawns for the drill's „Loss: N cp" and its
+/// ranking, capped at a thousand either way as Lichess counts an average loss:
+/// a mate is a thousand, not infinity. The judgement itself is in chances;
+/// this is only the number the drill has always shown.
+const int kCentipawnCap = 1000;
+
+int _cappedCentipawns(EngineValue value) {
+  final mate = value.mate;
+  if (mate != null) return mate > 0 ? kCentipawnCap : -kCentipawnCap;
+  return value.cp!.clamp(-kCentipawnCap, kCentipawnCap);
+}
+
+/// The played move's loss against the best in capped centipawns, never below
+/// zero.
+int lossInCentipawns(
+        {required EngineValue best, required EngineValue played}) =>
+    math.max(0, _cappedCentipawns(best) - _cappedCentipawns(played));
+
 /// Whether a position with [chances] for the side to move is already decided.
 bool isDecided(double chances) =>
     chances >= kDecidedChances || chances <= 100 - kDecidedChances;

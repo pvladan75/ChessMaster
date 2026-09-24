@@ -7445,3 +7445,28 @@ Brojevi: aplikacija 3932 → 3955 (+18 workerovih, +5 vođinih), pun prolaz;
 analyze 26 poznatih infoa (jedno novo upozorenje u testu — lažni pošiljalac
 bez `return` posle promene tipa — ispravljeno pre merenja).
 
+## 24.9.2026 — §9.4: navike u dril, i gde podatak već stoji
+
+Brif je rekao da uređaj šalje stavke drila kroz `POST /games/mistakes`. Server
+već drži sve što stavka traži — presudu, poslednju partiju u kojoj je navika
+odigrana, ply — pa bi uređaj samo vraćao serveru ono što mu je server dao.
+Zato `POST /games/openings/habits/drill` gradi stavke na serveru i šalje ih
+kroz vrata drila (`recordMistakes`), da njegove provere važe i za navike.
+**Pre nego što podatak krene na put, pitaj gde već stoji.**
+
+Jedna stvar nije stajala nigde: dril rangira po `swing_cp`, a presuda je čuvala
+samo šanse. Obrnuti račun krive bi bio druga kopija konstante (pravilo 12) i
+za mat beskonačan; zato `loss_cp` ide uz presudu, izračunat na uređaju dok su
+vrednosti engine-a tu (`lossInCentipawns`, pored pravila, mat = hiljadu kao kod
+Lichess-a). Presuda od pre toga se broji kao „judged before the drill could
+rank it", ne pogađa se.
+
+Prvi nacrt metode servisa slao je boju neprevedenu — a servis ima `_wireColor`
+baš zbog te greške, jednom već plaćene na razlici repertoara. **Kad servis ima
+pomoćnik za žicu, nova metoda ga koristi i test ga pita** („white" → `w` na
+klijentskom šavu).
+
+Deset mutacija (server i aplikacija), sve crvene. Brojevi: aplikacija 3955 →
+3965, backend 1697 bez baze (nove provere su u postojećem slučaju), 1839 →
+1842 sa bazom; sve izmereno, baza na privremenom klasteru.
+
