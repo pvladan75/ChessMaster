@@ -338,17 +338,28 @@ mate with its distance. Depth 30 is deeper than any depth the deepening
 reaches, so such an answer is **settled** — what it cannot do is agree with a
 second depth, and it does not have to.
 
-Half of this exists. The tutorial keeps the engine's answers on the device
-(`game_tutorial_io/facts_store.dart`): four lines a position, in a file per
-game, keyed by the game, the depth and **the engine binary** — phase 0 of
-`PLAN-SKELET.md` showed the answers are a function of exactly the binary. The
-review does not read it, and runs a walk of its own with one line.
+Half of this exists, **in two places**. The tutorial keeps the engine's answers
+on the device (`game_tutorial_io/facts_store.dart`): four lines a position, in
+a file per game, keyed by the game, the depth and **the engine binary** —
+phase 0 of `PLAN-SKELET.md` showed the answers are a function of exactly the
+binary. And the review already asks through **`EvalCache`**
+(`lib/core/services/eval_cache.dart`, found 24.9.2026 while measuring):
+whole-game review, automatic tree generation and puzzle extraction share it,
+so reviewing a game and then expanding it does not search a position twice.
+But it lives in memory only, is cleared whenever the engine restarts, holds
+2000 entries, and answers only the exact question asked — the same depth and
+the same number of lines — so a depth-30 answer does not serve a depth-20
+question.
 
-So there is **one store of the engine's answers, by position**, and every
-reader asks it first:
+So there is **one store of the engine's answers, by position** — **grown out
+of `EvalCache`**, which is already the decorator every reader passes through,
+never a third store beside it and the tutorial's — and every reader asks it
+first:
 
-- **the key is the position** (the first four FEN fields, as `fen_key`), and
-  an entry says **which engine** (the binary, as today), **what depth** and
+- **the key is the whole FEN**, as `EvalCache` keeps it and for the reason
+  written beside it there: the halfmove clock changes what the engine reports
+  near the fifty-move rule, and transpositions across games are not where the
+  saving is (the saving is within a game, below). An entry says **which engine** (the binary, as today), **what depth** and
   **how many lines** it holds, with each line's value (a mate as a mate) and its
   PV;
 - **an answer serves a question when its depth is at least the one asked and
@@ -368,8 +379,8 @@ reader asks it first:
   that cannot be read is an empty store, not an error; clearing it costs time,
   never a result;
 - one limit said plainly: the FEN does not hold the game's history, so a
-  position inside a repetition, or near the fifty-move limit, is searched in
-  its game and not taken from the store.
+  position inside a repetition is searched in its game and not taken from the
+  store (the fifty-move limit is in the key, as the halfmove clock).
 
 The review then says how much it searched: „23 positions from earlier
 analysis, 41 searched".
@@ -712,7 +723,79 @@ settle a candidate), repeatability with one thread and a node limit, the only
 moves found confirmed at depth 20, and **one of the owner's games reviewed end
 to end on an idle desktop and on the phone** — which checks the budget above.
 
+**Measured 24.9.2026, the desktop idle** (`phase0b.mjs`):
+
+- **A game reviewed end to end**, as the plan would: the walk at depth 20 with
+  one line and the hash kept, then the confirming search (two lines and the
+  played move alone) on every move that lost 5 or more, then depth 24 where
+  the two disagreed. The app's engine (`StockfishService`) sets no thread count,
+  so Stockfish runs its default: **one thread, 16 MB of hash** — measured that
+  way, and with eight threads and 256 MB beside it:
+
+  | the owner's game | plies | one thread: walk / checks / total | eight threads: total |
+  |---|---|---|---|
+  | 5 | 67 | 41 s / 30 s (13 candidates, 0 deepened) / **70 s** | 291 s |
+  | 19 | 69 | 45 s / 57 s (16 candidates, 3 deepened) / **103 s** | 237 s |
+
+  **One thread is two to four times faster to a fixed depth** — more threads
+  search wider on the way to it — and it is the configuration that gives the
+  same answer twice. The review stays on one thread, and the desktop's budget of
+  three minutes holds with room for a sharper game. The phone is not measured
+  yet: it needs the app on the device.
+- **The only moves found, confirmed at depth 20**: of 44 / 29 / 58 found at
+  depth 16 (this count keeps the book positions the earlier one left out), the
+  best move is the same at 20 in every one, and the gap is still 15 or more in
+  42 / 25 / 48 — **2.1, 2.1 and 2.4 a game**.
+- **Repeatability**: 30 of the owner's positions, each searched twice from an
+  empty hash. Four threads at depth 20: the loss differs by up to 3.4 (p90
+  2.3), **the best move differs in 8 of 30**, and the mark at 10 flips once.
+  **One thread with a limit of 3 million nodes: identical in all 30**, loss and
+  move, reaching depth 23 at the median. One thread is what the review runs, so
+  a game reviewed twice is marked the same.
+- **The depths a search reports on its way do not settle a candidate.** 150
+  candidates (loss of 5 or more at depth 20, 50 from each set), searched once to
+  depth 24 with every depth kept: where three consecutive depths agree within 2
+  and fall on one side of 10, depth 24 disagrees in 9 of 80 at depth 20 (11%) —
+  where the disagreement rule of §3 is wrong in about 3%. **The idea is
+  dropped**; the confirming search and the deepening stand as written.
+- **What those depths do give is a difficulty**: the depth from which the best
+  move stays the best up to 24 — at 8 or less for 44 of the 150, 9–12 for 24,
+  13–16 for 29, 17–20 for 20, 21–24 for 33. A puzzle could carry it as easy /
+  medium / hard at no extra search, since the confirming search passes through
+  those depths anyway. **Not in any phase until the owner says so** (§7).
+
+With these, **phase 0 is measured but for the phone**, which needs the app on
+the device: the gate's remaining line is one of the owner's games reviewed on
+the phone, which the owner's live pass can give.
+
 ### Phase 1 — the criteria in the app [implementer]
+
+**Proposed split, for the owner's yes** (the lead, 24.9.2026, after phase 0):
+the list below has grown to some fifteen items across three layers, too many
+for one brief and one gate. Built in this order, each with the gate cases of
+its own items from the gate below:
+
+- **1.1 — the store** [lead, then implementer]: `EvalCache` grows into the store
+  of §3 — an answer serves a question at its depth or shallower with at least
+  its lines, several depths kept, the whole line kept, on disk per account
+  (fenced by `AccountLocalState.epoch`, wiped with the drafts), the engine
+  binary in every entry. `winningChances` and the rule are already built
+  (`lib/core/services/mistake_rule.dart`, `PLAN-MOJE-PARTIJE.md` §9.1).
+- **1.2 — the review's judgement** [implementer]: `annotateNodeChain` on the
+  rule — the walk, candidates from `A − 5`, the confirming search, the
+  deepening on disagreement within the budget, the book (`walkMastersBook` /
+  `applyMastersBook` lifted, the 10-game minimum), the tablebase with seven men
+  or fewer, the missed mate, what could not be judged counted; the pawn slider
+  gone; the dialog saying the depth, the unsettled and the unjudged, and a
+  clean game said to be clean. One thread, as the app's engine already runs
+  (phase 0: faster to a fixed depth, and the same answer twice).
+- **1.3 — the puzzles** [implementer]: from the judged moments — `B` 15 with the
+  same best move at both depths, the trivial ranked last, one puzzle per chance
+  missed within 4 plies, the only moves listed apart and unticked, the mate's
+  `accept` list, three lines cut by the raised `answerPlyCount` (12), the
+  position before the mistake, the clock among the facts.
+
+Phase 1b (the tutorial) follows 1.3 as written.
 
 - `winningChances` (one home) and its test at the table's points.
 - The store of §3, „The engine's answers are kept": one home, by position, with
@@ -960,6 +1043,9 @@ the owner says so.
   And a file that says „depth 30" cannot be checked. If it is ever read, it is
   labelled „from the file, depth unknown" and never stands in for a puzzle's
   confirming search.
+- **A difficulty for every puzzle** (measured in phase 0): the depth from
+  which the best move stays the best — easy, medium or hard at no extra search,
+  since the confirming search passes through those depths anyway.
 - **Weighed and not changed: the curve itself.** `W` is Lichess's curve for
   its own players; a +3 converts more surely for a grandmaster than at 1200.
   Calibrating it by level is second order once `A` is taken from the player's
