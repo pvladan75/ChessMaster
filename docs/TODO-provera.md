@@ -5878,6 +5878,21 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 238. „Review entire game" kaže šta radi — 24.9.2026, nije viđeno uživo
+
+Nova verzija aplikacije. U Analysis → „Review entire game":
+
+1. [ ] **Bez izbora nema starta.** Kad se otvori, Blunder Alert i zagonetke su
+   isključeni: „Start analysis" je sivo, a iznad piše „Turn on Blunder Alert
+   or puzzles — without either, the review has nothing to show."
+2. [ ] **Jedno je dosta.** Uključi samo jedno od dvoje — dugme se pali,
+   rečenica nestaje.
+3. [ ] **Tekst ne obećava komentare.** Uvodna rečenica kaže da pregled ne piše
+   komentar pod potez i upućuje na „Generate AI comment".
+4. [ ] **Kraj kaže šta je nađeno.** Posle pregleda: „Done — reviewed N
+   positions." i „Tagged N blunders." — a u partiji su `??` oznake na tim
+   potezima.
+
 ## 237. Engine sudi o navikama u otvaranju — 24.9.2026, nije viđeno uživo
 
 **Server i aplikacija** (restart backenda — `initDB` pravi tabelu

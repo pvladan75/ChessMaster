@@ -13,9 +13,6 @@ import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 
 /// Walks the game through the engine and, in one pass:
-/// - writes a combined tactical+positional comment (and White-relative eval)
-///   into every move ("review this whole game" instead of stepping through
-///   move by move);
 /// - optionally tags blunders ('??') and adds the engine's suggested
 ///   improvement as a short side variation ("Blunder Alert");
 /// - optionally finds the same blunders as puzzles, lists them, and keeps
@@ -26,6 +23,13 @@ import 'package:chess_app/widgets/app_slider.dart';
 /// Blunder tagging and puzzle extraction reuse the single engine walk this
 /// dialog already runs (via [GameAnalysisWalkerService.annotateNodeChain]'s
 /// returned moments) instead of re-analyzing the game.
+///
+/// It writes **no comment** under a move: since 22.9.2026 the tactical and
+/// positional findings are not shown to the reader. So a review with neither
+/// Blunder Alert nor puzzles on would walk the whole game (six minutes on a
+/// phone) and change nothing; Start stays off until one of them is on, and
+/// the end says what was found, never "commented". The owner waited out such
+/// a walk on 24.9.2026 and went looking for the comments the dialog promised.
 class GameReviewDialog extends StatefulWidget {
   final AnalysisNode rootNode;
   final AnalysisNode currentNode;
@@ -80,6 +84,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
 
   int _taggedBlunders = 0;
   List<LocalPuzzle> _extractedPuzzles = const [];
+
+  /// Whether the review would leave anything behind: the walk alone writes
+  /// nothing onto the game.
+  bool get _hasOutput => _blunderAlertEnabled || _extractPuzzlesEnabled;
 
   bool get _hasCurrentNodeOption => widget.currentNode.id != widget.rootNode.id;
 
@@ -250,7 +258,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       Text(
         moveCount == 0
             ? 'No moves played from the selected position.'
-            : 'The engine will step through $moveCount moves and record a tactical and positional comment plus eval for each. Works on part of a game too — see option below.',
+            : 'The engine will step through $moveCount moves, mark the '
+                'mistakes and find puzzles in them — choose which below. It '
+                'writes no comment under a move; for that, use "Generate AI '
+                'comment" on the move. Works on part of a game too.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
       const SizedBox(height: AppSpacing.lg),
@@ -386,6 +397,15 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           ),
         ),
       const SizedBox(height: AppSpacing.sm),
+      if (moveCount > 0 && !_hasOutput) ...[
+        Text(
+          'Turn on Blunder Alert or puzzles — without either, the review '
+          'has nothing to show.',
+          key: const Key('review-needs-output'),
+          style: AppText.caption.copyWith(color: context.colors.warning),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+      ],
       SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
@@ -394,7 +414,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
-          onPressed: moveCount == 0 ? null : _start,
+          onPressed: moveCount == 0 || !_hasOutput ? null : _start,
         ),
       ),
     ];
@@ -415,7 +435,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             Icon(Icons.check_circle, color: context.colors.accent, size: 36),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Done! Commented on $_processed positions.',
+              'Done — reviewed $_processed positions.',
               textAlign: TextAlign.center,
               style: AppText.subtitle.copyWith(color: context.colors.accent),
             ),

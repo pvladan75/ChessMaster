@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3965 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3968 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1842 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -697,6 +697,12 @@ Then its 9.4 (→ **3965**; backend → **1697 / 1842**, all measured): the losi
 habits into the mistake drill, built by the server from what it already holds
 rather than carried back by the device, with `loss_cp` kept beside each
 judgement because the drill ranks in centipawns.
+Then „Review entire game" says what it does (→ **3968**, a full run): since
+22.9 it writes no comment, yet it promised one for every move and ended on
+„Commented on 115 positions" — the owner waited six minutes on the phone and
+looked for them. Start stays off until Blunder Alert or puzzles is on. **When
+an action stops doing something, read the texts that promise it**, before the
+button and after it.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

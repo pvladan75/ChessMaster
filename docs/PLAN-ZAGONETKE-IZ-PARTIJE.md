@@ -159,8 +159,10 @@ near-perfect game; the trigger from Fable's F3). After the walk:
    positions closest to the threshold are deepened first, so a limited budget
    is spent where it decides;
 5. the deepening stops when everything is settled or a **time budget** for the
-   review is spent — **3 minutes on the desktop, 1 on the phone** (the owner,
-   24.9.2026), the disagreement gap **5** — what is left unsettled is not marked, and the dialog says
+   review is spent — **3 minutes on the desktop** (the owner, 24.9.2026; the
+   phone's minute was measured out of reach the same day, §5 phase 0, and
+   what the phone does instead is the owner's to choose), the disagreement
+   gap **5** — what is left unsettled is not marked, and the dialog says
    how many. The depth and the nodes of every settling search are recorded.
 
 Deep searches run only on those few positions, never on the game. A game in
@@ -709,7 +711,8 @@ is the reference; the owner's and the club's samples are 120 moves that lost
 **The owner's choice, 24.9.2026**: **`A` = 10** at the confirming depth 20;
 **`B` = 15**; **„in the book" = at least 10 master games**; the deepening's gap
 **5**; the time budget for the confirming searches and the deepening of one
-review **3 minutes on the desktop and 1 minute on the phone**, the positions
+review **3 minutes on the desktop and 1 minute on the phone** (the phone's
+minute measured out of reach the same day, below), the positions
 closest to the threshold first, the rest counted as unsettled. At `A` 10 and
 `B` 15 phase 0's depth-20 grid gives 34 puzzles in the owner's 20 games, 21 in
 the club's 12 and 5 in the grandmasters' 20 (1.7, 1.75 and 0.25 a game), and
@@ -764,9 +767,45 @@ to end on an idle desktop and on the phone** — which checks the budget above.
   medium / hard at no extra search, since the confirming search passes through
   those depths anyway. **Not in any phase until the owner says so** (§7).
 
-With these, **phase 0 is measured but for the phone**, which needs the app on
-the device: the gate's remaining line is one of the owner's games reviewed on
-the phone, which the owner's live pass can give.
+**The phone, measured by the owner 24.9.2026** — one of the owner's games (115
+positions) through today's „Review entire game" at depth 20, the release
+build: **380 seconds, 3.3 s a position**, against 0.60–0.66 on the idle
+desktop (41 s for 67, 45 s for 69). **The phone is five to five and a half
+times slower**, and that is the walk alone, which the new rule keeps.
+
+- **The phone's minute cannot hold.** The walk alone is six minutes; the
+  confirming searches would add what they take on the desktop (30 and 57 s)
+  times five — about two and a half to five minutes more. A game like the
+  owner's is some ten minutes on the phone, whatever the budget does to the
+  deepening.
+- **What the phone does instead is the owner's choice**, and the lead
+  proposes the first: **(a) the review runs in the background** — the owner
+  leaves the dialog, the app says when it is done, and the rule and depth are
+  the desktop's, so a game is marked the same on both; or **(b) a lower depth
+  on the phone**, said on the screen — which is exactly what „What the depth
+  allows" warns against: at depth 16 grandmaster moves that lost 5–10 lost 15
+  or more at 24, so the same game would be marked differently on the two
+  devices. Until the owner says, 1.2 is not briefed.
+- **On the phone the walk's timeout is reached.** Each position has 12
+  seconds (`game_analysis_walker_service.dart`), and at 3.3 s on average the
+  harder ones pass it. `analyzePositionSync` then returns **the lines it had**,
+  from a shallower depth, and **`EvalCache` keeps them under the depth asked**
+  (`keyFor(fen, depth, multiPV)`) — §9.3's fault of `PLAN-MOJE-PARTIJE.md`
+  (a stopped search recorded as the depth asked) in the cache every review
+  shares. How many positions of the owner's game it hit is not known: nothing
+  counts it. 1.1 closes it (below).
+
+The same try found **the dialog promising what it no longer did** — „a
+tactical and positional comment plus eval for each" move and, at the end,
+„Done! Commented on 115 positions." — although the review writes no comment
+since the motifs became AI-only on 22.9.2026, and with Blunder Alert and
+puzzles both off (the defaults) it changes nothing at all. The owner waited
+out the six minutes and went looking for the comments. Fixed the same day:
+Start stays off until one of the two is on, the promise is gone, the end says
+„Done — reviewed N positions." beside what was tagged and found
+(`game_review_honest_test.dart`).
+
+With these, **phase 0 is measured in full.**
 
 ### Phase 1 — the criteria in the app [implementer]
 
@@ -779,7 +818,10 @@ its own items from the gate below:
   of §3 — an answer serves a question at its depth or shallower with at least
   its lines, several depths kept, the whole line kept, on disk per account
   (fenced by `AccountLocalState.epoch`, wiped with the drafts), the engine
-  binary in every entry. `winningChances` and the rule are already built
+  binary in every entry. **An entry keeps the depth the search reached, never
+  the depth asked** — the phone's timeout (phase 0) returns a shallower
+  answer, and today's `EvalCache` files it under the depth asked; such an
+  answer is stored at its own depth and the question counted as unanswered. `winningChances` and the rule are already built
   (`lib/core/services/mistake_rule.dart`, `PLAN-MOJE-PARTIJE.md` §9.1).
 - **1.2 — the review's judgement** [implementer]: `annotateNodeChain` on the
   rule — the walk, candidates from `A − 5`, the confirming search, the
@@ -787,7 +829,9 @@ its own items from the gate below:
   `applyMastersBook` lifted, the 10-game minimum), the tablebase with seven men
   or fewer, the missed mate, what could not be judged counted; the pawn slider
   gone; the dialog saying the depth, the unsettled and the unjudged, and a
-  clean game said to be clean. One thread, as the app's engine already runs
+  clean game said to be clean. **On the phone as the owner chooses** (phase 0,
+  the phone: the background run proposed, or a lower depth said on the
+  screen) — not briefed before the owner decides. One thread, as the app's engine already runs
   (phase 0: faster to a fixed depth, and the same answer twice).
 - **1.3 — the puzzles** [implementer]: from the judged moments — `B` 15 with the
   same best move at both depths, the trivial ranked last, one puzzle per chance

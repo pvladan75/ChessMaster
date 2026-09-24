@@ -7470,3 +7470,24 @@ Deset mutacija (server i aplikacija), sve crvene. Brojevi: aplikacija 3955 →
 3965, backend 1697 bez baze (nove provere su u postojećem slučaju), 1839 →
 1842 sa bazom; sve izmereno, baza na privremenom klasteru.
 
+## 24.9.2026 — „Review entire game" je obećavao komentare koje više ne piše
+
+Vlasnik je na telefonu pustio pregled partije (115 pozicija, dubina 20): šest
+minuta i poruka „Done! Commented on 115 positions." — a komentara nigde. Od
+22.9.2026 pregled ne piše komentar pod potez (motivi su samo za AI), ali je
+dijalog i dalje obećavao „a tactical and positional comment plus eval for each"
+i na kraju brojao „komentarisane" pozicije. Sa podrazumevanim podešavanjima
+(Blunder Alert i zagonetke isključeni) šetnja ne menja ništa. **Kad se izbaci
+ono što neka akcija radi, pročitaj i tekstove koji to obećavaju — pre dugmeta
+i posle njega.** Test brisanja iz 22.9 je gledao tablu, ne dijalog.
+
+Sada Start ostaje ugašen dok jedno od dvoje nije uključeno (sa rečenicom
+zašto), obećanja nema, a kraj kaže „Done — reviewed N positions." pored onoga
+što je označeno i nađeno. Pet mutacija, svaka crvena na svom slučaju.
+
+Isto merenje je pokazalo i ono što nije popravljeno ovde: telefon je 5–5,5×
+sporiji od desktopa, šetnja po poziciji ima 12 sekundi, pa teže pozicije
+vraćaju pliću liniju — a `EvalCache` je čuva pod traženom dubinom. To je greška
+iz §9.3 (zaustavljena pretraga upisana kao tražena dubina), sada u kešu koji
+svi pregledi dele; zatvara je faza 1.1 plana zagonetki.
+
