@@ -39,6 +39,7 @@ Decisions of the same day (asked, answered):
 | Blunder Alert's Both / White / Black | **applies to puzzles too** (today it is ignored for them) |
 | Comments in the reviewed PGN | **the language model writes them too**, after the engine (the owner, the same day) — see §3a |
 | What counts as a mistake (24.9.2026) | **not one fixed threshold**: the opening is judged by the masters book, and after it `A` is measured against the player's own average loss in that game — §3, „Relative to the player" and „The opening". The fixed `A` = `B` = 15 chosen the same morning is withdrawn |
+| Automatic tutorials (24.9.2026) | **the same rule** — phase 1b, after the review has it |
 | Quotas and prices | **not decided, and not to be decided by this plan**: nothing about plans or accounts has been worked out yet, and the owner's own usage-and-cost tracking is agreed but not built. This plan counts, and leaves every limit in the one table that already holds the others |
 
 ## 2. What exists, and what the puzzle path ignores
@@ -189,7 +190,8 @@ counts. **The review uses those two, not a second copy** (rule 12).
    it" in a position the book knows from a game or two is not proof, and „no
    master played it" is not a mistake — a 2200+ book does not know half of what
    is common in blitz at 1900. A book move that loses at least `A_gross` at the
-   shallow depth is marked all the same. `A_gross` is measured in phase 0.
+   shallow depth is marked all the same. `A_gross` = **20** (phase 0; the
+   owner, 24.9.2026).
 4. **The book's facts go to the model**: the opening's name, the move with
    which the game left theory, what the masters play there and how often. The
    claim check admits them as facts.
@@ -334,6 +336,24 @@ The grandmasters' grid at depth 20 (45 candidates, 233 s):
 | 25 | 8 | 5 | 5 | 3 | 2 | 2 |
 | 30 | 6 | 4 | 4 | 2 | 1 | 1 |
 
+**The book** (`services/openingBook.js` read directly, the book the server
+serves; a move is in it when the file lists it for the position, and the game
+leaves it at the first move it does not):
+
+| | the owner | grandmasters |
+|---|---|---|
+| plies in the book, median (min – max) | 8 (5 – 16) | 24 (9 – 35) |
+| book moves | 199 | 472 |
+| a book move's loss at depth 16: median / p98 / max | 0.55 / 7.5 / 13.2 | 0.0 / 3.7 / 6.8 |
+| book moves losing ≥ 10 / ≥ 15 | 3 / 0 | 0 / 0 |
+| the first move out of the book, median loss | 4.1 | 1.0 |
+
+No book move of 40 games loses 15. The three above 10 are the owner's — 1.g4
+(223 master games), a Nc6 (13) and an e5 (7) — theory a relative `A` could
+otherwise have marked. **`A_gross` = 20, the owner's choice of 24.9.2026**: a
+safety net for a line the masters played once or twice, which in these games
+never fires.
+
 The two sets differ in time control as well as in level, so a third set sits
 between them: 20 club games from the same base, both players 1500–1800,
 classical.
@@ -341,13 +361,13 @@ classical.
 **Still to measure, and the gate of this phase**: the club set; then, on all
 three, what `A = max(A_floor, k · average)` gives for a few `k` and `A_floor`
 (puzzles a game, and the examples page for the owner to look at), whether one
-`B` serves all three, and `A_gross` for a book move — how many book moves each
-candidate would mark, with the book asked for the three sets' games; and the
-deepening — every move of the three sets that lost 2 or more at depth 16,
-searched at 16, 20 and 24: the spread between depths as a function of the loss
-(the floor at each depth), how many small losses survive, and the seconds a
-review would add. The owner chooses `k`, `A_floor`, `B`, `A_gross` and the
-time budget from those.
+`B` serves all three, and the book on the club set; and the deepening — the
+moves that lost 2 or more at depth 16 (all of the grandmasters', a sample of
+120 under 15 and 30 above it from each of the other two), searched fresh at 16,
+20 and 24: the spread between depths as a function of the loss (the floor at
+each depth), how many small losses survive, and the seconds a review would
+add. The owner chooses `k`, `A_floor`, `B` and the time budget from those
+(`A_gross` is chosen, above).
 
 ### Phase 1 — the criteria in the app [implementer]
 
@@ -383,6 +403,44 @@ marked `??` exactly when it passes criterion 1 (one function decides both), a po
 player missed is, one where two moves are equal is not, the side filter holds,
 a search with one line in a two-move position is refused. Every rule by
 mutation.
+
+### Phase 1b — the tutorial on the same rule [lead, then implementer]
+
+The owner, 24.9.2026: automatic tutorial generation adopts the rule of §3.
+Today it keeps a moment when the move cost `minCost` pawns (1.0 by default,
+the trainer's slider), the eight most expensive by pawns, asks a question when
+at most three moves are within 0.3 pawns of the best, lets a book move become
+a moment, and has one fixed depth. Measured on phase 0's walks (depth 16,
+mates left out, so a floor): of the moments a tutorial would keep, **13 of 138**
+in the owner's games and **15 of 70** in the grandmasters' are moves after
+which the chances barely changed (under 5) — the +19 against +14 of §1, ranked
+high because a decided position makes a big pawn cost mean nothing.
+
+- **A moment is a move that passes criterion 1 and the book** — the same
+  function as the review's, imported, not copied (`heavyIndices` calls it), and
+  ranked by chances lost. The deepening of §3 applies to its candidates, and a
+  clean game is said to be clean.
+- **The question keeps accepting several answers**: up to three moves still
+  count as correct, but „near the best" is measured in chances, not 0.3 pawns.
+  No `B` here — a tutorial may accept alternatives, a puzzle may not.
+- **The trainer's slider** is in chances lost, starting at the game's own
+  relative `A`, and still shows how many moments it gives while it is dragged
+  (`mistakeCount`, the one count).
+- `best_stands_out`, computed and never read, is either read by this rule or
+  deleted — not left.
+- **The harness moves with it**: `tools/game_annotate/make_facts.py` and
+  `skeleton.py` learn the same rule, and the fixtures under
+  `test/fixtures/game_tutorial/` are regenerated by `export_fixtures.py`. The
+  parity tests going red on the old fixtures is the expected red, not a reason
+  to loosen them; every changed fixture is diffed and the moments that left or
+  came are listed in `LESSONS.md`.
+- Tutorials already made are stored lessons and are not touched.
+
+Gate: the parity tests green on regenerated fixtures, with a case per rule —
+a +19/+14 move is not a moment, a book move is not unless it loses `A_gross`,
+two moves near the best in chances are both accepted, the slider's count and
+the moments it gives are the same number; every rule by mutation, on both
+sides of the harness.
 
 ### Phase 2 — the stored review [lead]
 
@@ -462,7 +520,8 @@ right and one wrong, both lines, the words.
 - Puzzles of more than one move („find the next three"). The exercise model
   holds one move since `PLAN-EXERCISE.md` §10; the line after it is shown, not
   asked.
-- The tutorial generator itself. It shares `answerPlyCount` and the claim
-  check with this plan and is otherwise untouched.
+- The rest of the tutorial generator. It shares `answerPlyCount`, the claim
+  check and, from phase 1b, the rule of what a mistake is; its words, parts
+  and narration are untouched.
 - A puzzle rating or spaced repetition for these puzzles — they join the
   existing queue as exercises.
