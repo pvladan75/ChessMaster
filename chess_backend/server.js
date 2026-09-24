@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const lessonRoutes = require('./routes/lessons');
 const gameTutorialWordsRoutes = require('./routes/gameTutorialWords');
+const reviewWordsRoutes = require('./routes/reviewWords');
 const recordingRoutes = require('./routes/recordings');
 const puzzleRoutes = require('./routes/puzzles');
 const socialRoutes = require('./routes/social');
@@ -143,6 +144,7 @@ app.use('/', authRoutes);
 app.use('/rooms', roomRoutes);
 // Before /lessons, whose router would read `from-game` as a lesson id.
 app.use('/lessons/from-game', gameTutorialWordsRoutes);
+app.use('/review-words', reviewWordsRoutes);
 app.use('/lessons', lessonRoutes);
 app.use('/recordings', recordingRoutes);
 app.use('/api', puzzleRoutes);

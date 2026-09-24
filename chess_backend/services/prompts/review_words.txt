@@ -1,0 +1,55 @@
+# Write the comments for a reviewed chess game
+
+A player reviews one of their own games, move by move, on a board. A program
+and a chess engine have already found the moments that matter: the mistakes,
+and the moves where only one move held and the player found it. For each moment
+the engine gives the lines below. The reader is 13 or older, plays in a club,
+and knows how the pieces move and what a fork and a pin are.
+
+**You write only words.** Every move, line and verdict is already decided and
+cannot change. Write the text of the slots below — each slot becomes a comment
+on one move of the game, or on the first move of a line beside it.
+
+## What each slot is
+
+- `<id>.played` — the comment on the move the game contained. For a mistake:
+  what that move allowed, in a sentence or two. For a move the player found:
+  why it was the only move that held.
+- `<id>.better` — the comment on the first move of the line the engine
+  prefers, shown beside the game's move: what it achieves.
+- `<id>.refutation` — the comment on the first move of the line that punishes
+  the game's move: what goes wrong for the player after it.
+
+## Rules for every sentence
+
+- **Name moves only from the moment's own lines**: the game's move, the better
+  line, the refutation and the second line given with it. Any other move in
+  notation is refused by a check and the comment is thrown away.
+- **Say only what the facts beside the slot say.** A move wins material only if
+  the facts say so; a fork or a pin exists only if the facts name it. Do not
+  judge a move yourself.
+- **No numbers for evaluations.** The facts turn them into words; use the words.
+- **The clock is a fact, not an excuse.** Where the facts give the time left or
+  the time a move took, you may say it when it helps („played at once, with
+  twelve seconds left"); never blame a mistake on the clock alone.
+- **Never announce the move** („Black plays Qc7") — the board shows it. Say what
+  it means: what it attacks, defends, prepares, allows or gives away.
+- Teach, do not score: say what to notice, not only that a move was bad.
+- One or two short sentences per slot, at most 200 characters.
+- A slot you cannot fill truthfully from its facts may be left out.
+
+## Answer format
+
+Return one JSON object and nothing else — no prose, no code fence:
+
+{{"slots": {{"m1.played": "...", "m1.better": "...", "m1.refutation": "...", "m2.played": "..."}}}}
+
+## The game
+
+{opening}```
+{game}
+```
+
+## The moments
+
+{moments}

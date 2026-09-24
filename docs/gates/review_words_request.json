@@ -1,0 +1,45 @@
+{
+  "about": "docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3: the request the app sends to POST /review-words for one review, and a model's answer to it. The server's tests validate the request and the answer; the app's builder must produce the request from the review of the same game, word for word.",
+  "request": {
+    "game": "1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. O-O Bc5",
+    "opening": "Italian Game",
+    "moments": [
+      {
+        "id": "m1",
+        "kind": "mistake",
+        "label": "3. Bc4",
+        "mover": "White",
+        "played": "Bc4",
+        "best": "d4",
+        "lines": {
+          "better": ["d4", "exd4", "Nxd4"],
+          "refutation": ["Nf6", "d3"],
+          "second": ["Nc3", "Nf6"]
+        },
+        "facts": "Before the move White was slightly better; after Bc4 it is about even. 12 seconds left on White's clock; the move took 1 second.",
+        "slots": [
+          {"id": "m1.played", "text": "The game's move, Bc4. After it the position is about even."},
+          {"id": "m1.better", "text": "The better line starts d4: Black has to take, and White recaptures with the knight."},
+          {"id": "m1.refutation", "text": "After Bc4, Nf6 attacks the pawn on e4."}
+        ]
+      },
+      {
+        "id": "m2",
+        "kind": "found",
+        "label": "4...Bc5",
+        "mover": "Black",
+        "played": "Bc5",
+        "best": "Bc5",
+        "lines": {
+          "better": ["Bc5", "d3"],
+          "second": ["Be7"]
+        },
+        "facts": "Only Bc5 kept the balance; the next best, Be7, leaves White clearly better.",
+        "slots": [
+          {"id": "m2.played", "text": "The only move that held, Bc5, and the game found it."}
+        ]
+      }
+    ]
+  },
+  "answer": "{\"slots\": {\"m1.played\": \"Bc4 lets Black gain time against e4.\", \"m1.better\": \"d4 opens the centre while Black is still developing.\", \"m1.refutation\": \"Nf6 hits e4, and White has to defend instead of attack.\", \"m2.played\": \"Bc5 develops with pressure on f2; Be7 would have been too passive.\"}}"
+}

@@ -20,6 +20,11 @@ const ENT = {
   // A tutorial's words written from a game (docs/PLAN-SKELET.md, phase 3):
   // premium, and later bought credits (decision D2).
   AI_TUTORIALS: 'ai_tutorials',
+  // The words a whole-game review writes into the PGN and into its puzzles
+  // (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, §3a and phase 3): its own
+  // entitlement, never borrowed from the tutorials' or the comments', so it
+  // can be priced, bundled or given away later without untangling.
+  AI_REVIEW_WORDS: 'ai_review_words',
   ASSIGNMENTS: 'assignments',
 };
 
@@ -44,6 +49,10 @@ const METRIC = {
   // this number.
   AI_TUTORIALS: 'ai_tutorials',
   AI_TUTORIAL_TOKENS: 'ai_tutorial_tokens',
+  // One per review the model wrote words for, and the tokens of every
+  // attempt, refused ones included — the same pair, for the same reason.
+  AI_REVIEW_WORDS: 'ai_review_words',
+  AI_REVIEW_TOKENS: 'ai_review_tokens',
 };
 
 /// Metered features. -1 means unmetered.
@@ -55,17 +64,26 @@ const METRIC = {
 ///
 /// The tutorial numbers are **placeholders until the owner prices them**
 /// (docs/PLAN-SKELET.md, phase 3). A tier without an entry reads as 0, which
-/// locks the feature, so every paid tier needs one.
+/// locks the feature, so every paid tier needs one. The review's words
+/// (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3) are placeholders the same way,
+/// set to the tutorial's until anything is decided about plans.
 const QUOTAS = {
   free: { [ENT.AI_COMMENTS]: 10, [ENT.ASSIGNMENTS]: 5 },
-  premium: { [ENT.AI_COMMENTS]: 500, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 30 },
-  pro: { [ENT.AI_COMMENTS]: 2000, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 100 },
-  club: { [ENT.AI_COMMENTS]: -1, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: -1 },
+  premium: {
+    [ENT.AI_COMMENTS]: 500, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 30, [ENT.AI_REVIEW_WORDS]: 30,
+  },
+  pro: {
+    [ENT.AI_COMMENTS]: 2000, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 100, [ENT.AI_REVIEW_WORDS]: 100,
+  },
+  club: {
+    [ENT.AI_COMMENTS]: -1, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: -1, [ENT.AI_REVIEW_WORDS]: -1,
+  },
 };
 
 const PAID_ENTITLEMENTS = [
   ENT.AI_COMMENTS,
   ENT.AI_TUTORIALS,
+  ENT.AI_REVIEW_WORDS,
   ENT.ASSIGNMENTS,
   ENT.MP4_EXPORT,
 ];
@@ -202,6 +220,7 @@ function loadUnitCosts() {
     [METRIC.AI_COMMENTS]: 0,
     [METRIC.MP4_RENDERS]: 0,
     [METRIC.AI_TUTORIAL_TOKENS]: 0,
+    [METRIC.AI_REVIEW_TOKENS]: 0,
   };
   const raw = process.env.USAGE_UNIT_COSTS;
   if (!raw) return defaults;
