@@ -727,6 +727,49 @@ fall into each quadrant, how many habits the book and the engine find that the
 score alone does not, the opponents' repeated mistakes, and the minutes the
 engine takes. The owner reads those and decides whether the section is built.
 
+**Measured 24.9.2026** on the owner's 4126 games (`tree.mjs`, `tree_engine.mjs`,
+`tree_analyze.mjs` in the lead's scratchpad; the tree built like
+`opening_nodes`, which it matches within counting of the window — 301 nodes of
+8 visits in plies 6–20 against the section-1 figure of 298, 84 flagged against
+78). 717 nodes of at least 8 visits, 371 the owner's and 346 the opponents',
+searched at depth 20 with two lines and every habit move alone; judged by the
+rules `PLAN-ZAGONETKE-IZ-PARTIJE.md` settled the same day (`A` 10, theory = 10
+master games, `A_gross` 20):
+
+| the owner's 573 habit moves (≥ 3 times and ≥ 10% at a node) | |
+|---|---|
+| scores badly (under 42%) and the move loses — **fix the move** | 6 |
+| scores badly and the move holds — **the problem is later** | 166 |
+| scores well and the move loses — **a trap nobody punishes** | 8 |
+| scores well and the move holds | 393 |
+| theory by the 10-game rule | 433 |
+
+- **Section 1's report is mostly about something else than it says.** Of its
+  84 flagged nodes, **82 have no losing habit at all**: the move the owner keeps
+  choosing holds, and the low score comes from what follows. Only 2 flag a move
+  that loses. Today the report reads „you keep choosing the same move and score
+  badly" — which invites changing a move that is fine.
+- **The engine finds what the score does not**: 11 nodes carry a losing habit,
+  and **9 of them are not flagged** by the score (the owner scores well there;
+  the opponents do not punish it). The costliest by chances × times: a knight
+  move at ply 16 played 6 times, losing 34 each time, scoring 0%; the rest lose
+  10–37 over 3–12 games each.
+- **Under the threshold** the largest habit is a book move played 63 times at
+  ply 3 that loses 6.6 — theory (4871 master games), not marked, rightly.
+- **The opponents' side is quiet**: 7 repeated opponent mistakes (5 or more
+  times, losing 10 or more, not theory); the owner's usual reply takes 3 of
+  them and misses none of those that can be judged; 4 lead to nodes of fewer
+  than 8 visits, which were not searched.
+- **Time**: 1228 s for the 717 nodes — but a second pass of the same job ran
+  beside it for most of that time (the lead's mistake: a waiting job thought
+  dead was alive), so the figure is roughly double; about ten minutes on this
+  desktop is the estimate, to be measured once idle if the section is built.
+
+**For the owner to decide**: whether §9 is built. What it would change is
+mainly the *meaning* of section 1's report — 82 of 84 flags say „the opening
+move is fine, look later" — and a short list of hidden losing habits (9 nodes
+here); the opponents' side adds little on this archive.
+
 ## Costs and limits
 
 | Work | Volume | Feasible where |

@@ -136,7 +136,9 @@ can still vouch for** — and that is the depth, not `k`. **The owner, 24.9.2026
 `k` is dropped for now**, and waits in §7 for a sample of weaker players.
 
 So `A` is **the floor the depth allows**: the smallest loss the confirming
-search can tell from its own noise. It is measured, not chosen by taste —
+search can tell from its own noise — **10 at depth 20**, the owner's choice of
+24.9.2026 from phase 0's deepening (96–98% of marks confirmed at depth 24 on
+all three levels). It is measured, not chosen by taste —
 depth 16 against 20 differs by a median 2.1 and a 90th percentile 5.2, and the
 grandmasters' deepening shows the spread growing with the loss itself
 (phase 0).
@@ -157,7 +159,8 @@ near-perfect game; the trigger from Fable's F3). After the walk:
    positions closest to the threshold are deepened first, so a limited budget
    is spent where it decides;
 5. the deepening stops when everything is settled or a **time budget** for the
-   review is spent — what is left unsettled is not marked, and the dialog says
+   review is spent — **3 minutes on the desktop, 1 on the phone** (the owner,
+   24.9.2026), the disagreement gap **5** — what is left unsettled is not marked, and the dialog says
    how many. The depth and the nodes of every settling search are recorded.
 
 Deep searches run only on those few positions, never on the game. A game in
@@ -171,9 +174,9 @@ walk today turns a search that passes its 12 seconds into nothing
 lower depth, counted if it still fails, and a game with one is never „said to
 be clean" — the dialog names the count beside the unsettled ones.
 
-`B` — one move stands out — is about the **position**, not the player, and
-stays one fixed number of at least 10; phase 0 says whether that holds at every
-level, and the owner's examples page decides between 10 and 15.
+`B` — one move stands out — is about the **position**, not the player, and is
+one fixed number: **15**, the owner's choice of 24.9.2026 (phase 0: held at
+depth 24 on every level, with the same best move in every case).
 
 The same `A` decides which moments get words (§3a): what counts as a mistake
 is one rule for the comments and the puzzles alike — **and for the review's
@@ -211,10 +214,10 @@ counts. **The review uses those two, not a second copy** (rule 12).
    alone, since an opening evaluation at the walk's depth is the least settled
    of the game (Fable, F8). `A_gross` = **20** (phase 0; the owner, 24.9.2026).
 4. **„In the book" needs a count**: a move is theory when the book lists it
-   **with at least `g` games or a share of at least `s`** — the built file keeps
-   every move played twice by a 2200+ player, ever, and `applyMastersBook`
-   keeps `games` and `share` and reads neither. `g` and `s` are measured in
-   phase 0.
+   **with at least 10 master games** (the owner, 24.9.2026, from phase 0) — the
+   built file keeps every move played twice by a 2200+ player, ever, and
+   `applyMastersBook` keeps `games` and reads it only for the words. No share
+   rule: the count alone decided every case phase 0 met.
 5. **The book's facts go to the model**: the opening's name, the move with
    which the game left theory, what the masters play there and how often. The
    claim check admits them as facts.
@@ -658,6 +661,56 @@ add. Three more, from the lead's review:
 
 The owner chooses `A` (the floor), `B` (10 or 15), the book's minimum and the
 time budget from those (`A_gross` is chosen, above; `k` is dropped for now).
+
+**The deepening, measured 24.9.2026** (`deep_analyze.mjs`; each position
+searched fresh at 16, 20 and 24, two lines and the played move alone; depth 24
+is the reference; the owner's and the club's samples are 120 moves that lost
+2–15 at depth 16 and 30 that lost more, the grandmasters' 143):
+
+| a mark at depth 20 at threshold `T`: confirmed at 24 | the owner | club | grandmasters |
+|---|---|---|---|
+| `T` 5 | 81 of 97 | 70 of 76 | 54 of 62 |
+| `T` 8 | 65 of 71 | 50 of 52 | 39 of 43 |
+| **`T` 10** | **52 of 54** | **44 of 45** | **30 of 31** |
+| `T` 12 | 43 of 47 | 39 of 40 | 27 of 28 |
+| `T` 15 | 31 of 34 | 31 of 32 | 20 of 24 |
+| the same at the walk's depth 16, `T` 10 | 45 of 47 | 43 of 46 | 29 of 31 |
+
+- **10 is the most reliable threshold on all three levels** (96–98%); a larger
+  one is not safer, because large losses move most between depths (at 20, a
+  loss of 15–25 moves by up to 10 at depth 24 in the grandmaster set).
+- **The disagreement rule** at `T` 10 — deepen when the walk's value and depth
+  20's differ by more than 5 or fall on two sides of `T` — deepens 12 of 150,
+  13 of 150 and 16 of 143 positions, and of those it settles 4, 5 and 4 are on
+  the other side of `T` at depth 24 (about 3%). A gap of 3 deepens twice as
+  many for no fewer errors.
+- **`B` holds**: of the positions with a gap of 15 at depth 20, 11 of 13, 11 of
+  11 and 5 of 6 keep it at 24, and **the best move is the same at 24 in every
+  one** (at 10: 18 of 20, 22 of 24, 8 of 12, the same best move in all).
+- **The book's minimum**: of the book moves in the 52 games, 26 of the owner's
+  199, 16 of the club's 133 and 71 of the grandmasters' 472 were played in fewer
+  than 10 master games; among them one move loses 10 or more at depth 16 (the
+  owner's e5, 7 games).
+- Seconds per position for the three searches, four engines of four threads at
+  once: depth 16 p50 2.7–2.9, depth 20 p50 10.0–12.7 (p90 21.6–86.5), depth 24
+  p50 29.2–41.0 (p90 88–285). The club set's tails are its long endgames.
+
+**The owner's choice, 24.9.2026**: **`A` = 10** at the confirming depth 20;
+**`B` = 15**; **„in the book" = at least 10 master games**; the deepening's gap
+**5**; the time budget for the confirming searches and the deepening of one
+review **3 minutes on the desktop and 1 minute on the phone**, the positions
+closest to the threshold first, the rest counted as unsettled. At `A` 10 and
+`B` 15 phase 0's depth-20 grid gives 34 puzzles in the owner's 20 games, 21 in
+the club's 12 and 5 in the grandmasters' 20 (1.7, 1.75 and 0.25 a game), and
+about 7.4, 7.8 and 1.9 marked moves a game for both players together — from
+candidates that lost at least 10 at the walk's depth, so a floor; the `A − 5`
+rule adds the few that grow.
+
+**Left to measure before phase 1 is briefed**, none of them a choice: the
+depths a search reports on its way (whether the walk's own last depths could
+settle a candidate), repeatability with one thread and a node limit, the only
+moves found confirmed at depth 20, and **one of the owner's games reviewed end
+to end on an idle desktop and on the phone** — which checks the budget above.
 
 ### Phase 1 — the criteria in the app [implementer]
 
