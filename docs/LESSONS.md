@@ -7564,3 +7564,54 @@ kao pobeda) je preživela jer slučaja nije bilo — dodat. M14 (skladište meš
 null-promocije, pravilo 3), treći put crvena na četiri prava slučaja. Tempo:
 P4 (keš proveren samo posle čekanja) preživljava namerno — unutrašnja
 provera je ona koja nosi ispravnost, spoljna samo štedi čekanje.
+
+## 24.9.2026 — faza 1.2b: pregled u pozadini, i ograda koja je uvek propuštala
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` 1.2b. Pregled partije više ne živi u dijalogu:
+`GameReviewRunner` ga vodi, dijalog ga samo gleda, rezultat pada na partiju po
+njenim potezima (živa tabla, pa nacrt samo kad nijedne table nema), odjava ga
+zaustavlja, a engine je **zadržan** dok radi — stop, MultiPV i živa pretraga
+jednog ekrana ne dolaze do njega, niti se njegovi callback-ovi podmeću pod
+pretragu pregleda. `ReviewNotice` iznad rutera kaže kraj kad dijalog nije
+otvoren, i jednom kaže da je engine zauzet. Stari put (`annotateNodeChain`,
+`tagBlunders`, `extractPuzzles`, `buildPuzzlesFromMoments`, klizač u
+pešacima, `isBlunderBeyond`) obrisan, testovi prepisani otvoreno.
+
+Brojevi: aplikacija 4030 → **4055** (+30 kapija, +1 slučaj vodećeg, −2
+`tagBlunders` u testu šetača, −4 `extractPuzzles`; 4030 + 30 + 1 − 6 = 4055).
+Pun prolaz: 4054 prošlo, 1 pao — `replay_audio_test`, isti koji pada pod
+opterećenjem od 23.9 (u istom punom prolazu i kod radnika); sam 3 od 3.
+`flutter analyze` 26 → **23**: tri bez zagrada su živela u `tagBlunders`.
+
+**Ograda koja je uvek propuštala.** Radnik je upis u nacrt ogradio sa
+`epoch: AccountLocalState.epoch` — brojem uzetim *u trenutku upisa*, koji je
+tada uvek tekući. To je tačno bag zbog kog epoha postoji (20.9: „uzeto pri
+rođenju, ne pri upisu"), napisan ponovo, i nijedna mutacija iz brifa ga nije
+mogla videti, jer slučaj odjave ima živu tablu pa do nacrta ni ne dolazi.
+Sada ide epoha trke, i pita se ponovo posle čitanja nacrta. **Kad se ograda
+prenosi kroz novi kod, pitaj odakle je broj — broj uzet na mestu upisa je
+ograda koja uvek propušta.** Prozor između čitanja i upisa nijedan test ne
+može da pogodi; zapisano kao nekapijano.
+
+**Tajmer koji je čekao ispred zadržavanja.** Živa pretraga traženu tik pre
+`hold()` čeka 180 ms debounce, pa ide pravo u `_runAnalyzePosition` — mimo
+svih vrata koja zadržavanje proverava — i seče pretragu pregleda. Nađeno
+čitanjem, ne kapijom; `hold()` sada gasi tajmer, a novi slučaj je crven bez
+toga (na onlajn putu tajmer koji okine diže `requestId`). **Zadržavanje štiti
+vrata; ono što je već prošlo kroz vrata i čeka iza njih mora da se ugasi
+posebno.**
+
+**Mutacija koja nije ništa uradila.** Od deset mutacija vodećeg devet je
+pocrvenelo na svom slučaju, a M2 je „preživela" — jer je dodala lažnu proveru
+*pored* prave umesto da pravu ukloni. Prepravljena, pocrvenela je tačno na
+slučaju callback-ova. Pravilo 3 iz drugog ugla: **preživela mutacija je prvo
+pitanje o mutaciji**. Isti slučaj je vodeći prepravio (dve promenljive sa
+lambdama → lokalne funkcije i `==`), jer je sama kapija donela dva nova info
+upozorenja; mutacija je potvrdila da `==` i dalje vidi podmetanje.
+
+Radnik je uz to: kopiju kapije stavio u `chess_app/docs/gates` i isključio je
+iz analize (odbačeno — kapija je u `docs/gates` repozitorijuma); prebacio
+`tool/review_game.dart` na sudiju umesto da ga ostavi da ne kompajlira
+(prihvaćeno, rečeno otvoreno); i javio da je radni direktorijum bio na
+starijem commitu (`c650702`) — prebacio ga je na `154c7be` pre rada.
+**Proveri HEAD radnog stabla prema commitu koji brif imenuje.**

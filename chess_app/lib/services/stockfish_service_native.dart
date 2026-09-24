@@ -7,6 +7,7 @@ import 'package:chess_app/services/cloud_eval_format.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stockfish/stockfish.dart';
@@ -54,6 +55,48 @@ class StockfishService {
   String? _pendingFen;
   int? _pendingDepth;
   int _currentMultiPV = 1;
+
+  // ─── THE REVIEW'S HOLD ───
+  // `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1.2b: a review shares this one
+  // engine with every screen, and its search can run for a long time. While
+  // held, a screen's stop, its MultiPV dial and its own callbacks must not
+  // reach the engine or swap the review's search out from under it — see the
+  // file header there for the full story.
+  Object? _heldBy;
+  final ValueNotifier<bool> _held = ValueNotifier(false);
+  ValueListenable<bool> get held => _held;
+
+  final ValueNotifier<int> _refusedWhileHeld = ValueNotifier(0);
+  ValueListenable<int> get refusedWhileHeld => _refusedWhileHeld;
+
+  /// A screen's [setMultiPV] while held, applied on [release].
+  int? _pendingMultiPV;
+
+  @visibleForTesting
+  int get debugRequestId => _requestId;
+  @visibleForTesting
+  int get debugMultiPV => _currentMultiPV;
+
+  void hold(Object owner) {
+    _heldBy = owner;
+    _held.value = true;
+    // A live search asked for just before the hold is still waiting out its
+    // debounce; left alone it would fire into the review and go straight to
+    // `_runAnalyzePosition`, past every check above — stopping the review's
+    // search for a position nobody asked the review about.
+    _analyzeDebounceTimer?.cancel();
+  }
+
+  /// Does nothing unless [owner] is the one holding it.
+  void release(Object owner) {
+    if (!identical(_heldBy, owner)) return;
+    _heldBy = null;
+    _held.value = false;
+    final pending = _pendingMultiPV;
+    _pendingMultiPV = null;
+    if (pending != null) _setMultiPVNow(pending);
+    _activateTopSubscriber();
+  }
 
   // Rapid re-navigation (e.g. clicking through the graphical move tree)
   // used to fire a fresh "stop"+"position"+"go depth N" at the engine on
@@ -391,6 +434,10 @@ class StockfishService {
   }
 
   void _activateTopSubscriber() {
+    // The callback fields belong to the review's own search while it runs
+    // (`analyzePositionSync` hijacks them) — a screen attaching or detaching
+    // must not swap its own in under it.
+    if (_held.value) return;
     if (_subscribers.isEmpty) {
       onEvaluationChanged = null;
       onMultiPVUpdated = null;
@@ -434,6 +481,12 @@ class StockfishService {
   /// silently never evaluates is the same failure wearing a quieter coat.
   Future<void> analyzePosition(String fen,
       {int depth = 18, bool isInfinite = false}) async {
+    // Refused before any timer: a review's search owns the engine, and a live
+    // search that got through would answer for the wrong question later.
+    if (_held.value) {
+      _refusedWhileHeld.value++;
+      return;
+    }
     final illegal = fenIllegalReason(fen);
     if (illegal != null) {
       AppLogger.log(
@@ -882,7 +935,9 @@ class StockfishService {
       }
     };
 
-    setMultiPV(multiPV);
+    // Bypasses the hold: this is the review's own search, which the hold
+    // exists to protect, not to block.
+    _setMultiPVNow(multiPV);
     await _runAnalyzePosition(fen, depth: depth, searchMoves: searchMoves);
 
     return completer.future;
@@ -936,8 +991,10 @@ class StockfishService {
     stopAnalysis();
   }
 
-  /// Stops ongoing search without quitting engine
+  /// Stops ongoing search without quitting engine. Does nothing while a
+  /// review holds the engine — the search in flight is its own.
   void stopAnalysis() {
+    if (_held.value) return;
     _requestId++;
     _currentFen = '';
     _engineLines.clear();
@@ -947,8 +1004,19 @@ class StockfishService {
     }
   }
 
-  /// Sets MultiPV option on engine
+  /// Sets MultiPV option on engine. While a review holds the engine, a
+  /// screen's request is remembered and applied on release rather than
+  /// reaching the engine now — see [_setMultiPVNow] for the review's own
+  /// searches, which the hold does not stop.
   void setMultiPV(int count) {
+    if (_held.value) {
+      _pendingMultiPV = count;
+      return;
+    }
+    _setMultiPVNow(count);
+  }
+
+  void _setMultiPVNow(int count) {
     if (_currentMultiPV == count) return;
     _currentMultiPV = count;
     if (_nativeReady) {

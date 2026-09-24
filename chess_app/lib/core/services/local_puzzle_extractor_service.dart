@@ -1,9 +1,4 @@
-import 'package:chess_app/core/models/game_moment.dart';
-import 'package:chess_app/core/services/game_analysis_walker_service.dart';
 import 'package:chess_app/core/services/game_review_judge.dart';
-import 'package:chess_app/core/services/tactical_motif_detector.dart';
-import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
-    show PositionAnalyzer;
 
 /// One blunder-derived exercise: the position right after the mistake (the
 /// side to move there is the puzzle solver), tagged with why it's winnable.
@@ -58,66 +53,17 @@ class LocalPuzzle {
       );
 }
 
-/// Turns a played game into a set of tactical exercises: walks the game
-/// looking for moves that gave up a large amount of eval (a blunder), and
-/// for each one packages the position right after it as a puzzle — the
-/// opponent, now to move, has a genuine tactical shot that
-/// [TacticalMotifDetector] can name (fork, pin, hanging piece, ...).
+/// Today's puzzles from a whole-game review — `docs/PLAN-MATERIJAL.md` phase 4,
+/// and, since `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` phase 1.2b, the review's own
+/// judgement rather than a threshold this class picked.
 ///
-/// Reuses [GameAnalysisWalkerService] for the actual engine walk, so this
-/// class is just the "which moments are worth turning into puzzles, and how
-/// do we label them" layer on top.
+/// The blunder walk this class used to run itself
+/// (`extractPuzzles`/`buildPuzzlesFromMoments`, and the tactical labelling
+/// that went with them) is gone: the review is `GameReviewJudge`'s now
+/// (`game_review_runner.dart`), and [buildPuzzlesFromReview] only turns its
+/// already-judged mistakes into puzzles. `GameMoment.isBlunderBeyond`, which
+/// only those deleted methods read, went with them.
 class LocalPuzzleExtractorService {
-  final GameAnalysisWalkerService _walker = GameAnalysisWalkerService();
-  static const TacticalMotifDetector _tacticalDetector =
-      TacticalMotifDetector();
-
-  void cancel() => _walker.cancel();
-
-  /// [blunderThreshold] is in pawn units — the default (2.0) roughly matches
-  /// "the kind of mistake a human opponent could realistically punish",
-  /// not just engine noise between two roughly-equal moves.
-  Future<List<LocalPuzzle>> extractPuzzles({
-    required String startingFen,
-    required List<String> uciMoves,
-    required PositionAnalyzer analyzer,
-    double blunderThreshold = 2.0,
-    int maxPuzzles = 5,
-    int depth = 14,
-    void Function(int processed, int total)? onProgress,
-  }) async {
-    final moments = await _walker.analyzeGame(
-      startingFen: startingFen,
-      uciMoves: uciMoves,
-      analyzer: analyzer,
-      depth: depth,
-      onProgress: onProgress,
-    );
-
-    return buildPuzzlesFromMoments(moments,
-        blunderThreshold: blunderThreshold, maxPuzzles: maxPuzzles);
-  }
-
-  /// Same blunder-selection logic as [extractPuzzles], but over an
-  /// already-computed set of [GameMoment]s — lets a caller that already ran
-  /// an engine walk for another purpose (e.g. whole-game review) extract
-  /// puzzles from it too, without a second pass over the engine.
-  List<LocalPuzzle> buildPuzzlesFromMoments(
-    List<GameMoment> moments, {
-    required double blunderThreshold,
-    required int maxPuzzles,
-  }) {
-    final blunders =
-        moments.where((m) => m.isBlunderBeyond(blunderThreshold)).toList()
-          // Worst blunders (most negative swing) first.
-          ..sort((a, b) => a.swingForMover!.compareTo(b.swingForMover!));
-
-    return blunders
-        .take(maxPuzzles)
-        .map((m) => _buildPuzzle(m, next: _nextOf(m, moments)))
-        .toList();
-  }
-
   /// Today's puzzles from a review's mistakes ([ReviewedMove.isMistake]),
   /// worst first by chances lost, at most [maxPuzzles]: the position after the
   /// mistake, its answer the [ReviewedMove.replyLine]'s first move (null when
@@ -149,44 +95,5 @@ class LocalPuzzleExtractorService {
         refutationSan: answer,
       );
     }).toList();
-  }
-
-  /// The moment that starts where [moment] ended — the reply's own search,
-  /// which already holds the best answer to the blunder.
-  static GameMoment? _nextOf(GameMoment moment, List<GameMoment> moments) {
-    for (final m in moments) {
-      if (m.plyIndex == moment.plyIndex + 1 && m.fenBefore == moment.fenAfter) {
-        return m;
-      }
-    }
-    return null;
-  }
-
-  LocalPuzzle _buildPuzzle(GameMoment moment, {GameMoment? next}) {
-    final answer = next?.engineLineBefore?.bestMoveSan.trim();
-    // `detect()` on the post-blunder position treats whoever just moved (the
-    // blunderer) as "mover" — so a favorsMover=false finding is the thing
-    // that now favors the opponent, i.e. the puzzle solver's winning idea.
-    final result = _tacticalDetector.detect(
-        fen: moment.fenAfter, lastMoveUci: moment.moveUci);
-    final solverFindings = result.findings.where((f) => !f.favorsMover).toList()
-      ..sort((a, b) => b.significance.compareTo(a.significance));
-
-    final best = solverFindings.isNotEmpty ? solverFindings.first : null;
-
-    return LocalPuzzle(
-      id: 'local_${moment.plyIndex}_${DateTime.now().microsecondsSinceEpoch}',
-      fen: moment.fenAfter,
-      themeLabel: best?.description ??
-          'Opponent made a mistake — find the best continuation',
-      themeKey:
-          best?.motifs.isNotEmpty == true ? best!.motifs.first.name : null,
-      swing: moment.swingForMover ?? 0,
-      sourceMoveSan: moment.moveSan,
-      sourcePlyIndex: moment.plyIndex,
-      fenBefore: moment.fenBefore,
-      moveUci: moment.moveUci,
-      refutationSan: answer == null || answer.isEmpty ? null : answer,
-    );
   }
 }

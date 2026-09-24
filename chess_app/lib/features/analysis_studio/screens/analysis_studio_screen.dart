@@ -50,6 +50,7 @@ import 'package:chess_app/features/analysis_studio/services/analysis_draft_servi
 import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/quick_extend_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
+import 'package:chess_app/features/analysis_studio/services/game_review_runner.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
@@ -95,6 +96,11 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// instead, which is behind „More tools" on a phone and costs no height.
   final VoidCallback? onOpenScanner;
 
+  /// The review's home; defaults to the app's one runner. A test passes its
+  /// own so a review started on it lands on this screen without reaching the
+  /// real singleton.
+  final GameReviewRunner? reviewRunner;
+
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
@@ -102,15 +108,30 @@ class AnalysisStudioScreen extends StatefulWidget {
     this.initialGame,
     this.initialTree,
     this.onOpenScanner,
+    this.reviewRunner,
   });
 
   @override
   State<AnalysisStudioScreen> createState() => _AnalysisStudioScreenState();
 }
 
-class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
+class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
+    implements ReviewBoard {
   final ChessBoardController _boardController = ChessBoardController();
   final StockfishService _stockfishService = StockfishService();
+
+  GameReviewRunner get _reviewRunner =>
+      widget.reviewRunner ?? GameReviewRunner.instance;
+
+  @override
+  AnalysisNode get reviewRoot => _rootNode;
+
+  @override
+  void reviewLanded() {
+    if (!mounted) return;
+    setState(() {});
+    _saveDraft();
+  }
 
   /// The account wipe this screen was made under ([AccountLocalState.epoch]).
   /// Taken once, here: the Analyse tab outlives a sign-out by a frame, and its
@@ -204,6 +225,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     if (game != null) _loadGame(game);
     if (tree != null) _loadTree(tree);
     _initEngine();
+    _reviewRunner.attachBoard(this);
+    _stockfishService.held.addListener(_onEngineHeldChanged);
     AppSettingsService.instance.addListener(_onAppSettingsChanged);
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
@@ -268,9 +291,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
     }
   }
 
+  void _onEngineHeldChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _shown?.removeListener(_onShownChanged);
+    _stockfishService.held.removeListener(_onEngineHeldChanged);
+    _reviewRunner.detachBoard(this);
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     // A debounced write would be lost with this screen, so force it out first.
     unawaited(AnalysisDraftService.instance.flush(
@@ -1331,10 +1360,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
         stockfishService: _stockfishService,
         exerciseApi: ExerciseApiService(authToken: widget.userSession.token),
         gameTitle: _gameTitleForExercises(),
-        onCompleted: () {
-          setState(() {});
-          _saveDraft();
-        },
+        runner: _reviewRunner,
       ),
     );
     if (!mounted || kept == null || kept == 0) return;
@@ -1773,6 +1799,25 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen> {
             },
           ),
         const SizedBox(height: AppSpacing.sm),
+        // Above the panel, not in its place: the switch stays in reach, so
+        // the reader can turn the engine off while the review has it.
+        if (AppSettingsService.instance.isPanelVisible('engine_analysis') &&
+            _showEvaluation &&
+            _stockfishService.held.value)
+          Container(
+            key: const Key('analysis-engine-busy'),
+            margin: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: context.colors.surface.withValues(alpha: 0.5),
+              borderRadius: AppRadii.roundedSm,
+              border: Border.all(color: context.colors.border),
+            ),
+            child: Text(
+              'The engine is busy with the game review.',
+              style: AppText.body.copyWith(color: context.colors.textMuted),
+            ),
+          ),
         if (AppSettingsService.instance.isPanelVisible('engine_analysis'))
           StockfishAnalysisWidget(
             isEngineEnabled: _showEvaluation,

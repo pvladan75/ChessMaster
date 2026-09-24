@@ -5878,6 +5878,42 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 240. Pregled partije radi u pozadini — 24.9.2026, nije viđeno uživo
+
+Nova verzija aplikacije. `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1.2b. Najbolje
+na telefonu, gde pregled traje dugo. Završna rečenica iz 238.4 je sada
+„Marked N mistakes." umesto „Tagged N blunders.".
+
+1. [ ] **Nema klizača u pešacima.** U „Review entire game" više nema
+   „Blunder threshold: N pawns".
+2. [ ] **Prozor se zatvara, pregled ide dalje.** Pokreni pregled (Blunder
+   Alert uključen), pa dugme za zatvaranje dok radi. Idi na drugi tab ili
+   drugi ekran. Kad se završi, dole iskače poruka koja počinje sa „Game
+   review done", gde god da si — a u partiji u Analysis su `??` oznake.
+3. [ ] **Ponovo otvoren, pokazuje isti pregled.** Tokom rada ponovo otvori
+   „Review entire game": vidi se napredak (faza rečima i traka), ne podešavanja.
+   Posle kraja pokazuje rezultat dok ne klikneš Close; zagonetke se tu čuvaju.
+4. [ ] **Kraj kaže brojeve.** Na kom broju dubine pregled stoji, koliko je
+   označeno, koliko poteza nije presuđeno ili smireno (ako ih ima), koliko je
+   odgovora iz ranijih pretraga (kad se pregled pokrene drugi put). Partija
+   bez greške: „No mistake found at depth N."
+5. [ ] **Motor je zauzet, i to se kaže.** Dok pregled radi, u Analysis uključi
+   engine: iznad panela piše „The engine is busy with the game review.", a
+   prekidač i dalje radi. Na nekom drugom ekranu sa engine-om (igra protiv
+   računara) jednom iskače poruka da je engine zauzet pregledom. Kad se
+   pregled završi, Analysis ponovo računa sam.
+6. [ ] **Izlazak iz Analysis ne kvari pregled.** Pokreni pregled, pa pređi na
+   drugi tab i nazad nekoliko puta. Na kraju oznake postoje, a „nije
+   presuđeno" nije naraslo zbog toga (uporedi sa pregledom iste partije bez
+   šetanja).
+7. [ ] **Cancel.** Cancel zatvara prozor; posle par sekundi engine je slobodan,
+   nema oznaka ni poruke „Game review done".
+8. [ ] **Promenjena partija.** Pokreni pregled, zatvori prozor, učitaj drugu
+   partiju u Analysis. Kraj kaže upozorenjem da se partija promenila i da
+   oznake nisu upisane — a nova partija je netaknuta.
+9. [ ] **Odjava usred pregleda.** Pokreni pregled, odjavi se, prijavi (ili
+   drugi nalog): nema poruke „Game review done" i nema oznaka u nacrtu.
+
 ## 239. Engine-ovi odgovori se čuvaju na uređaju — 24.9.2026, nije viđeno uživo
 
 Nova verzija aplikacije. `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1.1.

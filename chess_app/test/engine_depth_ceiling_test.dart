@@ -4,6 +4,11 @@
 // tutorial offered 18, 20 and 22 only. The ceiling is one number,
 // `AppSettingsService.kMaxEngineDepth`; the dials and the tutorial dialog
 // have their own tests beside them.
+//
+// `GameReviewDialog` lost `onCompleted` in `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`
+// phase 1.2b (the review runs through `GameReviewRunner` now); the case below
+// only renders the setup screen and never starts a review, so it needs no
+// runner of its own.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,7 +64,6 @@ void main() {
           rootNode: root,
           currentNode: root,
           stockfishService: StockfishService(),
-          onCompleted: () {},
         ),
       ),
     ));

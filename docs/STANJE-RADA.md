@@ -71,9 +71,14 @@ kodu** — sledeća je **1.2**, pregled partije na pravilu. Pravilo ima jedan do
 sudi svaki potez po pravilu — šetnja na dubini pregleda, masters knjiga
 jednom, tablebase za 7 figura i manje, potezi blizu praga potvrđeni i
 produbljeni u budžetu od 24 pretrage, a ono što nije presuđeno ili smireno
-se broji. Dijalog i dalje ide starim putem; **sledeća je 1.2b** — pregled u
-pozadini (pregled pripada aplikaciji, engine se drži protiv Analysis-a,
-rezultat ide na partiju, klizač u pešacima nestaje). Usput: aplikacijin
+se broji. **1.2b je u kodu (24.9.2026, aplikacija 4030 → 4055, analyze 26 →
+23 info)**: pregled pripada aplikaciji (`GameReviewRunner`), dijalog ga samo
+gleda i sme da se zatvori, rezultat pada na partiju po potezima (živa tabla,
+pa nacrt samo kad table nema), odjava ga zaustavlja, engine je zadržan dok
+pregled radi (Analysis kaže da je zauzet, drugi ekrani dobiju poruku
+jednom), kraj se kaže gde god da je čitalac (`ReviewNotice`), klizač u
+pešacima i stari put su obrisani. Provera uživo: `TODO-provera.md` stavka
+240. **Sledeća je 1.3** — zagonetke iz presuđenih momenata. Usput: aplikacijin
 Lichess tablebase ide sekundu po sekundu i staje na minut posle 429 (kao
 server). **Nova faza 1t** (vlasnik, 24.9): pozicije sa 5 figura i manje iz
 naših Syzygy tabela (`lila-tablebase`, lokalno pa na droplet-u), 6 i 7 preko

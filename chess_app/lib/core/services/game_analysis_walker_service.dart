@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/core/services/legal_moves.dart';
@@ -14,17 +13,20 @@ import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 
 /// Which side's mistakes a blunder alert should flag — see
-/// [GameAnalysisWalkerService.tagBlunders].
+/// [GameAnalysisWalkerService.markMistakes].
 enum BlunderAlertSide { white, black, both }
 
 /// Walks an already-known sequence of moves (a real game, not engine-searched
 /// branches) one ply at a time: gets the engine eval at every position,
 /// derives each move's swing from the mover's own perspective, and runs both
 /// [TacticalMotifDetector] and [PositionalEvaluatorService] on the
-/// before/after pair. This is the shared foundation for whole-game
-/// annotation (`annotateNodeChain`) and blunder/puzzle extraction
-/// (`LocalPuzzleExtractorService`), which both just need "what happened on
-/// every move" and differ only in what they do with it.
+/// before/after pair — read by the tutorial (`game_facts.dart`).
+///
+/// **`annotateNodeChain` and `tagBlunders` are gone**
+/// (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1.2b): the whole-game review is
+/// `GameReviewJudge`'s now (`game_review_runner.dart`), which marks mistakes
+/// by winning chances rather than a pawn threshold, and [markMistakes] below
+/// applies its verdict rather than computing one of its own.
 class GameAnalysisWalkerService {
   bool _cancelled = false;
 
@@ -117,101 +119,6 @@ class GameAnalysisWalkerService {
     }
 
     return moments;
-  }
-
-  /// Walks [startNode]'s main line (first child at every step — [startNode]
-  /// need not be the tree's true root, so this also covers "analyze just
-  /// from here onward" over a sub-sequence of the game). It writes nothing
-  /// onto the nodes: since 22.9.2026 the tactical and positional findings
-  /// are not shown to the reader, and they travel only in the returned
-  /// [GameMoment]s, which a tutorial reads.
-  ///
-  /// Returns the walked node chain alongside the raw [GameMoment]s so a
-  /// caller can run further passes (e.g. [tagBlunders], puzzle extraction)
-  /// over the same engine walk instead of re-analyzing the game.
-  Future<({List<AnalysisNode> chain, List<GameMoment> moments})>
-      annotateNodeChain({
-    required AnalysisNode startNode,
-    required PositionAnalyzer analyzer,
-    int depth = _defaultDepth,
-    void Function(int processed, int total)? onProgress,
-  }) async {
-    final chain = <AnalysisNode>[];
-    var cur = startNode;
-    while (cur.children.isNotEmpty) {
-      cur = cur.children.first;
-      chain.add(cur);
-    }
-    if (chain.isEmpty) return (chain: chain, moments: const <GameMoment>[]);
-
-    final uciMoves = chain.map((n) => n.moveUci ?? '').toList();
-    final moments = await analyzeGame(
-      startingFen: startNode.fen,
-      uciMoves: uciMoves,
-      analyzer: analyzer,
-      depth: depth,
-      onProgress: onProgress,
-    );
-
-    return (chain: chain, moments: moments);
-  }
-
-  /// Marks every move in [chain] that lost at least [threshold] pawns for
-  /// the side in [side] with a '??' NAG, and — when [insertAlternativeLine]
-  /// is true — inserts the engine's own suggestion from that point as a
-  /// short sibling variation (capped at [alternativeLinePlies] plies) so the
-  /// better continuation is visible right next to the mistake.
-  ///
-  /// Once a position is already decided (the mover's own eval before the
-  /// move was at least [decidedEvalCutoff] pawns either way), an ordinary
-  /// [threshold]-sized swing is normal noise between winning-technique lines
-  /// rather than a real mistake — simplifying into a won endgame routinely
-  /// costs a few pawns of raw eval without changing the outcome. In that
-  /// case the swing has to clear the larger [decidedSwingThreshold] instead,
-  /// so only a swing that actually changes the position's character (e.g.
-  /// +15 collapsing to +6) still gets flagged.
-  ///
-  /// Returns how many moves were tagged as blunders.
-  int tagBlunders({
-    required List<AnalysisNode> chain,
-    required List<GameMoment> moments,
-    required double threshold,
-    BlunderAlertSide side = BlunderAlertSide.both,
-    bool insertAlternativeLine = true,
-    int alternativeLinePlies = 4,
-    double decidedEvalCutoff = 8.0,
-    double decidedSwingThreshold = 6.0,
-  }) {
-    var tagged = 0;
-    for (var i = 0; i < moments.length && i < chain.length; i++) {
-      final moment = moments[i];
-
-      final alreadyDecided = moment.evalBeforeForMover != null &&
-          moment.evalBeforeForMover!.abs() >= decidedEvalCutoff;
-      final effectiveThreshold = alreadyDecided
-          ? math.max(threshold, decidedSwingThreshold)
-          : threshold;
-      if (!moment.isBlunderBeyond(effectiveThreshold)) continue;
-      if (side == BlunderAlertSide.white &&
-          moment.moverColor != chess.Color.WHITE) continue;
-      if (side == BlunderAlertSide.black &&
-          moment.moverColor != chess.Color.BLACK) continue;
-
-      final node = chain[i];
-      node.nag = '??';
-      tagged++;
-
-      if (!insertAlternativeLine) continue;
-      final betterLine = moment.engineLineBefore;
-      final parent = node.parent;
-      if (betterLine == null ||
-          parent == null ||
-          betterLine.sanMoveList.isEmpty) continue;
-      if (betterLine.bestMoveLan == moment.moveUci) continue;
-
-      _insertAlternativeLine(parent, betterLine, alternativeLinePlies);
-    }
-    return tagged;
   }
 
   /// Marks with '??' exactly the moves [result] judged mistakes

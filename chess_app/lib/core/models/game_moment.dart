@@ -58,9 +58,4 @@ class GameMoment {
 
   String get combinedComment =>
       joinSentences([tacticalComment, positionalComment]);
-
-  /// True when this move gave up at least [threshold] pawns of value from
-  /// the mover's own perspective — a blunder the opponent can now exploit.
-  bool isBlunderBeyond(double threshold) =>
-      swingForMover != null && swingForMover! <= -threshold;
 }

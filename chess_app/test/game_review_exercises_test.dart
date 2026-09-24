@@ -10,6 +10,13 @@
 //
 // One fake server records every request (rule 7); the engine is a stand-in
 // that implements `StockfishService` and answers by position.
+//
+// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1.2b: the one test here that
+// opened `GameReviewDialog` now passes it a `GameReviewRunner` instead of
+// `onCompleted`, and no longer relies on the dialog's own last-move search
+// (deleted — `GameReviewJudge`'s walk already asks about the last position).
+// Every other case in this file builds `LocalPuzzle`/`KeepPuzzlesPanel`
+// directly and is unaffected.
 
 import 'dart:convert';
 
@@ -21,6 +28,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/services/game_review_runner.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/keep_puzzles_panel.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
@@ -28,6 +36,7 @@ import 'package:chess_app/features/exercises/services/exercise_api_service.dart'
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/screens/library_screen.dart';
 import 'package:chess_app/features/library/services/position_library_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -165,8 +174,17 @@ class _FakeEngine implements StockfishService {
   Future<String?> answerStoreName() async => null;
 
   @override
+  void hold(Object owner) {}
+
+  @override
+  void release(Object owner) {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+Future<MastersWalk> _noBook(List<String> fens) async =>
+    (known: const <String, Map<String, dynamic>>{}, unavailable: null);
 
 void main() {
   group('the list, and what is kept', () {
@@ -239,7 +257,13 @@ void main() {
 
   testWidgets(
       'the review of a game whose last move is the blunder asks the engine '
-      'once for the answer, and keeps it', (tester) async {
+      'about it too — the walk covers the last position — and keeps the '
+      'answer', (tester) async {
+    // Rewritten for `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` phase 1.2b: the
+    // dialog's own last-move search is gone (`ReviewedMove.replyLine` already
+    // carries it, since `GameReviewJudge`'s walk asks about every position,
+    // including the last one's) — this now goes through `GameReviewRunner`
+    // rather than the deleted walker directly.
     SharedPreferences.setMockInitialValues({'app_analysis_depth': 12});
     await AppSettingsService.instance.init();
     tester.view.physicalSize = const Size(900, 1600);
@@ -253,6 +277,8 @@ void main() {
       _afterQd5: ('-9.00', 'd8d5'),
     });
     final server = _Server();
+    final runner =
+        GameReviewRunner(book: _noBook, tablebase: (_) async => null);
 
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
@@ -264,7 +290,7 @@ void main() {
           rootNode: root,
           currentNode: root,
           stockfishService: engine,
-          onCompleted: () {},
+          runner: runner,
         ),
       ),
     ));

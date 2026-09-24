@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/models/analysis_models.dart';
@@ -22,6 +23,37 @@ class StockfishService {
 
   bool _isActive = false;
   int _requestId = 0;
+  int _currentMultiPV = 1;
+
+  // ─── THE REVIEW'S HOLD (see the native service for the full story) ───
+  Object? _heldBy;
+  final ValueNotifier<bool> _held = ValueNotifier(false);
+  ValueListenable<bool> get held => _held;
+
+  final ValueNotifier<int> _refusedWhileHeld = ValueNotifier(0);
+  ValueListenable<int> get refusedWhileHeld => _refusedWhileHeld;
+
+  int? _pendingMultiPV;
+
+  @visibleForTesting
+  int get debugRequestId => _requestId;
+  @visibleForTesting
+  int get debugMultiPV => _currentMultiPV;
+
+  void hold(Object owner) {
+    _heldBy = owner;
+    _held.value = true;
+  }
+
+  void release(Object owner) {
+    if (!identical(_heldBy, owner)) return;
+    _heldBy = null;
+    _held.value = false;
+    final pending = _pendingMultiPV;
+    _pendingMultiPV = null;
+    if (pending != null) _currentMultiPV = pending;
+    _activateTopSubscriber();
+  }
 
   bool get isActive => _isActive;
   bool get isSupported => true;
@@ -72,6 +104,7 @@ class StockfishService {
   }
 
   void _activateTopSubscriber() {
+    if (_held.value) return;
     if (_subscribers.isEmpty) {
       onEvaluationChanged = null;
       onMultiPVUpdated = null;
@@ -91,6 +124,18 @@ class StockfishService {
   }
 
   Future<void> analyzePosition(String fen,
+      {int depth = 10, bool isInfinite = false}) async {
+    if (_held.value) {
+      _refusedWhileHeld.value++;
+      return;
+    }
+    await _analyzePositionNow(fen, depth: depth, isInfinite: isInfinite);
+  }
+
+  /// The actual work, bypassing the hold: the review's own
+  /// [analyzePositionSync] calls this directly, since a review's search is
+  /// what the hold exists to protect, not to block.
+  Future<void> _analyzePositionNow(String fen,
       {int depth = 10, bool isInfinite = false}) async {
     // Same door, same guard — see the native service for why it is here and
     // not on the screens.
@@ -161,11 +206,18 @@ class StockfishService {
   }
 
   void stopAnalysis() {
+    if (_held.value) return;
     _requestId++;
     _isActive = false;
   }
 
-  void setMultiPV(int count) {}
+  void setMultiPV(int count) {
+    if (_held.value) {
+      _pendingMultiPV = count;
+      return;
+    }
+    _currentMultiPV = count;
+  }
 
   /// Deliberately does not clear callbacks — see the native implementation.
   void dispose() {
@@ -192,7 +244,7 @@ class StockfishService {
     Duration timeout = const Duration(seconds: 10),
     void Function(List<AnalysisLine> partial)? onProgress,
   }) async {
-    await analyzePosition(fen, depth: depth);
+    await _analyzePositionNow(fen, depth: depth);
     // A concurrent call to analyzePosition() for a different fen can
     // supersede this one's request (see the `reqId != _requestId` guard
     // above) and leave `_engineLines` holding that other call's result —

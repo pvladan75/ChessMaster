@@ -21,8 +21,8 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4030 tests, 1 skipped, rest green
-cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
+cd chess_app && flutter test          # 4055 tests, 1 skipped, rest green
+cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
 cd chess_backend && npm test          # node --test, 1842 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
@@ -722,6 +722,19 @@ separately.** And the tablebase's new pacing, built as a queue of futures in a
 singleton, hung the next test in a file for ever once one request's timer was
 left on a thrown-away fake clock: **in a singleton, a queue of futures holds
 everything behind the one that never finishes** — slots now, not a chain.
+Then phase 1.2b (→ **4055**, a full run, `replay_audio_test` failing under
+load as since 23.9 and passing alone 3/3; analyze → **23** infos, the three
+having lived in the deleted `tagBlunders`): the review belongs to the app
+(`GameReviewRunner`), lands on the game by its moves, is stopped by a
+sign-out, and holds the engine against every screen while it runs;
+`ReviewNotice` says the end wherever the reader is; the pawn slider and the
+old path are gone. The worker fenced the draft write with the epoch read *at
+the write* — always current, the bug the epoch exists for, written again:
+**a fence's number is taken where the writer is born, never where it
+writes.** And a live search queued just before the hold waited out its
+debounce behind the checked doors and would have fired into the review:
+**a hold guards the doors; what already went through them is cancelled
+separately.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
@@ -755,16 +768,16 @@ tests and the skip still skips them, so the run exits 0 saying "All tests
 skipped". Run them with `flutter test --tags golden --run-skipped`.
 
 **`flutter analyze` does not exit clean, and has not for a long time.** It
-reports 26 issues, every one of them `info` level and every one of them
+reports 23 issues, every one of them `info` level and every one of them
 `curly_braces_in_flow_control_structures`, spread over
-`positional_evaluator_service.dart`, `game_analysis_walker_service.dart`,
-`review_api_service.dart`, `ai_studio_screen.dart` and
-`matrix_filter_panel.dart`. (29 until 13.9.2026, when the motif detector's
-rewrite put braces on its three.) This file used to say
+`positional_evaluator_service.dart`, `review_api_service.dart`,
+`ai_studio_screen.dart` and `matrix_filter_panel.dart`. (29 until 13.9.2026,
+when the motif detector's rewrite put braces on its three; 26 until
+24.9.2026, when three went with the deleted `tagBlunders`.) This file used to say
 "must be clean", which is worse than saying nothing: it makes a red exit code
 look like the normal state, so a real error added tomorrow reads as the same
 failure as today's. **What must hold is zero errors, zero warnings, and no new
-infos — compare the list, not the exit code.** Clearing the 29 is a fine
+infos — compare the list, not the exit code.** Clearing the 23 is a fine
 standalone chore and would restore the simpler rule.
 
 Run `dart format` on any Dart file you edit — CI does not enforce it, but the
@@ -854,7 +867,7 @@ The model split is defined globally in `~/.claude/CLAUDE.md`, with the agents in
 |---|---|---|
 | Lead | Opus 5, the main session | Plans (`docs/PLAN-*.md`), gates written and proved satisfiable before handing over, grading, merges, docs. Everything irreversible stays here: schema and migrations, deletions, `uploads/`, `.env`, `deploy/`, the droplet, the legal texts |
 | Worker | `implementer` agent, Sonnet 5 | One phase of a plan whose gate already exists — usually in a worktree (`isolation: "worktree"`) |
-| Measurement | `verifier` agent, Sonnet 5 | The full counts: app suite, analyze list against the 26 known infos, backend with `.env` moved aside |
+| Measurement | `verifier` agent, Sonnet 5 | The full counts: app suite, analyze list against the 23 known infos, backend with `.env` moved aside |
 | Escalation | `deep-debug` agent, Fable 5.1 | A fault that survived a full round of diagnosis, or a change across app, server and data where one missed reader corrupts something |
 | External worker | Gemini through `agy` | Large mechanical sweeps (translations, renames, vocabulary) where Max quota is better saved. Harness: `D:\Projekti\mislisha-test\orchestrator` — not in git, read its `HANDOFF.md` first; the `worker-batches` skill has the method |
 

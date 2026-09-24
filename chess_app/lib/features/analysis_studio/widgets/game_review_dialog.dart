@@ -1,43 +1,33 @@
-import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:flutter/material.dart';
-import 'package:chess_app/core/services/game_analysis_walker_service.dart';
-import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
+
+import 'package:chess_app/core/services/game_analysis_walker_service.dart'
+    show BlunderAlertSide;
+import 'package:chess_app/core/services/game_review_judge.dart'
+    show ReviewProgress, ReviewStage;
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/services/game_review_runner.dart';
 import 'package:chess_app/features/analysis_studio/widgets/keep_puzzles_panel.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
-import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 
-/// Walks the game through the engine and, in one pass:
-/// - optionally tags blunders ('??') and adds the engine's suggested
-///   improvement as a short side variation ("Blunder Alert");
-/// - optionally finds the same blunders as puzzles, lists them, and keeps
-///   the ticked ones as Find exercises from „mistakes" ([KeepPuzzlesPanel],
-///   `docs/PLAN-MATERIJAL.md` phase 4 — until then they were a set of their
-///   own that nothing judged).
+/// Starts a whole-game review through [GameReviewRunner] and then only
+/// watches it — `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1.2b.
 ///
-/// Blunder tagging and puzzle extraction reuse the single engine walk this
-/// dialog already runs (via [GameAnalysisWalkerService.annotateNodeChain]'s
-/// returned moments) instead of re-analyzing the game.
-///
-/// It writes **no comment** under a move: since 22.9.2026 the tactical and
-/// positional findings are not shown to the reader. So a review with neither
-/// Blunder Alert nor puzzles on would walk the whole game (six minutes on a
-/// phone) and change nothing; Start stays off until one of them is on, and
-/// the end says what was found, never "commented". The owner waited out such
-/// a walk on 24.9.2026 and went looking for the comments the dialog promised.
+/// The review is not this dialog's: closing it leaves the review running, and
+/// its end is said wherever the reader is (`ReviewNotice`, when this dialog is
+/// not open to say it itself). What a finished review found — the depth it
+/// stands on, what was marked, what could not be judged, what came from the
+/// store, and whether the game was clean — is the judge's own numbers
+/// (`GameReviewJudge`, `mistake_rule.dart`), never a threshold this dialog
+/// picks: the pawn slider is gone.
 class GameReviewDialog extends StatefulWidget {
   final AnalysisNode rootNode;
   final AnalysisNode currentNode;
   final StockfishService stockfishService;
-
-  /// Called once the walk has written its comments, before any puzzle is
-  /// kept — the board behind is redrawn and its draft saved.
-  final VoidCallback onCompleted;
 
   /// Where kept puzzles go (`POST /exercises`). Required: a puzzle found and
   /// kept nowhere is the old set on one device in a new form.
@@ -47,6 +37,9 @@ class GameReviewDialog extends StatefulWidget {
   /// them by the date.
   final String? gameTitle;
 
+  /// Defaults to the app's one runner.
+  final GameReviewRunner? runner;
+
   const GameReviewDialog({
     super.key,
     required this.exerciseApi,
@@ -54,7 +47,7 @@ class GameReviewDialog extends StatefulWidget {
     required this.rootNode,
     required this.currentNode,
     required this.stockfishService,
-    required this.onCompleted,
+    this.runner,
   });
 
   @override
@@ -62,14 +55,12 @@ class GameReviewDialog extends StatefulWidget {
 }
 
 class _GameReviewDialogState extends State<GameReviewDialog> {
-  final GameAnalysisWalkerService _walker = GameAnalysisWalkerService();
-  final LocalPuzzleExtractorService _puzzleExtractor =
-      LocalPuzzleExtractorService();
+  GameReviewRunner get _runner => widget.runner ?? GameReviewRunner.instance;
+  GameReviewRun? _listenedRun;
 
   late int _engineDepth;
   bool _analyzeFromCurrent = false;
 
-  double _blunderThreshold = 2.0;
   bool _blunderAlertEnabled = false;
   BlunderAlertSide _blunderSide = BlunderAlertSide.both;
   bool _insertBetterMoveLine = true;
@@ -77,16 +68,6 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
   bool _extractPuzzlesEnabled = false;
   int _maxPuzzles = 5;
 
-  bool _isRunning = false;
-  bool _isDone = false;
-  int _processed = 0;
-  int _total = 1;
-
-  int _taggedBlunders = 0;
-  List<LocalPuzzle> _extractedPuzzles = const [];
-
-  /// Whether the review would leave anything behind: the walk alone writes
-  /// nothing onto the game.
   bool get _hasOutput => _blunderAlertEnabled || _extractPuzzlesEnabled;
 
   bool get _hasCurrentNodeOption => widget.currentNode.id != widget.rootNode.id;
@@ -106,155 +87,134 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
     return count;
   }
 
+  /// Whether [run] is a review of the game this dialog opened on — matched by
+  /// its moves, since the run and this dialog's tree are not always the same
+  /// object.
+  bool _isThisGame(GameReviewRun run) =>
+      run.game.chainIn(widget.rootNode) != null;
+
   @override
   void initState() {
     super.initState();
     _engineDepth = AppSettingsService.instance.analysisDepth;
+    _runner.watch();
+    _runner.addListener(_onRunnerChanged);
+    _syncRunListener();
   }
 
   @override
   void dispose() {
-    _walker.cancel();
-    _puzzleExtractor.cancel();
+    _listenedRun?.removeListener(_onRunChanged);
+    _runner.removeListener(_onRunnerChanged);
+    _runner.unwatch();
     super.dispose();
   }
 
-  Future<void> _start() async {
-    setState(() {
-      _isRunning = true;
-      _processed = 0;
-      _total = _mainLineLength + 1;
-    });
+  void _onRunnerChanged() {
+    _syncRunListener();
+    if (mounted) setState(() {});
+  }
 
-    final result = await _walker.annotateNodeChain(
-      startNode: _effectiveStartNode,
-      analyzer: EvalCache.instance.wrap(
-          widget.stockfishService.analyzePositionSync,
-          engine: widget.stockfishService.answerStoreName),
-      depth: _engineDepth,
-      onProgress: (processed, total) {
-        if (!mounted) return;
-        setState(() {
-          _processed = processed;
-          _total = total;
-        });
-      },
-    );
+  void _syncRunListener() {
+    final run = _runner.current;
+    if (identical(run, _listenedRun)) return;
+    _listenedRun?.removeListener(_onRunChanged);
+    _listenedRun = run;
+    run?.addListener(_onRunChanged);
+  }
 
-    if (!mounted) return;
+  void _onRunChanged() {
+    if (mounted) setState(() {});
+  }
 
-    if (_blunderAlertEnabled) {
-      _taggedBlunders = _walker.tagBlunders(
-        chain: result.chain,
-        moments: result.moments,
-        threshold: _blunderThreshold,
+  void _start() {
+    _runner.start(
+      root: widget.rootNode,
+      start: _effectiveStartNode,
+      options: ReviewOptions(
+        depth: _engineDepth,
+        markMistakes: _blunderAlertEnabled,
         side: _blunderSide,
-        insertAlternativeLine: _insertBetterMoveLine,
-      );
-    }
-
-    if (_extractPuzzlesEnabled) {
-      final found = _puzzleExtractor.buildPuzzlesFromMoments(
-        result.moments,
-        blunderThreshold: _blunderThreshold,
+        insertBetterLine: _insertBetterMoveLine,
+        findPuzzles: _extractPuzzlesEnabled,
         maxPuzzles: _maxPuzzles,
-      );
-      // The game's last move has no next moment to take the answer from:
-      // one search at this dialog's depth, and a puzzle it cannot answer is
-      // listed as such and cannot be kept.
-      final answered = <LocalPuzzle>[];
-      for (final p in found) {
-        if (p.refutationSan != null) {
-          answered.add(p);
-          continue;
-        }
-        final lines = await widget.stockfishService
-            .analyzePositionSync(p.fen, depth: _engineDepth, multiPV: 1);
-        if (!mounted) return;
-        final san = lines.isEmpty ? '' : lines.first.bestMoveSan.trim();
-        answered.add(p.withRefutation(san.isEmpty ? null : san));
-      }
-      _extractedPuzzles = answered;
-    }
-
-    if (!mounted) return;
-    widget.onCompleted();
-    setState(() => _isDone = true);
+      ),
+      engine: widget.stockfishService,
+      gameTitle: widget.gameTitle,
+    );
+    _syncRunListener();
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     final moveCount = _mainLineLength;
-    final progressPct =
-        _total > 0 ? (_processed / _total).clamp(0.0, 1.0) : 0.0;
+    final run = _runner.current;
+    final otherGameRunning = run != null &&
+        run.status == ReviewRunStatus.running &&
+        !_isThisGame(run);
+    final thisGameRun = run != null && _isThisGame(run) ? run : null;
 
-    return PopScope(
-      // Blocks accidental barrier-tap / back-button dismissal while the
-      // engine walk is running — losing a multi-minute analysis to a
-      // misplaced tap was the #1 complaint about this dialog.
-      canPop: !_isRunning,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop || !_isRunning) return;
-        AppFeedback.show(
-          context,
-          () => const SnackBar(
-              content: Text('Wait for the analysis to finish or click Cancel.'),
-              duration: Duration(seconds: 2)),
-        );
-      },
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
-        child: Container(
-          width: 440,
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.85),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.fact_check,
-                          color: context.colors.accent, size: 22),
-                      const SizedBox(width: AppSpacing.sm),
-                      Text('Review game',
-                          style: AppText.title
-                              .copyWith(color: context.colors.textPrimary)),
-                    ],
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, color: context.colors.textMuted),
-                    tooltip: 'Close',
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: !_isRunning
-                        ? _buildSetupControls(moveCount)
-                        : (_isDone
-                            ? _buildDoneControls()
-                            : _buildProgressControls(progressPct)),
-                  ),
+    List<Widget> body;
+    if (thisGameRun != null && thisGameRun.status == ReviewRunStatus.running) {
+      body = _buildRunningControls(thisGameRun);
+    } else if (thisGameRun != null &&
+        (thisGameRun.status == ReviewRunStatus.done ||
+            thisGameRun.status == ReviewRunStatus.failed)) {
+      body = _buildDoneControls(thisGameRun);
+    } else {
+      body = _buildSetupControls(moveCount,
+          blockedBy: otherGameRunning ? run : null);
+    }
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
+      child: Container(
+        width: 440,
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.85),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.fact_check,
+                        color: context.colors.accent, size: 22),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Review game',
+                        style: AppText.title
+                            .copyWith(color: context.colors.textPrimary)),
+                  ],
+                ),
+                IconButton(
+                  icon: Icon(Icons.close, color: context.colors.textMuted),
+                  tooltip: 'Close',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: body,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildSetupControls(int moveCount) {
+  List<Widget> _buildSetupControls(int moveCount, {GameReviewRun? blockedBy}) {
     return [
       Text(
         moveCount == 0
@@ -262,9 +222,41 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             : 'The engine will step through $moveCount moves, mark the '
                 'mistakes and find puzzles in them — choose which below. It '
                 'writes no comment under a move; for that, use "Generate AI '
-                'comment" on the move. Works on part of a game too.',
+                'comment" on the move. Works on part of a game too. The review '
+                'may take long, and goes on if this window is closed.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
+      if (blockedBy != null) ...[
+        const SizedBox(height: AppSpacing.md),
+        Container(
+          key: const Key('review-other-game'),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: context.colors.surfaceRaised,
+            borderRadius: AppRadii.roundedSm,
+            border: Border.all(color: context.colors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('A review of another game is under way.',
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textPrimary)),
+              const SizedBox(height: AppSpacing.xs),
+              Text(_stageText(blockedBy.progress),
+                  style: AppText.caption
+                      .copyWith(color: context.colors.textMuted)),
+              const SizedBox(height: AppSpacing.sm),
+              OutlinedButton.icon(
+                icon: Icon(Icons.cancel, color: context.colors.danger),
+                label: Text('Cancel that review',
+                    style: TextStyle(color: context.colors.danger)),
+                onPressed: () => _runner.cancel(),
+              ),
+            ],
+          ),
+        ),
+      ],
       const SizedBox(height: AppSpacing.lg),
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -307,22 +299,6 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       Text('Blunder detection',
           style: AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
       const SizedBox(height: AppSpacing.xs),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-              'Blunder threshold: ${_blunderThreshold.toStringAsFixed(1)} pawns',
-              style: AppText.body.copyWith(color: context.colors.textPrimary)),
-        ],
-      ),
-      AppSlider(
-        value: _blunderThreshold,
-        min: 0.2,
-        max: 5.0,
-        divisions: 48,
-        activeColor: context.colors.warning,
-        onChanged: (val) => setState(() => _blunderThreshold = val),
-      ),
       CheckboxListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
@@ -415,7 +391,85 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
           ),
-          onPressed: moveCount == 0 || !_hasOutput ? null : _start,
+          onPressed: (moveCount == 0 || !_hasOutput || blockedBy != null)
+              ? null
+              : _start,
+        ),
+      ),
+    ];
+  }
+
+  String _stageText(ReviewProgress? p) {
+    if (p == null) return 'Starting…';
+    switch (p.stage) {
+      case ReviewStage.walk:
+        return 'Walking the game: ${p.done} / ${p.total} positions';
+      case ReviewStage.book:
+        return 'Checking the book';
+      case ReviewStage.tablebase:
+        return 'Checking the tablebase: ${p.done} / ${p.total}';
+      case ReviewStage.confirm:
+        return 'Looking again: ${p.done} / ${p.total}';
+      case ReviewStage.deepen:
+        return 'Looking deeper: ${p.done} / ${p.total} searches';
+    }
+  }
+
+  List<Widget> _buildRunningControls(GameReviewRun run) {
+    final p = run.progress;
+    final pct =
+        (p != null && p.total > 0) ? (p.done / p.total).clamp(0.0, 1.0) : 0.0;
+    return [
+      Container(
+        key: const Key('review-running'),
+        child: Center(
+          child: Column(
+            children: [
+              Text(_stageText(p),
+                  textAlign: TextAlign.center,
+                  style: AppText.bodyLargeBold
+                      .copyWith(color: context.colors.accent)),
+              const SizedBox(height: AppSpacing.lg),
+              LinearProgressIndicator(
+                  value: pct,
+                  backgroundColor: context.colors.surfaceRaised,
+                  color: context.colors.accent),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'The review may take long — it goes on if this window is '
+                'closed.',
+                textAlign: TextAlign.center,
+                style:
+                    AppText.caption.copyWith(color: context.colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              // A `Wrap`, not a `Row`: two buttons at 400 px do not fit side
+              // by side, and a `Row` that does not fit is clipped in a
+              // release build with nothing painted to say so.
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.sm,
+                children: [
+                  OutlinedButton(
+                    key: const Key('review-keep-working'),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Keep working in the background'),
+                  ),
+                  OutlinedButton.icon(
+                    key: const Key('review-cancel'),
+                    icon: Icon(Icons.cancel, color: context.colors.danger),
+                    label: Text('Cancel',
+                        style: TextStyle(color: context.colors.danger)),
+                    onPressed: () {
+                      _runner.cancel();
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     ];
@@ -428,83 +482,155 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
     return 'Game of ${two(now.day)}.${two(now.month)}.${now.year}';
   }
 
-  List<Widget> _buildDoneControls() {
+  List<Widget> _buildDoneControls(GameReviewRun run) {
+    final result = run.result;
+    final options = run.options;
+    final depth = result?.depth ?? options.depth;
+    final positions = (result?.moves.length ?? 0) + 1;
+    final clean = options.markMistakes &&
+        run.marked == 0 &&
+        result != null &&
+        result.cleanWhere((m) => switch (options.side) {
+              BlunderAlertSide.white => m.whiteMoved,
+              BlunderAlertSide.black => !m.whiteMoved,
+              BlunderAlertSide.both => true,
+            });
+
     return [
-      Center(
-        child: Column(
-          children: [
-            Icon(Icons.check_circle, color: context.colors.accent, size: 36),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'Done — reviewed $_processed positions.',
-              textAlign: TextAlign.center,
-              style: AppText.subtitle.copyWith(color: context.colors.accent),
-            ),
-            if (_blunderAlertEnabled) ...[
-              const SizedBox(height: 6),
-              Text(
-                  _taggedBlunders == 1
-                      ? 'Tagged 1 blunder.'
-                      : 'Tagged $_taggedBlunders blunders.',
+      Container(
+        key: const Key('review-done'),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(
+                  run.status == ReviewRunStatus.failed
+                      ? Icons.error
+                      : Icons.check_circle,
+                  color: run.status == ReviewRunStatus.failed
+                      ? context.colors.danger
+                      : context.colors.accent,
+                  size: 36),
+              const SizedBox(height: AppSpacing.md),
+              if (run.status == ReviewRunStatus.failed)
+                Text('The review stopped: ${run.failure ?? 'unknown error'}.',
+                    textAlign: TextAlign.center,
+                    style:
+                        AppText.subtitle.copyWith(color: context.colors.danger))
+              else ...[
+                Text(
+                  'Done — reviewed $positions positions.',
                   textAlign: TextAlign.center,
                   style:
-                      AppText.body.copyWith(color: context.colors.textPrimary)),
+                      AppText.subtitle.copyWith(color: context.colors.accent),
+                ),
+                const SizedBox(height: 6),
+                Text('The review stands on depth $depth.',
+                    key: const Key('review-depth'),
+                    textAlign: TextAlign.center,
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted)),
+                if (options.markMistakes) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                      run.marked == 1
+                          ? 'Marked 1 mistake.'
+                          : 'Marked ${run.marked} mistakes.',
+                      textAlign: TextAlign.center,
+                      style: AppText.body
+                          .copyWith(color: context.colors.textPrimary)),
+                  if (clean)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text('No mistake found at depth $depth.',
+                          key: const Key('review-clean'),
+                          textAlign: TextAlign.center,
+                          style: AppText.body
+                              .copyWith(color: context.colors.textPrimary)),
+                    ),
+                ],
+                if (result != null && result.unsettled > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        'The looks still disagreed on ${result.unsettled} move(s).',
+                        key: const Key('review-unsettled'),
+                        textAlign: TextAlign.center,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted)),
+                  ),
+                if (result != null && result.unjudged > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        'The engine did not answer on ${result.unjudged} move(s).',
+                        key: const Key('review-unjudged'),
+                        textAlign: TextAlign.center,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted)),
+                  ),
+                if (run.tally.fromStore > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        '${run.tally.fromStore} answer(s) came from earlier '
+                        'searches.',
+                        key: const Key('review-from-store'),
+                        textAlign: TextAlign.center,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted)),
+                  ),
+                if (result?.bookUnavailable != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        'The book could not be asked (${result!.bookUnavailable}).',
+                        textAlign: TextAlign.center,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted)),
+                  ),
+                if (result != null && result.tablebaseUnanswered > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        'The tablebase did not answer on '
+                        '${result.tablebaseUnanswered} move(s).',
+                        textAlign: TextAlign.center,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.textMuted)),
+                  ),
+                if (run.landing == ReviewLanding.notLanded)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        'The game changed while it was reviewed — the marks '
+                        'were not written.',
+                        textAlign: TextAlign.center,
+                        style: AppText.body
+                            .copyWith(color: context.colors.warning)),
+                  ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+              if (run.puzzles.isNotEmpty)
+                KeepPuzzlesPanel(
+                  puzzles: run.puzzles,
+                  defaultName: run.gameTitle ?? _gameOfToday(),
+                  api: widget.exerciseApi,
+                  onDone: (kept) {
+                    _runner.dismiss();
+                    Navigator.pop(context, kept);
+                  },
+                )
+              else
+                ElevatedButton(
+                  key: const Key('review-close'),
+                  onPressed: () {
+                    _runner.dismiss();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Close'),
+                ),
             ],
-            if (_extractPuzzlesEnabled && _extractedPuzzles.isEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                'No puzzles found.',
-                textAlign: TextAlign.center,
-                style: AppText.body.copyWith(color: context.colors.textPrimary),
-              ),
-            ],
-            const SizedBox(height: AppSpacing.lg),
-            if (_extractedPuzzles.isNotEmpty)
-              KeepPuzzlesPanel(
-                puzzles: _extractedPuzzles,
-                defaultName: widget.gameTitle ?? _gameOfToday(),
-                api: widget.exerciseApi,
-                // The exercises are written by now; the caller says so, on
-                // its own screen, after this dialog is gone.
-                onDone: (kept) => Navigator.pop(context, kept),
-              )
-            else
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
-              ),
-          ],
-        ),
-      ),
-    ];
-  }
-
-  List<Widget> _buildProgressControls(double progressPct) {
-    return [
-      Center(
-        child: Column(
-          children: [
-            LinearProgressIndicator(
-                value: progressPct,
-                backgroundColor: context.colors.surfaceRaised,
-                color: context.colors.accent),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Positions processed: $_processed / $_total',
-              style:
-                  AppText.bodyLargeBold.copyWith(color: context.colors.accent),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            OutlinedButton.icon(
-              icon: Icon(Icons.cancel, color: context.colors.danger),
-              label: Text('Cancel',
-                  style: TextStyle(color: context.colors.danger)),
-              onPressed: () {
-                _walker.cancel();
-                Navigator.pop(context);
-              },
-            ),
-          ],
+          ),
         ),
       ),
     ];

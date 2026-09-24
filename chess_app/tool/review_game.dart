@@ -3,7 +3,6 @@
 ///     set REVIEW_IN=<a .pgn with one game in it>
 ///     set REVIEW_OUT=<where the annotated .pgn goes>
 ///     set REVIEW_DEPTH=18
-///     set REVIEW_THRESHOLD=0.8
 ///     flutter test tool/review_game.dart
 ///
 /// Written for the language-model experiment in `tools/game_annotate/`, whose
@@ -12,13 +11,15 @@
 /// and copying the result out — so a second game meant a manual step, and the
 /// experiment could not be re-run on a hundred games by anybody.
 ///
-/// **It is an entry point, not a second implementation.** Every sentence, every
-/// `??` and every „Better move" branch is written by
-/// `GameAnalysisWalkerService`, which is the same code the dialog drives;
-/// `annotateNodeChain` and `tagBlunders` take an analyzer as an argument, and
-/// all this file supplies is one that speaks UCI to a Stockfish binary instead
-/// of to the app's plugin. The defaults below are the dialog's defaults, and
-/// they are named here so a difference is visible rather than silent.
+/// **It is an entry point, not a second implementation.** Every `??` and every
+/// „Better move" branch is written by `GameAnalysisWalkerService.markMistakes`,
+/// fed by `GameReviewJudge` — the same two classes the dialog drives since
+/// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` phase 1.2b; this file only supplies an
+/// analyzer that speaks UCI to a Stockfish binary instead of to the app's
+/// plugin, and a book/tablebase that always say "unavailable" (this tool has
+/// no server session to ask the masters database with). `REVIEW_THRESHOLD` is
+/// gone with it: a mistake is what `mistake_rule.dart`'s winning-chances rule
+/// says, not a pawn threshold this tool or the dialog picks.
 ///
 /// **Why a test and not a script.** `dart run` cannot load it: the walker
 /// imports `auto_tree_generator_service.dart` for the `PositionAnalyzer`
@@ -58,27 +59,22 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
+import 'package:chess_app/core/services/game_review_judge.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/move_tree.dart';
 
-/// The dialog's own defaults, quoted so a drift between the two is visible.
-/// `game_review_dialog.dart`: threshold 2.0 pawns, both sides, the engine's
-/// line inserted, four plies of it. The depth there comes from the trainer's
-/// settings; 14 is `GameAnalysisWalkerService`'s own default.
+/// The dialog's own default depth; 14 is `GameAnalysisWalkerService`'s own
+/// default for the comments-only path below.
 const int _defaultDepth = 14;
-const double _defaultThreshold = 2.0;
 
 void main() {
   final input = Platform.environment['REVIEW_IN'];
   final output = Platform.environment['REVIEW_OUT'];
   final depth =
       int.tryParse(Platform.environment['REVIEW_DEPTH'] ?? '') ?? _defaultDepth;
-  final threshold =
-      double.tryParse(Platform.environment['REVIEW_THRESHOLD'] ?? '') ??
-          _defaultThreshold;
   final commentsOnly = Platform.environment['REVIEW_COMMENTS_ONLY'] == '1';
 
   test('reviews a game and writes the annotated PGN', () async {
@@ -126,24 +122,32 @@ void main() {
 
     final engine = await _Engine.start();
     try {
-      final walker = GameAnalysisWalkerService();
-      final result = await walker.annotateNodeChain(
-        startNode: root,
+      final judge = GameReviewJudge(
         analyzer: engine.analyse,
+        book: (fens) async => (
+          known: const <String, Map<String, dynamic>>{},
+          unavailable: 'this tool has no server session to ask'
+        ),
+        tablebase: (fen) async => null,
+      );
+      final result = await judge.review(
+        startingFen: root.fen,
+        uciMoves: [for (final node in chain) node.moveUci ?? ''],
         depth: depth,
-        onProgress: (done, total) {
-          if (done % 10 == 0 || done == total) {
-            stdout.writeln('  $done / $total positions');
+        onProgress: (progress) {
+          if (progress.stage == ReviewStage.walk &&
+              (progress.done % 10 == 0 || progress.done == progress.total)) {
+            stdout.writeln('  ${progress.done} / ${progress.total} positions '
+                '(${progress.stage.name})');
           }
         },
       );
-      final tagged = walker.tagBlunders(
-        chain: result.chain,
-        moments: result.moments,
-        threshold: threshold,
-      );
-      stdout
-          .writeln('$tagged blunders tagged at $threshold pawns, depth $depth');
+      if (result == null) {
+        fail('the review was cancelled');
+      }
+      final tagged = GameAnalysisWalkerService()
+          .markMistakes(chain: chain, result: result);
+      stdout.writeln('$tagged mistakes tagged, depth $depth');
 
       File(output).writeAsStringSync(PgnExporterService.exportToPgn(root));
       stdout.writeln('written: $output');
@@ -219,12 +223,13 @@ class _Engine {
             onTimeout: () => throw StateError('the engine never said $token'),
           );
 
-  /// The shape `PositionAnalyzer` asks for. Structural typing, so this file
-  /// does not have to import the typedef's home.
+  /// The shape `MoveAnalyzer` asks for. Structural typing, so this file does
+  /// not have to import the typedef's home.
   Future<List<AnalysisLine>> analyse(
     String fen, {
     required int depth,
     required int multiPV,
+    List<String>? searchMoves,
     Duration timeout = const Duration(seconds: 60),
   }) async {
     final whiteToMove = fen.split(' ').length > 1 && fen.split(' ')[1] == 'w';
@@ -266,7 +271,10 @@ class _Engine {
     _send('ucinewgame');
     _send('setoption name MultiPV value $multiPV');
     _send('position fen $fen');
-    _send('go depth $depth');
+    final movesSuffix = (searchMoves != null && searchMoves.isNotEmpty)
+        ? ' searchmoves ${searchMoves.join(' ')}'
+        : '';
+    _send('go depth $depth$movesSuffix');
 
     try {
       await done.future.timeout(timeout);

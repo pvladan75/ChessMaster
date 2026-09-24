@@ -1,6 +1,20 @@
+// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1.2b: `annotateNodeChain` and
+// `tagBlunders` are gone. The whole-game review is `GameReviewJudge`'s now
+// (`game_review_runner.dart`), which marks mistakes by winning chances
+// (`mistake_rule.dart`) rather than a pawn threshold this walker computed, so
+// cases 4 and 5 below (which tested exactly that threshold, including the
+// "already decided → larger threshold" dampening) are deleted rather than
+// rewritten — the winning-chances scale makes that dampening unnecessary (a
+// swing from +19 to +14 is no swing in chances at all; see
+// `test/core/game_review_judge_test.dart`, and `markMistakes`'s own case
+// there, "?? on exactly the review's mistakes"). Cases 3 and 6 held a rule
+// about `analyzeGame` itself (no comment is written onto anything it visits,
+// and a walked king's positional diff does not invent a shield finding), so
+// they are rewritten to call it directly instead of through the deleted
+// `annotateNodeChain` wrapper — they never needed the node tree at all.
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
-import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/models/analysis_models.dart';
 
 /// Returns a fixed, caller-supplied sequence of White-relative eval strings,
@@ -9,16 +23,9 @@ import 'package:chess_app/models/analysis_models.dart';
 /// needing a real engine.
 class _SequencedFakeEngine {
   final List<String> evalSequence;
-
-  /// When set, every returned line carries this UCI principal variation
-  /// (e.g. "e2e4 e7e5") instead of an empty one — needed to exercise
-  /// [GameAnalysisWalkerService.tagBlunders]'s alternative-line insertion,
-  /// which needs a non-empty `sanMoveList` to have anything to insert.
-  final String? pvOverride;
-
   int callIndex = 0;
 
-  _SequencedFakeEngine(this.evalSequence, {this.pvOverride});
+  _SequencedFakeEngine(this.evalSequence);
 
   Future<List<AnalysisLine>> analyze(
     String fen, {
@@ -31,11 +38,7 @@ class _SequencedFakeEngine {
     callIndex++;
     return [
       AnalysisLine.fromPv(
-          multipv: 1,
-          depth: depth,
-          eval: eval,
-          pvString: pvOverride ?? '',
-          startingFen: fen)
+          multipv: 1, depth: depth, eval: eval, pvString: '', startingFen: fen)
     ];
   }
 }
@@ -70,14 +73,12 @@ void main() {
       expect(whiteMove.evalBeforeForMover, closeTo(0.20, 1e-9));
       expect(whiteMove.evalAfterForMover, closeTo(-3.00, 1e-9));
       expect(whiteMove.swingForMover, closeTo(-3.20, 1e-9));
-      expect(whiteMove.isBlunderBeyond(2.0), isTrue);
 
       final blackMove = moments[1];
       // Black-relative: was +3.00 (mirrored from -3.00), now +2.80.
       expect(blackMove.evalBeforeForMover, closeTo(3.00, 1e-9));
       expect(blackMove.evalAfterForMover, closeTo(2.80, 1e-9));
       expect(blackMove.swingForMover, closeTo(-0.20, 1e-9));
-      expect(blackMove.isBlunderBeyond(2.0), isFalse);
     });
 
     test('2. Parses mate-score evals into a large finite magnitude', () async {
@@ -92,167 +93,41 @@ void main() {
     });
 
     test(
-        '3. annotateNodeChain writes nothing onto the nodes, and the moment keeps '
-        'the finding', () async {
+        '3. analyzeGame writes nothing anywhere, and the moment keeps the '
+        'finding', () async {
       // Since 22.9.2026 the findings are not shown to the reader: a review
       // no longer writes them under a move. They travel in the moments,
       // which a tutorial reads.
-      final root = AnalysisNode(fen: '3r2k1/8/8/8/8/8/8/6KQ w - - 0 1');
-      final child = root.addChild(
-        childFen: '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 0 1',
-        san: 'Qd5',
+      final moments = await service.analyzeGame(
+        startingFen: '3r2k1/8/8/8/8/8/8/6KQ w - - 0 1',
         // From h1, not d1: on the open d-file the queen was already hanging
         // before the move, and a finding that was true on both sides of a
         // move is not a comment on it.
-        uci: 'h1d5',
-      );
-
-      final result = await service.annotateNodeChain(
-        startNode: root,
+        uciMoves: ['h1d5'],
         analyzer: _SequencedFakeEngine(['+0.00', '-9.00']).analyze,
       );
 
-      expect(child.comment, isEmpty);
       expect(
-          result.moments.single.combinedComment,
+          moments.single.combinedComment,
           contains('The white queen on d5 is attacked by the black rook on d8 '
               'and has no defender.'));
       // Sentences, not clauses behind a separator a voice would read out.
-      expect(result.moments.single.combinedComment, isNot(contains('|')));
-
-      child.comment = 'moj ručni komentar';
-      await service.annotateNodeChain(
-        startNode: root,
-        analyzer: _SequencedFakeEngine(['+0.00', '-9.00']).analyze,
-      );
-      expect(child.comment, 'moj ručni komentar');
+      expect(moments.single.combinedComment, isNot(contains('|')));
     });
 
-    test(
-        '4. tagBlunders marks only the requested side and inserts the engine\'s alternative',
-        () async {
-      // Position0 (White to move, best line here would be a quiet e4 as far
-      // as the fake engine is concerned): eval +0.20.
-      // White plays a4 (a genuine blunder relative to the fake engine's
-      // 'e2e4' suggestion) -> Position1: eval -3.00 (a big swing for White).
-      // Black then plays a small, non-blunder move.
-      final root = AnalysisNode(
-          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      final whiteChild = root.addChild(
-          childFen:
-              'rnbqkbnr/pppppppp/8/8/P7/8/1PPPPPPP/RNBQKBNR b KQkq a3 0 1',
-          san: 'a4',
-          uci: 'a2a4');
-      final blackChild = whiteChild.addChild(
-          childFen: 'rnbqkbnr/1ppppppp/8/8/p7/8/1PPPPPPP/RNBQKBNR w KQkq - 0 2',
-          san: 'a5',
-          uci: 'a7a5');
-
-      final result = await service.annotateNodeChain(
-        startNode: root,
-        analyzer: _SequencedFakeEngine(['+0.20', '-3.00', '-2.90'],
-                pvOverride: 'e2e4 e7e5')
-            .analyze,
-      );
-
-      // Only White's move (index 0) is a blunder beyond the 2.0 threshold;
-      // filtering to Black should tag nothing.
-      final taggedForBlack = service.tagBlunders(
-        chain: result.chain,
-        moments: result.moments,
-        threshold: 2.0,
-        side: BlunderAlertSide.black,
-      );
-      expect(taggedForBlack, 0);
-      expect(whiteChild.nag, isNull);
-
-      final taggedForWhite = service.tagBlunders(
-        chain: result.chain,
-        moments: result.moments,
-        threshold: 2.0,
-        side: BlunderAlertSide.white,
-      );
-      expect(taggedForWhite, 1);
-      expect(blackChild.nag, isNull);
-      expect(whiteChild.nag, '??');
-
-      // The engine's suggested improvement (e2e4) should now be a sibling
-      // variation under root, distinct from the actually-played a4.
-      expect(root.children, hasLength(2));
-      final altChild = root.children.firstWhere((c) => c.moveUci == 'e2e4');
-      expect(altChild.moveSan, 'e4');
-      expect(altChild.nag, '!');
-    });
-
-    test(
-        '5. tagBlunders dampens ordinary swings in an already-decided position but still flags a drastic one',
-        () async {
-      // White is already crushing (+15) before the move in both cases —
-      // simplifying into a won position naturally costs a few pawns of raw
-      // eval without the outcome actually changing, so an ordinary swing
-      // (here -3, above the normal 2.0 threshold) should NOT be flagged.
-      final quietRoot = AnalysisNode(
-          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      quietRoot.addChild(
-          childFen:
-              'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
-          san: 'e4',
-          uci: 'e2e4');
-
-      final quietResult = await service.annotateNodeChain(
-        startNode: quietRoot,
-        analyzer: _SequencedFakeEngine(['+15.00', '+12.00']).analyze,
-      );
-      final quietTagged = service.tagBlunders(
-        chain: quietResult.chain,
-        moments: quietResult.moments,
-        threshold: 2.0,
-      );
-      expect(quietTagged, 0);
-      expect(quietResult.chain.first.nag, isNull);
-
-      // Same starting advantage, but the move gives back most of it (+15 ->
-      // +6) — a real mistake even though White is still winning afterward,
-      // so it should still be flagged.
-      final drasticRoot = AnalysisNode(
-          fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
-      drasticRoot.addChild(
-          childFen:
-              'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
-          san: 'e4',
-          uci: 'e2e4');
-
-      final drasticResult = await service.annotateNodeChain(
-        startNode: drasticRoot,
-        analyzer: _SequencedFakeEngine(['+15.00', '+6.00']).analyze,
-      );
-      final drasticTagged = service.tagBlunders(
-        chain: drasticResult.chain,
-        moments: drasticResult.moments,
-        threshold: 2.0,
-      );
-      expect(drasticTagged, 1);
-      expect(drasticResult.chain.first.nag, '??');
-    });
-
-    test('6. A king that walks without a pawn shield gets no comment for it',
+    test('4. A king that walks without a pawn shield gets no shield finding',
         () async {
       // The walker has to hand the move to the positional diff: without it a
       // king stepping g1-h1 reads as a shield lost on h1 and one no longer
-      // lost on g1, and „Review entire game" writes that on every step.
-      final root = AnalysisNode(fen: '4k3/8/8/8/8/8/8/6K1 w - - 0 1');
-      final child = root.addChild(
-        childFen: '4k3/8/8/8/8/8/8/7K b - - 0 1',
-        san: 'Kh1',
-        uci: 'g1h1',
-      );
-
-      await service.annotateNodeChain(
-        startNode: root,
+      // lost on g1, which is a false positive on a bare board with no pawns
+      // at all.
+      final moments = await service.analyzeGame(
+        startingFen: '4k3/8/8/8/8/8/8/6K1 w - - 0 1',
+        uciMoves: ['g1h1'],
         analyzer: _SequencedFakeEngine(['0.00', '0.00']).analyze,
       );
 
-      expect(child.comment, isEmpty);
+      expect(moments.single.positionalComment, isEmpty);
     });
   });
 }

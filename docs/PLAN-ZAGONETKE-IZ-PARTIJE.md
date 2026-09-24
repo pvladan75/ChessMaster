@@ -973,7 +973,36 @@ its own items from the gate below:
   numbers above, a clean game said), the engine held against Analysis, the
   result landing on the game and fenced by the epoch, the end said wherever
   the reader is, and the old path deleted with its tests rewritten openly.
-  Briefed when 1.2a is graded.
+  *Briefed 24.9.2026* (`docs/briefs/BRIEF-ZAGONETKE-FAZA1-2B-POZADINA.md`;
+  gate `docs/gates/review_runner_test.dart`, `review_dialog_test.dart`,
+  `engine_hold_test.dart`, 30 cases). Decided in the brief: the run lives in
+  `GameReviewRunner` and lands by the game's **moves** — on the live board
+  that holds them, else on the draft only when no board is attached (a live
+  board owns the draft; its own save would overwrite the marks and call them
+  landed); the engine is **held** for the whole run, so a screen's stop,
+  MultiPV and live search do not reach it and its callbacks are not swapped in
+  under the review's search; a refused live search is said once, for every
+  screen, by `ReviewNotice` above the router, which also says the end when no
+  dialog watches; Cancel lets the search in flight finish rather than stopping
+  the engine. The owner agreed to both of the last two on 24.9.2026 (a live
+  search refused rather than queued; Cancel not stopping the engine at once).
+
+  *Built 24.9.2026* (the implementer, graded and completed by the lead; app
+  4030 → 4055, analyze 26 → 23 infos — the three went with `tagBlunders`).
+  `GameReviewRunner` and `ReviewNotice` as briefed; the dialog only watches the
+  runner; the pawn slider, `annotateNodeChain`, `tagBlunders`,
+  `extractPuzzles`, `buildPuzzlesFromMoments` and `GameMoment.isBlunderBeyond`
+  are deleted, their tests rewritten with where each rule went;
+  `tool/review_game.dart` moved onto the judge (`REVIEW_THRESHOLD` gone).
+  Completed on grading: the draft write carried the epoch current *at the
+  write* — always current, the very bug the epoch exists for — and now carries
+  the run's own, asked again after the draft is read; `hold()` now cancels a
+  live search still waiting out its debounce, which would otherwise fire into
+  the review past every check (a gate case added, red without it); the busy
+  line sits above the engine panel instead of replacing it, so the switch stays
+  in reach. **Not gated**: a sign-out in the instant between reading the draft
+  and writing it — the fence is there, but no test can place the wipe in that
+  window. Live check: `docs/TODO-provera.md`.
 - **1.3 — the puzzles** [implementer]: from the judged moments — `B` 15 with the
   same best move at both depths, the trivial ranked last, one puzzle per chance
   missed within 4 plies, the only moves listed apart and unticked, the mate's
