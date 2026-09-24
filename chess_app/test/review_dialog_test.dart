@@ -49,7 +49,8 @@ class _Game {
     fens.add(start);
     final game = chess.Chess.fromFEN(start);
     for (final u in ucis) {
-      final ok = game.move({'from': u.substring(0, 2), 'to': u.substring(2, 4)});
+      final ok =
+          game.move({'from': u.substring(0, 2), 'to': u.substring(2, 4)});
       if (!ok) throw StateError('not a legal move: $u');
       fens.add(game.fen);
     }
@@ -306,15 +307,11 @@ void main() {
     expect(find.text('Done — reviewed 7 positions.'), findsOneWidget);
     expect(find.text('Marked 2 mistakes.'), findsOneWidget);
     expect(find.byKey(const Key('review-clean')), findsNothing);
-    expect(
-        tester
-            .widget<Text>(find.byKey(const Key('review-depth')))
-            .data,
+    expect(tester.widget<Text>(find.byKey(const Key('review-depth'))).data,
         contains('depth 20'));
   });
 
-  testWidgets('a clean game is said to be clean, at its depth',
-      (tester) async {
+  testWidgets('a clean game is said to be clean, at its depth', (tester) async {
     await _app(tester, root: _tree(_italian), engine: _Engine(italian, _level));
     await _open(tester);
     await _startReview(tester);
@@ -383,7 +380,8 @@ void main() {
       (tester) async {
     final queensPawn = _Game(_start, _queensPawn);
     final other = _Engine(queensPawn, const [50, 50, 50])..pauseAt = 1;
-    final runner = GameReviewRunner(book: _noBook, tablebase: (_) async => null);
+    final runner =
+        GameReviewRunner(book: _noBook, tablebase: (_) async => null);
     await _app(tester,
         root: _tree(_italian),
         engine: _Engine(italian, _twoMistakes),
@@ -406,5 +404,64 @@ void main() {
 
     other.resume();
     await tester.pumpAndSettle();
+  });
+
+  // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3: „Comment key moments with AI"
+  // — shown when Blunder Alert or the puzzles are on, off by default (a
+  // request that costs money is never made without a tick), and a review
+  // whose words did not come says so rather than leaving a silence.
+  testWidgets(
+      'the AI box shows with Blunder Alert or puzzles, off by default, and '
+      'its tick reaches the review', (tester) async {
+    final engine = _Engine(italian, _twoMistakes)..pauseAt = 3;
+    final runner = await _app(tester, root: _tree(_italian), engine: engine);
+    await _open(tester);
+    final box = find.byKey(const Key('review-ai-words'));
+    expect(box, findsNothing);
+
+    await tester.tap(find.text('Extract puzzles from detected blunders'));
+    await tester.pumpAndSettle();
+    expect(box, findsOneWidget);
+    await tester.tap(find.text('Extract puzzles from detected blunders'));
+    await tester.pumpAndSettle();
+    expect(box, findsNothing);
+
+    await tester.tap(find.text(_blunderAlert));
+    await tester.pumpAndSettle();
+    expect(tester.widget<CheckboxListTile>(box).value, isFalse);
+    await tester.tap(box);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start analysis'));
+    await tester.pump();
+    expect(runner.current!.options.aiWords, isTrue);
+    engine.resume();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('a refusal says that no comments were written, and why',
+      (tester) async {
+    final runner = GameReviewRunner(
+      book: _noBook,
+      tablebase: (_) async => null,
+      wordsClient: MockClient((_) async => http.Response('{}', 403)),
+      sessionToken: () => 'tok',
+    );
+    await _app(tester,
+        root: _tree(_italian),
+        engine: _Engine(italian, _twoMistakes),
+        runner: runner);
+    await _open(tester);
+    await tester.tap(find.text(_blunderAlert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('review-ai-words')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start analysis'));
+    await tester.pumpAndSettle();
+
+    final failed = find.byKey(const Key('review-words-failed'));
+    expect(failed, findsOneWidget);
+    expect(tester.widget<Text>(failed).data,
+        startsWith('No AI comments were written: AI comments for a review'));
+    expect(find.byKey(const Key('review-words-written')), findsNothing);
   });
 }

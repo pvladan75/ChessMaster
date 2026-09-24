@@ -122,6 +122,15 @@ String bookSummary(List<dynamic> rows) {
   return '${said.join('. ')}.';
 }
 
+/// A move in notation inside a sentence: a piece move, a capture, castling. A
+/// plain pawn push is left out on purpose — „the pawn on e4" is a square, and
+/// the text cannot tell the two apart.
+final _sanInText = RegExp(
+  r'\b([KQRBN][a-h]?[1-8]?x?[a-h][1-8][+#]?|[a-h]x[a-h][1-8][+#]?|O-O(?:-O)?)\b',
+);
+
+String _bareSan(String san) => san.replaceAll(RegExp(r'[+#]+$'), '');
+
 List<String> claimsFor(
   String sid,
   String text,
@@ -199,23 +208,39 @@ List<String> claimsFor(
     );
   }
 
+  // The third mode (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, §3a and phase 3): a
+  // review's comment and a puzzle's explanation are not questions, so a move
+  // they name is refused unless it is in the moment's own lines — the game's
+  // move, the better line, the refutation and the second line.
+  final lines = facts['lines'];
+  if (lines is List) {
+    final allowed = {for (final m in lines) _bareSan(m.toString())};
+    final outside = <String>{
+      for (final m in _sanInText.allMatches(text))
+        if (!allowed.contains(_bareSan(m.group(0)!))) m.group(0)!,
+    };
+    if (outside.isNotEmpty) {
+      final sortedOutside = outside.toList()..sort();
+      found.add(
+        '$sid names ${sortedOutside.join(', ')}, a move not in its lines',
+      );
+    }
+  }
+
   if (question) {
     final names =
         (facts['names'] as List?)?.map((e) => e.toString()).toList() ?? [];
     final rawAnswer = names.isNotEmpty ? names[0] : '';
-    final answer = rawAnswer.replaceAll(RegExp(r'[+#]+$'), '');
+    final answer = _bareSan(rawAnswer);
     final sqName = names.length > 1 ? names[1] : '';
     if ((answer.isNotEmpty && text.contains(answer)) ||
         (sqName.isNotEmpty && low.contains(sqName))) {
       found.add('$sid names its answer or its square');
     }
-    final moveMatches = RegExp(
-      r'\b([KQRBN][a-h]?[1-8]?x?[a-h][1-8][+#]?|[a-h]x[a-h][1-8][+#]?|O-O(?:-O)?)\b',
-    ).allMatches(text);
     final others = <String>{};
-    for (final m in moveMatches) {
+    for (final m in _sanInText.allMatches(text)) {
       final matched = m.group(0)!;
-      if (matched.replaceAll(RegExp(r'[+#]+$'), '') != answer) {
+      if (_bareSan(matched) != answer) {
         others.add(matched);
       }
     }

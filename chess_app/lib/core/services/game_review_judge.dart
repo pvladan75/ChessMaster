@@ -58,7 +58,9 @@ typedef BookLookup = Future<MastersWalk> Function(List<String> fens);
 /// The tablebase's answer for a position, or null when it did not answer.
 typedef TablebaseLookup = Future<SyzygyResult?> Function(String fen);
 
-enum ReviewStage { walk, book, tablebase, confirm, deepen, answers }
+/// [words] is the runner's, not the judge's: the comments asked of the
+/// server once the judgement is done (phase 3).
+enum ReviewStage { walk, book, tablebase, confirm, deepen, answers, words }
 
 /// Where a review is: [done] of [total] in [stage]. For [ReviewStage.deepen]
 /// the total is the budget, and done the searches spent.

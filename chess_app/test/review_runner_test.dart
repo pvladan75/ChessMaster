@@ -17,10 +17,13 @@
 // exactly what the judge sees.
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/core/services/eval_cache.dart';
@@ -620,5 +623,148 @@ void main() {
       expect(second.tally.searched, 0);
       expect(second.tally.fromStore, greaterThanOrEqualTo(7));
     });
+  });
+
+  // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3: one request for the whole
+  // review, never made without the tick — asserted on the client seam
+  // (rule 7), not on a method a fake could answer for.
+  group('the words', () {
+    /// The server, as the review's words see it: every request kept, each
+    /// answered by [answer].
+    ({MockClient client, List<http.Request> seen}) server(
+      http.Response Function(http.Request request) answer,
+    ) {
+      final seen = <http.Request>[];
+      return (
+        client: MockClient((request) async {
+          seen.add(request);
+          return answer(request);
+        }),
+        seen: seen,
+      );
+    }
+
+    GameReviewRunner wordsRunner(http.Client client) => GameReviewRunner(
+          book: _noBook,
+          tablebase: (_) async => null,
+          wordsClient: client,
+          sessionToken: () => 'token',
+        );
+
+    test('without the box no request is made, whatever else is on', () async {
+      final s = server((_) => http.Response('{}', 500));
+      final runner = wordsRunner(s.client);
+      final root = _tree(_italian);
+      final board = _Board(root);
+      runner.attachBoard(board);
+      addTearDown(() => runner.detachBoard(board));
+      final run = runner.start(
+        root: root,
+        start: root,
+        options: const ReviewOptions(
+          depth: 20,
+          markMistakes: true,
+          findPuzzles: true,
+        ),
+        engine: _Engine(italian, _twoMistakes),
+      );
+      await run.finished;
+      expect(run.status, ReviewRunStatus.done);
+      expect(run.marked, 2, reason: 'the review itself ran');
+      expect(s.seen, isEmpty);
+      expect(run.words, isNull);
+    });
+
+    test(
+      'with it, one request; the words the check accepts land on the game '
+      'and in the puzzles, an invented move does not',
+      () async {
+        final s = server((request) => http.Response(
+              jsonEncode({
+                'slots': {
+                  'm1.played': 'Bc4 lets the knight come to f6 with tempo.',
+                  'm2.played': 'After this Qxf7 comes with a threat.',
+                },
+              }),
+              200,
+            ));
+        final runner = wordsRunner(s.client);
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
+
+        final run = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(
+            depth: 20,
+            markMistakes: true,
+            findPuzzles: true,
+            aiWords: true,
+          ),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await run.finished;
+
+        expect(s.seen, hasLength(1));
+        final request = s.seen.single;
+        expect(request.url.path, '/review-words');
+        expect(request.headers['Authorization'], 'Bearer token');
+        final body = jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['game'], startsWith('1. e4 e5 2. Nf3'));
+        expect([for (final m in body['moments'] as List) m['label']],
+            ['3. Bc4', '3...Nf6']);
+
+        expect(run.words!.accepted, 1);
+        expect(run.words!.refused,
+            ['m2.played names Qxf7, a move not in its lines']);
+        expect(_moveAt(shown, 4).comment,
+            'Bc4 lets the knight come to f6 with tempo.');
+        expect(_moveAt(shown, 5).comment, isEmpty,
+            reason: 'a refused comment is never written');
+        final bc4 = run.puzzles.firstWhere((p) => p.sourcePlyIndex == 4);
+        final nf6 = run.puzzles.firstWhere((p) => p.sourcePlyIndex == 5);
+        expect(bc4.words, 'Bc4 lets the knight come to f6 with tempo.');
+        expect(nf6.words, isNull);
+      },
+    );
+
+    test(
+      'a refusal writes no words, says why, and the engine\'s analysis '
+      'lands as before',
+      () async {
+        final s = server((_) => http.Response(
+              jsonEncode({'error': 'Upgrade.'}),
+              403,
+            ));
+        final runner = wordsRunner(s.client);
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
+
+        final run = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(
+            depth: 20,
+            markMistakes: true,
+            findPuzzles: true,
+            aiWords: true,
+          ),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await run.finished;
+
+        expect(s.seen, hasLength(1));
+        expect(run.status, ReviewRunStatus.done);
+        expect(run.words, isNull);
+        expect(run.wordsFailure, contains('Premium'));
+        expect(_nags(shown), [null, null, null, null, '??', '??']);
+        expect(run.puzzles, hasLength(2));
+        expect(run.puzzles.every((p) => p.words == null), isTrue);
+      },
+    );
   });
 }

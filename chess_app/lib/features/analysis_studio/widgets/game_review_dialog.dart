@@ -6,6 +6,8 @@ import 'package:chess_app/core/services/game_review_judge.dart'
     show ReviewProgress, ReviewStage;
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/game_review_runner.dart';
+import 'package:chess_app/features/analysis_studio/services/review_words.dart'
+    show kReviewWordsMoments;
 import 'package:chess_app/features/analysis_studio/widgets/keep_puzzles_panel.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -67,6 +69,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
 
   bool _extractPuzzlesEnabled = false;
   int _maxPuzzles = 5;
+
+  /// „Comment key moments with AI" — off by default: a request that costs
+  /// money is never made without a tick (phase 3).
+  bool _aiWords = false;
 
   bool get _hasOutput => _blunderAlertEnabled || _extractPuzzlesEnabled;
 
@@ -138,6 +144,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         insertBetterLine: _insertBetterMoveLine,
         findPuzzles: _extractPuzzlesEnabled,
         maxPuzzles: _maxPuzzles,
+        aiWords: _aiWords && _hasOutput,
       ),
       engine: widget.stockfishService,
       gameTitle: widget.gameTitle,
@@ -230,9 +237,9 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             ? 'No moves played from the selected position.'
             : 'The engine will step through $moveCount moves, mark the '
                 'mistakes and find puzzles in them — choose which below. It '
-                'writes no comment under a move; for that, use "Generate AI '
-                'comment" on the move. Works on part of a game too. The review '
-                'may take long, and goes on if this window is closed.',
+                'writes comments only with "Comment key moments with AI" '
+                'ticked. Works on part of a game too. The review may take '
+                'long, and goes on if this window is closed.',
         style: AppText.body.copyWith(color: context.colors.textMuted),
       ),
       if (blockedBy != null) ...[
@@ -413,6 +420,30 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                 setState(() => _blunderSide = sel.first),
           ),
         ),
+      // Shown when Blunder Alert or the puzzles are on — the owner's choice
+      // of 25.9.2026: comments go into the game only with Blunder Alert, and
+      // kept puzzles take their explanation whenever this is ticked.
+      if (_hasOutput)
+        CheckboxListTile(
+          key: const Key('review-ai-words'),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _aiWords,
+          title: Text(
+            'Comment key moments with AI',
+            style: AppText.body.copyWith(color: context.colors.textPrimary),
+          ),
+          subtitle: Text(
+            _blunderAlertEnabled
+                ? 'Up to $kReviewWordsMoments moments, written into the game '
+                    'and the puzzles. One request to the server.'
+                : 'An explanation for each puzzle kept. One request to the '
+                    'server.',
+            style: AppText.micro.copyWith(color: context.colors.textMuted),
+          ),
+          onChanged: (val) => setState(() => _aiWords = val ?? false),
+        ),
       const SizedBox(height: AppSpacing.sm),
       if (moveCount > 0 && !_hasOutput) ...[
         Text(
@@ -454,6 +485,8 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         return 'Looking deeper: ${p.done} / ${p.total} searches';
       case ReviewStage.answers:
         return 'Looking for puzzles: ${p.done} / ${p.total}';
+      case ReviewStage.words:
+        return 'Writing the comments';
     }
   }
 
@@ -521,6 +554,65 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           ),
         ),
       ),
+    ];
+  }
+
+  /// What became of the words, when they were asked for: how many were
+  /// written, how many the check refused, or — never an empty space that
+  /// looks like words — that none were written and why.
+  List<Widget> _wordsLines(GameReviewRun run) {
+    if (!run.options.aiWords || run.status != ReviewRunStatus.done) {
+      return const [];
+    }
+    Widget line(String text, Key key, Color color) => Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            text,
+            key: key,
+            textAlign: TextAlign.center,
+            style: AppText.body.copyWith(color: color),
+          ),
+        );
+    final words = run.words;
+    if (run.wordsNotNeeded) {
+      return [
+        line('No moment needed a comment.', const Key('review-words-none'),
+            context.colors.textMuted),
+      ];
+    }
+    if (words == null) {
+      return [
+        line(
+          'No AI comments were written: ${run.wordsFailure ?? 'no answer'} '
+          "The review's marks and puzzles are the engine's alone.",
+          const Key('review-words-failed'),
+          context.colors.warning,
+        ),
+      ];
+    }
+    final accepted = words.accepted;
+    final refused = words.refused.length;
+    return [
+      line(
+        accepted == 0
+            ? 'No AI comments were written: every one named a move or a '
+                'fact the review does not hold.'
+            : accepted == 1
+                ? 'Wrote 1 AI comment.'
+                : 'Wrote $accepted AI comments.',
+        const Key('review-words-written'),
+        accepted == 0 ? context.colors.warning : context.colors.textPrimary,
+      ),
+      if (accepted > 0 && refused > 0)
+        line(
+          refused == 1
+              ? '1 comment left out: it named a move or a fact the review '
+                  'does not hold.'
+              : '$refused comments left out: they named a move or a fact '
+                  'the review does not hold.',
+          const Key('review-words-refused'),
+          context.colors.textMuted,
+        ),
     ];
   }
 
@@ -685,6 +777,7 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                     ),
                   ),
               ],
+              ..._wordsLines(run),
               if (run.options.findPuzzles && run.puzzles.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),

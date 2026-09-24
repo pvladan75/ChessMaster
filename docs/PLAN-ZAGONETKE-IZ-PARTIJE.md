@@ -1273,6 +1273,70 @@ refused rather than written. Metering as in §3a.
 In the app: the checkbox, the words written into the PGN (never over a comment
 already there), and each kept puzzle's `words` taken from its moment.
 
+**Decided by the owner, 25.9.2026**, before building:
+
+- **The refutation is a line of its own**: beside „Better move" the review
+  inserts the engine's line after the game's move as a second sideline, with
+  its sentence on it — not folded into the game's move's comment.
+- **The box shows when Blunder Alert or the puzzles are on.** Comments go into
+  the PGN only when Blunder Alert is on (where the `??` marks are); kept
+  puzzles get their explanation whenever the box is ticked.
+- **The clock keeps the increment**: the PGN's `TimeControl` header is kept
+  with the game, so the time a move took is exact; without the header only
+  the time left is said.
+- **At most 10 moments a review**: the mistakes first by chances lost, then
+  the only moves found.
+
+Built in three steps, each committed alone: **3a** the server route and its
+metering, **3c** the clock, **3b** the app — the facts, the claim check's third
+mode, the box, the words in the PGN and in the puzzles.
+
+**Built, 25.9.2026** — all three steps in code:
+
+- **3a** (`bfc7753`): `POST /review-words` (`routes/reviewWords.js`,
+  `services/reviewWords.js`, `services/prompts/review_words.txt`),
+  `ENT.AI_REVIEW_WORDS`, `METRIC.AI_REVIEW_WORDS` / `AI_REVIEW_TOKENS` (quotas
+  the tutorial's placeholders), `test/review_words.test.js` (20 cases, 11
+  mutations all caught). No schema change; the owner's backend needs a restart
+  for the route.
+- **3c** (`cc45ee2`): `[%clk]` into `AnalysisNode.clockSeconds`, `TimeControl`
+  kept on the root and written back on export, `core/services/move_clock.dart`,
+  `ReviewedGame.clocks` / `timeControl`; `test/move_clock_test.dart` (12
+  cases). App 4136 → 4148, a full run.
+- **3b**: `features/analysis_studio/services/review_words.dart` — the moments
+  (the mistakes Blunder Alert marks and the only moves found, else the kept
+  puzzles' own; ranked, at most 10, `m1…` in game order), the facts in words
+  (`wordsFor`, the clock, material won along a line, the detectors' sentence
+  after each first move), the request held **word for word** to
+  `docs/gates/review_words_request.json` (the fixture's request is now the
+  builder's output; the server's 20 cases pass on it unchanged), and
+  `judgeReviewWords`, which puts every slot through `claimsFor`. The claim
+  check's **third mode** (`facts['lines']`): a move the text names must be in
+  the moment's lines, a move from another moment's lines included.
+  `review_words_client.dart` (the tutorial client's shape and refusals);
+  `ReviewOptions.aiWords` and the runner's words step (`ReviewStage.words`),
+  after the puzzles and before landing; `markMistakes` writes the words on the
+  game's move, after „Better move." on its line, and on the refutation, which
+  is inserted as its own line only with the box ticked — reusing the game's
+  own reply when the engine's is the same move, and never on a move with no
+  continuation (it would become the game's next move). A comment already there
+  — the game's move, a found move, an existing sideline — is never written
+  over. `LocalPuzzle.words` (a mistake: the better line's sentence, then the
+  game move's; a found move: its own), sent as `review.words` and drawn by
+  phase 5's reveal. The dialog's box shows with Blunder Alert or the puzzles,
+  off by default, and the end says how many comments were written, how many
+  were left out, or that none were and why.
+
+  Gate: `test/review_words_test.dart` (18), three cases in
+  `review_runner_test.dart` on a `MockClient` (no request without the tick;
+  one request, the accepted words on the game and in the puzzles, an invented
+  move refused; a 403 lands the engine's analysis and says so) and two in
+  `review_dialog_test.dart`. 15 mutations, all caught — after one invalid
+  mutant (`null ?? x` is `x`) was rewritten and one survivor (words written
+  over the owner's comment on an existing „better move" branch) got its case.
+  **Not covered**: the runner passing `pathUci.length` as the clock offset
+  (the builder's own use of the offset is).
+
 **The clock is built here** (moved from 1.3 on 24.9.2026, with its only
 reader): `MoveTree.parsePgn` strips `[%clk]` in `cleanPgnComment` before a
 node exists, so the time left and the time spent need a field on the node, its

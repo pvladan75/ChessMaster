@@ -154,13 +154,21 @@ void main() {
     expect(_startButton(tester).onPressed, isNotNull);
   });
 
+  // Rewritten for phase 3 of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md (25.9.2026):
+  // the review can now write comments, but only with „Comment key moments with
+  // AI" ticked, so the promise „writes no comment under a move" became
+  // „writes comments only with … ticked". What this case guards is unchanged:
+  // the dialog promises nothing it does not do — without the tick no comment
+  // is written — and the end never says „commented".
   testWidgets(
-      'the dialog promises no comment, and the end says what was found, '
-      'never „commented"', (tester) async {
+      'the dialog promises comments only with the AI box, and the end says '
+      'what was found, never „commented"', (tester) async {
     final (:root, engine: _, runner: _) = await _open(tester);
 
     expect(
-        find.textContaining('writes no comment under a move'), findsOneWidget);
+        find.textContaining(
+            'writes comments only with "Comment key moments with AI" ticked'),
+        findsOneWidget);
     expect(find.textContaining('comment plus eval'), findsNothing);
 
     await tester.tap(
@@ -174,5 +182,7 @@ void main() {
     expect(find.text('Marked 1 mistake.'), findsOneWidget);
     expect(root.children.first.nag, '??',
         reason: 'what the end reports must be on the game');
+    expect(root.children.first.comment, isEmpty,
+        reason: 'without the tick no comment is written');
   });
 }

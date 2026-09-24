@@ -62,6 +62,7 @@ class LocalPuzzle {
     this.secondChances,
     this.trivial = false,
     this.missedTimes = 1,
+    this.words,
   });
 
   final String id;
@@ -103,6 +104,31 @@ class LocalPuzzle {
 
   /// How many times, within 4 plies, the same player missed this chance.
   final int missedTimes;
+
+  /// The language model's explanation, judged by the claim check — null when
+  /// the review asked for none or none was kept (phase 3). Absent, never an
+  /// empty string that would read as an explanation with nothing in it.
+  final String? words;
+
+  /// This puzzle with [words] as its explanation.
+  LocalPuzzle withWords(String? words) => LocalPuzzle(
+        id: id,
+        kind: kind,
+        fen: fen,
+        sourcePlyIndex: sourcePlyIndex,
+        playedSan: playedSan,
+        playedUci: playedUci,
+        answers: answers,
+        bestLine: bestLine,
+        refutationLine: refutationLine,
+        secondLine: secondLine,
+        bestChances: bestChances,
+        playedChances: playedChances,
+        secondChances: secondChances,
+        trivial: trivial,
+        missedTimes: missedTimes,
+        words: words,
+      );
 
   /// The instruction shown before solving, by [kind].
   String get instruction =>
@@ -488,6 +514,7 @@ LocalPuzzle _withMissedTimes(LocalPuzzle p, int times) => LocalPuzzle(
       secondChances: p.secondChances,
       trivial: p.trivial,
       missedTimes: times,
+      words: p.words,
     );
 
 /// The UCI of the legal move in [fen] whose SAN is [san], or null when none

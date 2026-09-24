@@ -5878,6 +5878,34 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 243. Pregled partije piše komentare (AI) — 25.9.2026, nije viđeno uživo
+
+Nova verzija aplikacije **i servera** (server mora biti restartovan: nova ruta
+`POST /review-words`; šema se ne menja). `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 3.
+Nalog mora imati Premium (ili jači) plan, a server `DEEPSEEK_API_KEY`.
+
+1. [ ] **Kućica.** U „Review entire game" kućica „Comment key moments with AI"
+   se ne vidi dok nisu uključeni Blunder Alert ili zagonetke; kad se pojavi,
+   nije štiklirana.
+2. [ ] **Komentari u partiji.** Partija sa greškom (najbolje online, sa `%clk`),
+   Blunder Alert + kućica. Na kraju: „Wrote N AI comments." Na potezu sa `??`
+   je rečenica; na liniji „Better move" piše „Better move. …"; posle poteza sa
+   greškom postoji i linija **„Refutation. …"** (ako je odgovor motora baš
+   potez iz partije, rečenica je na tom potezu, bez nove linije). Na potezu
+   koji je bio jedini dobar i nađen — rečenica, bez oznake.
+3. [ ] **Tvoj komentar ostaje.** Napiši svoj komentar na potez koji će biti
+   označen, pa ponovi pregled sa kućicom: tvoj komentar je isti.
+4. [ ] **Nijedan potez koji ne postoji.** Pročitaj komentare: nijedan ne
+   imenuje potez koji nije u partiji ili u linijama pored tog poteza. (Ako bi
+   ga model napisao, aplikacija ga odbija — ispod piše „N comments left out".)
+5. [ ] **Zagonetke dobijaju objašnjenje.** Isto sa „Extract puzzles" + kućica,
+   sačuvaj zagonetku, reši je u Library: posle poteza, iznad linija, stoji
+   rečenica objašnjenja.
+6. [ ] **Kad ne ide.** Na nalogu bez Premium plana (ili sa ugašenim serverom)
+   isti pregled: oznake i zagonetke su tu, a piše „No AI comments were
+   written: …" sa razlogom. Bez kućice server se ne pita (u logu servera nema
+   `[REVIEW-WORDS]`).
+
 ## 242. Zagonetka posle odgovora pokazuje linije — 25.9.2026, nije viđeno uživo
 
 Nova verzija aplikacije **i servera** (server mora biti restartovan posle

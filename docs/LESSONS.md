@@ -7796,3 +7796,42 @@ upisao oko hiljadu fajlova novi test 3/3, stari pao odmah. Prvi krug mutacija
 bio je nevažeći — radno stablo nije imalo `exports/`, pa je upis bacio izuzetak
 i pali su svi slučajevi (pravilo 3). **Proveru „ništa nije upisano" vezati za
 sopstveni proces, ne za mesto koje dele svi.**
+
+## 25.9.2026 — Zagonetke iz partije, faza 3: reči za pregled (3a, 3c, 3b)
+
+Tri koraka, svaki komitovan zasebno. **3a** (server, `POST /review-words`,
+sopstveno pravo i dva brojača): backend 1703 → **1723** bez baze. **3c** (sat
+poteza, `[%clk]` i `TimeControl`): aplikacija 4136 → **4148**, pun prolaz u
+posebnom radnom stablu. **3b** (aplikacija): momenti, činjenice rečima, zahtev
+držan doslovno uz deljenu nameštaljku, treći režim provere tvrdnji
+(`claimsFor`: potez koji tekst imenuje mora biti u linijama tog momenta),
+kućica, reči u PGN-u i u zagonetkama. Aplikacija 4148 → **4171** (+18
+`review_words_test`, +3 `review_runner_test`, +2 `review_dialog_test`), pun
+prolaz; analyze isti 23; backend isti 1723 (nameštaljka zamenjena, broj ne).
+Jedan slučaj pozadinskog crtanja PDF-a pao je na roku od 13 s dok je pored
+njega išao ceo Flutter paket, a sam 9/9 (pravilo 19).
+
+**Nameštaljka je sada izlaz graditelja.** Zahtev u
+`docs/gates/review_words_request.json` bio je pisan rukom u 3a; u 3b je
+zamenjen onim što graditelj zaista pravi iz iste partije, i serverovih 20
+slučajeva prolazi na njemu bez izmene. Dva kraja koja moraju da se slože
+dele jednu nameštaljku (pravilo 12) — ali tek kad je jedan kraj napiše.
+
+**Mutant koji ništa ne menja nije preživeli.** `p.withWords(null ??
+puzzleWordsOf(...))` je isto što i original — „All tests passed" tu ne kaže
+ništa o testu (pravilo 3). Prepisan u oblik koji zaista briše reči, uhvaćen.
+
+**Preživeli je bio rupa**: reči upisane preko vlasnikovog komentara na
+**postojećoj** grani sa boljim potezom nije video nijedan slučaj — pokriveni
+su bili potez iz partije i nađeni potez, ne bočna linija koju je vlasnik već
+imao. Slučaj dodat, mutant uhvaćen. 15 mutacija, sve uhvaćene.
+
+**Nameštaljka odbijanja koja krši dve provere ne kaže koja hvata.** Prva
+rečenica „izmišljenog poteza" bila je „After this Qxf7 would be mate." —
+odbijena i zbog mata koga nema u činjenicama, pa bi test ostao zelen i kad
+treći režim ne radi. Sada krši samo jednu stvar.
+
+**Rečenica koju je dijalog obećavao promenila se namerno.**
+`game_review_honest_test` je držao „It writes no comment under a move"; to
+više nije istina kad je kućica štiklirana. Slučaj prepisan otvoreno, sa
+napomenom iznad, i sada tvrdi i da bez kućice komentar ne nastaje.

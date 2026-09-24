@@ -68,10 +68,11 @@ ExerciseDraft? puzzleExerciseDraft(LocalPuzzle p, {required String name}) {
     origin: 'mistakes',
     sourceTitle: name,
     sourceLabel: label.replaceAll(' ', ''),
-    // No words until the language model writes them (phase 3): absent, not an
+    // The words only when the review kept some (phase 3): absent, not an
     // empty string that would read as an explanation with nothing in it.
     review: {
       'played': p.playedSan,
+      if (p.words != null) 'words': p.words,
       'bestLine': p.bestLine,
       'refutationLine': p.refutationLine,
       'secondLine': p.secondLine,

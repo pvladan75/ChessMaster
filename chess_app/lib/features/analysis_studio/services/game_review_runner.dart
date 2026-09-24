@@ -16,6 +16,7 @@ library;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
@@ -23,9 +24,12 @@ import 'package:chess_app/core/services/game_review_judge.dart';
 import 'package:chess_app/core/services/local_puzzle_extractor_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
+import 'package:chess_app/features/analysis_studio/services/review_words.dart';
+import 'package:chess_app/features/analysis_studio/services/review_words_client.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
 import 'package:chess_app/services/account_local_state.dart';
+import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 
 /// What a review is asked to do; the pawn slider is gone (the mistake rule
@@ -38,6 +42,7 @@ class ReviewOptions {
     this.insertBetterLine = true,
     this.findPuzzles = false,
     this.maxPuzzles = 5,
+    this.aiWords = false,
   });
 
   final int depth;
@@ -46,6 +51,11 @@ class ReviewOptions {
   final bool insertBetterLine;
   final bool findPuzzles;
   final int maxPuzzles;
+
+  /// „Comment key moments with AI" (phase 3): one request to the server for
+  /// the whole review, never made without this tick. Words go into the PGN
+  /// only with [markMistakes]; kept puzzles take theirs whenever it is set.
+  final bool aiWords;
 }
 
 /// The game a run was started on, by its moves rather than by the identity of
@@ -187,6 +197,19 @@ class GameReviewRun extends ChangeNotifier {
   String? _failure;
   String? get failure => _failure;
 
+  /// The review's words, judged — null when none were asked for, none were
+  /// needed, or the server wrote none ([wordsFailure] then says why).
+  ReviewWordsVerdict? _words;
+  ReviewWordsVerdict? get words => _words;
+
+  /// Why no words were written, in the reader's terms; null otherwise.
+  String? _wordsFailure;
+  String? get wordsFailure => _wordsFailure;
+
+  /// Words were asked for and no moment of the review needed any.
+  bool _wordsNotNeeded = false;
+  bool get wordsNotNeeded => _wordsNotNeeded;
+
   final Completer<void> _finished = Completer<void>();
 
   /// Completes however the run ends — done, cancelled or failed.
@@ -207,9 +230,16 @@ class GameReviewRun extends ChangeNotifier {
 /// The one place a review runs. Started from a dialog; it then belongs to
 /// the app, not to whatever screen started it.
 class GameReviewRunner extends ChangeNotifier {
-  GameReviewRunner({BookLookup? book, TablebaseLookup? tablebase})
-      : _book = book ?? _defaultBook,
-        _tablebase = tablebase ?? SyzygyTablebaseService.instance.lookup;
+  GameReviewRunner({
+    BookLookup? book,
+    TablebaseLookup? tablebase,
+    http.Client? wordsClient,
+    String Function()? sessionToken,
+  })  : _book = book ?? _defaultBook,
+        _tablebase = tablebase ?? SyzygyTablebaseService.instance.lookup,
+        _wordsClient = wordsClient,
+        _sessionToken =
+            sessionToken ?? (() => SessionService.instance.current.token);
 
   static final GameReviewRunner instance = GameReviewRunner();
 
@@ -220,6 +250,10 @@ class GameReviewRunner extends ChangeNotifier {
 
   final BookLookup _book;
   final TablebaseLookup _tablebase;
+
+  /// The seam `POST /review-words` goes through; null uses a fresh client.
+  final http.Client? _wordsClient;
+  final String Function() _sessionToken;
   final GameAnalysisWalkerService _walker = GameAnalysisWalkerService();
 
   GameReviewRun? _current;
@@ -330,6 +364,15 @@ class GameReviewRunner extends ChangeNotifier {
         run._puzzlesUnplayable = puzzles.unplayable;
       }
 
+      if (run.options.aiWords &&
+          (run.options.markMistakes || run.options.findPuzzles)) {
+        await _askWords(run, result);
+        if (!AccountLocalState.isCurrent(epoch)) {
+          run._end(ReviewRunStatus.cancelled);
+          return;
+        }
+      }
+
       if (run.options.markMistakes) {
         await _land(run, result, epoch);
       }
@@ -339,6 +382,82 @@ class GameReviewRunner extends ChangeNotifier {
       _judge = null;
       engine.release(run);
     }
+  }
+
+  /// The review's words — `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 3. One
+  /// request for the whole review. The moments are the mistakes Blunder Alert
+  /// marks and the only moves found when it is on, else the kept puzzles'
+  /// own; whatever the server answers, the engine's analysis lands as before
+  /// and [GameReviewRun.wordsFailure] says that no words were written.
+  Future<void> _askWords(GameReviewRun run, GameReviewResult result) async {
+    final options = run.options;
+    bool sideMatches(bool whiteMoved) => switch (options.side) {
+          BlunderAlertSide.both => true,
+          BlunderAlertSide.white => whiteMoved,
+          BlunderAlertSide.black => !whiteMoved,
+        };
+    final Iterable<int> mistakes;
+    final Iterable<int> found;
+    if (options.markMistakes) {
+      mistakes = [
+        for (final m in result.moves)
+          if (m.isMistake && sideMatches(m.whiteMoved)) m.ply,
+      ];
+      found = [
+        for (final p in LocalPuzzleExtractorService()
+            .buildPuzzlesFromReview(
+              result,
+              maxPuzzles: kReviewWordsMoments,
+              side: options.side,
+            )
+            .onlyMoves)
+          p.sourcePlyIndex,
+      ];
+    } else {
+      mistakes = [
+        for (final p in run._puzzles)
+          if (p.kind == PuzzleKind.mistake) p.sourcePlyIndex,
+      ];
+      found = [
+        for (final p in run._puzzles)
+          if (p.kind == PuzzleKind.onlyMove) p.sourcePlyIndex,
+      ];
+    }
+    final request = reviewWordsRequest(
+      result: result,
+      mistakePlies: mistakes,
+      foundPlies: found,
+      clocks: run.game.clocks,
+      clockOffset: run.game.pathUci.length,
+      timeControl: run.game.timeControl,
+    );
+    if (request == null) {
+      run._wordsNotNeeded = true;
+      return;
+    }
+    run._setProgress(const ReviewProgress(ReviewStage.words, 0, 1));
+    final outcome = await requestReviewWords(
+      request.toJson(),
+      token: _sessionToken(),
+      client: _wordsClient,
+    );
+    final slots = outcome.slots;
+    if (slots == null) {
+      run._wordsFailure = outcome.refusal?.message ?? 'no answer';
+      return;
+    }
+    final verdict = judgeReviewWords(request, slots);
+    run._words = verdict;
+    run._puzzles = [
+      for (final p in run._puzzles)
+        p.withWords(puzzleWordsOf(
+          verdict.byPly[p.sourcePlyIndex],
+          p.kind == PuzzleKind.mistake
+              ? ReviewMomentKind.mistake
+              : ReviewMomentKind.found,
+        )),
+    ];
+    run._setProgress(const ReviewProgress(ReviewStage.words, 1, 1));
   }
 
   /// Where the result lands: the most recently attached board that still
@@ -366,6 +485,8 @@ class GameReviewRunner extends ChangeNotifier {
         result: result,
         side: run.options.side,
         insertAlternativeLine: run.options.insertBetterLine,
+        words: run.words?.byPly ?? const {},
+        insertRefutation: run.options.aiWords && run.options.insertBetterLine,
       );
       board.reviewLanded();
       run._landing = ReviewLanding.onBoard;
@@ -391,6 +512,8 @@ class GameReviewRunner extends ChangeNotifier {
       result: result,
       side: run.options.side,
       insertAlternativeLine: run.options.insertBetterLine,
+      words: run.words?.byPly ?? const {},
+      insertRefutation: run.options.aiWords && run.options.insertBetterLine,
     );
     await AnalysisDraftService.instance.flush(
       rootNode: draft.rootNode,

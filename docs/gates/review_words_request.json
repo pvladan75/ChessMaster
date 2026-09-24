@@ -12,15 +12,34 @@
         "played": "Bc4",
         "best": "d4",
         "lines": {
-          "better": ["d4", "exd4", "Nxd4"],
-          "refutation": ["Nf6", "d3"],
-          "second": ["Nc3", "Nf6"]
+          "better": [
+            "d4",
+            "exd4",
+            "Nxd4"
+          ],
+          "refutation": [
+            "Nf6",
+            "d3"
+          ],
+          "second": [
+            "Nc3",
+            "Nf6"
+          ]
         },
-        "facts": "Before the move White was slightly better; after Bc4 it is about even. 12 seconds left on White's clock; the move took 1 second.",
+        "facts": "With the best move, d4, White is slightly better; after Bc4, it is about even. 12 seconds left on White's clock; the move took 1 second.",
         "slots": [
-          {"id": "m1.played", "text": "The game's move, Bc4. After it the position is about even."},
-          {"id": "m1.better", "text": "The better line starts d4: Black has to take, and White recaptures with the knight."},
-          {"id": "m1.refutation", "text": "After Bc4, Nf6 attacks the pawn on e4."}
+          {
+            "id": "m1.played",
+            "text": "The game's move, Bc4. After it, it is about even."
+          },
+          {
+            "id": "m1.better",
+            "text": "The better line: d4 exd4 Nxd4. With it, White is slightly better. On the board after d4: The black pawn on e5 is attacked twice and defended only once. White's pawns hold more of the centre."
+          },
+          {
+            "id": "m1.refutation",
+            "text": "After Bc4, the refutation: Nf6 d3. On the board after Nf6: The white pawn on e4 is attacked by the black knight on f6 and has no defender."
+          }
         ]
       },
       {
@@ -31,12 +50,20 @@
         "played": "Bc5",
         "best": "Bc5",
         "lines": {
-          "better": ["Bc5", "d3"],
-          "second": ["Be7"]
+          "better": [
+            "Bc5",
+            "d3"
+          ],
+          "second": [
+            "Be7"
+          ]
         },
-        "facts": "Only Bc5 kept the balance; the next best, Be7, leaves White clearly better.",
+        "facts": "Only Bc5 held: with it, it is about even; with the next best, Be7, White is clearly better. 2 minutes 20 seconds left on Black's clock; the move took 12 seconds.",
         "slots": [
-          {"id": "m2.played", "text": "The only move that held, Bc5, and the game found it."}
+          {
+            "id": "m2.played",
+            "text": "The only move that held, Bc5, and the game found it. On the board after it: The black bishop on c5 pins the white pawn on f2 to the king on g1."
+          }
         ]
       }
     ]

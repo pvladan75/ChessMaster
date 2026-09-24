@@ -7,6 +7,8 @@ import 'package:chess_app/core/services/game_review_judge.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/services/review_words.dart'
+    show MomentWords;
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
 import 'package:chess_app/models/analysis_models.dart';
@@ -128,6 +130,13 @@ class GameAnalysisWalkerService {
   /// sibling variation of at most [alternativeLinePlies] plies. Nothing else
   /// decides a mark: no threshold of its own (rule 12).
   ///
+  /// The review's words (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 3):
+  /// [words] by [ReviewedMove.ply] go on the game's move, on the „Better move"
+  /// line and — when [insertRefutation] — on the engine's line after the
+  /// game's move, inserted as a line of its own (the owner's choice of
+  /// 25.9.2026). **A comment already there is never overwritten**; only the
+  /// review's own „Better move" label is added to.
+  ///
   /// Returns how many moves were marked.
   int markMistakes({
     required List<AnalysisNode> chain,
@@ -135,39 +144,83 @@ class GameAnalysisWalkerService {
     BlunderAlertSide side = BlunderAlertSide.both,
     bool insertAlternativeLine = true,
     int alternativeLinePlies = 4,
+    Map<int, MomentWords> words = const {},
+    bool insertRefutation = false,
   }) {
     var tagged = 0;
     for (var i = 0; i < result.moves.length && i < chain.length; i++) {
       final move = result.moves[i];
-      if (!move.isMistake) continue;
+      final said = words[move.ply];
+      final node = chain[i];
+      if (!move.isMistake) {
+        // A move the player found: its words, and nothing else.
+        if (said?.played != null && node.comment.isEmpty) {
+          node.comment = said!.played!;
+        }
+        continue;
+      }
       if (side == BlunderAlertSide.white && !move.whiteMoved) continue;
       if (side == BlunderAlertSide.black && move.whiteMoved) continue;
 
-      final node = chain[i];
       node.nag = '??';
       tagged++;
+      if (said?.played != null && node.comment.isEmpty) {
+        node.comment = said!.played!;
+      }
 
       if (!insertAlternativeLine) continue;
       final betterLine = move.bestLine;
       final parent = node.parent;
-      if (betterLine == null ||
-          parent == null ||
-          betterLine.sanMoveList.isEmpty) {
-        continue;
+      if (betterLine != null &&
+          parent != null &&
+          betterLine.sanMoveList.isNotEmpty &&
+          betterLine.bestMoveLan != move.uci) {
+        _insertLine(
+          parent,
+          betterLine.sanMoveList,
+          alternativeLinePlies,
+          label: _betterLabel,
+          words: said?.better,
+          nag: '!',
+        );
       }
-      if (betterLine.bestMoveLan == move.uci) continue;
 
-      _insertAlternativeLine(parent, betterLine, alternativeLinePlies);
+      final reply = move.replyLine;
+      if (insertRefutation &&
+          reply != null &&
+          reply.sanMoveList.isNotEmpty &&
+          // The game's own continuation is the first child; a move with none
+          // would take the refutation as the game's next move.
+          node.children.isNotEmpty) {
+        _insertLine(
+          node,
+          reply.sanMoveList,
+          alternativeLinePlies,
+          label: _refutationLabel,
+          words: said?.refutation,
+        );
+      }
     }
     return tagged;
   }
 
-  /// Replays up to [maxPlies] moves of [line]'s principal variation onto
-  /// [parent] as a new branch (or reuses an existing one with the same first
-  /// move), tagging the first move '!' with a "Bolji potez" comment.
-  void _insertAlternativeLine(
-      AnalysisNode parent, AnalysisLine line, int maxPlies) {
-    final plies = line.sanMoveList.take(maxPlies).toList();
+  static const _betterLabel = 'Better move';
+  static const _refutationLabel = 'Refutation';
+
+  /// Replays up to [maxPlies] moves of [sans] onto [parent] as a new branch
+  /// (or reuses an existing one with the same first move — the game's own
+  /// continuation included). The first move of a new branch is tagged [nag]
+  /// and labelled [label]; [words] follow the label, and go only where the
+  /// comment is empty or the review's own [label].
+  void _insertLine(
+    AnalysisNode parent,
+    List<String> sans,
+    int maxPlies, {
+    required String label,
+    String? words,
+    String? nag,
+  }) {
+    final plies = sans.take(maxPlies).toList();
     if (plies.isEmpty) return;
 
     final game = chess.Chess.fromFEN(parent.fen);
@@ -181,8 +234,15 @@ class GameAnalysisWalkerService {
           (moveObj.promotion?.name ?? '');
       final child = cur.addChild(childFen: game.fen, san: san, uci: uci);
       if (i == 0) {
-        child.nag = '!';
-        if (child.comment.isEmpty) child.comment = 'Better move';
+        // The game's own continuation is never labelled as a line beside it.
+        if (!identical(child, cur.children.first)) {
+          if (nag != null) child.nag = nag;
+          if (child.comment.isEmpty) child.comment = label;
+        }
+        if (words != null &&
+            (child.comment.isEmpty || child.comment == label)) {
+          child.comment = child.comment.isEmpty ? words : '$label. $words';
+        }
       }
       cur = child;
     }
