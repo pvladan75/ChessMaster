@@ -7780,3 +7780,19 @@ nameštaljka iz 1.3 je pala: „12...Qe7" iz pozicije gde dama stoji na c2 — p
 koji dama ne može da napravi. Do sada ga niko nije igrao, pa je test prolazio
 na partiji koja ne postoji (pravilo 6). Sada je 12...Qe4. **Pisac koji počne da
 čita svoj rad nazad čita i rad nameštaljki.**
+
+## 25.9.2026 — `tutorial_preview_frames`: brojanje deljenog direktorijuma
+
+Slučaj „a preview writes no file" brojao je fajlove u `exports/` pre i posle
+pregleda, a `node --test` pokreće svaki fajl kao zaseban proces, pa su
+`tutorial_video_export`, `recording_video` i drugi punili isti direktorijum u
+isto vreme (23 !== 22 jednom, sam 3/3). Sada test beleži sopstvene upise ovog
+procesa dok pregled radi — upise, tokove, kopije, preimenovanja, otvaranja za
+pisanje i pokrenute procese — i traži da ih nema. Špijun je postavljen **pre**
+nego što se ruta i renderer učitaju, jer `videoRenderer.js` `spawn` izvlači pri
+učitavanju. Dokaz: četiri mutacije (upis sinhrono, upis kroz promise, tok,
+proces kroz izvučeni `spawn`) crvene tačno ovaj slučaj; pored procesa koji je
+upisao oko hiljadu fajlova novi test 3/3, stari pao odmah. Prvi krug mutacija
+bio je nevažeći — radno stablo nije imalo `exports/`, pa je upis bacio izuzetak
+i pali su svi slučajevi (pravilo 3). **Proveru „ništa nije upisano" vezati za
+sopstveni proces, ne za mesto koje dele svi.**

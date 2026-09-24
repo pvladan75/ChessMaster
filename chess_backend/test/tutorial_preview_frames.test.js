@@ -17,14 +17,53 @@
 //  5. the default picks the opening, a middle beat and the end;
 //  6. the frames are PNGs, and **different frames**, which is what says the
 //     events were applied rather than the first board drawn three times;
-//  7. nothing is metered and no file is written.
+//  7. nothing is metered and no file is written — by this process: the check
+//     watches this process's own writes, not the shared `exports/` directory,
+//     which other test files fill in parallel (`node --test` runs each file in
+//     its own process; counting the directory raced them, 23 !== 22 once on
+//     25.9.2026).
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const path = require('node:path');
+const childProcess = require('node:child_process');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-signing-0123456789';
+
+/// Every way this process could leave a file behind, recorded while
+/// [watching] is on and passed through untouched otherwise. Installed **before**
+/// the route and the renderer are required: `videoRenderer.js` destructures
+/// `spawn` when it loads, so a spy set later would never see ffmpeg started.
+/// Another test file writing to `exports/` is another process and cannot
+/// appear here — which is the whole point.
+const writes = [];
+let watching = false;
+function watch(owner, name, describe) {
+  const original = owner[name];
+  owner[name] = function watched(...args) {
+    if (watching) writes.push(`${name}(${describe(args)})`);
+    return original.apply(this, args);
+  };
+}
+const first = (args) => String(args[0]);
+const opensForWriting = (flags) => typeof flags === 'string' && /[wa+]/.test(flags);
+for (const name of ['writeFile', 'writeFileSync', 'appendFile', 'appendFileSync',
+  'createWriteStream', 'copyFile', 'copyFileSync', 'rename', 'renameSync', 'cpSync']) {
+  watch(fs, name, first);
+}
+for (const name of ['writeFile', 'appendFile', 'copyFile', 'rename', 'cp']) {
+  watch(fs.promises, name, first);
+}
+for (const [owner, name] of [[fs, 'open'], [fs, 'openSync'], [fs.promises, 'open']]) {
+  const original = owner[name];
+  owner[name] = function watched(file, flags, ...rest) {
+    if (watching && opensForWriting(flags)) writes.push(`${name}(${String(file)}, ${flags})`);
+    return original.call(this, file, flags, ...rest);
+  };
+}
+for (const name of ['spawn', 'spawnSync', 'execFile', 'execFileSync', 'exec', 'execSync', 'fork']) {
+  watch(childProcess, name, first);
+}
 
 const db = require('../db');
 const lessonsRouter = require('../routes/lessons');
@@ -203,14 +242,19 @@ test('a beat that is not in this film is refused', async () => {
 });
 
 test('a preview writes no file and meters nothing', async () => {
-  const exportsDir = path.join(__dirname, '..', 'exports');
-  const before = fs.existsSync(exportsDir) ? fs.readdirSync(exportsDir).length : 0;
-
-  const { res, queries } = await run();
+  writes.length = 0;
+  watching = true;
+  let answered;
+  try {
+    answered = await run();
+  } finally {
+    watching = false;
+  }
+  const { res, queries } = answered;
 
   assert.equal(res.statusCode, 200);
-  const after = fs.existsSync(exportsDir) ? fs.readdirSync(exportsDir).length : 0;
-  assert.equal(after, before, 'a preview leaves nothing in exports/');
+  assert.equal(res.body.frames.length, 3, 'the preview was actually drawn');
+  assert.deepEqual(writes, [], 'a preview writes no file and starts no process');
 
   // A preview that ate into the quota would push a trainer back towards
   // rendering blind, which is the thing it exists to stop.
