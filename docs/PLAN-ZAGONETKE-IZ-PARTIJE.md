@@ -161,8 +161,8 @@ near-perfect game; the trigger from Fable's F3). After the walk:
 5. the deepening stops when everything is settled or a **time budget** for the
    review is spent — **3 minutes on the desktop** (the owner, 24.9.2026; the
    phone's minute was measured out of reach the same day, §5 phase 0, and
-   what the phone does instead is the owner's to choose), the disagreement
-   gap **5** — what is left unsettled is not marked, and the dialog says
+   **the phone runs the review in the background** instead, the owner's
+   choice of the same day), the disagreement gap **5** — what is left unsettled is not marked, and the dialog says
    how many. The depth and the nodes of every settling search are recorded.
 
 Deep searches run only on those few positions, never on the game. A game in
@@ -778,14 +778,14 @@ times slower**, and that is the walk alone, which the new rule keeps.
   times five — about two and a half to five minutes more. A game like the
   owner's is some ten minutes on the phone, whatever the budget does to the
   deepening.
-- **What the phone does instead is the owner's choice**, and the lead
-  proposes the first: **(a) the review runs in the background** — the owner
-  leaves the dialog, the app says when it is done, and the rule and depth are
-  the desktop's, so a game is marked the same on both; or **(b) a lower depth
-  on the phone**, said on the screen — which is exactly what „What the depth
-  allows" warns against: at depth 16 grandmaster moves that lost 5–10 lost 15
-  or more at 24, so the same game would be marked differently on the two
-  devices. Until the owner says, 1.2 is not briefed.
+- **The owner's choice, 24.9.2026: the phone runs the review in the
+  background**, at the desktop's rule and depth, so a game is marked the same
+  on both devices (to the extent the two binaries agree — both are `sf_19`
+  with one network, but the phone's is built from source for arm64; phase 1.2
+  compares one game's marks on both). The alternative weighed and not taken
+  was a lower depth on the phone, which „What the depth allows" argues
+  against: at depth 16 grandmaster moves that lost 5–10 lost 15 or more at 24.
+  What „in the background" has to mean is written under 1.2.
 - **On the phone the walk's timeout is reached.** Each position has 12
   seconds (`game_analysis_walker_service.dart`), and at 3.3 s on average the
   harder ones pass it. `analyzePositionSync` then returns **the lines it had**,
@@ -829,9 +829,36 @@ its own items from the gate below:
   `applyMastersBook` lifted, the 10-game minimum), the tablebase with seven men
   or fewer, the missed mate, what could not be judged counted; the pawn slider
   gone; the dialog saying the depth, the unsettled and the unjudged, and a
-  clean game said to be clean. **On the phone as the owner chooses** (phase 0,
-  the phone: the background run proposed, or a lower depth said on the
-  screen) — not briefed before the owner decides. One thread, as the app's engine already runs
+  clean game said to be clean. **On the phone, in the background** (the
+  owner, 24.9.2026 — phase 0, the phone), which the brief has to pin down:
+  - **the dialog is not the review's home.** The review is started from it and
+    then belongs to the app, not to the screen: the reader can close it and go
+    anywhere; progress is shown where it is asked for, and the end is said with
+    `AppFeedback` wherever the reader is, the dialog's own words („Done —
+    reviewed N positions", what was marked, what was left unsettled);
+  - **the result lands on the game, not on a screen.** Today the walk writes
+    into the tree the Analysis screen holds; a review that outlives the screen
+    writes to the game it was started on — the analysis draft, fenced by
+    `AccountLocalState.epoch` like every other draft write, so a sign-out in
+    the middle drops it rather than hands it to the next account;
+  - **the phone has one engine**, in the app's own process, and Analysis
+    releases it when left (`_onShownChanged`, 21.9.2026) — and `detach`
+    calls `stopAnalysis()` whoever is searching, so today leaving Analysis
+    would cut a running review's search short, which returns what it had, the
+    timeout's fault again. The review must hold the engine against that, and
+    Analysis, while a review runs, says the engine is busy with it rather than
+    starting a second search on the same process;
+  - **a run that is stopped resumes, it does not start again.** Ten minutes
+    is long enough for the phone to sleep or the OS to take the app down. The
+    store of 1.1, on disk, already keeps every answered position, so a review
+    started again on the same game asks the engine only for what it has not
+    answered — no foreground service is needed for the first version, and
+    the dialog says how many positions came from the store;
+  - **the budget is work, not seconds.** Three minutes of the desktop are
+    some fifteen of the phone; a budget in seconds would settle less on the
+    phone and mark the same game differently. The deepening's budget is
+    counted in searches (what the desktop's three minutes settle — phase 0:
+    13 and 16 candidates, 0 and 3 deepened), the same on both devices. One thread, as the app's engine already runs
   (phase 0: faster to a fixed depth, and the same answer twice).
 - **1.3 — the puzzles** [implementer]: from the judged moments — `B` 15 with the
   same best move at both depths, the trivial ranked last, one puzzle per chance
