@@ -38,6 +38,7 @@ Decisions of the same day (asked, answered):
 | Puzzles already kept from reviews | **deleted** — they start after the mistake and hold none of the new data; counted first, deleted on the owner's yes |
 | Blunder Alert's Both / White / Black | **applies to puzzles too** (today it is ignored for them) |
 | Comments in the reviewed PGN | **the language model writes them too**, after the engine (the owner, the same day) — see §3a |
+| What counts as a mistake (24.9.2026) | **not one fixed threshold**: the opening is judged by the masters book, and after it `A` is measured against the player's own average loss in that game — §3, „Relative to the player" and „The opening". The fixed `A` = `B` = 15 chosen the same morning is withdrawn |
 | Quotas and prices | **not decided, and not to be decided by this plan**: nothing about plans or accounts has been worked out yet, and the owner's own usage-and-cost tracking is agreed but not built. This plan counts, and leaves every limit in the one table that already holds the others |
 
 ## 2. What exists, and what the puzzle path ignores
@@ -90,7 +91,10 @@ tests all call it (rule 12).
 
 ### A moment becomes a puzzle when, in the position before the move
 
-1. **The player erred:** `W(best) − W(played) ≥ A`.
+0. **The game has left the book** — see „The opening" below. A move the
+   masters play is never a mistake and never a puzzle.
+1. **The player erred:** `W(best) − W(played) ≥ A`, where `A` depends on the
+   player — see „Relative to the player" below.
 2. **One move stands out:** `W(best) − W(second best) ≥ B`. The second best is
    the engine's second line in the same search. A position with **one legal
    move** is not a puzzle — there is nothing to find.
@@ -102,6 +106,97 @@ Starting points to measure around: `A` 15–25, `B` 10–20.
 
 Ranking stays „worst first" but by `W(best) − W(played)`, and *Max puzzles*
 still caps the count.
+
+### Relative to the player
+
+The owner, 24.9.2026: `A` must not be fixed, because what a mistake is depends
+on who played. Phase 0 measured it (numbers there): the owner's Lichess blitz
+at about 1900 loses **4.0** chances a move on average, grandmasters in
+classical games **1.15**. A fixed `A` of 15 is the worst 7% of the owner's
+moves and the worst 1% of a grandmaster's; a grandmaster's clear mistake, the
+worst 5% of their moves, loses about 6 and a fixed 15 does not see it — 5
+puzzles in 20 games.
+
+So `A` is taken **from the game itself**, per player:
+
+`A = max(A_floor, k · average loss per move of that player in that game)`
+
+- the average is over that player's moves **after the book** (the book's moves
+  are not that player's own judgement), from the review's own walk — no extra
+  search;
+- `k` says how many times worse than one's own average a move must be;
+- `A_floor` keeps a clean game (a grandmaster averaging 0.3) from turning
+  engine noise into mistakes.
+
+**The floor is the engine's noise, and depth grows where it has to** (the
+owner, 24.9.2026, on a near-perfect game): the parameters do not change while
+the walk runs — the game sets them once the walk is done, and in a clean game
+the average and with it `A` fall on their own. What stops them is `A_floor`,
+and that floor is not a taste but the **noise of the depth** that judged the
+loss: depth 16 against 20 differs by a median 2.1 and a 90th percentile 5.2
+(phase 0), so at depth 16 a loss of 3 cannot be told from the engine's own
+doubt. Hence, after the walk:
+
+1. candidates by the relative `A`, as above;
+2. a candidate whose loss stands well above the walk depth's noise is settled
+   by the one confirming search already planned;
+3. a candidate **near the noise** is searched again, deeper (20, then 24, …),
+   and is a mistake only when two consecutive depths agree it lost at least
+   `A`; one whose loss vanishes deeper was noise and is not marked;
+4. the deepening stops when the loss is stable or a **time budget** for the
+   review is spent — the positions left unsettled are not marked, and the
+   dialog says how many.
+
+Deep searches run only on those few positions, never on the game. A game in
+which nothing survives is **said to be clean** („no mistake found at depth
+N") — the bar is never lowered until something turns up: a puzzle made of
+engine noise tells the student that a good move was a mistake.
+
+`k` and `A_floor` are measured in phase 0 on three levels, not guessed;
+`A_floor` as the noise at each depth, with the time each depth costs. `B` —
+one move stands out — is about the **position**, not the player, and stays
+one fixed number; phase 0 says whether that holds at every level.
+
+The same `A` decides which moments get words (§3a): what counts as a mistake
+is one rule for the comments and the puzzles alike — **and for the review's
+own `??` and „Better move" marking** (`annotateNodeChain`, today a pawn
+threshold from Blunder Alert's dialog, with a larger swing once the game is
+decided): the owner, 24.9.2026. A move marked `??` is exactly a move the
+words may comment on and a puzzle may be made from; the pawn threshold leaves
+the dialog, and the „already decided" rule goes with it, since chances already
+shrink a loss in a decided game.
+
+### The opening: the book decides
+
+The owner, 24.9.2026: the opening is judged by the statistics the server
+holds, with a shallow engine beside them for gross errors — and the book's
+facts serve the comments too.
+
+It exists, in the tutorial generator: `POST /opening-explorer/masters-walk`
+(a local SQLite book of over-the-board games, both players 2200+, the first 50
+plies) through `walkMastersBook` (`masters_walk.dart`), and `applyMastersBook`
+(`game_facts.dart`), which marks `book` on every move the masters played,
+`left_book` on the first they did not, and up to three alternatives with their
+counts. **The review uses those two, not a second copy** (rule 12).
+
+1. **While the game is in the book, no move is a mistake** — even where the
+   engine prefers another by a little: that is where it disagrees with theory
+   and where a fixed threshold is noisiest.
+2. **The first move out of the book** is judged by the engine as any other
+   move; when it is a mistake, the masters' moves are the better choice the
+   words may name.
+3. **Beside the book, the engine still looks, shallowly**: „a master played
+   it" in a position the book knows from a game or two is not proof, and „no
+   master played it" is not a mistake — a 2200+ book does not know half of what
+   is common in blitz at 1900. A book move that loses at least `A_gross` at the
+   shallow depth is marked all the same. `A_gross` is measured in phase 0.
+4. **The book's facts go to the model**: the opening's name, the move with
+   which the game left theory, what the masters play there and how often. The
+   claim check admits them as facts.
+
+A book that does not answer (guest, no file, timeout) is said, and the review
+falls back to the engine alone — never a silent one (`walkMastersBook`
+returns a reason, not an exception).
 
 ## 3a. The words for a whole review
 
@@ -194,9 +289,84 @@ position with two legal moves is **refused**, not read as „only move".
 
 Gate: a table in this plan and the owner's choice of `A` and `B`.
 
+**Measured 24.9.2026** — 20 games, 1493 moves, Stockfish 19. A walk at depth 16
+(`multiPV: 2`, 981 s), then every move that lost ≥ 10 searched again at depth 20
+(two lines, and the played move alone by `searchmoves`): 158 candidates, 632 s.
+Puzzles in the 20 games at depth 20 (today's two-pawn rule marks 147):
+
+| A \ B | 0 | 5 | 10 | 15 | 20 | 25 |
+|---|---|---|---|---|---|---|
+| 10 | 148 | 82 | 56 | 34 | 26 | 17 |
+| 15 | 112 | 69 | 49 | **33** | 26 | 17 |
+| 20 | 94 | 58 | 41 | 29 | 26 | 17 |
+| 25 | 79 | 48 | 33 | 26 | 23 | 17 |
+| 30 | 61 | 37 | 25 | 19 | 16 | 14 |
+
+- `B` is the condition that cuts: at `A` 15 it takes 112 moments to 33.
+- Depth 16 against 20 on `W(best) − W(played)`: median difference 2.1, 90th
+  percentile 5.2 — finding candidates at the review's depth is safe.
+- Two lines at depth 20 cost about 3.3 s a position (one engine, 4 threads),
+  so the second search runs on candidates only, as phase 1 says.
+- No candidate lacked the played move's value or a second line.
+
+The owner first chose `A` = 15, `B` = 15 (33 puzzles in 20 games, 17 of the 20
+giving one to five), then **withdrew it the same day**: a fixed threshold means
+„a mistake by the owner's standard", not by the player's. Measured next, the
+same way, on 20 grandmaster games from the Lumbras base (both players 2550+,
+classical, over the board, since 2000):
+
+| | the owner (Lichess blitz, ~1900) | grandmasters (classical, ~2630) |
+|---|---|---|
+| ACPL per player-game, median (loss capped at 1000 cp) | 65 | 16 |
+| chances lost per move, all moves | **4.0** | **1.15** |
+| the same per player-game, p10 – p90 | 2.4 – 6.3 | 0.3 – 2.3 |
+| moves losing ≥ 10 / ≥ 15 | 10.6% / 7.2% | 2.5% / 1.3% |
+| the worst 5% / 2% of moves lose at least | 24.3 / 37.9 | 5.9 / 11.6 |
+| puzzles at `A` 15, `B` 15 | 33 in 17 games | 5 in 3 games |
+
+The grandmasters' grid at depth 20 (45 candidates, 233 s):
+
+| A \ B | 0 | 5 | 10 | 15 | 20 | 25 |
+|---|---|---|---|---|---|---|
+| 10 | 37 | 21 | 10 | 5 | 2 | 2 |
+| 15 | 29 | 16 | 9 | 5 | 2 | 2 |
+| 20 | 14 | 7 | 6 | 4 | 2 | 2 |
+| 25 | 8 | 5 | 5 | 3 | 2 | 2 |
+| 30 | 6 | 4 | 4 | 2 | 1 | 1 |
+
+The two sets differ in time control as well as in level, so a third set sits
+between them: 20 club games from the same base, both players 1500–1800,
+classical.
+
+**Still to measure, and the gate of this phase**: the club set; then, on all
+three, what `A = max(A_floor, k · average)` gives for a few `k` and `A_floor`
+(puzzles a game, and the examples page for the owner to look at), whether one
+`B` serves all three, and `A_gross` for a book move — how many book moves each
+candidate would mark, with the book asked for the three sets' games; and the
+deepening — every move of the three sets that lost 2 or more at depth 16,
+searched at 16, 20 and 24: the spread between depths as a function of the loss
+(the floor at each depth), how many small losses survive, and the seconds a
+review would add. The owner chooses `k`, `A_floor`, `B`, `A_gross` and the
+time budget from those.
+
 ### Phase 1 — the criteria in the app [implementer]
 
 - `winningChances` (one home) and its test at the table's points.
+- The book: the review asks `walkMastersBook` once for the game and marks the
+  moves with `applyMastersBook` — both lifted to where the review and the
+  tutorial import them, not copied. A book that does not answer is a reason the
+  dialog shows.
+- Each player's `A` from their own average loss after the book (§3).
+- The deepening of §3: a candidate near the noise searched deeper until two
+  depths agree or the time budget is spent; the dialog says how many were left
+  unsettled, and a clean game is said to be clean.
+- `annotateNodeChain` marks `??` and „Better move" by the same rule (criterion
+  1 and the book), not by pawns; the dialog's pawn threshold is removed (its
+  only readers, 24.9.2026: `game_review_dialog.dart` — the slider „Blunder
+  threshold: N pawns" and the two calls it feeds — and
+  `local_puzzle_extractor_service.dart`; no test and nothing under `site/`
+  quotes the label), and
+  every test that held the old threshold is rewritten openly, not deleted.
 - The extractor: candidates from the walk by criterion 1, then **one
   `multiPV: 2` search per candidate position** only (not every position — the
   walk stays as it is), criterion 2, the side filter, the ranking.
@@ -205,7 +375,11 @@ Gate: a table in this plan and the owner's choice of `A` and `B`.
 - `LocalPuzzle` holds the position **before** the mistake as its puzzle.
 
 Gate: pure tests on built moments — the owner's example (+19/+14) is **not** a
-puzzle, a slower mate is not, a position with one clearly best move that the
+puzzle, a slower mate is not, a book move is not unless it loses `A_gross`, the
+same loss is a mistake for a player with a low average and not for one with a
+high average, `A_floor` holds for a player whose average is near zero, a book
+that did not answer leaves the engine's judgement and says so, a move is
+marked `??` exactly when it passes criterion 1 (one function decides both), a position with one clearly best move that the
 player missed is, one where two moves are equal is not, the side filter holds,
 a search with one line in a two-move position is refused. Every rule by
 mutation.
