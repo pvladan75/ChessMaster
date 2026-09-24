@@ -7615,3 +7615,40 @@ iz analize (odbačeno — kapija je u `docs/gates` repozitorijuma); prebacio
 (prihvaćeno, rečeno otvoreno); i javio da je radni direktorijum bio na
 starijem commitu (`c650702`) — prebacio ga je na `154c7be` pre rada.
 **Proveri HEAD radnog stabla prema commitu koji brif imenuje.**
+
+## 24.9.2026 — `replay_audio_test`: budžet u stvarnom vremenu, ne opterećenje
+
+Slučaj „the sound is fetched through the app's own client" pao je u četiri
+puna prolaza (dvaput 23.9, dvaput 24.9, uvek uz `game_tutorial_run_test`), a
+sam je uvek prolazio. Uzrok je u testu, ne u aplikaciji: ekran zvuk preuzima
+kroz lažni klijent, ali ga **upisuje u pravi fajl** (`writeAsBytes(flush:
+true)`), a to završava operativni sistem, van lažnog sata. Test je tom upisu
+davao fiksan budžet — pet pa tri parčeta od 20 ms `runAsync` — i posle toga
+tvrdio. Na mašini zauzetoj ostatkom suite-a upis ponekad nije bio gotov, pa
+Play nije imao šta da nastavi: „Play did not start the voice".
+
+**Opterećenje ga nije reprodukovalo na zahtev**: CPU hog (48 procesa), disk
+hog (12 pisača sa fsync), `game_tutorial_run_test` u pozadini, osam paralelnih
+kopija — nijedan pravi pad; jedini crveni su bili sudari u zajedničkom
+`build/test_cache` (`PathExistsException`), dakle **pogrešna crvena** (pravilo
+3). A upis od 300 MB (331 ms, izmereno) nije oborio ni stari test, i merenje
+je reklo zašto: prvi `runAsync` od „20 ms" trajao je 310 ms, jer je kopiranje
+bafera sinhroni posao na samom izolatu pa tajmer ne može da okine pre njega —
+**budžet se rasteže sa radom na izolatu, a puca samo kad se čeka van njega**,
+dok je izolat slobodan. Tačno to radi opterećena mašina, a brz SSD ne.
+
+Zato je dokaz napravljen tim oblikom, u testu a ne u aplikaciji: lažni klijent
+odgovara na zahtev za zvuk posle **pravog** tajmera od 400 ms u
+`Zone.root` — kašnjenje van izolata. Stari test: crven 3/3, sa porukom od
+23.9 od reči do reči. Novi: zelen 3/3, i na 3 s kašnjenja. Novi test ne čeka
+vreme nego ono što sledeći korak traži (`_until`: dok izvor nije postavljen,
+pa dok nije pozvan `resume`), ograničen brojem parčadi (500) a ne satom, pa
+pada umesto da visi (pravilo 9). Lažni sat se dok se čeka **ne pomera**:
+lekcija traje 4 s, i čekanje koje bi ga pomeralo završilo bi reprodukciju —
+a s njom i razlog za `resume` — pre nego što spora mašina stigne. Tri mutacije
+aplikacije i dalje crvene, svaka sa svojim razlogom (nikad `resume`: 21 s pa
+crveno; URL predat plejeru; izvor postavljen ponovo na Play).
+
+**Kad test deli posao sa operativnim sistemom, čeka se uslov, ne vreme — i
+kad se pad ne da izazvati opterećenjem, izazovi oblik opterećenja: kašnjenje
+van izolata, ne rad na njemu.**

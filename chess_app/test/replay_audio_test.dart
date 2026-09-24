@@ -7,6 +7,15 @@
 // retries, then MEDIA_ERROR_UNKNOWN. The app's own requests go through Dart and
 // were never refused, so the sound is now fetched by the app's client and the
 // player is given a file (`downloadLessonAudio`).
+//
+// The sound is written to a real file, so part of this test happens outside
+// the fake clock: the write is finished by the operating system, in real
+// time. Until 24.9.2026 the test gave it a fixed budget — five and then three
+// slices of 20 ms — and asserted after it, so on a machine busy with the rest
+// of the suite the write was sometimes not done yet and Play had nothing to
+// resume („Play did not start the voice"), four times in full runs from 23.9
+// on. It now waits for what the next step needs, as long as that takes, up to
+// a bound that fails rather than hangs ([_until]).
 
 import 'dart:convert';
 import 'dart:io';
@@ -43,6 +52,19 @@ Map<String, Object?> _row() => {
       ],
       'created_at': '2026-09-22T12:00:00.000Z',
     };
+
+/// Pumps until [done] holds, giving the real work (the sound's file) a slice
+/// of wall-clock time before each pump. A busy machine makes the wait longer,
+/// never the answer different. Bounded by [slices], not by a clock: after
+/// that it returns, and the test's own expectation says what never happened.
+Future<void> _until(WidgetTester tester, bool Function() done,
+    {int slices = 500}) async {
+  for (var i = 0; i < slices && !done(); i++) {
+    await tester
+        .runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump();
+  }
+}
 
 void main() {
   testWidgets('the sound is fetched through the app\'s own client',
@@ -117,11 +139,8 @@ void main() {
         audioDirectory: () async => dir,
       ),
     ));
-    for (var i = 0; i < 5; i++) {
-      await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 20)));
-      await tester.pump();
-    }
+    // Until the sound is the player's: fetched, written, set as its source.
+    await _until(tester, () => player.any((c) => c.method == 'setSourceUrl'));
 
     final sound = asked
         .where((u) => u.path == '/recordings/lesson-audio/lesson_1_ab.wav');
@@ -133,12 +152,11 @@ void main() {
 
     // Play, then let the voice start: it must resume the source it has, not
     // set it again — on the phone that aborted a load still under way.
+    // The fake clock is not moved while waiting: the lesson is four seconds
+    // long, and a wait that advanced it would end the replay — and with it
+    // the reason to resume — before a slow machine got there.
     await tester.tap(find.byIcon(Icons.play_arrow));
-    for (var i = 0; i < 3; i++) {
-      await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 20)));
-      await tester.pump(const Duration(milliseconds: 50));
-    }
+    await _until(tester, () => player.any((c) => c.method == 'resume'));
     expect(player.map((c) => c.method), contains('resume'),
         reason: 'Play did not start the voice');
     await tester.tap(find.byIcon(Icons.pause));
