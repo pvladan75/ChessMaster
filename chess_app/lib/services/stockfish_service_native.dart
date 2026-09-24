@@ -1,5 +1,7 @@
+import 'package:chess_app/core/services/engine_identity.dart';
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/bundled_engine.dart';
 import 'package:chess_app/services/engine_silence.dart';
 import 'package:chess_app/services/cloud_eval_format.dart';
 import 'dart:async';
@@ -24,6 +26,9 @@ class StockfishService {
   Process? _customProcess;
   StreamSubscription? _customSubscription;
   bool _isCustomActive = false;
+
+  /// The binary the custom engine was started from, for [answerStoreName].
+  String? _customPath;
 
   Function(String evaluation, String bestMove, String continuation, int multipv,
       int depth, bool isFinal, String analyzedFen)? onEvaluationChanged;
@@ -63,6 +68,25 @@ class StockfishService {
   bool get _useOnline {
     if (Platform.isWindows && _isCustomActive) return false;
     return Platform.isWindows || Platform.isLinux;
+  }
+
+  /// The name [EvalCache] keeps this engine's answers under, or null when it
+  /// has none the store can trust: the online engine, whose build and depth
+  /// are not ours to know, and a custom binary that cannot be read — which is
+  /// said in the log, and costs only answers that are not kept.
+  Future<String?> answerStoreName() async {
+    final path = _customPath;
+    if (_isCustomActive && path != null) {
+      try {
+        return 'exe:${await engineIdentity(path)}';
+      } catch (e) {
+        AppLogger.log(
+            '[StockfishService] ⚠️ engine not named, answers not kept: $e');
+        return null;
+      }
+    }
+    if (_useOnline) return null;
+    return 'bundled:$bundledEngine:${Platform.operatingSystem}';
   }
 
   bool get isActive =>
@@ -116,11 +140,9 @@ class StockfishService {
     AppLogger.log(
         '[StockfishService] 🛠️ initEngine called | CustomActive: $_isCustomActive | UseOnline: $_useOnline');
 
-    // Cached evaluations belong to whichever engine produced them, and the
-    // engine's identity is not part of the cache key. Starting a different
-    // binary — or switching between the local and online engine — must not
-    // inherit the previous one's answers.
-    EvalCache.instance.clear();
+    // The engine's answers are kept under its name (`answerStoreName`), so
+    // starting a different binary, or the online engine, needs no wipe here:
+    // the previous one's answers are simply never asked for.
 
     // Check if custom engine path is set (Windows only)
     try {
@@ -138,6 +160,7 @@ class StockfishService {
             '[StockfishService] 🚀 Starting custom engine at: $customPath');
         _customProcess = await Process.start(customPath, []);
         _isCustomActive = true;
+        _customPath = customPath;
         _nativeReady = true;
 
         _customSubscription = _customProcess!.stdout

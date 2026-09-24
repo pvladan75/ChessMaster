@@ -1,6 +1,7 @@
 // Phase 2 of `docs/PLAN-SKELET.md`, rule 4: a game's answers kept on the
 // device, so a build resumes and a second tutorial costs no engine time.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -138,6 +139,25 @@ void main() {
     after.add('fen a', _cands('e4'));
     await after.flush();
     expect(await store.load('g1'), hasLength(1));
+  });
+
+  test('a write already under way at a sign-out lands nothing after it',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    // The folder is held after the write began, until the wipe has happened.
+    final release = Completer<void>();
+    final held = GameFactsStore(() async {
+      await release.future;
+      return dir;
+    });
+    final rec = held.recorder('g1');
+    rec.add('fen a', _cands('e4'));
+    await Future<void>.delayed(Duration.zero);
+    await AccountLocalState.clear();
+    release.complete();
+    await rec.flush();
+    expect(await store.load('g1'), isEmpty,
+        reason: 'the last account\'s answers landed after the wipe');
   });
 
   test('the engine is named by its binary, and a missing one is loud',

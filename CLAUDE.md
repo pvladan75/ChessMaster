@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3968 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3983 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1842 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -703,6 +703,13 @@ Then „Review entire game" says what it does (→ **3968**, a full run): since
 looked for them. Start stays off until Blunder Alert or puzzles is on. **When
 an action stops doing something, read the texts that promise it**, before the
 button and after it.
+Then phase 1.1 of `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` (→ **3983**, a full
+run): `EvalCache` keeps the engine's answers on disk, by engine and account,
+at the depth a search **reached** (a timeout's shallower answer was filed
+under the depth asked), a deeper answer serving a shallower question. A
+surviving mutation found a write already under way at a sign-out landing
+after the wipe, in this store and in the tutorial's: **a fence against
+„after" stands at the last step, not the first.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

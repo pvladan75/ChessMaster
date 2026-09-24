@@ -27,16 +27,9 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:chess_app/services/account_local_state.dart';
 
-const int _storeVersion = 1;
+export 'package:chess_app/core/services/engine_identity.dart';
 
-/// The name an engine binary's answers are kept under.
-Future<String> engineIdentity(String path) async {
-  final stat = await File(path).stat();
-  if (stat.type == FileSystemEntityType.notFound) {
-    throw FileSystemException('The engine is not there', path);
-  }
-  return '${stat.size}-${stat.modified.toUtc().millisecondsSinceEpoch}';
-}
+const int _storeVersion = 1;
 
 /// The key of one game at one depth by one engine.
 String factsKey({
@@ -138,8 +131,11 @@ class GameFactsRecorder {
   /// Waits until everything recorded so far is on disk.
   Future<void> flush() => _chain;
 
+  /// Asked about the account at the last step, not the first: a sign-out
+  /// that comes while the file is being written must still find nothing of
+  /// the last account on disk afterwards (found 24.9.2026 on the review's
+  /// store, which is fenced the same way).
   Future<void> _write() async {
-    if (!AccountLocalState.isCurrent(_epoch)) return;
     final file = await _store._file(_key);
     await file.parent.create(recursive: true);
     // Written beside the file and renamed onto it: a crash in the middle
@@ -150,6 +146,10 @@ class GameFactsRecorder {
       'key': _key,
       'answers': _answers,
     }));
+    if (!AccountLocalState.isCurrent(_epoch)) {
+      await temporary.delete();
+      return;
+    }
     await temporary.rename(file.path);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
+import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/services/app_logger.dart';
@@ -104,7 +105,12 @@ abstract final class AccountLocalState {
     // completes that call, and a slow disk would hold the login screen. The
     // recorders are already fenced by [_epoch] above, so a late wipe can cost
     // the next account at most an answer it would search again.
-    engineAnswersWiped = deviceFactsStore().clear().catchError((Object e) {
+    // The review's store forgets its memory here, at once, and its files
+    // with the tutorial's.
+    engineAnswersWiped = Future.wait([
+      deviceFactsStore().clear(),
+      EvalCache.instance.forgetAccount(),
+    ]).then((_) {}).catchError((Object e) {
       AppLogger.log('[AccountLocalState] ❌ engine answers not cleared: $e');
     });
   }

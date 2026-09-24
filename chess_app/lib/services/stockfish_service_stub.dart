@@ -178,6 +178,9 @@ class StockfishService {
     onMultiPVUpdated = null;
   }
 
+  /// The web engine keeps no answers: its build is not ours to name.
+  Future<String?> answerStoreName() async => null;
+
   Future<List<AnalysisLine>> analyzePositionSync(
     String fen, {
     required int depth,

@@ -128,8 +128,9 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
 
     final result = await _walker.annotateNodeChain(
       startNode: _effectiveStartNode,
-      analyzer:
-          EvalCache.instance.wrap(widget.stockfishService.analyzePositionSync),
+      analyzer: EvalCache.instance.wrap(
+          widget.stockfishService.analyzePositionSync,
+          engine: widget.stockfishService.answerStoreName),
       depth: _engineDepth,
       onProgress: (processed, total) {
         if (!mounted) return;

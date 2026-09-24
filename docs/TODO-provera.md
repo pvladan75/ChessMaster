@@ -5878,6 +5878,21 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 239. Engine-ovi odgovori se čuvaju na uređaju — 24.9.2026, nije viđeno uživo
+
+Nova verzija aplikacije. `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1.1.
+
+1. [ ] **Drugi put brzo.** „Review entire game" na jednoj partiji (Blunder
+   Alert uključen) — zapamti vreme. Pa ponovo na istoj partiji, istoj dubini:
+   treba da prođe za par sekundi, sa istim `??` oznakama.
+2. [ ] **I posle restarta.** Zatvori aplikaciju, otvori, ponovi pregled iste
+   partije: opet par sekundi — odgovori su na disku, ne u memoriji.
+3. [ ] **Plića dubina od dublje.** Pregled na dubini 20 posle pregleda na 22:
+   brzo (dublji odgovor služi plićem pitanju). Obrnuto (22 posle 20) traje
+   kao prvi put.
+4. [ ] **Odjava briše.** Odjavi se i prijavi (ili drugi nalog): isti pregled
+   traje kao prvi put.
+
 ## 238. „Review entire game" kaže šta radi — 24.9.2026, nije viđeno uživo
 
 Nova verzija aplikacije. U Analysis → „Review entire game":

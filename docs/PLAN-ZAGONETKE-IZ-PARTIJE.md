@@ -821,7 +821,38 @@ its own items from the gate below:
   binary in every entry. **An entry keeps the depth the search reached, never
   the depth asked** — the phone's timeout (phase 0) returns a shallower
   answer, and today's `EvalCache` files it under the depth asked; such an
-  answer is stored at its own depth and the question counted as unanswered. `winningChances` and the rule are already built
+  answer is stored at its own depth and the question counted as unanswered.
+
+  *Built 24.9.2026 by the lead* (the owner's yes of the same day to the
+  budget in searches and to starting 1.1). `EvalCache` keeps its name and its
+  door (`wrap`), and every caller names the engine that answers
+  (`StockfishService.answerStoreName`): a Windows binary by its size and date
+  (`engineIdentity`, lifted to `core/services/engine_identity.dart` — the
+  tutorial and the opening judge read the same one), the engine built into the
+  app by `bundledEngine`, which a test holds to `packages/stockfish`'s version,
+  and the online engine by nothing — its answers are remembered for the run and
+  never written. On disk under `engine_answers/`, a folder per engine, 256
+  shards by the position's hash, at most 200 positions a shard and four depths
+  a position, read the first time a position of the shard is asked about. An
+  answer is kept at **the shallowest depth its lines reached**, and not at all
+  when a line asked for is missing (every legal move counts as whole where
+  there are fewer); `EngineAnswerTally` counts what a caller's questions cost —
+  from the store, searched, short, incomplete — for 1.2's dialog to say. Wiped
+  with the drafts and fenced by the epoch **at the last step of the write**:
+  the survivor of the first mutation round was a write already under way at a
+  sign-out, which the check before it began let through. The tutorial's store
+  had the same hole and is fenced the same way now. The engine start no longer
+  empties the memory: every answer names its engine.
+
+  **Not built, and where it goes:** the depths one search passes through (the
+  service hands back only its last; phase 0 dropped settling on them, so 1.2
+  asks for them only if the deepening needs them); the threads, nodes and
+  hash of a search (1.2 records the settling searches' depth and nodes);
+  the tutorial's per-game store folding into this one (1b); the Analysis panel
+  writing what it searched (§3, after 1.3); the repetition limit — a position
+  inside a repetition is served from the store today, and the walk, which
+  knows the game, asks past it (1.2); and folders of engines no longer used,
+  which stay until the account is wiped. `winningChances` and the rule are already built
   (`lib/core/services/mistake_rule.dart`, `PLAN-MOJE-PARTIJE.md` §9.1).
 - **1.2 — the review's judgement** [implementer]: `annotateNodeChain` on the
   rule — the walk, candidates from `A − 5`, the confirming search, the

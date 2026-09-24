@@ -49,6 +49,10 @@ class _FakeEngine implements StockfishService {
     ];
   }
 
+  /// No name: the review's store keeps these answers for the run only.
+  @override
+  Future<String?> answerStoreName() async => null;
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

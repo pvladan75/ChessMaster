@@ -62,9 +62,10 @@ class AutoTreeGeneratorService {
     // review — or by an earlier run over the same branch — is not searched again.
     // An explicitly supplied analyzer is left alone: tests inject their own and
     // must see exactly the calls they make.
+    final engine = stockfishService ?? StockfishService();
     final resolvedAnalyzer = analyzer ??
         EvalCache.instance
-            .wrap((stockfishService ?? StockfishService()).analyzePositionSync);
+            .wrap(engine.analyzePositionSync, engine: engine.answerStoreName);
 
     await _expandNodeRecursive(
       currentNode: startNode,

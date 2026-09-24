@@ -7491,3 +7491,27 @@ vraćaju pliću liniju — a `EvalCache` je čuva pod traženom dubinom. To je g
 iz §9.3 (zaustavljena pretraga upisana kao tražena dubina), sada u kešu koji
 svi pregledi dele; zatvara je faza 1.1 plana zagonetki.
 
+## 24.9.2026 — faza 1.1: odgovori engine-a na disku, i ograda koja je stajala na pogrešnom kraju
+
+`EvalCache` je bio u memoriji, za tačno pitanu dubinu, i brisan pri svakom
+startu engine-a — i pretragu zaustavljenu istekom vremena upisivao pod
+traženu dubinu. Sada čuva ono što je engine stvarno dostigao (najplića linija),
+na disku, po engine-u i po nalogu, a dublji odgovor služi plićem pitanju.
+
+**Preživela mutacija je našla pravu rupu.** Upis je proveravao epohu naloga
+na početku: upis koji je već krenuo kad se neko odjavi završavao je posle
+brisanja i vraćao odgovore prethodnog naloga. Nijedan test to nije video jer
+je provera pre `_keep` hvatala sve ostale slučajeve — dve ograde, a mutacija
+jedne ne pokazuje ništa. Test sa diskom koji zadrži upis između početka i
+kraja je pokazao; ograda je sada na poslednjem koraku (pre `rename`). Isti
+oblik je stajao u tutorijalovom `facts_store` i popravljen je isto. **Ograda
+protiv „posle" stoji na poslednjem koraku, ne na prvom.**
+
+Sitnica: `StockfishService` je dva fajla iza uslovnog eksporta, i analizator
+ga čita kao web stub — konstanta samo u native fajlu nije postojala za test.
+Ime ugrađenog engine-a je sada svoj fajl (`bundled_engine.dart`), jedan dom.
+
+Mutacije: 13 u prvoj rundi, sve crvene na svom slučaju; dve na ivicama (manje
+legalnih poteza od linija; upis posle brisanja — ova je preživela i dovela do
+popravke), pa ponovo crvena; i ime engine-a naspram verzije paketa.
+
