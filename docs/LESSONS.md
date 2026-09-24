@@ -7371,3 +7371,40 @@ menja šta taj put sme da čeka** — i to vidi samo test sa lažnim satom.
 Brojevi: aplikacija 3908 → 3911 (+2 u `game_tutorial_facts_store_test.dart`,
 +1 u `account_local_state_test.dart`), pun prolaz posle popravke visećih
 testova, bez ičeg drugog pokrenutog; analyze isti 26 poznatih infoa.
+
+## 24.9.2026 — §9 plana „Moje partije": pravilo greške i presude na serveru
+
+Faze 9.1 i 9.2 `docs/PLAN-MOJE-PARTIJE.md`. Merenje na vlasnikovih 4126
+partija je pokazalo da izveštaj o „curenju" (samo rezultati) u 82 od 84
+označene pozicije ne nalazi potez koji gubi — igrač bira dobar potez, a lošiji
+rezultat dolazi kasnije — i da 9 od 11 pozicija sa zaista lošom navikom
+rezultat uopšte ne vidi. Zato engine i knjiga.
+
+**9.1, pravilo na jednom mestu** (`lib/core/services/mistake_rule.dart`):
+šanse za pobedu, `A` 10, `A_gross` 20, teorija od 10 majstorskih partija,
+propušten mat u pet. Prvi nacrt testa je koristio same konstante
+(`bookGames: kTheoryGames`) — **test koji čita konstantu koju proverava prati tu
+konstantu kad se promeni**; mutacija na 20 bi prošla. Sada su vlasnikovi
+brojevi doslovce u testu. Granice su stavljene tačno na prag (9.93 / 10.02,
+19.80 / 20.15), jer je prvi par (9.10 / 30.62) propuštao mutacije na 9.5 i 25.
+Dvanaest mutacija, sve crvene; četiri za čitač zapisa `+1.50` / `-M2`.
+
+**9.2, server**: upit izveštaja postao je `frequentNodes` sa neobaveznim
+plafonom rezultata — izveštaj i prolaz engine-a čitaju **jedan** upit, a
+„navika" (≥ 3 partije i ≥ 10% čvora) je definisana samo tu. Pravilo greške se
+**ne ponavlja na serveru**: uređaj presuđuje, server proverava ono što može
+bez pravila (pozicija je pozivaočeva, potez je legalan, linije se odigravaju,
+šanse su 0–100) i čuva presudu. Dublja presuda se nikad ne menja plićom — to je
+WHERE u samom upsert-u. Brisanje arhive nosi presude pozicija koje nijedna
+preostala partija ne dostiže (`reapOrphans`, u istoj transakciji) — ključ je
+pozicija, pa kaskada nije mogla.
+
+Jedanaest mutacija, sve crvene; jedna je prvo preživela: navika od dve
+partije. U fiksturi je potez od dve partije bio i ispod desetine čvora, pa ga
+je odbio udeo, a broj partija niko nije pitao. **Kad pravilo ima dva uslova,
+fikstura mora imati slučaj gde samo jedan odlučuje.**
+
+Brojevi: aplikacija 3911 → 3929 izmereno (pun prolaz), → 3932 sa tri čista
+slučaja čitača pokrenuta sami; backend 1684 → 1697 bez baze, 1820 → 1839 sa
+bazom — oba izmerena, baza na privremenom klasteru.
+

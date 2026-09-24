@@ -27,7 +27,13 @@ const { ENT } = require('../services/entitlementService');
 const {
   createArchiveImporter, ArchiveImportUnavailable,
 } = require('../services/gameArchiveImport');
-const { leakReport, backfillNodes } = require('../services/openingLeaks');
+const {
+  leakReport, backfillNodes, frequentNodesReport,
+} = require('../services/openingLeaks');
+const {
+  recordJudgements, attachJudgements, attachBookCounts, losingHabits,
+} = require('../services/openingJudgements');
+const { sharedOpeningBook } = require('../services/openingBook');
 const {
   createOpponentPrep, OpponentPrepUnavailable, policyFrom,
 } = require('../services/opponentPrep');
@@ -392,10 +398,70 @@ router.get('/openings/leaks', leaksJudgeLimiter, authenticateToken, async (req, 
     if (String(q.judge) === 'true') {
       report.judge = await annotate(report.nodes, { limit: judgeLimitOf(q) });
     }
+
+    // What the device's engine said (docs/PLAN-MOJE-PARTIJE.md §9.2): on the
+    // flagged nodes, and — from every frequent node of the same filters,
+    // whatever the score — the losing habits the score alone does not show.
+    await attachJudgements(pool, req.user.id, report.nodes);
+    const every = await frequentNodesReport(pool, req.user.id, filtersOf(q));
+    await attachJudgements(pool, req.user.id, every.nodes);
+    report.losingHabits = losingHabits(every.nodes);
     return res.json(report);
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
     return fail(res, err, 'Opening leaks report is not available.');
+  }
+});
+
+function filtersOf(q) {
+  return {
+    subject: q.subject,
+    color: q.color ?? null,
+    fromPly: q.fromPly,
+    toPly: q.toPly,
+    minGames: q.minGames,
+    speed: q.speed ?? null,
+  };
+}
+
+// GET /games/openings/nodes?subject=&color=&fromPly=&toPly=&minGames=&speed=
+//
+// Every frequent node of the report's filters, whatever the score, with the
+// masters' count for each move and what the engine already said about it —
+// what the device judges next (docs/PLAN-MOJE-PARTIJE.md §9.2). A move is
+// marked `habit` here and nowhere else.
+router.get('/openings/nodes', authenticateToken, async (req, res) => {
+  try {
+    const report = await frequentNodesReport(pool, req.user.id, filtersOf(req.query ?? {}));
+    report.book = attachBookCounts(report.nodes, sharedOpeningBook());
+    await attachJudgements(pool, req.user.id, report.nodes);
+    return res.json(report);
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Opening positions are not available.');
+  }
+});
+
+// A device sends what it judged as it goes, a few dozen at a time; this is a
+// cap for a client that has stopped pacing itself, not a quota.
+const judgementsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many judgements at once. Please wait a moment.' },
+});
+
+// POST /games/openings/judgements  { judgements: [...] }
+//
+// Checked like every engine finding this server takes, and answered with a
+// tally rather than an ok (services/openingJudgements.js).
+router.post('/openings/judgements', authenticateToken, judgementsLimiter, async (req, res) => {
+  try {
+    return res.json(await recordJudgements(pool, req.user.id, req.body?.judgements));
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'Judgements could not be stored.');
   }
 });
 

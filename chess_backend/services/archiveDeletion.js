@@ -16,6 +16,7 @@
 //     An opponent-preparation import of the same handle keeps its history while
 //     its games are there.
 const { OWN_GAMES_SQL } = require('./archiveScope');
+const { reapOrphans } = require('./openingJudgements');
 
 /// Deletes [subject]'s own games for [userId]. Answers `{ ok: true, deleted }`,
 /// `{ ok: false, status: 404 }` when there are none, or
@@ -53,6 +54,11 @@ async function deleteSubjectGames(pool, { userId, subject, reapStale = null }) {
           AND NOT EXISTS (SELECT 1 FROM user_games g WHERE g.user_id = $1 AND g.subject = $2)`,
       [userId, subject]
     );
+    // The engine's judgements of positions no game of this account reaches any
+    // more: derived from the games, and a position from a private game names
+    // the game (docs/PLAN-MOJE-PARTIJE.md §9.2). Keyed by position, not by
+    // game, so no cascade can do it.
+    await reapOrphans(client, userId);
     await client.query('COMMIT');
     return { ok: true, deleted: games.rowCount };
   } catch (err) {

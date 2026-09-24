@@ -1,0 +1,129 @@
+/// What counts as a mistake — one rule, one home.
+///
+/// `docs/PLAN-MOJE-PARTIJE.md` §9.1, and the first bullet of phase 1 of
+/// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`: the review's `??` marks, its puzzles,
+/// its comments, the tutorial's moments and the habits of a player's own
+/// opening tree all ask this file, and none of them keeps a copy (rule 12).
+///
+/// **The scale is winning chances, not pawns.** +19 against +14 is five pawns
+/// and no difference at all; +1 against −1 is two pawns and a game changing
+/// hands. The curve is the one Lichess fits to its players' games.
+///
+/// **The numbers are the owner's choices of 24.9.2026**, each measured in
+/// phase 0 of the puzzle plan: `A` 10 (96–98% of marks at depth 20 confirmed at
+/// depth 24, on three levels of play), `A_gross` 20 and 10 master games for
+/// theory (no book move of 52 games lost 15), a forced mate in five or fewer
+/// (the owner's missed mates were in two to four).
+library;
+
+import 'dart:math' as math;
+
+/// A loss of at least this many chances is a mistake.
+const double kMistakeLoss = 10;
+
+/// In theory — a move the masters played at least [kTheoryGames] times — only
+/// a loss of this many chances is a mistake.
+const double kGrossLossInBook = 20;
+
+/// How many master games make a move theory.
+const int kTheoryGames = 10;
+
+/// A forced mate in this many moves or fewer, left by the player, is a mistake
+/// whatever the chances say — they put a mate at 100 and a crushing position at
+/// 95, so leaving one loses too little to be seen.
+const int kMissedMateMoves = 5;
+
+/// A position is decided when the side to move has at least this many chances,
+/// or at most `100 −` this many.
+const double kDecidedChances = 97;
+
+/// The engine's value of a line for the side to move: centipawns or a mate.
+class EngineValue {
+  const EngineValue.cp(int this.cp) : mate = null;
+  const EngineValue.mate(int this.mate) : cp = null;
+
+  /// From the app's own spelling — [AnalysisLine.evaluation], always from
+  /// White's side: `+1.39`, `-0.35`, `0.00`, `M3`, `-M2` — to the side to
+  /// move's view. Anything else is refused: an evaluation read as 0 would
+  /// judge a move against a position the engine never gave.
+  factory EngineValue.fromEvaluation(String evaluation,
+      {required bool whiteToMove}) {
+    final raw = evaluation.trim();
+    final mate = RegExp(r'^(-)?M(\d+)$').firstMatch(raw);
+    final sign = whiteToMove ? 1 : -1;
+    if (mate != null) {
+      final white =
+          int.parse(mate.group(2)!) * (mate.group(1) == null ? 1 : -1);
+      return EngineValue.mate(white * sign);
+    }
+    final pawns = double.tryParse(raw);
+    if (pawns == null) {
+      throw FormatException('Not an evaluation', evaluation);
+    }
+    return EngineValue.cp((pawns * 100).round() * sign);
+  }
+
+  final int? cp;
+
+  /// Moves to mate; positive when the side to move mates.
+  final int? mate;
+}
+
+/// Winning chances for the side to move, 0 to 100. A mate is 100 or 0 whatever
+/// its distance: a slower mate is still a mate.
+double winningChances(EngineValue value) {
+  final mate = value.mate;
+  if (mate != null) return mate > 0 ? 100 : 0;
+  return 50 + 50 * (2 / (1 + math.exp(-0.00368208 * value.cp!)) - 1);
+}
+
+/// Whether a position with [chances] for the side to move is already decided.
+bool isDecided(double chances) =>
+    chances >= kDecidedChances || chances <= 100 - kDecidedChances;
+
+enum MistakeReason {
+  /// Lost at least [kMistakeLoss] chances out of the book.
+  lostChances,
+
+  /// Lost at least [kGrossLossInBook] chances with a move the masters play.
+  grossInBook,
+
+  /// Left a forced mate in [kMissedMateMoves] or fewer.
+  missedMate,
+}
+
+class MoveJudgement {
+  const MoveJudgement(this.lostChances, this.reason);
+
+  /// `W(best) − W(played)`, never below zero.
+  final double lostChances;
+
+  /// Why it is a mistake; null when it is not one.
+  final MistakeReason? reason;
+
+  bool get isMistake => reason != null;
+}
+
+/// Judges the move played against the best, from the side to move's view.
+/// [bookGames] is how many master games played this move here.
+MoveJudgement judgeMove({
+  required EngineValue best,
+  required EngineValue played,
+  int bookGames = 0,
+}) {
+  final lost = math.max(0.0, winningChances(best) - winningChances(played));
+  final bestMate = best.mate;
+  final playedMates = (played.mate ?? 0) > 0;
+  if (bestMate != null &&
+      bestMate > 0 &&
+      bestMate <= kMissedMateMoves &&
+      !playedMates) {
+    return MoveJudgement(lost, MistakeReason.missedMate);
+  }
+  if (bookGames >= kTheoryGames) {
+    return MoveJudgement(
+        lost, lost >= kGrossLossInBook ? MistakeReason.grossInBook : null);
+  }
+  return MoveJudgement(
+      lost, lost >= kMistakeLoss ? MistakeReason.lostChances : null);
+}

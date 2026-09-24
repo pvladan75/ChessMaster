@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3911 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3932 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
-cd chess_backend && npm test          # node --test, 1820 with TEST_DATABASE_URL, 1684 without
+cd chess_backend && npm test          # node --test, 1839 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -675,6 +675,18 @@ run hung four sign-out tests: the wipe asks `path_provider` over a platform
 channel, which a widget test's fake clock never answers — so the wipe is
 started and not awaited. **A step that brings I/O into a path that was only
 preferences changes what that path may wait for.**
+Then phases 9.1 and 9.2 of `docs/PLAN-MOJE-PARTIJE.md` §9 — a player's opening
+habits judged by the engine and the book (app 3911 → 3929 measured, → **3932**
+with three pure cases of the notation reader run on their own; backend →
+**1697 / 1839**, both measured): **the mistake rule has one home**,
+`lib/core/services/mistake_rule.dart` (winning chances, `A` 10, `A_gross` 20,
+theory at 10 master games, a missed mate in five), which the review and the
+tutorial will import rather than copy; and on the server `opening_judgements`,
+`GET /games/openings/nodes`, `POST /games/openings/judgements`, the leaks
+report carrying the verdicts and the losing habits. **A test that reads the
+constant it tests follows the constant when it moves** — the first draft passed
+`bookGames: kTheoryGames` and would have stayed green at any theory count; the
+owner's numbers are literals in the test now.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

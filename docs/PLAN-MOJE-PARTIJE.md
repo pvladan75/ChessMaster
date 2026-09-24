@@ -765,10 +765,115 @@ master games, `A_gross` 20):
   dead was alive), so the figure is roughly double; about ten minutes on this
   desktop is the estimate, to be measured once idle if the section is built.
 
-**For the owner to decide**: whether §9 is built. What it would change is
-mainly the *meaning* of section 1's report — 82 of 84 flags say „the opening
-move is fine, look later" — and a short list of hidden losing habits (9 nodes
-here); the opponents' side adds little on this archive.
+**The owner, 24.9.2026: §9 is built** — the player's own side. The
+opponents' side (point 4) is **not**: it needs rows `opening_nodes` does not
+hold, and on this archive it found 7 repeated opponent mistakes, none of them
+missed. It can come back if an archive shows otherwise.
+
+### §9 phases
+
+Every brief carries: *If you believe a test in the gate is wrong, stop and say
+so in the report — do not work around it.* Baseline before 9.1: app **3911**,
+backend **1684** without a database (1820 with, derived), analyze the 26
+infos.
+
+**9.1 — the rule, one home [lead].** `lib/core/services/mistake_rule.dart`,
+pure: `winningChances` (a mate 100 / 0 whatever its distance) and the judgement
+of one move from the engine's values and the book — a mistake when it loses
+`A` (10), or, when the book holds it with at least 10 master games, only when
+it loses `A_gross` (20); a forced mate in five or fewer left is a mistake
+whatever the chances. **This is the first bullet of phase 1 of
+`PLAN-ZAGONETKE-IZ-PARTIJE.md`, built here first**: the review imports it
+later, never a copy. Gate: the table of that plan's §3 to the hundredth, the
++19 / +14 case, a slower mate, a book move under and over `A_gross`, a move the
+book lists 9 times, a mate in 5 and in 6 left; every constant by mutation.
+
+*Built 24.9.2026 by the lead*: `mistake_rule.dart`, 18 cases, twelve
+mutations — every constant each way, the curve, the slower mate and the
+negative loss — each red; the first draft of the test used the constants
+themselves (`bookGames: kTheoryGames`), which follow a mutated constant and
+cannot catch it, and was rewritten with the owner's numbers as literals.
+
+**9.2 — the nodes and their judgements on the server [lead].**
+- `GET /games/openings/nodes` — the frequent nodes of the leak report's own
+  query (same subject, colour, window, `minGames`), **all of them, not only the
+  flagged**, each with its moves (SAN, UCI, games, score, share, and
+  **`habit`** — played ≥ 3 times and in ≥ 10% of the node's games, the one
+  home of that definition) and **the masters' count for each move** from `services/openingBook.js` — the book
+  asked on the server, where it is, once per node. A book that is not
+  configured is a reason in the answer, never an empty count.
+- A table `opening_judgements` (schema is the lead's): per user, `fen_key`,
+  the move's UCI, `w_best`, `w_move`, the best move and both lines as SAN
+  lists, the engine's identity, the depth, when; unique per (user, `fen_key`,
+  move). Positions come from private games, so it is per user and goes with
+  the user.
+- `POST /games/openings/judgements` — a batch from the device, **checked like
+  every engine finding that door takes**: the `fen_key` must be one of the
+  caller's own `opening_nodes`, the move legal there, the lines replayed by
+  `chess.js`, the chances within 0–100; the answer is a **tally** (stored,
+  replaced by a deeper one, rejected with named reasons) that refuses to
+  return when it does not add up.
+- `GET /games/openings/leaks` carries each node's judgements, and a second
+  list: **losing habits** — nodes with a habit move that was judged a mistake,
+  *whatever the score*. **The mistake rule is not repeated on the server**
+  (rule 12): the device judges with 9.1 and hands over the verdict with the
+  numbers behind it; the server checks what it can check without the rule —
+  the node is the caller's, the move is legal, the lines replay, the chances
+  are within 0–100 — and stores the verdict as given.
+
+Gate (`node --test`, the real-database half for the table): a judgement for a
+`fen_key` the caller never played is refused; a line that does not replay is
+refused; a deeper judgement replaces a shallower one and a shallower one does
+not replace a deeper one; the leaks report shows a flagged node's habit as
+„holds" and lists a losing habit whose node scores well; the tally adds up;
+another user's judgements are never read.
+
+*Built 24.9.2026 by the lead* (backend 1684 → **1697** without a database,
+**1839** with one, both measured): `services/openingJudgements.js`, the
+`opening_judgements` table, `GET /games/openings/nodes`,
+`POST /games/openings/judgements`, and the leaks report carrying judgements
+and `losingHabits`. The leak report's query became `frequentNodes` with an
+optional score ceiling, so the report and the engine's pass read **one**
+query; the habit is defined there and nowhere else. A position no archive of
+the account reaches any more loses its judgements in the transaction that
+deleted the games (`archiveDeletion.js`, `reapOrphans`) — keyed by position,
+so no cascade could. Eleven mutations, each red; one survived first — a habit
+from two games — because the fixture's two-game move was also under a tenth
+of its node, so the share turned it down and the count was never asked. A
+small node where two games are a sixth now stands on that boundary.
+
+**9.3 — judging on the desktop [implementer].** On the leak report: **„Judge
+with the engine"** — enabled where the downloaded engine is on disk (as a
+tutorial build), elsewhere the button says why. It fetches the nodes, skips
+those already judged at the depth asked, runs the tutorial's engine pool
+(`UciEnginePool`: one thread per worker, a fresh hash per search, so the same
+binary gives the same answer) with **two lines at depth 20** and **each move the server marks as a
+habit, alone** (`searchmoves`, added to `UciEngine.analyze`), judges with 9.1 and
+sends the judgements in batches as they come — progress, cancel, and a resume
+that costs nothing for what was already sent. Then each flagged node reads
+**„Your move holds — the problem comes later"** or **„Your move loses: X was
+better (masters: Y, N games)"**, and a section **„Losing habits your score
+doesn't show"** lists the rest. A node never judged says so; it is never shown
+as holding.
+Gate: widget tests with a fake analyzer and a fake client — the request
+asserted on the client seam (rule 7); a node with a losing habit and one with
+a holding habit read as above; cancel sends nothing more; a second run asks
+the engine only about what was not judged; 360 x 640 and 1280 x 800.
+
+**9.4 — into the drill [implementer].** A losing habit becomes a
+`mistake_reviews` item through `POST /games/mistakes`, on the latest game in
+which it was played (`game_id` and ply from `opening_nodes`), `kind = engine`
+with its swing — so the existing spaced repetition asks „here you play X;
+find the better move", from a habit rather than one game. Gate: the request
+on the client seam; a habit already in the drill is not sent twice.
+
+**9.5 — the Lichess judge [lead, the owner's yes].** Section 1's optional
+judge (`&judge=true`, Lichess's cloud with the player's token) is superseded
+by 9.3. It is removed **after** the owner's live pass, not before.
+
+**9.6 — the owner's live pass.** A TODO-provera item: judge the archive on
+the desktop, read the verdicts on the flagged nodes, open two losing habits,
+drill one.
 
 ## Costs and limits
 

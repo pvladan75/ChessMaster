@@ -69,39 +69,39 @@ function fenFromKey(key) {
   return `${key} 0 1`;
 }
 
-/// The report.
-///
-/// Returns positions the subject reached at least [minGames] times inside the
-/// window and scored below [maxScore] in, each with the moves they chose there
-/// and how each one did. Ordered by how often the position came up, because a
-/// bad habit in 35 games matters more than a worse one in 9.
-async function leakReport(pool, userId, {
-  subject,
-  color = null,
-  fromPly,
-  toPly,
-  minGames,
-  maxScore,
-  speed = null,
-  limit,
-} = {}) {
-  if (!Number.isInteger(userId)) throw new TypeError('userId is required');
+/// A move the player chose at least this often, and in at least this share of
+/// the node's games, is a **habit** — the one home of that definition
+/// (docs/PLAN-MOJE-PARTIJE.md §9). The engine is asked about habits only: a move
+/// played once is a bad evening, not something to unlearn.
+const HABIT_MIN_GAMES = 3;
+const HABIT_MIN_SHARE = 0.10;
+
+/// Every node the device may judge in one pass. The owner's 4126 games give 301
+/// nodes of eight games inside the default window; this is room above that,
+/// and a bound on what one request can ask the book about.
+const MAX_JUDGED_NODES = 500;
+
+/// The filters both reports share, checked once.
+function readFilters({ subject, color = null, fromPly, toPly, minGames, speed = null } = {}) {
   const handle = String(subject || '').trim();
   if (!handle) throw new RangeError('Username is missing.');
   if (color !== null && !['w', 'b'].includes(color)) {
     throw new RangeError('Color must be "w" or "b".');
   }
-
   const from = requirePly(fromPly, 'Starting ply', DEFAULT_FROM_PLY);
   const to = requirePly(toPly, 'Ending ply', DEFAULT_TO_PLY);
   if (from > to) throw new RangeError('Starting ply is after ending ply.');
-
   const floor = requireNumber(minGames, 'Minimum number of games', DEFAULT_MIN_GAMES,
     { min: 2, max: 1000 });
-  const ceiling = requireNumber(maxScore, 'Maximum score ceiling', DEFAULT_MAX_SCORE,
-    { min: 0, max: 1 });
-  const cap = requireNumber(limit, 'Number of positions', DEFAULT_LIMIT, { min: 1, max: 200 });
+  return { handle, color, from, to, floor, speed };
+}
 
+/// The positions the subject reached at least `floor` times inside the window,
+/// each with the moves chosen there and how each did — scoring under
+/// [maxScore] when one is given, every one of them when it is null. The one
+/// query both the leak report and the engine's pass read (rule 12).
+async function frequentNodes(pool, userId, filters, { maxScore = null, cap }) {
+  const { handle, color, from, to, floor, speed } = filters;
   const { rows } = await pool.query(
     `WITH picked AS (
        SELECT n.fen_key, n.san, n.ply, n.subject_score
@@ -126,7 +126,7 @@ async function leakReport(pool, userId, {
      ranked AS (
        SELECT *, ROW_NUMBER() OVER (ORDER BY games DESC, points ASC) AS rk
          FROM by_node
-        WHERE games >= $7 AND (points / games) < $8
+        WHERE games >= $7 AND ($8::numeric IS NULL OR (points / games) < $8)
      )
      SELECT r.rk, r.fen_key, r.games AS node_games, r.points AS node_points,
             r.ply AS node_ply, m.san, m.games AS move_games, m.points AS move_points
@@ -134,7 +134,7 @@ async function leakReport(pool, userId, {
        JOIN by_move m ON m.fen_key = r.fen_key
       WHERE r.rk <= $9
       ORDER BY r.rk, m.games DESC, m.san`,
-    [userId, handle, color, from, to, speed, floor, ceiling, cap],
+    [userId, handle, color, from, to, speed, floor, maxScore, cap],
   );
 
   const byKey = new Map();
@@ -149,23 +149,67 @@ async function leakReport(pool, userId, {
         moves: [],
       });
     }
+    const share = row.move_games / row.node_games;
     byKey.get(row.fen_key).moves.push({
       san: row.san,
       games: row.move_games,
       score: Number(row.move_points) / row.move_games,
-      share: row.move_games / row.node_games,
+      share,
+      habit: row.move_games >= HABIT_MIN_GAMES && share >= HABIT_MIN_SHARE,
     });
   }
+  return [...byKey.values()];
+}
 
-  const nodes = [...byKey.values()];
-  const coverage = await coverageOf(pool, userId, handle, color);
+/// The report.
+///
+/// Returns positions the subject reached at least [minGames] times inside the
+/// window and scored below [maxScore] in, each with the moves they chose there
+/// and how each one did. Ordered by how often the position came up, because a
+/// bad habit in 35 games matters more than a worse one in 9.
+async function leakReport(pool, userId, {
+  subject,
+  color = null,
+  fromPly,
+  toPly,
+  minGames,
+  maxScore,
+  speed = null,
+  limit,
+} = {}) {
+  if (!Number.isInteger(userId)) throw new TypeError('userId is required');
+  const filters = readFilters({ subject, color, fromPly, toPly, minGames, speed });
+  const ceiling = requireNumber(maxScore, 'Maximum score ceiling', DEFAULT_MAX_SCORE,
+    { min: 0, max: 1 });
+  const cap = requireNumber(limit, 'Number of positions', DEFAULT_LIMIT, { min: 1, max: 200 });
+
+  const nodes = await frequentNodes(pool, userId, filters, { maxScore: ceiling, cap });
+  const coverage = await coverageOf(pool, userId, filters.handle, filters.color);
 
   return {
-    subject: handle,
-    color,
-    window: { fromPly: from, toPly: to },
-    thresholds: { minGames: floor, maxScore: ceiling },
+    subject: filters.handle,
+    color: filters.color,
+    window: { fromPly: filters.from, toPly: filters.to },
+    thresholds: { minGames: filters.floor, maxScore: ceiling },
     ...coverage,
+    nodes,
+  };
+}
+
+/// Every frequent node of the same filters, whatever the score — what the
+/// device's engine judges (docs/PLAN-MOJE-PARTIJE.md §9.2). A node the score
+/// calls fine can hold a losing habit nobody punishes, and that is half of what
+/// the engine is asked for.
+async function frequentNodesReport(pool, userId, options = {}) {
+  if (!Number.isInteger(userId)) throw new TypeError('userId is required');
+  const filters = readFilters(options);
+  const nodes = await frequentNodes(pool, userId, filters,
+    { maxScore: null, cap: MAX_JUDGED_NODES });
+  return {
+    subject: filters.handle,
+    color: filters.color,
+    window: { fromPly: filters.from, toPly: filters.to },
+    minGames: filters.floor,
     nodes,
   };
 }
@@ -276,6 +320,10 @@ function replayNodes(game) {
 
 module.exports = {
   leakReport,
+  frequentNodesReport,
+  HABIT_MIN_GAMES,
+  HABIT_MIN_SHARE,
+  MAX_JUDGED_NODES,
   backfillNodes,
   replayNodes,
   fenFromKey,

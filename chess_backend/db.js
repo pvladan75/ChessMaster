@@ -1941,6 +1941,40 @@ async function initDB(target = pool) {
     `);
     logger.info('Verified database table & indexes: opening_nodes');
 
+    // What the device's engine said about a player's habits, one row per
+    // position and move (docs/PLAN-MOJE-PARTIJE.md §9.2). The verdict is the
+    // device's, from the one mistake rule in the app; the numbers behind it are
+    // kept so the report can show them and the chances can be checked.
+    //
+    // Per user, not shared: a position from a private game names the game.
+    // A shallower judgement never replaces a deeper one — the upsert in
+    // services/openingJudgements.js says so in its WHERE. A mistake names its
+    // reason and a move that holds has none, held here as well as on the way in.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS opening_judgements (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        fen_key TEXT NOT NULL,
+        move_uci VARCHAR(5) NOT NULL,
+        w_best REAL NOT NULL CHECK (w_best BETWEEN 0 AND 100),
+        w_move REAL NOT NULL CHECK (w_move BETWEEN 0 AND 100),
+        best_uci VARCHAR(5) NOT NULL,
+        best_line JSONB NOT NULL,
+        move_line JSONB NOT NULL,
+        verdict VARCHAR(8) NOT NULL CHECK (verdict IN ('mistake', 'holds')),
+        reason VARCHAR(16)
+          CHECK (reason IN ('lostChances', 'grossInBook', 'missedMate')),
+        book_games INTEGER CHECK (book_games >= 0),
+        engine VARCHAR(64) NOT NULL,
+        depth SMALLINT NOT NULL CHECK (depth BETWEEN 1 AND 99),
+        judged_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, fen_key, move_uci),
+        CONSTRAINT opening_judgements_reason
+          CHECK ((verdict = 'mistake') = (reason IS NOT NULL))
+      );
+    `);
+    logger.info('Verified database table & indexes: opening_judgements');
+
 
   } catch (err) {
     logger.error('Database migration/connection error:', err);
