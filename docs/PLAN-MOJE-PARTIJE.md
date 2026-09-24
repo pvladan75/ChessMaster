@@ -860,6 +860,28 @@ asserted on the client seam (rule 7); a node with a losing habit and one with
 a holding habit read as above; cancel sends nothing more; a second run asks
 the engine only about what was not judged; 360 x 640 and 1280 x 800.
 
+*Built 24.9.2026 by the implementer, graded and completed by the lead* (app
+3932 → **3955**, a full run; analyze the 26 infos): `searchmoves` on
+`UciEngine.analyze`, the models, `getOpeningNodes` / `sendJudgements`,
+`OpeningTreeJudge`, and the screen. The worker's six judge mutations and three
+screen mutations were re-run by the lead; two of the screen ones held, and the
+lead's own first mutation of the third was invalid (it crashed on `null`
+instead of drawing the wrong sentence) and was redone. **Grading found what the
+gate had not asked**: a search stopped by its timeout answers what it had, and
+the judge sent it labelled with the depth asked — a depth-14 answer stored as
+20, which the rule „a deeper judgement is never replaced by a shallower one"
+would then have protected; an empty answer skipped silently and counted as
+done; an engine that ignored `searchmoves` read as the move asked (a habit
+that always holds); the server's tally thrown away; and a run that failed said
+nothing. Now every answer passes the tutorial's own `searchProblem`, the move a
+`searchmoves` line starts with must be the move asked, every miss is counted
+with its reason, the tally is added up, and the run ends with one sentence —
+„Judged N moves. M could not be judged. The server refused K." — or „Judging
+stopped: …". Five more cases, each red on its own mutation. Two of the
+worker's fakes answered a Black position with White's lines and ignored
+`searchmoves`; the new check refused them, and they were rewritten to answer
+what they are asked. TODO-provera 237.
+
 **9.4 — into the drill [implementer].** A losing habit becomes a
 `mistake_reviews` item through `POST /games/mistakes`, on the latest game in
 which it was played (`game_id` and ply from `opening_nodes`), `kind = engine`

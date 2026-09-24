@@ -3,10 +3,24 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
+import 'package:chess_app/features/archive/services/opening_tree_judge.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart'
+    show engineIdentity;
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart'
+    show localEnginePath;
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/uci_engine.dart'
+    show UciEnginePool, defaultFactsWorkers;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
+
+/// Reused from the tutorial builder's own refusal
+/// (`game_tutorial_run.dart`, `no-engine`) — one sentence for „there is no
+/// engine on this device", not two.
+const _noEngineReason =
+    'Judging needs the chess engine on this computer. Download it in the '
+    'engine settings, then try again.';
 
 class OpeningLeakReportScreen extends StatefulWidget {
   const OpeningLeakReportScreen({
@@ -31,11 +45,124 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
   Future<LeakReport>? _reportFuture;
   bool _isBackfilling = false;
 
+  /// Null while `localEnginePath()` has not answered yet.
+  bool? _engineAvailable;
+
+  bool _judging = false;
+  int _judgeDone = 0;
+  int _judgeTotal = 0;
+  OpeningTreeJudge? _activeJudge;
+  UciEnginePool? _enginePool;
+
   @override
   void initState() {
     super.initState();
     _fetchReport();
+    _checkEngine();
   }
+
+  @override
+  void dispose() {
+    _activeJudge?.cancel();
+    _enginePool?.close();
+    super.dispose();
+  }
+
+  /// `localEnginePath()` itself, made safe for a caller that only wants to
+  /// know whether an engine is there — a device that cannot even answer the
+  /// question has no engine to run one on, so this reads the same as „no".
+  Future<String?> _engineOnDisk() async {
+    try {
+      return await localEnginePath();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _checkEngine() async {
+    final path = await _engineOnDisk();
+    if (!mounted) return;
+    setState(() => _engineAvailable = path != null);
+  }
+
+  Future<void> _startJudging() async {
+    final path = await _engineOnDisk();
+    if (!mounted) return;
+    if (path == null) {
+      setState(() => _engineAvailable = false);
+      return;
+    }
+
+    late final OpeningNodesReport nodesReport;
+    try {
+      nodesReport = await ArchiveApiService.instance
+          .getOpeningNodes(subject: widget.subject, color: _color);
+    } catch (e) {
+      if (!mounted) return;
+      AppFeedback.error(context, 'Positions could not be fetched: $e');
+      return;
+    }
+
+    final UciEnginePool pool;
+    final String engine;
+    try {
+      // The identity first: a pool started and then orphaned by a failing
+      // stat would leave engine processes running with nobody to close them.
+      engine = await engineIdentity(path);
+      pool = await UciEnginePool.start(path, workers: defaultFactsWorkers());
+    } catch (e) {
+      if (!mounted) return;
+      AppFeedback.error(context, 'The chess engine could not be started: $e');
+      return;
+    }
+
+    final judge = OpeningTreeJudge(
+      analyzers: [for (final e in pool.engines) e.analyze],
+      engine: engine,
+      send: ArchiveApiService.instance.sendJudgements,
+    );
+    setState(() {
+      _judging = true;
+      _judgeDone = 0;
+      _judgeTotal = 0;
+      _activeJudge = judge;
+      _enginePool = pool;
+    });
+
+    try {
+      final result = await judge.run(nodesReport.nodes, onProgress: (progress) {
+        if (!mounted) return;
+        setState(() {
+          _judgeDone = progress.done;
+          _judgeTotal = progress.total;
+        });
+      });
+      // Done, then said — and what could not be judged is said with it.
+      if (mounted) {
+        if (result.unjudged.isEmpty && result.rejected == 0) {
+          AppFeedback.success(context, result.summary);
+        } else {
+          AppFeedback.warning(context, result.summary);
+        }
+      }
+    } catch (e) {
+      // An engine that died or a server that would not take a batch stops
+      // the run; what was sent before it stays, and the report shows it.
+      if (mounted) AppFeedback.error(context, 'Judging stopped: $e');
+    } finally {
+      pool.close();
+      if (mounted) {
+        setState(() {
+          _judging = false;
+          _activeJudge = null;
+          _enginePool = null;
+        });
+        _fetchReport();
+      }
+    }
+  }
+
+  void _cancelJudging() => _activeJudge?.cancel();
 
   void _fetchReport() {
     setState(() {
@@ -93,6 +220,224 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     }
   }
 
+  /// What the device's engine says about one habit move: icon and text always
+  /// paired (the owner is colourblind, so hue alone never carries this), and
+  /// three different sentences — a move never judged is never shown as
+  /// holding.
+  ({IconData icon, Color color, String text}) _habitFace(
+      BuildContext context, HabitJudgement? judgement) {
+    if (judgement == null) {
+      return (
+        icon: Icons.help_outline,
+        color: context.colors.textMuted,
+        text: 'Not judged yet',
+      );
+    }
+    if (judgement.isMistake) {
+      final better = judgement.bestSan ?? judgement.bestUci;
+      return (
+        icon: Icons.trending_down,
+        color: context.colors.danger,
+        text: 'Your move loses: $better was better',
+      );
+    }
+    return (
+      icon: Icons.check_circle_outline,
+      color: context.colors.success,
+      text: 'Your move holds — the problem comes later',
+    );
+  }
+
+  Widget _buildHabitJudgement(
+      BuildContext context, LeakReportNode node, LeakReportMove move) {
+    final face = _habitFace(context, move.judgement);
+    // The move's own name on its own line — a 360 dp phone leaves this
+    // column about 206 px wide beside the board thumbnail, and the verdict
+    // sentence alone needs every one of them; concatenated with the move it
+    // no longer fit in a readable number of lines.
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${move.san}:',
+              style: AppText.captionBold.copyWith(color: face.color)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(face.icon, size: 14, color: face.color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  face.text,
+                  key: ValueKey('habit-judgement-${node.fenKey}-${move.uci}'),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.caption.copyWith(color: face.color),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEngineJudgeBar(BuildContext context) {
+    if (_judging) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: AppRadii.roundedSm,
+          border: Border.all(color: context.colors.border),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Judging $_judgeDone of $_judgeTotal positions…',
+                key: const Key('engine-judge-progress'),
+                maxLines: 2,
+                style: AppText.body.copyWith(color: context.colors.textPrimary),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            OutlinedButton(
+              onPressed: _cancelJudging,
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_engineAvailable == false) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: AppRadii.roundedSm,
+          border: Border.all(color: context.colors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ElevatedButton.icon(
+              onPressed: null,
+              icon: const Icon(Icons.gavel, size: 16),
+              label: const Text('Judge with the engine'),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              _noEngineReason,
+              key: const Key('engine-judge-disabled-reason'),
+              maxLines: 5,
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_engineAvailable == true) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        child: ElevatedButton.icon(
+          onPressed: _startJudging,
+          icon: const Icon(Icons.gavel, size: 16),
+          label: const Text('Judge with the engine'),
+        ),
+      );
+    }
+
+    // Still checking whether there is an engine on disk.
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildLosingHabitsSection(BuildContext context, LeakReport report) {
+    final flagged = report.nodes.map((n) => n.fenKey).toSet();
+    final extra =
+        report.losingHabits.where((h) => !flagged.contains(h.fenKey)).toList();
+    if (extra.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Losing habits your score doesn't show",
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          for (final habit in extra) _buildLosingHabitRow(context, habit),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLosingHabitRow(BuildContext context, LosingHabit habit) {
+    final judgement = habit.judgement;
+    final better = judgement?.bestSan ?? judgement?.bestUci ?? '?';
+    final lost = judgement?.lostChances.toStringAsFixed(0) ?? '?';
+    return Container(
+      key: ValueKey('losing-habit-${habit.fenKey}-${habit.uci}'),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        borderRadius: AppRadii.roundedMd,
+        border: Border.all(color: context.colors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          BoardThumbnail(
+            fen: habit.fen,
+            size: 56,
+            isWhiteBottom: _color == 'w',
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${habit.san} — ${habit.games} of ${habit.nodeGames} games',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.bodyBold
+                      .copyWith(color: context.colors.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.trending_down,
+                        size: 14, color: context.colors.danger),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Loses $lost winning chances — $better was better',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.caption
+                            .copyWith(color: context.colors.danger),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildNode(BuildContext context, LeakReportNode node) {
     final moves = node.moves;
     if (moves.isEmpty) return const SizedBox.shrink();
@@ -146,6 +491,8 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   _buildJudgement(context, node.judgement!),
                 ],
+                for (final move in moves)
+                  if (move.habit) _buildHabitJudgement(context, node, move),
               ],
             ),
           ),
@@ -257,6 +604,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   children: [
+                    _buildEngineJudgeBar(context),
                     if (!report.judge.requested) ...[
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.sm),
@@ -332,6 +680,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                       )
                     else
                       ...report.nodes.map((node) => _buildNode(context, node)),
+                    _buildLosingHabitsSection(context, report),
                   ],
                 ),
               ),

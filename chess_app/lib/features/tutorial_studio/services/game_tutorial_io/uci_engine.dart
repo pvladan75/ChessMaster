@@ -151,10 +151,16 @@ class UciEngine {
   }
 
   /// The [PositionAnalyzer] shape: [multiPV] lines for [fen] at [depth].
+  ///
+  /// [searchMoves] narrows the search to those moves only (`go depth N
+  /// searchmoves a b …`), for asking the engine's opinion of one move that is
+  /// not among the top lines already searched — `docs/PLAN-MOJE-PARTIJE.md`
+  /// §9.3. Left null, nothing narrows the search, exactly as before.
   Future<List<AnalysisLine>> analyze(
     String fen, {
     required int depth,
     required int multiPV,
+    List<String>? searchMoves,
     Duration timeout = const Duration(minutes: 15),
   }) async {
     if (_stopped) throw StateError('the engine has been closed');
@@ -174,7 +180,9 @@ class UciEngine {
     try {
       _send('setoption name MultiPV value $multiPV');
       _send('position fen $fen');
-      _send('go depth $depth');
+      _send(searchMoves == null || searchMoves.isEmpty
+          ? 'go depth $depth'
+          : 'go depth $depth searchmoves ${searchMoves.join(' ')}');
       try {
         await done.future.timeout(timeout);
       } on TimeoutException {

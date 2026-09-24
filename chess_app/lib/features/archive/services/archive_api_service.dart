@@ -210,6 +210,54 @@ class ArchiveApiService {
     throw Exception('Failed to fetch leaks: ${response.body}');
   }
 
+  /// Every frequent node of the leak report's own filters, whatever the
+  /// score, with the masters' count for each move and what the engine already
+  /// said about it — `docs/PLAN-MOJE-PARTIJE.md` §9.3, what the device judges
+  /// next.
+  Future<OpeningNodesReport> getOpeningNodes({
+    required String subject,
+    String? color,
+  }) async {
+    final wire = _wireColor(color);
+    final params = <String, String>{
+      'subject': subject,
+      if (wire != null) 'color': wire,
+    };
+    final uri = Uri.parse('$backendUrl/games/openings/nodes')
+        .replace(queryParameters: params);
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return OpeningNodesReport.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 400) {
+      final error = jsonDecode(response.body)['error'] ?? 'Bad Request';
+      throw Exception(error);
+    }
+    throw Exception('Failed to fetch opening positions: ${response.body}');
+  }
+
+  /// A batch of verdicts the device's engine reached, checked like every
+  /// engine finding this server takes and answered with a tally
+  /// (`services/openingJudgements.js`).
+  Future<JudgementTally> sendJudgements(
+      List<Map<String, dynamic>> judgements) async {
+    final uri = Uri.parse('$backendUrl/games/openings/judgements');
+    final response = await _post(
+      uri,
+      {
+        'Authorization': 'Bearer $_token',
+        'Content-Type': 'application/json',
+      },
+      jsonEncode({'judgements': judgements}),
+    );
+    if (response.statusCode == 200) {
+      return JudgementTally.fromJson(jsonDecode(response.body));
+    } else if (response.statusCode == 400) {
+      final error = jsonDecode(response.body)['error'] ?? 'Bad Request';
+      throw Exception(error);
+    }
+    throw Exception('Failed to store judgements: ${response.body}');
+  }
+
   Future<Map<String, int>> backfill() async {
     final uri = Uri.parse('$backendUrl/games/openings/backfill');
     final response =

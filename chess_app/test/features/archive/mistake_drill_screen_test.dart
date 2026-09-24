@@ -24,6 +24,16 @@ class FakeArchiveApiService implements ArchiveApiService {
   Future<List<ArchiveSubject>> getSubjects() async => [];
   @override
   Future<List<ArchiveRun>> listImports() async => [];
+  // Added with §9.3 of docs/PLAN-MOJE-PARTIJE.md; this screen never judges,
+  // so nothing here needs them beyond compiling.
+  @override
+  Future<OpeningNodesReport> getOpeningNodes(
+          {required String subject, String? color}) async =>
+      throw UnimplementedError();
+  @override
+  Future<JudgementTally> sendJudgements(
+          List<Map<String, dynamic>> judgements) async =>
+      throw UnimplementedError();
 
   final List<MistakeItem> dueMistakes = [];
   final List<String> gradedIds = [];

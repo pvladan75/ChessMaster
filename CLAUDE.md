@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3932 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 3955 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1839 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -687,6 +687,12 @@ report carrying the verdicts and the losing habits. **A test that reads the
 constant it tests follows the constant when it moves** — the first draft passed
 `bookGames: kTheoryGames` and would have stayed green at any theory count; the
 owner's numbers are literals in the test now.
+Then its 9.3, the desktop judging the habits (→ **3955**, a full run): built by
+the implementer and completed on grading, because the gate had not asked what
+a timed-out search answers — **a search stopped by its timeout returns what it
+had, and a judge that labels it with the depth asked turns a guess into a
+record** that the „deeper is never replaced" rule then defends. Every answer
+now passes `searchProblem`, and every miss is counted and said.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

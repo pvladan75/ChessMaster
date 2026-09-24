@@ -138,6 +138,22 @@ void main() {
       ]);
     });
 
+    test('searchmoves narrows the search when given, and is left out otherwise',
+        () async {
+      final s = _Script(
+          onGo: (_) =>
+              ['info depth 18 multipv 1 score cp 40 pv f1b5', 'bestmove f1b5']);
+      await s.engine
+          .analyze(_open, depth: 18, multiPV: 1, searchMoves: ['e2e4', 'd2d4']);
+      expect(s.sent.last, 'go depth 18 searchmoves e2e4 d2d4');
+
+      final s2 = _Script(
+          onGo: (_) =>
+              ['info depth 18 multipv 1 score cp 40 pv f1b5', 'bestmove f1b5']);
+      await s2.engine.analyze(_open, depth: 18, multiPV: 1);
+      expect(s2.sent.last, 'go depth 18');
+    });
+
     test('the last exact line of each rank is the answer, ranked', () async {
       final s = _Script(
           onGo: (_) => [

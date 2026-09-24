@@ -5878,6 +5878,30 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 237. Engine sudi o navikama u otvaranju — 24.9.2026, nije viđeno uživo
+
+**Server i aplikacija** (restart backenda — `initDB` pravi tabelu
+`opening_judgements`; nova verzija aplikacije za Windows). `PLAN-MOJE-PARTIJE.md`
+§9, faze 9.1–9.3. Na desktopu, sa preuzetim engine-om.
+
+1. [ ] **Suđenje.** Practise → My games → „View opening leaks" (Beli):
+   dugme **„Judge with the engine"**. Teče „Judging N of M positions…"; oko
+   desetak minuta za tvoju arhivu. Na kraju poruka „Judged N moves." — i, ako
+   ih ima, koliko nije moglo da se presudi ili koliko je server odbio.
+2. [ ] **Presude.** Pod označenim pozicijama, za svaku naviku: „Your move holds —
+   the problem comes later" ili „Your move loses: X was better". Po merenju od
+   24.9. skoro sve označene pozicije treba da kažu „holds" (82 od 84).
+3. [ ] **Skrivene navike.** Odeljak „Losing habits your score doesn't show":
+   nekoliko pozicija u kojima dobro prolaziš, a engine kaže da potez gubi.
+   Otvori dve i proveri u Analysis da li je bolji potez zaista bolji.
+4. [ ] **Ponovo.** Pritisni dugme još jednom: ne treba da traje ponovo (sve je
+   već presuđeno na dubini 20) — poruka „Judged 0 moves.".
+5. [ ] **Crni i Cancel.** Prebaci na Crne, pokreni pa posle nekoliko pozicija
+   **Cancel**: staje, a ono što je poslato ostaje (ponovni ulazak pokazuje
+   presude za te pozicije).
+6. [ ] **Bez engine-a.** Na telefonu (ili bez preuzetog engine-a) dugme je
+   sivo i piše zašto.
+
 ## 236. Knjiga čiji font nemamo čita se kao slike; svi Fritz dijagrami — 23.9.2026, nije viđeno uživo
 
 **Samo server** (restart backenda; aplikacija ista). `PLAN-SKENER-SLIKE.md`,

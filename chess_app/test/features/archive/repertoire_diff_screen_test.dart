@@ -27,6 +27,16 @@ class FakeArchiveApiService implements ArchiveApiService {
   @override
   Future<({String startFen, List<String> uciMoves, String? subjectColor})>
       fetchGameMoves(String gameId) async => throw UnimplementedError();
+  // Added with §9.3 of docs/PLAN-MOJE-PARTIJE.md; this screen never judges,
+  // so nothing here needs them beyond compiling.
+  @override
+  Future<OpeningNodesReport> getOpeningNodes(
+          {required String subject, String? color}) async =>
+      throw UnimplementedError();
+  @override
+  Future<JudgementTally> sendJudgements(
+          List<Map<String, dynamic>> judgements) async =>
+      throw UnimplementedError();
   @override
   Future<List<ArchiveSubject>> getSubjects() async => [];
   @override

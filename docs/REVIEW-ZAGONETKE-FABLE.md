@@ -361,6 +361,72 @@ the average uses 10 ≤ W(best) ≤ 90. One idea, two numbers (rule 12). Pick on
 My only-move counts without the book are 107 / 76 / 134; the plan's 124 for the
 grandmasters excludes book positions — reconciled, not a discrepancy.
 
+### F12. One store of engine answers per position — **new, added 24.9.2026 on the owner’s question**
+
+**Claim.** The lead’s answer to the owner (whether an engine analysis already
+kept anywhere could be reused) is right in direction and should be built: one
+store of the engine’s answers per position, read by the review first, then by
+the deepening, the tutorial and the tree of §9. Four things sharpen it.
+
+**Evidence.** `facts_store.dart` already keeps answers per FEN inside a file
+keyed by the game, the depth and the engine binary; a torn file reads as empty;
+a mate is stored as `100000 − distance` with its sign, so the distance survives
+(`game_facts.dart:33,72`). The tutorial searches four lines at depth 18, the
+plan’s review two at 16, so the tutorial’s answers already serve the review
+and not the reverse. The review’s walk reads none of it today (`multiPV: 1`,
+its own pass). The PGN reader drops `[%eval]` with every other `[%…]` tag
+(`move_tree.dart:363`).
+
+**What to sharpen.**
+
+- **The saving is within a game, not across games.** The middlegame never
+  repeats; the opening does, but the book judges it and it is the cheapest part
+  of the walk (`rederive.mjs`, item a: the owner’s plies 1–20 took a median
+  1.0 s against 1.8 s for 21–60). The win is review ↔ deepening ↔ tutorial ↔
+  puzzles of one game. The increment over the file that exists is to key it by
+  position and let the review and the deepening read and write it; each reader
+  takes what is deep and wide enough for it, and the review does not walk at
+  four lines to feed the tutorial.
+- **Keep more than the last depth.** The values a search reports on its way
+  (the plan’s own idea in phase 0) kept per position make “two depths agree”
+  free from the cache, and let a depth-30 answer from the Analysis panel carry
+  its history. Record lines asked, threads and nodes beside the depth: a
+  hash-warm four-thread walk and a fresh search differ by up to 3.7 at the same
+  depth (F3).
+- **The account boundary.** The store lives under the app’s support directory.
+  The fault fixed on 22.9.2026 was a new account offered the previous one’s
+  analysis; a position is not personal, but a position from a private game
+  names the game. Either the store takes the same epoch fence as the drafts, or
+  the plan says engine answers are account-free, on purpose.
+- **A per-position depth changes the review’s sentence.** “No mistake found at
+  depth N” becomes the minimum over the positions, and two devices with
+  different caches can mark one game differently; fine if the dialog says so. A
+  stored answer must be complete — every line at the asked depth — which
+  `game_facts.dart:94-111` already refuses otherwise.
+
+**A check that already fails.** The stored line is cut to **6 plies**
+(`kFactsLineLength`, `game_facts.dart:36`); the reveal’s `answerPlyCount` runs
+to 8 (`maxAnswerPlies`). A puzzle built from a stored answer would show a
+shorter line than one built from a fresh search, silently. Store the PV at
+`maxAnswerPlies` or say the line is cut.
+
+**Gate.** A review of a game whose facts are in the store issues no search for
+those positions (asserted on the engine seam, rule 7); a stored answer at a
+lower depth than asked is searched again; a stored line shorter than
+`answerPlyCount` is refused for a puzzle, not shown cut.
+
+**Measure first.** On the owner’s device: how many positions of a fresh review
+are already in the store from the tutorials made so far, and the size of a
+game’s file — the whole saving in two numbers.
+
+**External `[%eval]`** belongs in §7 as unverified, as the lead says: Lichess
+gives one number a move from a fixed node budget, no second line and no depth
+— enough for marks, never for `B`; a mark from a file and a mark from our
+engine are two instruments, and the review must say which made each.
+
+**Cost.** Small in code (a position index over the game files, two readers);
+none in engine time; it only saves.
+
 ## 4. Decisions already taken
 
 - **`A_gross` = 20** — agree; it never fires in 52 games, so its gate is
@@ -437,6 +503,7 @@ grandmasters excludes book positions — reconciled, not a discrepancy.
 7. Should the solver's own wrong move be searched on the device at reveal
    time, or only named as unexplained (F5)?
 8. A 1200–1500 sample before `k` is built, or `k` dropped until one exists?
+9. Are engine answers account-free, or fenced per account like the drafts (F12)?
 
 ## 7. What I did not verify
 
@@ -498,3 +565,14 @@ The lead's view, finding by finding:
   what it would do there.
 
 Nothing is written into the plan from this review until the owner has read it.
+
+**F12, graded the same day**: adopted whole, before the review was amended —
+the owner forwarded its points to the lead in the meantime. The store by
+position, several depths kept, the whole line, the smallest depth stated:
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` §3, „The engine's answers are kept". The
+account fence was built at once (`67a6759`: the tutorial's store is wiped with
+the drafts and its recorder fenced by the epoch). The measurement F12 asks
+for, on the owner's desktop: the tutorial store holds 13 games and 740
+positions, and of the 1493 positions of phase 0's 20 games it holds 49, all in
+the opening — the saving is within a game, as F12 says. Question 9 is answered:
+the answers are fenced per account.

@@ -7408,3 +7408,40 @@ Brojevi: aplikacija 3911 → 3929 izmereno (pun prolaz), → 3932 sa tri čista
 slučaja čitača pokrenuta sami; backend 1684 → 1697 bez baze, 1820 → 1839 sa
 bazom — oba izmerena, baza na privremenom klasteru.
 
+## 24.9.2026 — §9.3: suđenje navikama na desktopu, i šta ocenjivanje nađe
+
+Implementer (Sonnet) je izgradio 9.3 po brifu: `searchmoves` na
+`UciEngine.analyze`, modele, `getOpeningNodes` / `sendJudgements`,
+`OpeningTreeJudge` i ekran. Izveštaj je bio pošten i tačan; ponovljene
+mutacije vođe su dale iste crvene (jednu je vođa prvo napravio pogrešno —
+uklonio granu za `null`, pa je kod pukao umesto da nacrta pogrešnu rečenicu;
+ponovljena kao „nepresuđeno se crta kao holds", crvena na obe veličine).
+
+**Ali ocenjivanje čitanjem koda je našlo ono što kapija nije pitala**, i to
+je najvredniji deo:
+
+- `UciEngine.analyze` posle isteka vremena vraća ono što ima — plići nivo — a
+  sudija je to slao sa `depth: 20`. Server bi sačuvao nagađanje kao presudu na
+  dubini 20, a pravilo „dublja presuda se ne menja plićom" bi ga posle branilo.
+  **Pretraga zaustavljena istekom vremena vraća ono što je imala; sudija koji
+  to obeleži traženom dubinom pretvara nagađanje u zapis.**
+- prazan odgovor → `continue` / `return const []`, a pozicija brojana kao
+  gotova; engine koji ignoriše `searchmoves` bi dao vrednost najboljeg poteza
+  kao vrednost odigranog (navika uvek „drži"); serverov zbir odbijenih bačen;
+  greška tokom rada bez ijedne reči.
+
+Sada svaki odgovor prolazi `searchProblem` iz tutorijala (jedno mesto), potez
+kojim `searchmoves` linija počinje mora biti traženi, svaki promašaj se broji
+sa razlogom, zbir se sabira, a kraj se kaže jednom rečenicom. Pet novih
+slučajeva, svaki crven na svojoj mutaciji (jedna mutacija je prvo pala na
+kompajliranju — to nije pravo crveno, ponovljena u obliku koji se kompajlira).
+
+Dva workerova lažnjaka su na poziciju sa Crnim na potezu odgovarala linijama
+za Belog i ignorisala `searchmoves` — nova provera ih je odbila, što je tačno
+ono zbog čega postoji. **Lažnjak koji odgovara na pitanje koje nije postavljeno
+prolazi dok ga provera pitanja ne uhvati** (pravilo 7, sa druge strane).
+
+Brojevi: aplikacija 3932 → 3955 (+18 workerovih, +5 vođinih), pun prolaz;
+analyze 26 poznatih infoa (jedno novo upozorenje u testu — lažni pošiljalac
+bez `return` posle promene tipa — ispravljeno pre merenja).
+
