@@ -145,4 +145,56 @@ void main() {
     expect(isDecided(3), isTrue);
     expect(isDecided(3.1), isFalse);
   });
+
+  // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 1.2a: the review's second look.
+  group('the second look', () {
+    MoveJudgement j(double lost, {MistakeReason? reason}) =>
+        MoveJudgement(lost, reason);
+
+    test('a candidate is within five of its threshold, or a missed mate', () {
+      expect(isCandidate(j(5)), isTrue);
+      expect(isCandidate(j(4.9)), isFalse);
+      expect(isCandidate(j(0.5, reason: MistakeReason.missedMate)), isTrue);
+    });
+
+    test('in the book the threshold is twenty, so the margin starts at 15', () {
+      expect(isCandidate(j(14.9), bookGames: 10), isFalse);
+      expect(isCandidate(j(15), bookGames: 10), isTrue);
+      // Nine games are not theory: the ordinary threshold applies.
+      expect(isCandidate(j(5), bookGames: 9), isTrue);
+    });
+
+    test('two depths agree within five, on the same side of the line', () {
+      final mistake = MistakeReason.lostChances;
+      expect(judgementsAgree(j(13, reason: mistake), j(12, reason: mistake)),
+          isTrue);
+      expect(judgementsAgree(j(7), j(12, reason: mistake)), isFalse);
+      // Far apart, both mistakes: the large losses move most.
+      expect(judgementsAgree(j(40, reason: mistake), j(30, reason: mistake)),
+          isFalse);
+      expect(judgementsAgree(j(40, reason: mistake), j(35, reason: mistake)),
+          isTrue);
+      expect(judgementsAgree(j(1), j(6.1)), isFalse);
+    });
+
+    test('the tablebase: a worse result is a mistake, a slower win is not', () {
+      MoveJudgement tb(TablebaseOutcome position, TablebaseOutcome played) =>
+          judgeByTablebase(position: position, played: played, lostChances: 1);
+      expect(tb(TablebaseOutcome.win, TablebaseOutcome.draw).reason,
+          MistakeReason.worseResult);
+      expect(
+          tb(TablebaseOutcome.draw, TablebaseOutcome.loss).isMistake, isTrue);
+      expect(tb(TablebaseOutcome.win, TablebaseOutcome.win).isMistake, isFalse);
+      expect(
+          tb(TablebaseOutcome.loss, TablebaseOutcome.loss).isMistake, isFalse);
+      // The engine's number decides nothing here.
+      expect(
+          judgeByTablebase(
+                  position: TablebaseOutcome.win,
+                  played: TablebaseOutcome.win,
+                  lostChances: 60)
+              .isMistake,
+          isFalse);
+    });
+  });
 }

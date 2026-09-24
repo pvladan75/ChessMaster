@@ -7515,3 +7515,52 @@ Mutacije: 13 u prvoj rundi, sve crvene na svom slučaju; dve na ivicama (manje
 legalnih poteza od linija; upis posle brisanja — ova je preživela i dovela do
 popravke), pa ponovo crvena; i ime engine-a naspram verzije paketa.
 
+
+## 24.9.2026 — faza 1.2a: presuda pregleda, i red koji je čekao zauvek
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` 1.2 je podeljena: **1.2a** je presuda
+(`GameReviewJudge`, bez ekrana), 1.2b je pregled u pozadini. Aplikacija
+3983 → **4030** (1 preskočen, pun prolaz sa ničim drugim pokrenutim):
++33 presuda (`game_review_judge_test`), +4 skladište (potez sam,
+`searchmoves`), +4 pravilo (`isCandidate`, `judgementsAgree`,
+`judgeByTablebase`), +6 tempo tablebase-a. Backend nedirnut (1697).
+`flutter analyze` istih 26.
+
+**Dva crvena slučaja u kapiji su bila moja greška, i radnik je to rekao
+umesto da ih zaobiđe.** (1) Slučaj „knjiški potez gubi 15" je stajao tačno
+na granici kandidata (15), a pomoćna funkcija koja pretvara šanse u
+centipešake zaokružuje — gubitak je bio 14,94. Pravilo 6: kapija stoji na
+granici samo kad se meri granica. (2) Lažni engine nije umeo da odgovori na
+poziciju čiji je jedini legalan potez baš odigrani. **Ali radnikovo rešenje
+drugog nije prihvaćeno**: napravio je novo pravilo (pozicija sa jednim
+potezom se ne pretražuje, vrednost se prenosi unazad) samo da bi pokvarena
+kapija prošla — i ono je koštalo `replyLine` poteza koji vodi u prisiljen
+odgovor (šah sa jednim izlazom), a to je odgovor zagonetke. Pravilo je
+izbačeno, lažnjak popravljen. **Izveštaj „kapija je pogrešna" je tačan i
+kad je predloženi lek pogrešan — to su dve ocene.**
+
+**Red budućnosti koji je čekao zauvek.** Tempo za Lichess tablebase (1 s
+razmaka, minut blokade posle 429 — server to ima od 30.8) je radnik napravio
+kao lanac: svaki upit čeka prethodni. Pun prolaz je pao na
+`analysis_motifs_hidden_test` (pumpAndSettle istekao): servis je singlton,
+prvi test je poslao upit čiji tajmer od 6 s živi na lažnom satu tog testa, a
+taj sat je bačen — upit se nikad ne završava, i svaki sledeći u fajlu čeka
+iza njega. Izolovano mutacijom: vraćen ceo servis → prolazi; uklonjen samo
+razmak → pada, dakle kriv je lanac, ne razmak. Sada su to **termini, ne
+lanac**: upit odmah uzme sledeću slobodnu sekundu i spava do nje, pa nema
+čega da se zaglavi; novi slučaj „upit bez odgovora ne drži sledeći" je
+crven na starom redu. Isti oblik je stajao u novom redu engine-a
+(`analyzePositionSync`, jedna pretraga u isto vreme) i dobio je granicu:
+čeka se onaj ispred najviše koliko on može da traje. **Taj deo nema test** —
+do engine-a se u testu ne dolazi bez procesa. **Red od budućnosti u
+singltonu je tempirana bomba za testove: jedna budućnost koja se ne završi
+drži sve iza sebe, a u testu je to pravilo, ne izuzetak.**
+
+Mutacije presude: 25, sve crvene na svom slučaju posle dve popravke kapije —
+M6 (tri nivoa produbljivanja) je preživela jer je granica bila na dva mesta
+(filter i `else if`); jedno je obrisano, pa crvena. M22 (prokleta pobeda
+kao pobeda) je preživela jer slučaja nije bilo — dodat. M14 (skladište meša
+`searchmoves` sa pozicijom) je dvaput bila kompilaciona greška (gubitak
+null-promocije, pravilo 3), treći put crvena na četiri prava slučaja. Tempo:
+P4 (keš proveren samo posle čekanja) preživljava namerno — unutrašnja
+provera je ona koja nosi ispravnost, spoljna samo štedi čekanje.

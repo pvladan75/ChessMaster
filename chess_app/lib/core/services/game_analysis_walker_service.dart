@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/core/models/game_moment.dart';
+import 'package:chess_app/core/services/game_review_judge.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/core/services/positional_evaluator_service.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -46,40 +47,13 @@ class GameAnalysisWalkerService {
     const tacticalDetector = TacticalMotifDetector();
     const positionalEvaluator = PositionalEvaluatorService();
 
-    final fens = <String>[startingFen];
-    final sans = <String>[];
-    final appliedUci = <String>[];
-
-    var game = chess.Chess.fromFEN(startingFen);
-    for (final uci in uciMoves) {
-      if (uci.length < 4) break;
-      final from = uci.substring(0, 2);
-      final to = uci.substring(2, 4);
-      final promo = uci.length > 4 ? uci.substring(4, 5) : null;
-
-      String? san;
-      // `legalMoves` rather than the package's own list: its verbose maps have
-      // no promotion in them, so a UCI carrying one (`d7d8q`) matched nothing,
-      // `san` stayed null, and the walk **stopped at the first promotion of the
-      // game** — silently, halfway through somebody's analysis.
-      for (final m in legalMoves(game)) {
-        if (m['from'] == from &&
-            m['to'] == to &&
-            (promo == null || m['promotion'] == promo)) {
-          san = m['san'] as String?;
-          break;
-        }
-      }
-      if (san == null) break;
-
-      final applied = game.move(
-          {'from': from, 'to': to, if (promo != null) 'promotion': promo});
-      if (!applied) break;
-
-      sans.add(san);
-      appliedUci.add(uci);
-      fens.add(game.fen);
-    }
+    // Shared with the review's judge (rule 12: one home, not copied) — see
+    // the note there on why a promotion needs `legalMoves` rather than the
+    // package's own list.
+    final walked = walkGame(startingFen: startingFen, uciMoves: uciMoves);
+    final fens = walked.fens;
+    final sans = walked.sans;
+    final appliedUci = walked.appliedUci;
 
     if (appliedUci.isEmpty) return const [];
 
@@ -234,6 +208,47 @@ class GameAnalysisWalkerService {
           parent == null ||
           betterLine.sanMoveList.isEmpty) continue;
       if (betterLine.bestMoveLan == moment.moveUci) continue;
+
+      _insertAlternativeLine(parent, betterLine, alternativeLinePlies);
+    }
+    return tagged;
+  }
+
+  /// Marks with '??' exactly the moves [result] judged mistakes
+  /// ([ReviewedMove.isMistake]) played by [side] — [chain] being the nodes of
+  /// those moves, in order — and, when [insertAlternativeLine] is true,
+  /// inserts the move's [ReviewedMove.bestLine] (the deepest look's) as a
+  /// sibling variation of at most [alternativeLinePlies] plies. Nothing else
+  /// decides a mark: no threshold of its own (rule 12).
+  ///
+  /// Returns how many moves were marked.
+  int markMistakes({
+    required List<AnalysisNode> chain,
+    required GameReviewResult result,
+    BlunderAlertSide side = BlunderAlertSide.both,
+    bool insertAlternativeLine = true,
+    int alternativeLinePlies = 4,
+  }) {
+    var tagged = 0;
+    for (var i = 0; i < result.moves.length && i < chain.length; i++) {
+      final move = result.moves[i];
+      if (!move.isMistake) continue;
+      if (side == BlunderAlertSide.white && !move.whiteMoved) continue;
+      if (side == BlunderAlertSide.black && move.whiteMoved) continue;
+
+      final node = chain[i];
+      node.nag = '??';
+      tagged++;
+
+      if (!insertAlternativeLine) continue;
+      final betterLine = move.bestLine;
+      final parent = node.parent;
+      if (betterLine == null ||
+          parent == null ||
+          betterLine.sanMoveList.isEmpty) {
+        continue;
+      }
+      if (betterLine.bestMoveLan == move.uci) continue;
 
       _insertAlternativeLine(parent, betterLine, alternativeLinePlies);
     }

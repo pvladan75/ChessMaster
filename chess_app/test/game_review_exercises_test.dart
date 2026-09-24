@@ -148,6 +148,7 @@ class _FakeEngine implements StockfishService {
     String fen, {
     required int depth,
     required int multiPV,
+    List<String>? searchMoves,
     Duration timeout = const Duration(seconds: 10),
     void Function(List<AnalysisLine> partial)? onProgress,
   }) async {

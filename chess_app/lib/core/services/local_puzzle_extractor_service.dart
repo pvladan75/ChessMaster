@@ -1,5 +1,6 @@
 import 'package:chess_app/core/models/game_moment.dart';
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
+import 'package:chess_app/core/services/game_review_judge.dart';
 import 'package:chess_app/core/services/tactical_motif_detector.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
@@ -115,6 +116,39 @@ class LocalPuzzleExtractorService {
         .take(maxPuzzles)
         .map((m) => _buildPuzzle(m, next: _nextOf(m, moments)))
         .toList();
+  }
+
+  /// Today's puzzles from a review's mistakes ([ReviewedMove.isMistake]),
+  /// worst first by chances lost, at most [maxPuzzles]: the position after the
+  /// mistake, its answer the [ReviewedMove.replyLine]'s first move (null when
+  /// the review has none). Phase 1.3 rewrites what a puzzle is; this keeps
+  /// today's shape on the review's rule.
+  List<LocalPuzzle> buildPuzzlesFromReview(
+    GameReviewResult result, {
+    required int maxPuzzles,
+  }) {
+    final mistakes = result.moves.where((m) => m.isMistake).toList()
+      ..sort((a, b) =>
+          b.judgement!.lostChances.compareTo(a.judgement!.lostChances));
+
+    return mistakes.take(maxPuzzles).map((m) {
+      final reply = m.replyLine;
+      final answer = reply != null && reply.bestMoveSan.isNotEmpty
+          ? reply.bestMoveSan
+          : null;
+      return LocalPuzzle(
+        id: 'local_${m.ply}_${DateTime.now().microsecondsSinceEpoch}',
+        fen: m.fenAfter,
+        themeLabel: 'A mistake was made here — find the best move',
+        themeKey: null,
+        swing: -(m.judgement!.lostChances),
+        sourceMoveSan: m.san,
+        sourcePlyIndex: m.ply,
+        fenBefore: m.fenBefore,
+        moveUci: m.uci,
+        refutationSan: answer,
+      );
+    }).toList();
   }
 
   /// The moment that starts where [moment] ended — the reply's own search,

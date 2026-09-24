@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3983 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4030 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 26 known infos — read the list
 cd chess_backend && npm test          # node --test, 1842 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -710,6 +710,18 @@ under the depth asked), a deeper answer serving a shallower question. A
 surviving mutation found a write already under way at a sign-out landing
 after the wipe, in this store and in the tutorial's: **a fence against
 „after" stands at the last step, not the first.**
+Then phase 1.2a (→ **4030**, a full run; backend unchanged): the review's
+judgement, `GameReviewJudge`, with no screen in it — the walk, the book, the
+tablebase with seven men or fewer, the moves near a threshold confirmed and
+deepened within 24 searches, and what could not be settled or judged counted;
+the dialog still runs the old path until 1.2b. Two gate cases were the lead's
+fault and the worker said so rather than work round them — but its cure for
+one, a new rule built to satisfy the broken fixture, cost the puzzle's answer
+and was taken out: **„the gate is wrong" and „here is the fix" are graded
+separately.** And the tablebase's new pacing, built as a queue of futures in a
+singleton, hung the next test in a file for ever once one request's timer was
+left on a thrown-away fake clock: **in a singleton, a queue of futures holds
+everything behind the one that never finishes** — slots now, not a chain.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

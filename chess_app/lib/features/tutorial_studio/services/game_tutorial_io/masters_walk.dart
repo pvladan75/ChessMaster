@@ -38,6 +38,15 @@ typedef MastersWalk = ({
   String? unavailable,
 });
 
+/// How many master games [data] (a position's own entry, or one of its
+/// `moves`) stands for — the one function `applyMastersBook` and the review's
+/// judge (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, 1.2a) both count a move's
+/// theory with, never copied (rule 12).
+int totalOf(Map data) =>
+    ((data['white'] ?? 0) as num).toInt() +
+    ((data['draws'] ?? 0) as num).toInt() +
+    ((data['black'] ?? 0) as num).toInt();
+
 Future<MastersWalk> walkMastersBook(
   List<String> fens, {
   http.Client? client,

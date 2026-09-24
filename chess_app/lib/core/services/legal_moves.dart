@@ -102,6 +102,52 @@ bool isPromotionMove(chess.Chess game, String from, String to) {
   return false;
 }
 
+/// Replays [uciMoves] from [startingFen], one at a time, stopping at the
+/// first one that cannot be played — the walk every reader of a real game's
+/// moves does the same way (`GameAnalysisWalkerService.analyzeGame` and the
+/// review's judge, `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` 1.2a; rule 12, one
+/// home, not copied). [fens] always has one more entry than [appliedUci] —
+/// [startingFen] itself, then the position after each move actually played.
+({List<String> fens, List<String> sans, List<String> appliedUci}) walkGame({
+  required String startingFen,
+  required List<String> uciMoves,
+}) {
+  final fens = <String>[startingFen];
+  final sans = <String>[];
+  final appliedUci = <String>[];
+
+  var game = chess.Chess.fromFEN(startingFen);
+  for (final uci in uciMoves) {
+    if (uci.length < 4) break;
+    final from = uci.substring(0, 2);
+    final to = uci.substring(2, 4);
+    final promo = uci.length > 4 ? uci.substring(4, 5) : null;
+
+    String? san;
+    // `legalMoves` rather than the package's own list: see the note at the
+    // top of this file on why a promotion needs it.
+    for (final m in legalMoves(game)) {
+      if (m['from'] == from &&
+          m['to'] == to &&
+          (promo == null || m['promotion'] == promo)) {
+        san = m['san'] as String?;
+        break;
+      }
+    }
+    if (san == null) break;
+
+    final applied = game
+        .move({'from': from, 'to': to, if (promo != null) 'promotion': promo});
+    if (!applied) break;
+
+    sans.add(san);
+    appliedUci.add(uci);
+    fens.add(game.fen);
+  }
+
+  return (fens: fens, sans: sans, appliedUci: appliedUci);
+}
+
 /// What the move [from]→[to] is called and where it leaves the board.
 ///
 /// Null when it is not legal in [fen], so a board that reported a move its

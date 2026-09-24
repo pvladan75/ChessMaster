@@ -27,6 +27,8 @@ import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/core/services/game_analysis_walker_service.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart'
+    show totalOf;
 import 'package:chess_app/models/analysis_models.dart';
 
 /// `make_facts.MATE`: a mate in n is worth `mate - n` to the side giving it.
@@ -207,7 +209,7 @@ int applyMastersBook(
   for (final row in rows) {
     final data = known[row['fen']];
     if (data == null) break;
-    final here = _totalOf(data);
+    final here = totalOf(data);
     final played = row['played'] as Map<String, dynamic>?;
     final entry = <String, dynamic>{'games': here};
     final opening = data['opening'];
@@ -218,8 +220,8 @@ int applyMastersBook(
       for (final m in (data['moves'] as List? ?? const []))
         <String, dynamic>{
           'move': m['san'],
-          'games': _totalOf(m as Map),
-          'share': pythonRound4(_totalOf(m) / here),
+          'games': totalOf(m as Map),
+          'share': pythonRound4(totalOf(m) / here),
         }
     ];
     if (played != null) {
@@ -246,11 +248,6 @@ int applyMastersBook(
   }
   return rows.where((r) => r.containsKey('book')).length;
 }
-
-int _totalOf(Map data) =>
-    ((data['white'] ?? 0) as num).toInt() +
-    ((data['draws'] ?? 0) as num).toInt() +
-    ((data['black'] ?? 0) as num).toInt();
 
 /// Python's `round(x, 4)`.
 ///

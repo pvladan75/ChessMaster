@@ -18,6 +18,17 @@ import 'package:chess_app/services/app_logger.dart';
 /// A null name is remembered for this run only and never written to disk.
 typedef EngineName = Future<String?> Function();
 
+/// A [PositionAnalyzer] that may also be asked about some moves alone —
+/// UCI's `searchmoves`. `StockfishService.analyzePositionSync` fits it, and a
+/// [MoveAnalyzer] may be passed wherever a [PositionAnalyzer] is wanted.
+typedef MoveAnalyzer = Future<List<AnalysisLine>> Function(
+  String fen, {
+  required int depth,
+  required int multiPV,
+  List<String>? searchMoves,
+  Duration timeout,
+});
+
 /// What one caller's questions cost: how many were answered without a search,
 /// how many were searched, and how many of those searches came back short of
 /// the depth asked (a timeout) or without every line asked for.
@@ -132,8 +143,43 @@ class EvalCache {
   /// Wraps [inner] so a position already answered deeply enough is not
   /// searched again. [engine] names who answers; [tally], when given, counts
   /// what this caller's questions cost.
+  ///
+  /// Built on [wrapMoves] — a [PositionAnalyzer] never asks for `searchmoves`,
+  /// so this is exactly that case with none (rule 12: one core, not two).
   PositionAnalyzer wrap(
     PositionAnalyzer inner, {
+    required EngineName engine,
+    EngineAnswerTally? tally,
+  }) {
+    final moves = wrapMoves(
+      (
+        String fen, {
+        required int depth,
+        required int multiPV,
+        List<String>? searchMoves,
+        Duration timeout = const Duration(seconds: 10),
+      }) =>
+          inner(fen, depth: depth, multiPV: multiPV, timeout: timeout),
+      engine: engine,
+      tally: tally,
+    );
+    return (
+      String fen, {
+      required int depth,
+      required int multiPV,
+      Duration timeout = const Duration(seconds: 10),
+    }) =>
+        moves(fen, depth: depth, multiPV: multiPV, timeout: timeout);
+  }
+
+  /// [wrap] for an analyzer that takes `searchmoves`. An answer restricted to
+  /// some moves is kept apart from the position's own and never serves a
+  /// question about the other: the best of two moves is not the best move.
+  /// The restricted moves are folded (sorted, so the order asked in does not
+  /// matter) into the key a question is stored and served under; the shard a
+  /// position lives in still comes from the FEN alone.
+  MoveAnalyzer wrapMoves(
+    MoveAnalyzer inner, {
     required EngineName engine,
     EngineAnswerTally? tally,
   }) {
@@ -141,21 +187,23 @@ class EvalCache {
       String fen, {
       required int depth,
       required int multiPV,
+      List<String>? searchMoves,
       Duration timeout = const Duration(seconds: 10),
     }) async {
       final epoch = AccountLocalState.epoch;
       final name = await engine() ?? '';
+      final key = _positionKey(fen, searchMoves);
 
-      final served =
-          _serve(await _shard(name, fen), fen, depth: depth, multiPV: multiPV);
+      final served = _serve(await _shard(name, fen), key,
+          depth: depth, multiPV: multiPV, resultFen: fen);
       if (served != null) {
         _hits++;
         tally?.fromStore++;
         return served;
       }
 
-      final key = '$name|$fen|d$depth|pv$multiPV';
-      final running = _inFlight[key];
+      final inFlightKey = '$name|$key|d$depth|pv$multiPV';
+      final running = _inFlight[inFlightKey];
       if (running != null) {
         _hits++;
         tally?.fromStore++;
@@ -164,22 +212,34 @@ class EvalCache {
 
       _misses++;
       tally?.searched++;
-      final future =
-          inner(fen, depth: depth, multiPV: multiPV, timeout: timeout);
-      _inFlight[key] = future;
+      final future = inner(fen,
+          depth: depth,
+          multiPV: multiPV,
+          searchMoves: searchMoves,
+          timeout: timeout);
+      _inFlight[inFlightKey] = future;
       try {
         final lines = await future;
         if (AccountLocalState.isCurrent(epoch)) {
-          _keep(await _shard(name, fen), name, fen,
+          _keep(await _shard(name, fen), name, key, fen,
               depth: depth, multiPV: multiPV, lines: lines, tally: tally);
         }
         return lines;
       } finally {
         // Cleared whether the search succeeded or threw, so one failure does
         // not leave a permanently poisoned entry that every later caller awaits.
-        _inFlight.remove(key);
+        _inFlight.remove(inFlightKey);
       }
     };
+  }
+
+  /// The key a position (or a `searchmoves` question about it) is stored and
+  /// served under — never the FEN alone when [searchMoves] restricts the
+  /// question, so a restricted answer never mixes with the position's own.
+  static String _positionKey(String fen, List<String>? searchMoves) {
+    if (searchMoves == null || searchMoves.isEmpty) return fen;
+    final sorted = [...searchMoves]..sort();
+    return '$fen|moves:${sorted.join(',')}';
   }
 
   void logStats(String context) {
@@ -228,9 +288,12 @@ class EvalCache {
     return shard;
   }
 
-  List<AnalysisLine>? _serve(_Shard shard, String fen,
-      {required int depth, required int multiPV}) {
-    final answers = shard.positions[fen];
+  /// Serves a question stored under [key] ([_positionKey]'s output). The
+  /// lines handed back always carry [resultFen] — the real FEN — as their
+  /// `startingFen`, whatever the key looks like.
+  List<AnalysisLine>? _serve(_Shard shard, String key,
+      {required int depth, required int multiPV, required String resultFen}) {
+    final answers = shard.positions[key];
     if (answers == null) return null;
     _Answer? best;
     for (final a in answers) {
@@ -243,8 +306,8 @@ class EvalCache {
     }
     if (best == null) return null;
     shard.positions
-      ..remove(fen)
-      ..[fen] = answers;
+      ..remove(key)
+      ..[key] = answers;
     return List.unmodifiable([
       for (final l in best.lines.take(multiPV))
         AnalysisLine.fromPv(
@@ -252,12 +315,14 @@ class EvalCache {
           depth: l.depth,
           eval: l.eval,
           pvString: l.pv,
-          startingFen: fen,
+          startingFen: resultFen,
         ),
     ]);
   }
 
-  void _keep(_Shard shard, String engine, String fen,
+  /// Keeps an answer under [key] ([_positionKey]'s output); [fen] is the real
+  /// FEN, needed only to check the answer against the position's legal moves.
+  void _keep(_Shard shard, String engine, String key, String fen,
       {required int depth,
       required int multiPV,
       required List<AnalysisLine> lines,
@@ -269,7 +334,7 @@ class EvalCache {
     }
     if (answer.depth < depth) tally?.short++;
 
-    final answers = shard.positions.remove(fen) ?? <_Answer>[];
+    final answers = shard.positions.remove(key) ?? <_Answer>[];
     final dominated =
         answers.any((a) => a.depth >= answer.depth && a.asked >= answer.asked);
     if (!dominated) {
@@ -281,7 +346,7 @@ class EvalCache {
         answers.removeRange(maxAnswersPerPosition, answers.length);
       }
     }
-    shard.positions[fen] = answers;
+    shard.positions[key] = answers;
     while (shard.positions.length > maxPositionsPerShard) {
       shard.positions.remove(shard.positions.keys.first);
     }

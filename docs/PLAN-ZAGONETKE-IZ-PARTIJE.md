@@ -891,6 +891,89 @@ its own items from the gate below:
     counted in searches (what the desktop's three minutes settle — phase 0:
     13 and 16 candidates, 0 and 3 deepened), the same on both devices. One thread, as the app's engine already runs
   (phase 0: faster to a fixed depth, and the same answer twice).
+
+  **Briefed 24.9.2026 by the lead, in two halves** — the judgement has no
+  screen in it and can be held by pure tests; the background is all screens,
+  and a gate for it needs the judgement's shape fixed first.
+
+  **1.2a — the judgement** [implementer]. Nothing on a screen changes; the old
+  path (`tagBlunders`, `buildPuzzlesFromMoments`) stays until 1.2b swaps the
+  dialog over and deletes it.
+  - `GameReviewJudge` (`lib/core/services/game_review_judge.dart`) reviews a
+    game given as a start and UCI moves, with an analyzer, the book and the
+    tablebase injected. **The walk**: every position at the review's depth `D`,
+    one line. **The book**: `walkMastersBook` once; a move is theory when the
+    position is known and the played move is listed with at least
+    `kTheoryGames` games — counted by the one function `applyMastersBook`
+    already counts with, lifted, not copied. **The tablebase**: every position
+    with seven men or fewer is judged by it and never by the engine — a move
+    that makes the result worse is a mistake, a slower win is not, `cursed-win`
+    and `blessed-loss` count as draws, and a `maybe-` answer or none leaves the
+    engine's judgement and is counted. **Candidates**: a walk loss of
+    `kMistakeLoss − 5` (in the book, `kGrossLossInBook − 5`), or a missed mate.
+    **The confirming search** on each: two lines at `D`, and the played move
+    alone by `searchmoves` unless it heads one of the two lines. **The
+    deepening**: by `kDeepenStep` 4 up to three levels, when the two deepest
+    judgements disagree — losses more than `kDeepenGap` 5 apart, or one a
+    mistake and the other not — and **always at least once for a book move**
+    („on the deepened value"); the candidate closest to its threshold first;
+    within `kDeepeningSearches` searches. A candidate still disagreeing when the
+    budget or the levels run out is **unsettled**: never marked, counted.
+  - **The budget, derived**: the owner's three minutes on the idle desktop,
+    less game 19's walk (45 s) and its confirming searches (32 at ~1.15 s, 37 s),
+    leaves ~98 s; a depth-24 search there cost ~3.3 s (game 19's three
+    deepenings, 6 searches, ~20 s) — about 29 searches, **24** after rounding
+    down for the deeper levels, which cost more. The same 24 on the phone.
+  - **A search that did not answer** — nothing, or a line short of the depth,
+    as `searchProblem` says — is asked once more at `D − 4`, and a move whose
+    position (before, or after when the game goes on) still has no answer is
+    **unjudged**, counted, and makes the game not clean. A position after the
+    move that ends the game is judged by the rules: mate is 100, stalemate and a
+    dead draw 50 — no search.
+  - **The played move's value** comes from the confirming search: its own line
+    when it heads line 1 or 2, else the `searchmoves` answer — and when an
+    engine ignores `searchmoves` (its line starts with another move; the online
+    engine does), from the position after the move at `D`, turned round.
+  - **What a review says**: the depth it stands on is the **smallest** over the
+    judged moves (a line from the store may be deeper); a game is clean when
+    nothing is marked, unsettled or unjudged.
+  - The store (1.1) learns `searchmoves`: `EvalCache.wrapMoves` keeps a
+    restricted answer apart from the position's own and never serves one for
+    the other. `StockfishService.analyzePositionSync` takes `searchMoves` and
+    runs **one search at a time** (a second caller waits, where today it would
+    stop the first one's search), and `AnalysisLine` carries the `nodes` the
+    engine reported, which the review records beside the depth of every
+    settling search.
+  - `markMistakes` (the walker service) marks `??` exactly on the judge's
+    mistakes, for the side chosen, with the better line from the **deepest**
+    answer; `buildPuzzlesFromReview` takes today's puzzle from the same
+    mistakes, worst first by chances lost (1.3 rewrites what a puzzle is).
+  - **Not built, and why**: the repetition limit of 1.1. The engine is given
+    `position fen` without the game's history, so a fresh search inside a
+    repetition knows no more than the store's answer does; asking past it
+    means sending the moves (`position fen … moves …`), which is its own
+    change, and phase 0 met no case of it.
+
+  Gate: `test/core/game_review_judge_test.dart` and the store's and the rule's
+  cases (below, under 1.2a in `docs/LESSONS.md` when built).
+
+  *Built 24.9.2026* (the implementer, graded and completed by the lead; app
+  3983 → 4030, backend unchanged). As briefed, with three things settled on
+  grading: a look that comes back deeper than asked settles by itself only
+  when it overshoots the level it asked for (read literally, the last level
+  would always settle); the three-level cap has one home, not two; and the
+  app's tablebase service is paced (1 s, a minute's block after a 429) by
+  **slots, not a queue of futures** — the queue hung a widget test for ever
+  (`docs/LESSONS.md`). The engine's new one-search-at-a-time queue has the
+  same bound and **no test**: it cannot be reached without an engine process.
+  The dialog still runs the old path; 1.2b swaps it.
+
+  **1.2b — the review in the background** [implementer], after 1.2a: the run
+  outside the dialog, the dialog on it (the pawn slider gone, the stages, the
+  numbers above, a clean game said), the engine held against Analysis, the
+  result landing on the game and fenced by the epoch, the end said wherever
+  the reader is, and the old path deleted with its tests rewritten openly.
+  Briefed when 1.2a is graded.
 - **1.3 — the puzzles** [implementer]: from the judged moments — `B` 15 with the
   same best move at both depths, the trivial ranked last, one puzzle per chance
   missed within 4 plies, the only moves listed apart and unticked, the mate's
@@ -1013,6 +1096,66 @@ a +19/+14 move is not a moment, a book move is not unless it loses `A_gross`,
 two moves near the best in chances are both accepted, the slider's count and
 the moments it gives are the same number; every rule by mutation, on both
 sides of the harness.
+
+### Phase 1t — five men or fewer from our own tables [lead, then implementer]
+
+The owner, 24.9.2026, after 1.2a brought the tablebase into the review.
+**Positions with five men or fewer are answered from our own Syzygy tables;
+six and seven men still ask Lichess.** Five is where the line is drawn because
+it is what the droplet can hold — the 3-4-5 set is 940 MB (WDL alone about
+380 MB); the 6-man set is 150 GB. The owner's machine has both
+(`D:\syzygy\3-4-5`, `D:\syzygy\6`, complete: 145 and 365 tables of each
+kind), and uses **only the 3-4-5** here, so the machine and the droplet answer
+the same set and a game is judged the same on both.
+
+Why it is worth a phase: `tablebase.lichess.ovh` throttles (a 429 after 84–98
+requests at ~4.8/s, measured 30.8.2026; a block that grows if it is knocked
+on), and a review asks it for every position with seven men or fewer. 1.2a
+paces the app's one tablebase service to one request a second and counts a
+refusal as „the tablebase did not answer", which keeps it safe but slow; the
+common endings of club play, rook or minor piece against pawns, are mostly
+five men or fewer. **To measure first**, from phase 0's walks: of the 106 / 44 /
+61 positions with seven men or fewer, how many have five or fewer.
+
+What is built:
+
+- **The prober is not ours to write.** `lila-tablebase`, Lichess's own server
+  (Rust, open source), serves exactly the API of `tablebase.lichess.ovh` over
+  local files — which `.env.example` already anticipates beside
+  `LICHESS_TABLEBASE_URL` („point it at your own lila-tablebase … nothing else
+  has to change"). First step, measured before anything else is built: that
+  it builds and runs on Windows (else under WSL), its memory with the 3-4-5
+  set mapped, and on the droplet's 960 MB. If it cannot run on the droplet,
+  the fallback is Fathom in a child process — never a native module inside the
+  server's process (the two copies of `@napi-rs/canvas`, phase 3h of
+  `PLAN-SKENER-SLIKE.md`).
+- **The server asks by the number of men** (`services/tablebaseService.js`,
+  the one home): five or fewer → `LOCAL_TABLEBASE_URL` (new in
+  `.env.example`; unset means Lichess for everything, as today); six and seven
+  → Lichess, paced and cached permanently as now. A local server that does not
+  answer falls back to Lichess **and says so in the log** — never a silent
+  switch — and a local answer is cached like any other.
+- **The app asks the server** for a tablebase answer (a new authenticated,
+  rate-limited route in the explorer's shape, so `SyzygyResult.fromJson` reads
+  it unchanged), and `SyzygyTablebaseService` asks Lichess directly, paced,
+  only when the server cannot be reached. This follows the rule the server
+  already states — the server asks, not the app — and gives the phone the
+  owner's tables whenever it can reach the backend.
+- `lila-tablebase` joins `D:\Projekti\pokreni.ps1` as a server the owner
+  starts; the droplet gets the 3-4-5 set through `deploy/` when the switch to
+  the droplet happens [lead].
+- The local `.env` carries `SYZYGY_SIDECAR_URL`, which no code reads (grep,
+  24.9.2026) — a trace of an idea never built; the owner deleted it the
+  same day.
+
+Gate: server cases with the fetch faked and the requests asserted (rule 7) — a
+five-man position goes to the local URL, a six-man one to Lichess, a local
+server that refuses falls back to Lichess and logs it, the pacing and the
+429 block hold for the Lichess half only; the route refuses a guest and
+answers in the explorer's shape; the app's lookup goes to the server's route
+on the client seam, and to Lichess only when the server cannot be reached.
+Every rule by mutation. Then a TODO-provera item: one of the owner's games with
+a long ending reviewed, the log showing which positions went where.
 
 ### Phase 2 — the stored review [lead]
 

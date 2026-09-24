@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:chess_app/services/app_logger.dart';
 
@@ -145,22 +146,96 @@ class SyzygyResult {
 /// Looks up exact endgame results (win/draw/loss + distance-to-zero) from the
 /// public Lichess Syzygy tablebase API. Only meaningful for positions with 7
 /// or fewer pieces on the board.
+///
+/// **Paced and rate-limited** (measured 30.8.2026): a run of requests without
+/// a gap draws a 429 from `tablebase.lichess.ovh` after 84–98 of them at
+/// ~4.8/s, and a request sent while blocked only extends the block — which a
+/// game review with a long, tablebase-eligible ending can produce on its own,
+/// asking about every position with seven men or fewer (`kTablebaseMen`). So
+/// every real request waits at least [_minGap] behind the last one (a cached
+/// answer never waits), and a 429 blocks the service for [_blockDuration]
+/// during which [lookup] answers null without sending anything — never
+/// retried, exactly as the server's own pacing does it
+/// (`chess_backend/services/tablebaseService.js`, `TABLEBASE_GAP_MS`).
 class SyzygyTablebaseService {
-  SyzygyTablebaseService._();
+  SyzygyTablebaseService._()
+      : _client = null,
+        _now = DateTime.now,
+        _sleep = _defaultSleep;
+
   static final SyzygyTablebaseService instance = SyzygyTablebaseService._();
+
+  /// For tests: an injectable client and clock/sleep seam, paced exactly as
+  /// [instance] is. Callers of [instance] see no change.
+  @visibleForTesting
+  SyzygyTablebaseService.forTesting({
+    required http.Client client,
+    DateTime Function() now = DateTime.now,
+    Future<void> Function(Duration duration)? sleep,
+  })  : _client = client,
+        _now = now,
+        _sleep = sleep ?? _defaultSleep;
+
+  static Future<void> _defaultSleep(Duration d) => Future<void>.delayed(d);
 
   static const _baseUrl = 'https://tablebase.lichess.ovh/standard';
 
+  /// Requests at least this far apart — the server's own `TABLEBASE_GAP_MS`.
+  static const _minGap = Duration(seconds: 1);
+
+  /// How long a 429 blocks further requests.
+  static const _blockDuration = Duration(seconds: 60);
+
+  /// Null: each request on its own, as the service always asked.
+  final http.Client? _client;
+  final DateTime Function() _now;
+  final Future<void> Function(Duration duration) _sleep;
+
   final Map<String, SyzygyResult?> _cache = {};
+
+  /// The earliest moment the next request may go out.
+  ///
+  /// Slots, not a queue of futures: each request takes the next free second
+  /// at once and sleeps until it comes, so callers that ask together are still
+  /// spaced, and there is nothing one unfinished request can hold up. The
+  /// first version chained every lookup behind the last, and a lookup whose
+  /// answer never came — its timeout timer on a widget test's fake clock that
+  /// had been thrown away — held every later lookup in the file forever.
+  DateTime? _nextSlot;
+  DateTime? _blockedUntil;
+
+  bool _blocked() {
+    final until = _blockedUntil;
+    return until != null && _now().isBefore(until);
+  }
 
   Future<SyzygyResult?> lookup(String fen) async {
     if (_cache.containsKey(fen)) return _cache[fen];
+    if (_blocked()) return null;
+
+    final now = _now();
+    final next = _nextSlot;
+    final slot = next == null || next.isBefore(now) ? now : next;
+    _nextSlot = slot.add(_minGap);
+    if (slot.isAfter(now)) await _sleep(slot.difference(now));
+
+    // Answered, or blocked, while this one waited for its slot.
+    if (_cache.containsKey(fen)) return _cache[fen];
+    if (_blocked()) return null;
 
     try {
       final url = '$_baseUrl?fen=${Uri.encodeComponent(fen)}';
-      final res =
-          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 6));
+      final client = _client;
+      final uri = Uri.parse(url);
+      final res = await (client == null ? http.get(uri) : client.get(uri))
+          .timeout(const Duration(seconds: 6));
 
+      if (res.statusCode == 429) {
+        _blockedUntil = _now().add(_blockDuration);
+        AppLogger.log(
+            '[Syzygy] ⚠️ 429 — blocked for ${_blockDuration.inSeconds}s');
+        return null;
+      }
       if (res.statusCode != 200) {
         AppLogger.log(
             '[Syzygy] ⚠️ Tablebase HTTP ${res.statusCode} for FEN: $fen');

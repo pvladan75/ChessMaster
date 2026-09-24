@@ -453,7 +453,9 @@ class StockfishService {
   }
 
   Future<void> _runAnalyzePosition(String fen,
-      {int depth = 18, bool isInfinite = false}) async {
+      {int depth = 18,
+      bool isInfinite = false,
+      List<String>? searchMoves}) async {
     _currentFen = fen;
     // A new position knows nothing about the old one's score.
     _lastEvalString = '0.00';
@@ -611,8 +613,17 @@ class StockfishService {
       await _stopAndDrain();
       _sendCommandForce('position fen $fen');
       final effectiveDepth = depth.clamp(5, 50);
-      AppLogger.log('[STOCKFISH_NATIVE] 🎯 go depth $effectiveDepth');
-      _sendCommandForce('go depth $effectiveDepth');
+      // Restricting the search to a handful of moves — the review's "what is
+      // this one move worth" question — asked only on the native engine: the
+      // online path answers with whatever its own server already computed
+      // and cannot be told to look at just one move, which is exactly what
+      // the caller (the review's judge) detects and falls back around.
+      final movesSuffix = (searchMoves != null && searchMoves.isNotEmpty)
+          ? ' searchmoves ${searchMoves.join(' ')}'
+          : '';
+      AppLogger.log(
+          '[STOCKFISH_NATIVE] 🎯 go depth $effectiveDepth$movesSuffix');
+      _sendCommandForce('go depth $effectiveDepth$movesSuffix');
       _searchInFlight = true;
     }
   }
@@ -740,6 +751,20 @@ class StockfishService {
     if (onMultiPVUpdated != null) onMultiPVUpdated!({1: line});
   }
 
+  /// Serialises [analyzePositionSync] so a second caller waits its turn
+  /// instead of stopping the first one's search mid-way — the same shape as
+  /// `SyzygyTablebaseService`'s request queue. A caller that races this one
+  /// used to have its `_runAnalyzePosition` silently `stop` and take over the
+  /// shared engine; now it is simply queued behind.
+  Future<void> _syncQueue = Future.value();
+
+  /// The longest the searches queued so far can take, each bounded by its own
+  /// timeout and the drain before it. A caller waits for the one ahead at
+  /// most this long: a search whose timer can never fire — started in a widget
+  /// test whose fake clock is gone — must not hold every later search, as a
+  /// queue of plain futures did in the tablebase service (24.9.2026).
+  Duration _syncQueueBound = Duration.zero;
+
   /// Synchronously awaits MultiPV analysis for a position up to target depth
   /// or timeout — used by callers that need one accurate, isolated answer
   /// for exactly [fen] (whole-game review, puzzle extraction, auto-tree
@@ -775,6 +800,37 @@ class StockfishService {
     String fen, {
     required int depth,
     required int multiPV,
+    List<String>? searchMoves,
+    Duration timeout = const Duration(seconds: 10),
+    void Function(List<AnalysisLine> partial)? onProgress,
+  }) {
+    final ahead = _syncQueue.timeout(_syncQueueBound, onTimeout: () {
+      AppLogger.log('[StockfishSync] ⚠️ The search ahead overran its own '
+          'timeout; going ahead.');
+    });
+    _syncQueueBound += timeout + const Duration(seconds: 10);
+    final turn = ahead.then((_) => _analyzePositionSyncNow(fen,
+        depth: depth,
+        multiPV: multiPV,
+        searchMoves: searchMoves,
+        timeout: timeout,
+        onProgress: onProgress));
+    // The queue moves on whether this search succeeded or not — one failure
+    // must never jam every later caller behind it.
+    _syncQueue = turn.then((_) {}, onError: (_) {});
+    // Nothing waiting any more: the next caller has only its own search.
+    final tail = _syncQueue;
+    tail.whenComplete(() {
+      if (identical(_syncQueue, tail)) _syncQueueBound = Duration.zero;
+    });
+    return turn;
+  }
+
+  Future<List<AnalysisLine>> _analyzePositionSyncNow(
+    String fen, {
+    required int depth,
+    required int multiPV,
+    List<String>? searchMoves,
     Duration timeout = const Duration(seconds: 10),
     void Function(List<AnalysisLine> partial)? onProgress,
   }) async {
@@ -827,7 +883,7 @@ class StockfishService {
     };
 
     setMultiPV(multiPV);
-    await _runAnalyzePosition(fen, depth: depth);
+    await _runAnalyzePosition(fen, depth: depth, searchMoves: searchMoves);
 
     return completer.future;
   }
@@ -1038,6 +1094,12 @@ class StockfishService {
         if (m != null) currentDepth = int.parse(m.group(1)!);
       }
 
+      int? nodes;
+      if (line.contains(' nodes ')) {
+        final m = RegExp(r'nodes\s+(\d+)').firstMatch(line);
+        if (m != null) nodes = int.parse(m.group(1)!);
+      }
+
       String bestMove = '';
       if (continuation.isNotEmpty) {
         bestMove = continuation.split(' ').first;
@@ -1063,6 +1125,7 @@ class StockfishService {
         eval: eval,
         pvString: continuation.isNotEmpty ? continuation : bestMove,
         startingFen: _currentFen,
+        nodes: nodes,
       );
       if (onMultiPVUpdated != null) {
         onMultiPVUpdated!(_engineLines);

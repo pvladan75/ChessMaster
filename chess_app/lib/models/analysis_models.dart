@@ -28,6 +28,11 @@ class AnalysisLine {
   final String fromSquare;
   final String toSquare;
 
+  /// The nodes the engine reported for this line (`info ... nodes N`), when
+  /// it said. Null when the answer came from the store, or from an engine
+  /// that never said (the online one).
+  final int? nodes;
+
   String get startingFen => fenList.isNotEmpty ? fenList.first : '';
 
   AnalysisLine({
@@ -42,6 +47,7 @@ class AnalysisLine {
     required this.fenList,
     required this.fromSquare,
     required this.toSquare,
+    this.nodes,
   });
 
   static AnalysisLine fromPv({
@@ -50,6 +56,7 @@ class AnalysisLine {
     required String eval,
     required String pvString,
     required String startingFen,
+    int? nodes,
   }) {
     final tokens = pvString
         .trim()
@@ -69,6 +76,7 @@ class AnalysisLine {
         fenList: [startingFen],
         fromSquare: '',
         toSquare: '',
+        nodes: nodes,
       );
     }
 
@@ -141,6 +149,7 @@ class AnalysisLine {
       fenList: fenList,
       fromSquare: fromSq,
       toSquare: toSq,
+      nodes: nodes,
     );
   }
 }

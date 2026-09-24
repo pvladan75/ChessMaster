@@ -66,6 +66,19 @@ je u `REVIEW-ZAGONETKE-FABLE.md` i upisan u plan. **Faza 1 je podeljena na
 kodu** — sledeća je **1.2**, pregled partije na pravilu. Pravilo ima jedan dom:
 `lib/core/services/mistake_rule.dart`.
 
+**1.2 je podeljena (24.9.2026): 1.2a — presuda — je u kodu** (aplikacija
+3983 → 4030): `GameReviewJudge` (`lib/core/services/game_review_judge.dart`)
+sudi svaki potez po pravilu — šetnja na dubini pregleda, masters knjiga
+jednom, tablebase za 7 figura i manje, potezi blizu praga potvrđeni i
+produbljeni u budžetu od 24 pretrage, a ono što nije presuđeno ili smireno
+se broji. Dijalog i dalje ide starim putem; **sledeća je 1.2b** — pregled u
+pozadini (pregled pripada aplikaciji, engine se drži protiv Analysis-a,
+rezultat ide na partiju, klizač u pešacima nestaje). Usput: aplikacijin
+Lichess tablebase ide sekundu po sekundu i staje na minut posle 429 (kao
+server). **Nova faza 1t** (vlasnik, 24.9): pozicije sa 5 figura i manje iz
+naših Syzygy tabela (`lila-tablebase`, lokalno pa na droplet-u), 6 i 7 preko
+Lichess-a kroz server — posle 1.2.
+
 **Odluke vlasnika od 24.9 koje 1.2 mora da poštuje:** telefon radi pregled
 **u pozadini** (ne niža dubina) — šta to znači piše pod 1.2 u planu (pregled
 pripada aplikaciji a ne dijalogu, rezultat ide u nacrt partije, jedan engine

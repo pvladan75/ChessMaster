@@ -181,10 +181,14 @@ class StockfishService {
   /// The web engine keeps no answers: its build is not ours to name.
   Future<String?> answerStoreName() async => null;
 
+  /// [searchMoves] is ignored: the web/online engine answers with whatever it
+  /// already computed and cannot be told to restrict its search to one move
+  /// — the review's judge detects the mismatch and falls back around it.
   Future<List<AnalysisLine>> analyzePositionSync(
     String fen, {
     required int depth,
     required int multiPV,
+    List<String>? searchMoves,
     Duration timeout = const Duration(seconds: 10),
     void Function(List<AnalysisLine> partial)? onProgress,
   }) async {

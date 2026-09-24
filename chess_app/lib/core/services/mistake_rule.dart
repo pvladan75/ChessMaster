@@ -108,6 +108,9 @@ enum MistakeReason {
 
   /// Left a forced mate in [kMissedMateMoves] or fewer.
   missedMate,
+
+  /// With [kTablebaseMen] or fewer, made the result worse.
+  worseResult,
 }
 
 class MoveJudgement {
@@ -145,3 +148,48 @@ MoveJudgement judgeMove({
   return MoveJudgement(
       lost, lost >= kMistakeLoss ? MistakeReason.lostChances : null);
 }
+
+// --- The review's second look (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, 1.2a) ----
+
+/// How far below its threshold a move's loss at the walk's depth may be and
+/// still be looked at again: two of 35 grandmaster moves that lost 5–10 at
+/// depth 16 lost 15 or more at depth 24 (phase 0).
+const double kCandidateMargin = 5;
+
+/// Two depths disagree about a move when its losses differ by more than this
+/// — or when one calls it a mistake and the other does not. The owner's gap
+/// of 24.9.2026: 3 deepened twice as many positions for no fewer errors.
+const double kDeepenGap = 5;
+
+/// With this many men or fewer, the tablebase knows the result and the engine's
+/// number is only an estimate of it.
+const int kTablebaseMen = 7;
+
+/// Whether a move judged [judgement] at the walk's depth is looked at again:
+/// its loss is within [kCandidateMargin] of the threshold that applies to it,
+/// or it is a mistake for another reason (a missed mate).
+bool isCandidate(MoveJudgement judgement, {int bookGames = 0}) {
+  if (judgement.isMistake) return true;
+  final threshold = bookGames >= kTheoryGames ? kGrossLossInBook : kMistakeLoss;
+  return judgement.lostChances >= threshold - kCandidateMargin;
+}
+
+/// Whether two depths' judgements of one move agree.
+bool judgementsAgree(MoveJudgement a, MoveJudgement b) =>
+    a.isMistake == b.isMistake &&
+    (a.lostChances - b.lostChances).abs() <= kDeepenGap;
+
+/// A result the tablebase knows, for the side to move.
+enum TablebaseOutcome { loss, draw, win }
+
+/// Judges a move by the result alone: a mistake when it makes the result worse
+/// than the position's — a win given away for a draw, a draw for a loss —
+/// however small the engine's number; a slower win is not one. [lostChances]
+/// is carried for the reader, and decides nothing here.
+MoveJudgement judgeByTablebase({
+  required TablebaseOutcome position,
+  required TablebaseOutcome played,
+  required double lostChances,
+}) =>
+    MoveJudgement(lostChances,
+        played.index < position.index ? MistakeReason.worseResult : null);

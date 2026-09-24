@@ -21,6 +21,7 @@ library;
 
 import 'dart:async';
 
+import 'package:chess_app/core/services/eval_cache.dart' show MoveAnalyzer;
 import 'package:chess_app/core/services/mistake_rule.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/game_facts.dart'
@@ -39,13 +40,10 @@ const int kOpeningJudgeBatchSize = 25;
 /// `searchMoves`, which this judge needs and that shared typedef does not
 /// carry (other callers never ask for it). A `UciEngine.analyze` tear-off
 /// satisfies this directly.
-typedef HabitAnalyzer = Future<List<AnalysisLine>> Function(
-  String fen, {
-  required int depth,
-  required int multiPV,
-  List<String>? searchMoves,
-  Duration timeout,
-});
+///
+/// Exactly [MoveAnalyzer]'s shape — the review's judge (phase 1.2a) needs the
+/// same one, so this is an alias rather than a second copy of it (rule 12).
+typedef HabitAnalyzer = MoveAnalyzer;
 
 /// Positions judged so far ([done]) of the total that had anything left to
 /// judge ([total]) — never the whole node count, since a node with every habit

@@ -177,6 +177,81 @@ void main() {
     });
   });
 
+  // Phase 1.2a: the review's confirming look asks for the played move alone.
+  group('a move searched alone', () {
+    final calls = <String>[];
+    Future<List<AnalysisLine>> analyze(
+      String fen, {
+      required int depth,
+      required int multiPV,
+      List<String>? searchMoves,
+      Duration timeout = const Duration(seconds: 10),
+    }) async {
+      calls.add('$depth|$multiPV|${searchMoves?.join(',') ?? ''}');
+      final uci = searchMoves?.first ?? 'e2e4';
+      return [
+        AnalysisLine.fromPv(
+            multipv: 1,
+            depth: depth,
+            eval: searchMoves == null ? '+0.30' : '-1.50',
+            pvString: uci,
+            startingFen: fen)
+      ];
+    }
+
+    setUp(calls.clear);
+
+    test('is kept apart from the position, both ways', () async {
+      final ask = EvalCache().wrapMoves(analyze, engine: _a);
+
+      final alone =
+          await ask(_start, depth: 20, multiPV: 1, searchMoves: ['a2a3']);
+      final own = await ask(_start, depth: 20, multiPV: 1);
+      expect(calls, hasLength(2),
+          reason: 'the best of one move is not the best move');
+      expect(alone.single.bestMoveLan, 'a2a3');
+      expect(own.single.bestMoveLan, 'e2e4');
+
+      await ask(_start, depth: 20, multiPV: 1, searchMoves: ['a2a3']);
+      await ask(_start, depth: 20, multiPV: 1);
+      expect(calls, hasLength(2), reason: 'each serves its own question');
+    });
+
+    test('two moves searched alone are two answers', () async {
+      final ask = EvalCache().wrapMoves(analyze, engine: _a);
+      await ask(_start, depth: 20, multiPV: 1, searchMoves: ['a2a3']);
+      await ask(_start, depth: 20, multiPV: 1, searchMoves: ['h2h3']);
+      expect(calls, hasLength(2));
+    });
+
+    test('a deeper answer about the move serves a shallower question',
+        () async {
+      final tally = EngineAnswerTally();
+      final ask = EvalCache().wrapMoves(analyze, engine: _a, tally: tally);
+      await ask(_start, depth: 24, multiPV: 1, searchMoves: ['a2a3']);
+      final served =
+          await ask(_start, depth: 20, multiPV: 1, searchMoves: ['a2a3']);
+      expect(calls, hasLength(1));
+      expect(tally.fromStore, 1);
+      expect(served.single.depth, 24);
+      expect(served.single.evaluation, '-1.50');
+    });
+
+    test('is kept on disk, apart', () async {
+      final disk = diskIn(folder);
+      final first = EvalCache(disk: disk);
+      await first.wrapMoves(analyze, engine: _a)(_start,
+          depth: 20, multiPV: 1, searchMoves: ['a2a3']);
+      await first.flush();
+
+      final ask = EvalCache(disk: disk).wrapMoves(analyze, engine: _a);
+      await ask(_start, depth: 20, multiPV: 1, searchMoves: ['a2a3']);
+      expect(calls, hasLength(1));
+      await ask(_start, depth: 20, multiPV: 1);
+      expect(calls, hasLength(2));
+    });
+  });
+
   group('what is kept', () {
     test(
         'a search stopped short of the depth asked is kept at the depth it '
