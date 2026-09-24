@@ -1009,6 +1009,45 @@ its own items from the gate below:
   `accept` list, three lines cut by the raised `answerPlyCount` (12), the
   position before the mistake, the clock among the facts.
 
+  *Briefed 24.9.2026* (`docs/briefs/BRIEF-ZAGONETKE-FAZA1-3-ZAGONETKE.md`;
+  gate `docs/gates/review_puzzles_test.dart`, `review_puzzle_search_test.dart`,
+  `keep_review_puzzles_test.dart`, `review_dialog_puzzles_test.dart`; the
+  dialog file red on `master` for the right reason). Decided in the brief:
+  - **the walk stays at one line**, so an only move needs a search of its
+    own: two lines at the review's depth, for each move of the side chosen
+    that the player found in a live position out of the book and not trivial
+    — only when puzzles are asked for, some 10–20 a game; a mistake whose two
+    deciding lines both mate gets one search of three, at that look's depth;
+  - „the same best move at both depths" is the walk's best move against the
+    deciding look's — for a mate, the walk's among the mating first moves;
+  - with seven men or fewer, a puzzle when exactly one move keeps the result
+    and the engine's best line starts with it; no second line there;
+  - `answerPlyCount` is lifted to `core/services/answer_line.dart` and the
+    reveal cuts at 12; the tutorial keeps 4 and 8 until 1b;
+  - **kept puzzles change shape here, not in phase 4**: the position before,
+    the instruction of §4, every right answer in `accept` — because keeping the
+    old instruction („White just played …") on the new position would be
+    false. Phase 4 is left with `review` and the words;
+  - **the clock moves to phase 3**, its only reader: the tree has no clock
+    (`cleanPgnComment` strips `[%clk]` at parse time), and a field nothing
+    reads is not built ahead of its reader;
+  - `origin` stays `'mistakes'` for both kinds; only moves are capped by
+    *Max puzzles* on their own; the side choice shows for puzzles alone.
+
+  *Built 24.9.2026* (the implementer, graded by the lead; app 4055 → **4110**,
+  analyze the same 23 infos, backend untouched). As briefed. The worker
+  stopped on one gate case and was right: the fake engine of
+  `review_puzzle_search_test` computed a second move on every call, and at a
+  position with one legal move that threw, so the walk read it as unanswered —
+  the lead's fixture, fixed in both copies. Completed on grading: a move's UCI
+  rebuilt from its SAN wrote `null` for no promotion. 31 mutations, each red on
+  the case written for its rule, but one: dropping the „three mating lines"
+  guard falls through to a second line that also mates, so `B` is 0 and the
+  puzzle is refused all the same — equivalent, the guard only keeps the index
+  in range. **Not gated**: the 360 dp layout of the keep panel's rows (both
+  texts in an `Expanded`, read, not measured). Live check:
+  `docs/TODO-provera.md`, item 241.
+
 Phase 1b (the tutorial) follows 1.3 as written.
 
 - `winningChances` (one home) and its test at the table's points.
@@ -1213,6 +1252,12 @@ refused rather than written. Metering as in §3a.
 In the app: the checkbox, the words written into the PGN (never over a comment
 already there), and each kept puzzle's `words` taken from its moment.
 
+**The clock is built here** (moved from 1.3 on 24.9.2026, with its only
+reader): `MoveTree.parsePgn` strips `[%clk]` in `cleanPgnComment` before a
+node exists, so the time left and the time spent need a field on the node, its
+JSON, and the parser reading the command before the comment is cleaned — then
+the moment's facts carry both.
+
 When the model does not answer, the review still writes the engine's analysis
 and the puzzles are still kept, **and both say that no words were written** —
 never an empty space that looks like one.
@@ -1229,6 +1274,8 @@ on the client seam, rule 7).
 
 `puzzleExerciseDraft` sends the position before the mistake, the instruction of
 §4, the answer, `review`; „Keep N as exercises" asks for the words as it keeps.
+*Since 1.3 the first three are already sent* (see its „Briefed" note); what is
+left here is `review` and the words.
 The panel lists each puzzle as it will be solved: the position before, „a
 mistake was made here", and only in the panel's own detail the move played.
 
@@ -1267,6 +1314,11 @@ is measured (`didExceedMaxLines`), not only „fits".
 ### Phase 6 — the old puzzles [lead]
 
 Count the `origin = 'mistakes'` rows, report, delete on the owner's yes.
+**`origin` alone is not the predicate**: `homeworkFromArchive.js` writes
+`'mistakes'` too, and from 1.3 on the new puzzles keep that origin. The old
+review puzzles are the ones whose instruction says „… just played …"
+(`keep_puzzles_panel.dart` before 1.3); count by that, and show the owner the
+split before anything is deleted.
 
 ### Phase 7 — the owner's live pass
 

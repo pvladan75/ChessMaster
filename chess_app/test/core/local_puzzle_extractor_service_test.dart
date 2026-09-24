@@ -23,5 +23,13 @@
 //   `test/mistake_rule_test.dart`.
 // - The hanging-queen puzzle's tactical label (`themeKey: 'hangingPiece'`) has
 //   no successor: `buildPuzzlesFromReview` never asks `TacticalMotifDetector`.
+//
+// Phase 1.3 (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`) rewrites what a puzzle is
+// again — the position before the mistake, `B` = 15 over the second, the only
+// moves a player found, nothing trivial, one puzzle per chance missed within
+// four plies — and moves "today's puzzles from the mistakes, worst first" out
+// of `game_review_judge_test.dart` with it: every case for the new
+// `LocalPuzzleExtractorService.buildPuzzlesFromReview` is in
+// `test/core/review_puzzles_test.dart`.
 
 void main() {}

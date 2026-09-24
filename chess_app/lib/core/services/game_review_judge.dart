@@ -17,6 +17,8 @@ import 'dart:math' as math;
 import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/core/services/eval_cache.dart' show MoveAnalyzer;
+import 'package:chess_app/core/services/game_analysis_walker_service.dart'
+    show BlunderAlertSide;
 import 'package:chess_app/core/services/legal_moves.dart' show walkGame;
 import 'package:chess_app/core/services/mistake_rule.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart'
@@ -56,7 +58,7 @@ typedef BookLookup = Future<MastersWalk> Function(List<String> fens);
 /// The tablebase's answer for a position, or null when it did not answer.
 typedef TablebaseLookup = Future<SyzygyResult?> Function(String fen);
 
-enum ReviewStage { walk, book, tablebase, confirm, deepen }
+enum ReviewStage { walk, book, tablebase, confirm, deepen, answers }
 
 /// Where a review is: [done] of [total] in [stage]. For [ReviewStage.deepen]
 /// the total is the budget, and done the searches spent.
@@ -85,9 +87,12 @@ class ReviewedMove {
     this.bestLine,
     this.replyLine,
     this.secondLine,
+    this.thirdLine,
     this.bookGames,
     this.byTablebase = false,
     this.deepened = false,
+    this.walkBestUci,
+    this.tablebaseKeepers,
   });
 
   /// Index of the move among the moves reviewed, from 0.
@@ -129,6 +134,10 @@ class ReviewedMove {
   /// search asked for two (phase 1.3 reads it).
   final AnalysisLine? secondLine;
 
+  /// A third line in the position before, when a puzzle search asked for one
+  /// — a mistake whose two deciding lines both mate (phase 1.3).
+  final AnalysisLine? thirdLine;
+
   /// Master games with the played move in the position before; null outside
   /// the book, or when the book did not answer.
   final int? bookGames;
@@ -138,6 +147,17 @@ class ReviewedMove {
 
   /// Searched deeper than the review's depth.
   final bool deepened;
+
+  /// The walk's own best move in the position before (its line 1's first
+  /// move), whatever a later look said. Null when the walk did not answer
+  /// there.
+  final String? walkBestUci;
+
+  /// For a move judged by the tablebase: the UCI of every move whose result,
+  /// read for the mover, equals the position's own — in the tablebase's own
+  /// order. Null when the move was not judged by the tablebase, or the
+  /// tablebase did not answer there.
+  final List<String>? tablebaseKeepers;
 
   bool get isMistake => !unsettled && (judgement?.isMistake ?? false);
 }
@@ -221,6 +241,7 @@ class GameReviewJudge {
     required String startingFen,
     required List<String> uciMoves,
     required int depth,
+    BlunderAlertSide? puzzles,
     void Function(ReviewProgress progress)? onProgress,
   }) async {
     _cancelled = false;
@@ -254,12 +275,17 @@ class GameReviewJudge {
     for (var i = 0; i < total; i++) {
       if (_cancelled) return null;
       if (terminals[i] == null) {
-        walkAnswers[i] = await _searchWithRetry(fens[i],
-            depth: depth, multiPv: 1, timeout: kWalkTimeout);
+        walkAnswers[i] = await _searchWithRetry(
+          fens[i],
+          depth: depth,
+          multiPv: 1,
+          timeout: kWalkTimeout,
+        );
         if (walkAnswers[i] != null) {
           positionValue[i] = EngineValue.fromEvaluation(
-              walkAnswers[i]!.line1.evaluation,
-              whiteToMove: whiteToMove[i]);
+            walkAnswers[i]!.line1.evaluation,
+            whiteToMove: whiteToMove[i],
+          );
           positionDepth[i] = walkAnswers[i]!.line1.depth;
         }
       }
@@ -272,6 +298,13 @@ class GameReviewJudge {
     final playedValueWalk = List<EngineValue?>.filled(n, null);
     final walkDepth = List<int?>.filled(n, null);
     final unjudgedWhy = List<String?>.filled(n, null);
+
+    // The walk's own best move in the position before — kept beside whatever
+    // a later look says, so "the same best move at both depths" (1.3) can be
+    // asked afterwards.
+    final walkBestUci = [
+      for (var i = 0; i < n; i++) walkAnswers[i]?.line1.bestMoveLan,
+    ];
 
     for (var i = 0; i < n; i++) {
       final beforeValue = positionValue[i];
@@ -335,17 +368,21 @@ class GameReviewJudge {
       final best = bestValue[i];
       final played = playedValueWalk[i];
       if (best == null || played == null) continue;
-      walkJudgement[i] =
-          judgeMove(best: best, played: played, bookGames: bookGames[i] ?? 0);
+      walkJudgement[i] = judgeMove(
+        best: best,
+        played: played,
+        bookGames: bookGames[i] ?? 0,
+      );
     }
 
     // --- The tablebase, seven men or fewer -----------------------------------
     var tablebaseUnanswered = 0;
     final byTablebase = List<bool>.filled(n, false);
     final tablebaseJudgement = List<MoveJudgement?>.filled(n, null);
+    final tablebaseKeepers = List<List<String>?>.filled(n, null);
     final eligible = [
       for (var i = 0; i < n; i++)
-        if (_menCount(fens[i]) <= kTablebaseMen) i
+        if (_menCount(fens[i]) <= kTablebaseMen) i,
     ];
     for (var k = 0; k < eligible.length; k++) {
       if (_cancelled) return null;
@@ -356,8 +393,9 @@ class GameReviewJudge {
       } catch (_) {
         tb = null;
       }
-      onProgress
-          ?.call(ReviewProgress(ReviewStage.tablebase, k + 1, eligible.length));
+      onProgress?.call(
+        ReviewProgress(ReviewStage.tablebase, k + 1, eligible.length),
+      );
       if (tb == null) {
         tablebaseUnanswered++;
         continue;
@@ -379,10 +417,17 @@ class GameReviewJudge {
       final playedOutcome = _invert(playedRaw);
       final fallbackLoss = walkJudgement[i]?.lostChances ?? 0.0;
       tablebaseJudgement[i] = judgeByTablebase(
-          position: positionOutcome,
-          played: playedOutcome,
-          lostChances: fallbackLoss);
+        position: positionOutcome,
+        played: playedOutcome,
+        lostChances: fallbackLoss,
+      );
       byTablebase[i] = true;
+      tablebaseKeepers[i] = [
+        for (final m in tb.moves)
+          if (_outcomeOf(m.category) != null &&
+              _invert(_outcomeOf(m.category)!) == positionOutcome)
+            m.uci,
+      ];
     }
 
     // --- Candidates: the confirming look, then the deepening ---------------
@@ -390,6 +435,7 @@ class GameReviewJudge {
     final finalDepth = List<int?>.filled(n, null);
     final finalLine1 = List<AnalysisLine?>.filled(n, null);
     final finalLine2 = List<AnalysisLine?>.filled(n, null);
+    final finalLine3 = List<AnalysisLine?>.filled(n, null);
     final finalNodes = List<int?>.filled(n, null);
     final finalDeepened = List<bool>.filled(n, false);
     final finalUnsettled = List<bool>.filled(n, false);
@@ -415,19 +461,21 @@ class GameReviewJudge {
         finalNodes[i] = walkAnswers[i]?.line1.nodes;
         continue;
       }
-      candidates.add(_Candidate(
-        ply: i,
-        fenBefore: fens[i],
-        fenAfter: fens[i + 1],
-        uci: appliedUci[i],
-        whiteBefore: whiteToMove[i],
-        whiteAfter: whiteToMove[i + 1],
-        afterTerminal: terminals[i + 1],
-        bookGames: bookGames[i],
-        walkJudgement: judgement,
-        walkDepth: walkDepth[i]!,
-        walkLine1: walkAnswers[i]!.line1,
-      ));
+      candidates.add(
+        _Candidate(
+          ply: i,
+          fenBefore: fens[i],
+          fenAfter: fens[i + 1],
+          uci: appliedUci[i],
+          whiteBefore: whiteToMove[i],
+          whiteAfter: whiteToMove[i + 1],
+          afterTerminal: terminals[i + 1],
+          bookGames: bookGames[i],
+          walkJudgement: judgement,
+          walkDepth: walkDepth[i]!,
+          walkLine1: walkAnswers[i]!.line1,
+        ),
+      );
     }
 
     // Every candidate is confirmed once, unconditionally, at the review's
@@ -436,8 +484,9 @@ class GameReviewJudge {
       if (_cancelled) return null;
       final c = candidates[k];
       final look = await _lookAt(c, depth, timeout: kConfirmTimeout);
-      onProgress
-          ?.call(ReviewProgress(ReviewStage.confirm, k + 1, candidates.length));
+      onProgress?.call(
+        ReviewProgress(ReviewStage.confirm, k + 1, candidates.length),
+      );
       if (look.judgement == null) {
         // No usable answer at all beyond the walk: looking ends here, on the
         // walk's own judgement (already seeded onto the candidate).
@@ -478,8 +527,13 @@ class GameReviewJudge {
       final newDepth = depth + kDeepenStep * chosen.levelsUsed;
       final look = await _lookAt(chosen, newDepth, timeout: kDeepenTimeout);
       deepeningSearchesUsed += look.calls;
-      onProgress?.call(ReviewProgress(
-          ReviewStage.deepen, deepeningSearchesUsed, deepeningBudget));
+      onProgress?.call(
+        ReviewProgress(
+          ReviewStage.deepen,
+          deepeningSearchesUsed,
+          deepeningBudget,
+        ),
+      );
       if (look.judgement == null) {
         chosen.unsettled = true;
         continue;
@@ -517,8 +571,85 @@ class GameReviewJudge {
       finalNodes[c.ply] = c.currentNodes;
       finalDeepened[c.ply] = c.everDeepened;
       finalUnsettled[c.ply] = c.unsettled;
-      AppLogger.log('[GameReviewJudge] ply ${c.ply} settled at depth '
-          '${c.currentDepth} (${c.currentNodes ?? '?'} nodes)');
+      AppLogger.log(
+        '[GameReviewJudge] ply ${c.ply} settled at depth '
+        '${c.currentDepth} (${c.currentNodes ?? '?'} nodes)',
+      );
+    }
+
+    // --- The puzzle stage (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, 1.3) ----------
+    // The walk stays at one line, so a move the player found in a live
+    // position needs a search of its own, and a mate with a second mate
+    // beside it needs a third line to measure B against. Both are searches
+    // only a review that keeps puzzles pays for, only for the side chosen,
+    // and only where they can end in a puzzle: never on a move already
+    // unsettled or judged by the tablebase.
+    if (puzzles != null) {
+      final eligible = [
+        for (var i = 0; i < n; i++)
+          if (finalJudgement[i] != null &&
+              !finalUnsettled[i] &&
+              !byTablebase[i] &&
+              switch (puzzles) {
+                BlunderAlertSide.both => true,
+                BlunderAlertSide.white => whiteToMove[i],
+                BlunderAlertSide.black => !whiteToMove[i],
+              })
+            i,
+      ];
+      for (var k = 0; k < eligible.length; k++) {
+        if (_cancelled) return null;
+        final i = eligible[k];
+        final judgement = finalJudgement[i]!;
+        final whiteBefore = whiteToMove[i];
+        if (judgement.isMistake) {
+          final best = finalLine1[i];
+          final second = finalLine2[i];
+          if (best != null &&
+              second != null &&
+              _matesForMover(best, whiteBefore) &&
+              _matesForMover(second, whiteBefore)) {
+            final atDepth = finalDepth[i] ?? depth;
+            final look = await _ask(
+              fens[i],
+              depth: atDepth,
+              multiPv: 3,
+              timeout: kConfirmTimeout,
+            );
+            if (look != null && look.line2 != null && look.line3 != null) {
+              finalLine1[i] = look.line1;
+              finalLine2[i] = look.line2;
+              finalLine3[i] = look.line3;
+            }
+          }
+        } else {
+          final best = finalLine1[i];
+          if (best != null &&
+              walkBestUci[i] == appliedUci[i] &&
+              (bookGames[i] ?? 0) < kTheoryGames &&
+              bestValue[i] != null &&
+              !isDecided(winningChances(bestValue[i]!)) &&
+              !isTrivialFind(
+                fens[i],
+                appliedUci[i],
+                previousUci: i > 0 ? appliedUci[i - 1] : null,
+              )) {
+            final look = await _ask(
+              fens[i],
+              depth: depth,
+              multiPv: 2,
+              timeout: kConfirmTimeout,
+            );
+            if (look != null && look.line2 != null) {
+              finalLine1[i] = look.line1;
+              finalLine2[i] = look.line2;
+            }
+          }
+        }
+        onProgress?.call(
+          ReviewProgress(ReviewStage.answers, k + 1, eligible.length),
+        );
+      }
     }
 
     // --- Assembly ------------------------------------------------------------
@@ -528,25 +659,30 @@ class GameReviewJudge {
       final afterAns = walkAnswers[i + 1];
       final replyLine = afterTerm == null ? afterAns?.line1 : null;
 
-      moves.add(ReviewedMove(
-        ply: i,
-        san: sans[i],
-        uci: appliedUci[i],
-        fenBefore: fens[i],
-        fenAfter: fens[i + 1],
-        whiteMoved: whiteToMove[i],
-        judgement: finalJudgement[i],
-        unjudgedWhy: byTablebase[i] ? null : unjudgedWhy[i],
-        unsettled: finalUnsettled[i],
-        depth: finalDepth[i],
-        nodes: finalNodes[i],
-        bestLine: finalLine1[i],
-        replyLine: replyLine,
-        secondLine: finalLine2[i],
-        bookGames: bookGames[i],
-        byTablebase: byTablebase[i],
-        deepened: finalDeepened[i],
-      ));
+      moves.add(
+        ReviewedMove(
+          ply: i,
+          san: sans[i],
+          uci: appliedUci[i],
+          fenBefore: fens[i],
+          fenAfter: fens[i + 1],
+          whiteMoved: whiteToMove[i],
+          judgement: finalJudgement[i],
+          unjudgedWhy: byTablebase[i] ? null : unjudgedWhy[i],
+          unsettled: finalUnsettled[i],
+          depth: finalDepth[i],
+          nodes: finalNodes[i],
+          bestLine: finalLine1[i],
+          replyLine: replyLine,
+          secondLine: finalLine2[i],
+          thirdLine: finalLine3[i],
+          bookGames: bookGames[i],
+          byTablebase: byTablebase[i],
+          deepened: finalDeepened[i],
+          walkBestUci: walkBestUci[i],
+          tablebaseKeepers: tablebaseKeepers[i],
+        ),
+      );
     }
 
     return GameReviewResult(
@@ -561,12 +697,18 @@ class GameReviewJudge {
   /// The walk's answer for [fen]: [depth], or once more at
   /// `depth - kRetryShallower` when the first search has nothing usable. Null
   /// when neither does.
-  Future<_Usable?> _searchWithRetry(String fen,
-      {required int depth,
-      required int multiPv,
-      required Duration timeout}) async {
-    final usable =
-        await _ask(fen, depth: depth, multiPv: multiPv, timeout: timeout);
+  Future<_Usable?> _searchWithRetry(
+    String fen, {
+    required int depth,
+    required int multiPv,
+    required Duration timeout,
+  }) async {
+    final usable = await _ask(
+      fen,
+      depth: depth,
+      multiPv: multiPv,
+      timeout: timeout,
+    );
     if (usable != null) return usable;
     final shallower = math.max(1, depth - kRetryShallower);
     if (shallower == depth) return null;
@@ -576,18 +718,22 @@ class GameReviewJudge {
   /// Asks the engine once and normalizes the answer: sorted by `multipv`, cut
   /// to [multiPv] lines, usable only when [searchProblem] passes line 1. An
   /// analyzer that throws answers nothing, same as one that came back short.
-  Future<_Usable?> _ask(String fen,
-      {required int depth,
-      required int multiPv,
-      List<String>? searchMoves,
-      required Duration timeout}) async {
+  Future<_Usable?> _ask(
+    String fen, {
+    required int depth,
+    required int multiPv,
+    List<String>? searchMoves,
+    required Duration timeout,
+  }) async {
     List<AnalysisLine> lines;
     try {
-      lines = await analyzer(fen,
-          depth: depth,
-          multiPV: multiPv,
-          searchMoves: searchMoves,
-          timeout: timeout);
+      lines = await analyzer(
+        fen,
+        depth: depth,
+        multiPV: multiPv,
+        searchMoves: searchMoves,
+        timeout: timeout,
+      );
     } catch (_) {
       return null;
     }
@@ -611,23 +757,39 @@ class GameReviewJudge {
         break;
       }
     }
-    return _Usable(line1, line2);
+    AnalysisLine? line3;
+    for (final l in kept) {
+      if (l.multipv == 3) {
+        line3 = l;
+        break;
+      }
+    }
+    return _Usable(line1, line2, line3);
   }
 
   /// A confirming or deepening look at [atDepth] for candidate [c]: two
   /// lines, and the played move alone (`searchmoves`) unless it heads one of
   /// them — falling back to the position after, turned round, when the
   /// engine ignores `searchmoves` and answers a different move.
-  Future<_LookOutcome> _lookAt(_Candidate c, int atDepth,
-      {required Duration timeout}) async {
+  Future<_LookOutcome> _lookAt(
+    _Candidate c,
+    int atDepth, {
+    required Duration timeout,
+  }) async {
     var calls = 0;
-    final confirm =
-        await _ask(c.fenBefore, depth: atDepth, multiPv: 2, timeout: timeout);
+    final confirm = await _ask(
+      c.fenBefore,
+      depth: atDepth,
+      multiPv: 2,
+      timeout: timeout,
+    );
     calls++;
     if (confirm == null) return _LookOutcome(calls: calls);
 
-    final bestValue = EngineValue.fromEvaluation(confirm.line1.evaluation,
-        whiteToMove: c.whiteBefore);
+    final bestValue = EngineValue.fromEvaluation(
+      confirm.line1.evaluation,
+      whiteToMove: c.whiteBefore,
+    );
     final EngineValue playedValue;
     AnalysisLine? extraLine;
     if (c.afterTerminal != null) {
@@ -637,28 +799,48 @@ class GameReviewJudge {
     } else if (confirm.line1.bestMoveLan == c.uci) {
       playedValue = bestValue;
     } else if (confirm.line2 != null && confirm.line2!.bestMoveLan == c.uci) {
-      playedValue = EngineValue.fromEvaluation(confirm.line2!.evaluation,
-          whiteToMove: c.whiteBefore);
+      playedValue = EngineValue.fromEvaluation(
+        confirm.line2!.evaluation,
+        whiteToMove: c.whiteBefore,
+      );
     } else {
-      final alone = await _ask(c.fenBefore,
-          depth: atDepth, multiPv: 1, searchMoves: [c.uci], timeout: timeout);
+      final alone = await _ask(
+        c.fenBefore,
+        depth: atDepth,
+        multiPv: 1,
+        searchMoves: [c.uci],
+        timeout: timeout,
+      );
       calls++;
       if (alone != null && alone.line1.bestMoveLan == c.uci) {
-        playedValue = EngineValue.fromEvaluation(alone.line1.evaluation,
-            whiteToMove: c.whiteBefore);
+        playedValue = EngineValue.fromEvaluation(
+          alone.line1.evaluation,
+          whiteToMove: c.whiteBefore,
+        );
         extraLine = alone.line1;
       } else {
-        final after = await _ask(c.fenAfter,
-            depth: atDepth, multiPv: 1, timeout: timeout);
+        final after = await _ask(
+          c.fenAfter,
+          depth: atDepth,
+          multiPv: 1,
+          timeout: timeout,
+        );
         calls++;
         if (after == null) return _LookOutcome(calls: calls);
-        playedValue = _negate(EngineValue.fromEvaluation(after.line1.evaluation,
-            whiteToMove: c.whiteAfter));
+        playedValue = _negate(
+          EngineValue.fromEvaluation(
+            after.line1.evaluation,
+            whiteToMove: c.whiteAfter,
+          ),
+        );
         extraLine = after.line1;
       }
     }
     final judgement = judgeMove(
-        best: bestValue, played: playedValue, bookGames: c.bookGames ?? 0);
+      best: bestValue,
+      played: playedValue,
+      bookGames: c.bookGames ?? 0,
+    );
     var lookDepth = confirm.line1.depth;
     if (extraLine != null && extraLine.depth < lookDepth) {
       lookDepth = extraLine.depth;
@@ -723,12 +905,23 @@ TablebaseOutcome _invert(TablebaseOutcome o) {
   }
 }
 
-/// A usable answer: [line1] passed [searchProblem]; [line2] is kept when the
-/// search asked for, and got, a second line.
+/// A usable answer: [line1] passed [searchProblem]; [line2] and [line3] are
+/// kept when the search asked for, and got, a second or third line.
 class _Usable {
-  const _Usable(this.line1, this.line2);
+  const _Usable(this.line1, this.line2, [this.line3]);
   final AnalysisLine line1;
   final AnalysisLine? line2;
+  final AnalysisLine? line3;
+}
+
+/// Whether [line] is a mate for the mover — the side to move in the position
+/// [line] starts from, [whiteBefore] whether that side is White.
+bool _matesForMover(AnalysisLine line, bool whiteBefore) {
+  final mate = EngineValue.fromEvaluation(
+    line.evaluation,
+    whiteToMove: whiteBefore,
+  ).mate;
+  return mate != null && mate > 0;
 }
 
 /// One confirming or deepening look's outcome. [judgement] is null when the

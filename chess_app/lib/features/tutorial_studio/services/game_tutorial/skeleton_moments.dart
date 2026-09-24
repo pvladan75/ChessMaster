@@ -1,5 +1,6 @@
 import 'package:chess/chess.dart' as chess;
 
+import 'package:chess_app/core/services/answer_line.dart' as answer_line;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/board_queries.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/evaluation_words.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
@@ -87,7 +88,7 @@ String bookWords(Map<String, dynamic> row) {
   final alternatives = (book['alternatives'] as List?) ?? const [];
   final others = [
     for (final a in alternatives)
-      '${a['move']} ${shareWords(a['share'] as num)}'
+      '${a['move']} ${shareWords(a['share'] as num)}',
   ].join(', ');
   if (others.isNotEmpty) {
     said += '; the other moves played here are $others';
@@ -173,32 +174,24 @@ bool givesMaterial(String fen, String mover, List<String> sans) {
   return false;
 }
 
-int answerPlyCount(String fen, String mover, List<String> line,
-    SkeletonParameters parameters) {
-  if (line.isEmpty) return 0;
-  final board = chess.Chess.fromFEN(fen);
-  final sign = mover == 'White' ? 1 : -1;
-  final start = sign * materialOf(board);
-  final after = <int>[];
-  for (final san in line) {
-    // `move` answers false and leaves the board where it was, so an unchecked
-    // call measures every later ply from the wrong position. python-chess's
-    // `push_san` raises; so does this.
-    if (!board.move(san)) {
-      throw StateError('$san cannot be played from ${board.fen}');
-    }
-    after.add(sign * materialOf(board));
-  }
-  final cap = parameters.maxAnswerPlies < after.length
-      ? parameters.maxAnswerPlies
-      : after.length;
-  var cut = parameters.answerPlies < cap ? parameters.answerPlies : cap;
-  if (cut == 0) return 0;
-  while (cut < cap && after[cut - 1] < start) {
-    cut++;
-  }
-  return cut;
-}
+/// Delegates to [answer_line.answerLineLength] — lifted there,
+/// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` phase 1.3 §4, so the review's puzzles
+/// cut their lines the same way, not a copy (rule 12). The tutorial's own
+/// numbers ([SkeletonParameters.answerPlies], [SkeletonParameters.maxAnswerPlies])
+/// do not change here.
+int answerPlyCount(
+  String fen,
+  String mover,
+  List<String> line,
+  SkeletonParameters parameters,
+) =>
+    answer_line.answerLineLength(
+      fen,
+      mover,
+      line,
+      shortest: parameters.answerPlies,
+      longest: parameters.maxAnswerPlies,
+    );
 
 /// [level] of `standing` as the words a narration uses, from [side]'s view.
 String stands(String side, int? level) {
@@ -282,8 +275,10 @@ List<Map<String, dynamic>> gameStory(List<Map<String, dynamic>> rows) {
       final here = chess.Chess.fromFEN(row['fen'] as String);
       final landed = findMove(here, played['move'] as String).toAlgebraic;
       here.move(played['move'] as String);
-      final reply =
-          findMove(here, (rows[i + 1]['played'] as Map)['move'] as String);
+      final reply = findMove(
+        here,
+        (rows[i + 1]['played'] as Map)['move'] as String,
+      );
       takenThere = reply.toAlgebraic == landed && isCapture(here, reply);
     }
     if (takenThere && i + 2 < rows.length && rows[i + 2]['played'] != null) {
@@ -349,8 +344,10 @@ List<Map<String, dynamic>> gameStory(List<Map<String, dynamic>> rows) {
   if (missed.isNotEmpty) {
     final last = missed.last;
     last['kind'] = 'last_chance_missed';
-    last['text'] = (last['text'] as String).replaceFirst(' misses it with ',
-        ' misses it - the last chance of the game given and not taken - with ');
+    last['text'] = (last['text'] as String).replaceFirst(
+      ' misses it with ',
+      ' misses it - the last chance of the game given and not taken - with ',
+    );
   }
   // Stable, as Python's `sort` is.
   final ordered = [for (var k = 0; k < events.length; k++) (k, events[k])]
@@ -384,8 +381,10 @@ Map<String, String> gameArc(List<Map<String, dynamic>> rows) {
   final events = gameStory(rows);
   final turns = events.where((e) => e['kind'] != 'activity').toList();
   final missed = events
-      .where((e) =>
-          e['kind'] == 'chance_missed' || e['kind'] == 'last_chance_missed')
+      .where(
+        (e) =>
+            e['kind'] == 'chance_missed' || e['kind'] == 'last_chance_missed',
+      )
       .toList();
   final bySide = {
     for (final side in const ['White', 'Black'])
@@ -424,7 +423,7 @@ Map<String, String> gameArc(List<Map<String, dynamic>> rows) {
   final named = [
     for (final r in rows)
       if (r['book'] is Map && (r['book'] as Map)['opening'] != null)
-        (r['book'] as Map)['opening'] as String
+        (r['book'] as Map)['opening'] as String,
   ];
   final kind = tactical >= 2 * positional
       ? 'mostly tactical'
@@ -435,7 +434,7 @@ Map<String, String> gameArc(List<Map<String, dynamic>> rows) {
       ? 'none'
       : [
           for (final entry in bySide.entries)
-            if (entry.value > 0) '${entry.key} missed ${entry.value}'
+            if (entry.value > 0) '${entry.key} missed ${entry.value}',
         ].join(', ');
   final character = '${(played.length + 1) ~/ 2} moves; ${turns.length} '
       'turning points in all; chances missed: $missedWords; the motif sentences '
@@ -570,7 +569,7 @@ List<Map<String, dynamic>> skeletonMoments(
     if (asks) {
       final qid = '$mid.question';
       final alsoCorrect = [
-        for (var c = 1; c < correct.length; c++) correct[c]['move'] as String
+        for (var c = 1; c < correct.length; c++) correct[c]['move'] as String,
       ].join(', ');
       final boardText = boardHere != null ? ' On the board: $boardHere.' : '';
       slots[qid] =
@@ -596,7 +595,7 @@ List<Map<String, dynamic>> skeletonMoments(
         'instruction': qid,
         'solution': best['move'],
         'accepted': [
-          for (var c = 1; c < correct.length; c++) correct[c]['move'] as String
+          for (var c = 1; c < correct.length; c++) correct[c]['move'] as String,
         ],
       });
     }
@@ -636,10 +635,7 @@ List<Map<String, dynamic>> skeletonMoments(
             '; this line gives material for activity: at its end $mover is still material down and ${stands(mover, standing(bestEval, mover))}, and not because of a quick mate';
       }
       slots[sid] = text;
-      slotFacts[sid] = {
-        ...info,
-        'motifs': '',
-      };
+      slotFacts[sid] = {...info, 'motifs': ''};
       moves.add({'san': san, 'slot': sid});
     }
     // **The owner's order at a mistake**, 14.9.2026: first what was played —
@@ -648,7 +644,9 @@ List<Map<String, dynamic>> skeletonMoments(
     // is not asked to, and the answer part has no introduction.
     final fork = '$mid.fork';
     final playedMove = findMove(
-        chess.Chess.fromFEN(row['fen'] as String), played['move'] as String);
+      chess.Chess.fromFEN(row['fen'] as String),
+      played['move'] as String,
+    );
     final program = <String, String>{
       fork: 'In this position $mover played ${played['move']}. '
           'The best move was…',
@@ -701,8 +699,12 @@ List<Map<String, dynamic>> skeletonMoments(
           .split(RegExp(r'\s+'))
           .where((token) => token.isNotEmpty)
           .toList();
-      final otherShown =
-          answerPlyCount(row['fen'] as String, mover, otherSans, parameters);
+      final otherShown = answerPlyCount(
+        row['fen'] as String,
+        mover,
+        otherSans,
+        parameters,
+      );
       if (otherShown > 0) {
         final otherBoard = chess.Chess.fromFEN(row['fen'] as String);
         final otherMoves = <Map<String, dynamic>>[];
@@ -759,7 +761,7 @@ List<Map<String, dynamic>> skeletonMoments(
       'program': program,
       'events': [
         for (final e in story)
-          if (e['ply'] == i) e['text']
+          if (e['ply'] == i) e['text'],
       ],
     });
   }
@@ -799,7 +801,9 @@ bool changedHands(List<Map<String, dynamic>> rows, int i) {
 /// at the end is the most decisive part of the tutorial that exists rather than
 /// nothing at all when the model passed the marked one over.
 String? decisiveMoment(
-    List<Map<String, dynamic>> moments, List<Map<String, dynamic>> rows) {
+  List<Map<String, dynamic>> moments,
+  List<Map<String, dynamic>> rows,
+) {
   if (moments.isEmpty) return null;
   Map<String, dynamic>? best;
   var bestKey = (false, 0.0, 0);

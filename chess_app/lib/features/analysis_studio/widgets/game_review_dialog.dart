@@ -163,8 +163,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
             thisGameRun.status == ReviewRunStatus.failed)) {
       body = _buildDoneControls(thisGameRun);
     } else {
-      body = _buildSetupControls(moveCount,
-          blockedBy: otherGameRunning ? run : null);
+      body = _buildSetupControls(
+        moveCount,
+        blockedBy: otherGameRunning ? run : null,
+      );
     }
 
     return Dialog(
@@ -173,7 +175,8 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         width: 440,
         padding: const EdgeInsets.all(AppSpacing.xl),
         constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.85),
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,12 +186,18 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.fact_check,
-                        color: context.colors.accent, size: 22),
+                    Icon(
+                      Icons.fact_check,
+                      color: context.colors.accent,
+                      size: 22,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
-                    Text('Review game',
-                        style: AppText.title
-                            .copyWith(color: context.colors.textPrimary)),
+                    Text(
+                      'Review game',
+                      style: AppText.title.copyWith(
+                        color: context.colors.textPrimary,
+                      ),
+                    ),
                   ],
                 ),
                 IconButton(
@@ -239,18 +248,26 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('A review of another game is under way.',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textPrimary)),
+              Text(
+                'A review of another game is under way.',
+                style: AppText.bodyBold.copyWith(
+                  color: context.colors.textPrimary,
+                ),
+              ),
               const SizedBox(height: AppSpacing.xs),
-              Text(_stageText(blockedBy.progress),
-                  style: AppText.caption
-                      .copyWith(color: context.colors.textMuted)),
+              Text(
+                _stageText(blockedBy.progress),
+                style: AppText.caption.copyWith(
+                  color: context.colors.textMuted,
+                ),
+              ),
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton.icon(
                 icon: Icon(Icons.cancel, color: context.colors.danger),
-                label: Text('Cancel that review',
-                    style: TextStyle(color: context.colors.danger)),
+                label: Text(
+                  'Cancel that review',
+                  style: TextStyle(color: context.colors.danger),
+                ),
                 onPressed: () => _runner.cancel(),
               ),
             ],
@@ -261,10 +278,14 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Engine depth (d): $_engineDepth',
-              style: AppText.body.copyWith(color: context.colors.textPrimary)),
-          Text('depth $_engineDepth',
-              style: AppText.bodyBold.copyWith(color: context.colors.warning)),
+          Text(
+            'Engine depth (d): $_engineDepth',
+            style: AppText.body.copyWith(color: context.colors.textPrimary),
+          ),
+          Text(
+            'depth $_engineDepth',
+            style: AppText.bodyBold.copyWith(color: context.colors.warning),
+          ),
         ],
       ),
       AppSlider(
@@ -283,72 +304,65 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         title: Text(
           'Analyze only from the current position forward',
           style: AppText.body.copyWith(
-              color: _hasCurrentNodeOption
-                  ? context.colors.textPrimary
-                  : context.colors.textMuted),
+            color: _hasCurrentNodeOption
+                ? context.colors.textPrimary
+                : context.colors.textMuted,
+          ),
         ),
         subtitle: !_hasCurrentNodeOption
-            ? Text('The current position is already the start of the game.',
-                style: AppText.micro.copyWith(color: context.colors.textMuted))
+            ? Text(
+                'The current position is already the start of the game.',
+                style: AppText.micro.copyWith(color: context.colors.textMuted),
+              )
             : null,
         onChanged: _hasCurrentNodeOption
             ? (val) => setState(() => _analyzeFromCurrent = val ?? false)
             : null,
       ),
       const Divider(height: 20),
-      Text('Blunder detection',
-          style: AppText.bodyBold.copyWith(color: context.colors.textPrimary)),
+      Text(
+        'Blunder detection',
+        style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+      ),
       const SizedBox(height: AppSpacing.xs),
       CheckboxListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         value: _blunderAlertEnabled,
-        title: Text('Blunder Alert — tag mistakes and suggest a better move',
-            style: AppText.body.copyWith(color: context.colors.textPrimary)),
+        title: Text(
+          'Blunder Alert — tag mistakes and suggest a better move',
+          style: AppText.body.copyWith(color: context.colors.textPrimary),
+        ),
         onChanged: (val) => setState(() => _blunderAlertEnabled = val ?? false),
       ),
-      if (_blunderAlertEnabled) ...[
+      if (_blunderAlertEnabled)
         Padding(
           padding: const EdgeInsets.only(left: AppSpacing.xxxl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SegmentedButton<BlunderAlertSide>(
-                segments: const [
-                  ButtonSegment(
-                      value: BlunderAlertSide.both, label: Text('Both')),
-                  ButtonSegment(
-                      value: BlunderAlertSide.white, label: Text('White')),
-                  ButtonSegment(
-                      value: BlunderAlertSide.black, label: Text('Black')),
-                ],
-                selected: {_blunderSide},
-                onSelectionChanged: (sel) =>
-                    setState(() => _blunderSide = sel.first),
+          child: CheckboxListTile(
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _insertBetterMoveLine,
+            title: Text(
+              'Add a short line with the better move',
+              style: AppText.caption.copyWith(
+                color: context.colors.textPrimary,
               ),
-              CheckboxListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: _insertBetterMoveLine,
-                title: Text('Add a short line with the better move',
-                    style: AppText.caption
-                        .copyWith(color: context.colors.textPrimary)),
-                onChanged: (val) =>
-                    setState(() => _insertBetterMoveLine = val ?? true),
-              ),
-            ],
+            ),
+            onChanged: (val) =>
+                setState(() => _insertBetterMoveLine = val ?? true),
           ),
         ),
-      ],
       CheckboxListTile(
         dense: true,
         contentPadding: EdgeInsets.zero,
         controlAffinity: ListTileControlAffinity.leading,
         value: _extractPuzzlesEnabled,
-        title: Text('Extract puzzles from detected blunders',
-            style: AppText.body.copyWith(color: context.colors.textPrimary)),
+        title: Text(
+          'Extract puzzles from detected blunders',
+          style: AppText.body.copyWith(color: context.colors.textPrimary),
+        ),
         onChanged: (val) =>
             setState(() => _extractPuzzlesEnabled = val ?? false),
       ),
@@ -357,9 +371,12 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           padding: const EdgeInsets.only(left: AppSpacing.xxxl),
           child: Row(
             children: [
-              Text('Max puzzles: $_maxPuzzles',
-                  style: AppText.caption
-                      .copyWith(color: context.colors.textPrimary)),
+              Text(
+                'Max puzzles: $_maxPuzzles',
+                style: AppText.caption.copyWith(
+                  color: context.colors.textPrimary,
+                ),
+              ),
               Expanded(
                 child: AppSlider(
                   value: _maxPuzzles.toDouble(),
@@ -371,6 +388,29 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                 ),
               ),
             ],
+          ),
+        ),
+      // Blunder Alert's Both / White / Black applies to the puzzles too
+      // (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, §1) — shown whenever either is on,
+      // not only inside the Blunder Alert block.
+      if (_blunderAlertEnabled || _extractPuzzlesEnabled)
+        Padding(
+          padding: const EdgeInsets.only(left: AppSpacing.xxxl),
+          child: SegmentedButton<BlunderAlertSide>(
+            segments: const [
+              ButtonSegment(value: BlunderAlertSide.both, label: Text('Both')),
+              ButtonSegment(
+                value: BlunderAlertSide.white,
+                label: Text('White'),
+              ),
+              ButtonSegment(
+                value: BlunderAlertSide.black,
+                label: Text('Black'),
+              ),
+            ],
+            selected: {_blunderSide},
+            onSelectionChanged: (sel) =>
+                setState(() => _blunderSide = sel.first),
           ),
         ),
       const SizedBox(height: AppSpacing.sm),
@@ -412,6 +452,8 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         return 'Looking again: ${p.done} / ${p.total}';
       case ReviewStage.deepen:
         return 'Looking deeper: ${p.done} / ${p.total} searches';
+      case ReviewStage.answers:
+        return 'Looking for puzzles: ${p.done} / ${p.total}';
     }
   }
 
@@ -425,22 +467,27 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
         child: Center(
           child: Column(
             children: [
-              Text(_stageText(p),
-                  textAlign: TextAlign.center,
-                  style: AppText.bodyLargeBold
-                      .copyWith(color: context.colors.accent)),
+              Text(
+                _stageText(p),
+                textAlign: TextAlign.center,
+                style: AppText.bodyLargeBold.copyWith(
+                  color: context.colors.accent,
+                ),
+              ),
               const SizedBox(height: AppSpacing.lg),
               LinearProgressIndicator(
-                  value: pct,
-                  backgroundColor: context.colors.surfaceRaised,
-                  color: context.colors.accent),
+                value: pct,
+                backgroundColor: context.colors.surfaceRaised,
+                color: context.colors.accent,
+              ),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'The review may take long — it goes on if this window is '
                 'closed.',
                 textAlign: TextAlign.center,
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted),
+                style: AppText.caption.copyWith(
+                  color: context.colors.textMuted,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               // A `Wrap`, not a `Row`: two buttons at 400 px do not fit side
@@ -459,8 +506,10 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
                   OutlinedButton.icon(
                     key: const Key('review-cancel'),
                     icon: Icon(Icons.cancel, color: context.colors.danger),
-                    label: Text('Cancel',
-                        style: TextStyle(color: context.colors.danger)),
+                    label: Text(
+                      'Cancel',
+                      style: TextStyle(color: context.colors.danger),
+                    ),
                     onPressed: () {
                       _runner.cancel();
                       Navigator.pop(context);
@@ -490,11 +539,13 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
     final clean = options.markMistakes &&
         run.marked == 0 &&
         result != null &&
-        result.cleanWhere((m) => switch (options.side) {
-              BlunderAlertSide.white => m.whiteMoved,
-              BlunderAlertSide.black => !m.whiteMoved,
-              BlunderAlertSide.both => true,
-            });
+        result.cleanWhere(
+          (m) => switch (options.side) {
+            BlunderAlertSide.white => m.whiteMoved,
+            BlunderAlertSide.black => !m.whiteMoved,
+            BlunderAlertSide.both => true,
+          },
+        );
 
     return [
       Container(
@@ -503,112 +554,163 @@ class _GameReviewDialogState extends State<GameReviewDialog> {
           child: Column(
             children: [
               Icon(
-                  run.status == ReviewRunStatus.failed
-                      ? Icons.error
-                      : Icons.check_circle,
-                  color: run.status == ReviewRunStatus.failed
-                      ? context.colors.danger
-                      : context.colors.accent,
-                  size: 36),
+                run.status == ReviewRunStatus.failed
+                    ? Icons.error
+                    : Icons.check_circle,
+                color: run.status == ReviewRunStatus.failed
+                    ? context.colors.danger
+                    : context.colors.accent,
+                size: 36,
+              ),
               const SizedBox(height: AppSpacing.md),
               if (run.status == ReviewRunStatus.failed)
-                Text('The review stopped: ${run.failure ?? 'unknown error'}.',
-                    textAlign: TextAlign.center,
-                    style:
-                        AppText.subtitle.copyWith(color: context.colors.danger))
+                Text(
+                  'The review stopped: ${run.failure ?? 'unknown error'}.',
+                  textAlign: TextAlign.center,
+                  style: AppText.subtitle.copyWith(
+                    color: context.colors.danger,
+                  ),
+                )
               else ...[
                 Text(
                   'Done — reviewed $positions positions.',
                   textAlign: TextAlign.center,
-                  style:
-                      AppText.subtitle.copyWith(color: context.colors.accent),
+                  style: AppText.subtitle.copyWith(
+                    color: context.colors.accent,
+                  ),
                 ),
                 const SizedBox(height: 6),
-                Text('The review stands on depth $depth.',
-                    key: const Key('review-depth'),
-                    textAlign: TextAlign.center,
-                    style: AppText.caption
-                        .copyWith(color: context.colors.textMuted)),
+                Text(
+                  'The review stands on depth $depth.',
+                  key: const Key('review-depth'),
+                  textAlign: TextAlign.center,
+                  style: AppText.caption.copyWith(
+                    color: context.colors.textMuted,
+                  ),
+                ),
                 if (options.markMistakes) ...[
                   const SizedBox(height: 6),
                   Text(
-                      run.marked == 1
-                          ? 'Marked 1 mistake.'
-                          : 'Marked ${run.marked} mistakes.',
-                      textAlign: TextAlign.center,
-                      style: AppText.body
-                          .copyWith(color: context.colors.textPrimary)),
+                    run.marked == 1
+                        ? 'Marked 1 mistake.'
+                        : 'Marked ${run.marked} mistakes.',
+                    textAlign: TextAlign.center,
+                    style: AppText.body.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
                   if (clean)
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
-                      child: Text('No mistake found at depth $depth.',
-                          key: const Key('review-clean'),
-                          textAlign: TextAlign.center,
-                          style: AppText.body
-                              .copyWith(color: context.colors.textPrimary)),
+                      child: Text(
+                        'No mistake found at depth $depth.',
+                        key: const Key('review-clean'),
+                        textAlign: TextAlign.center,
+                        style: AppText.body.copyWith(
+                          color: context.colors.textPrimary,
+                        ),
+                      ),
                     ),
                 ],
                 if (result != null && result.unsettled > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        'The looks still disagreed on ${result.unsettled} move(s).',
-                        key: const Key('review-unsettled'),
-                        textAlign: TextAlign.center,
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted)),
+                      'The looks still disagreed on ${result.unsettled} move(s).',
+                      key: const Key('review-unsettled'),
+                      textAlign: TextAlign.center,
+                      style: AppText.caption.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
                   ),
                 if (result != null && result.unjudged > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        'The engine did not answer on ${result.unjudged} move(s).',
-                        key: const Key('review-unjudged'),
-                        textAlign: TextAlign.center,
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted)),
+                      'The engine did not answer on ${result.unjudged} move(s).',
+                      key: const Key('review-unjudged'),
+                      textAlign: TextAlign.center,
+                      style: AppText.caption.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
                   ),
                 if (run.tally.fromStore > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        '${run.tally.fromStore} answer(s) came from earlier '
-                        'searches.',
-                        key: const Key('review-from-store'),
-                        textAlign: TextAlign.center,
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted)),
+                      '${run.tally.fromStore} answer(s) came from earlier '
+                      'searches.',
+                      key: const Key('review-from-store'),
+                      textAlign: TextAlign.center,
+                      style: AppText.caption.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
                   ),
                 if (result?.bookUnavailable != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        'The book could not be asked (${result!.bookUnavailable}).',
-                        textAlign: TextAlign.center,
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted)),
+                      'The book could not be asked (${result!.bookUnavailable}).',
+                      textAlign: TextAlign.center,
+                      style: AppText.caption.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
                   ),
                 if (result != null && result.tablebaseUnanswered > 0)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        'The tablebase did not answer on '
-                        '${result.tablebaseUnanswered} move(s).',
-                        textAlign: TextAlign.center,
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted)),
+                      'The tablebase did not answer on '
+                      '${result.tablebaseUnanswered} move(s).',
+                      textAlign: TextAlign.center,
+                      style: AppText.caption.copyWith(
+                        color: context.colors.textMuted,
+                      ),
+                    ),
                   ),
                 if (run.landing == ReviewLanding.notLanded)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        'The game changed while it was reviewed — the marks '
-                        'were not written.',
-                        textAlign: TextAlign.center,
-                        style: AppText.body
-                            .copyWith(color: context.colors.warning)),
+                      'The game changed while it was reviewed — the marks '
+                      'were not written.',
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(
+                        color: context.colors.warning,
+                      ),
+                    ),
                   ),
               ],
+              if (run.options.findPuzzles && run.puzzles.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    'No puzzle found in this game.',
+                    key: const Key('review-no-puzzles'),
+                    textAlign: TextAlign.center,
+                    style: AppText.body.copyWith(
+                      color: context.colors.textPrimary,
+                    ),
+                  ),
+                ),
+              if (run.puzzlesUnplayable > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    run.puzzlesUnplayable == 1
+                        ? '1 puzzle left out: a line did not replay.'
+                        : '${run.puzzlesUnplayable} puzzles left out: a '
+                            'line did not replay.',
+                    textAlign: TextAlign.center,
+                    style: AppText.caption.copyWith(
+                      color: context.colors.textMuted,
+                    ),
+                  ),
+                ),
               const SizedBox(height: AppSpacing.lg),
               if (run.puzzles.isNotEmpty)
                 KeepPuzzlesPanel(

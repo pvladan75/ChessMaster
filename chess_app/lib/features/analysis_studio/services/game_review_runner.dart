@@ -158,6 +158,9 @@ class GameReviewRun extends ChangeNotifier {
   List<LocalPuzzle> _puzzles = const [];
   List<LocalPuzzle> get puzzles => _puzzles;
 
+  int _puzzlesUnplayable = 0;
+  int get puzzlesUnplayable => _puzzlesUnplayable;
+
   ReviewLanding? _landing;
   ReviewLanding? get landing => _landing;
 
@@ -233,8 +236,11 @@ class GameReviewRunner extends ChangeNotifier {
       throw StateError('a review is already running');
     }
     final game = ReviewedGame.of(root: root, start: start);
-    final run =
-        GameReviewRun(game: game, options: options, gameTitle: gameTitle);
+    final run = GameReviewRun(
+      game: game,
+      options: options,
+      gameTitle: gameTitle,
+    );
     _current = run;
     notifyListeners();
     unawaited(_run(run, engine));
@@ -263,7 +269,10 @@ class GameReviewRunner extends ChangeNotifier {
         tally: run.tally,
       );
       final judge = GameReviewJudge(
-          analyzer: analyzer, book: _book, tablebase: _tablebase);
+        analyzer: analyzer,
+        book: _book,
+        tablebase: _tablebase,
+      );
       _judge = judge;
 
       GameReviewResult? result;
@@ -272,6 +281,7 @@ class GameReviewRunner extends ChangeNotifier {
           startingFen: run.game.startFen,
           uciMoves: run.game.mainLineUci,
           depth: run.options.depth,
+          puzzles: run.options.findPuzzles ? run.options.side : null,
           onProgress: (progress) {
             run._setProgress(progress);
             if (!AccountLocalState.isCurrent(epoch)) judge.cancel();
@@ -291,8 +301,13 @@ class GameReviewRunner extends ChangeNotifier {
       run._result = result;
 
       if (run.options.findPuzzles) {
-        run._puzzles = LocalPuzzleExtractorService()
-            .buildPuzzlesFromReview(result, maxPuzzles: run.options.maxPuzzles);
+        final puzzles = LocalPuzzleExtractorService().buildPuzzlesFromReview(
+          result,
+          maxPuzzles: run.options.maxPuzzles,
+          side: run.options.side,
+        );
+        run._puzzles = puzzles.all;
+        run._puzzlesUnplayable = puzzles.unplayable;
       }
 
       if (run.options.markMistakes) {
@@ -318,7 +333,10 @@ class GameReviewRunner extends ChangeNotifier {
   /// so a sign-out during either lands nothing (1.1: a fence against „after"
   /// stands at the last step).
   Future<void> _land(
-      GameReviewRun run, GameReviewResult result, int epoch) async {
+    GameReviewRun run,
+    GameReviewResult result,
+    int epoch,
+  ) async {
     for (var i = _boards.length - 1; i >= 0; i--) {
       final board = _boards[i];
       final chain = run.game.chainIn(board.reviewRoot);

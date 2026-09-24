@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4055 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4110 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
 cd chess_backend && npm test          # node --test, 1842 with TEST_DATABASE_URL, 1697 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -735,6 +735,16 @@ writes.** And a live search queued just before the hold waited out its
 debounce behind the checked doors and would have fired into the review:
 **a hold guards the doors; what already went through them is cancelled
 separately.**
+Then phase 1.3 (→ **4110**, a full run; analyze the same 23): a puzzle is the
+position *before* the mistake, only where one move stands 15 chances clear
+with the same best move at both depths, every mating first move accepted,
+the trivial ranked last, a chance missed within 4 plies one puzzle, the only
+moves a player found listed apart. The worker stopped on the lead's own
+fixture — a fake engine that threw at a one-move position reads as an engine
+that fell silent, and the review counts silence honestly: **a fake that
+throws instead of answering hides behind the code that forgives silence.**
+And **run `dart format` after `pub get`**: without the package config it
+formats in the newest style, and the trailing commas it adds survive.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

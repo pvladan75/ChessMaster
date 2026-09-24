@@ -18,6 +18,10 @@ library;
 
 import 'dart:math' as math;
 
+import 'package:chess/chess.dart' as chess;
+
+import 'package:chess_app/core/services/legal_moves.dart' show legalMoves;
+
 /// A loss of at least this many chances is a mistake.
 const double kMistakeLoss = 10;
 
@@ -46,8 +50,10 @@ class EngineValue {
   /// White's side: `+1.39`, `-0.35`, `0.00`, `M3`, `-M2` — to the side to
   /// move's view. Anything else is refused: an evaluation read as 0 would
   /// judge a move against a position the engine never gave.
-  factory EngineValue.fromEvaluation(String evaluation,
-      {required bool whiteToMove}) {
+  factory EngineValue.fromEvaluation(
+    String evaluation, {
+    required bool whiteToMove,
+  }) {
     final raw = evaluation.trim();
     final mate = RegExp(r'^(-)?M(\d+)$').firstMatch(raw);
     final sign = whiteToMove ? 1 : -1;
@@ -91,8 +97,10 @@ int _cappedCentipawns(EngineValue value) {
 
 /// The played move's loss against the best in capped centipawns, never below
 /// zero.
-int lossInCentipawns(
-        {required EngineValue best, required EngineValue played}) =>
+int lossInCentipawns({
+  required EngineValue best,
+  required EngineValue played,
+}) =>
     math.max(0, _cappedCentipawns(best) - _cappedCentipawns(played));
 
 /// Whether a position with [chances] for the side to move is already decided.
@@ -143,10 +151,14 @@ MoveJudgement judgeMove({
   }
   if (bookGames >= kTheoryGames) {
     return MoveJudgement(
-        lost, lost >= kGrossLossInBook ? MistakeReason.grossInBook : null);
+      lost,
+      lost >= kGrossLossInBook ? MistakeReason.grossInBook : null,
+    );
   }
   return MoveJudgement(
-      lost, lost >= kMistakeLoss ? MistakeReason.lostChances : null);
+    lost,
+    lost >= kMistakeLoss ? MistakeReason.lostChances : null,
+  );
 }
 
 // --- The review's second look (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, 1.2a) ----
@@ -191,5 +203,33 @@ MoveJudgement judgeByTablebase({
   required TablebaseOutcome played,
   required double lostChances,
 }) =>
-    MoveJudgement(lostChances,
-        played.index < position.index ? MistakeReason.worseResult : null);
+    MoveJudgement(
+      lostChances,
+      played.index < position.index ? MistakeReason.worseResult : null,
+    );
+
+// --- The only moves a player found (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, 1.3) -
+
+/// `B` — one move stands out — for a puzzle: the gap to the second best must
+/// be at least this many chances. The owner's choice of 24.9.2026.
+const double kStandsOut = 15;
+
+/// Whether the position in [fenBefore] needs no finding: the side to move is
+/// in check, has three legal moves or fewer, or [answerUci] is a capture
+/// landing on the square [previousUci] landed on (a recapture). Exactly phase
+/// 0's definition (`outside.mjs`: `isRecap || inCheck || legal <= 3`). Read by
+/// the judge, to skip a search, and by the extractor, to rank and to refuse —
+/// one function, not copied (rule 12).
+bool isTrivialFind(String fenBefore, String answerUci, {String? previousUci}) {
+  final board = chess.Chess.fromFEN(fenBefore);
+  if (board.in_check) return true;
+  if (legalMoves(board).length <= 3) return true;
+  if (previousUci != null && previousUci.length >= 4 && answerUci.length >= 4) {
+    final landedOn = previousUci.substring(2, 4);
+    final answerTo = answerUci.substring(2, 4);
+    if (landedOn == answerTo && board.get(answerTo) != null) {
+      return true;
+    }
+  }
+  return false;
+}

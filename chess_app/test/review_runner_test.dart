@@ -57,7 +57,10 @@ class _Game {
     fens.add(start);
     final game = chess.Chess.fromFEN(start);
     for (final u in ucis) {
-      final ok = game.move({'from': u.substring(0, 2), 'to': u.substring(2, 4)});
+      final ok = game.move({
+        'from': u.substring(0, 2),
+        'to': u.substring(2, 4),
+      });
       if (!ok) throw StateError('not a legal move: $u');
       fens.add(game.fen);
     }
@@ -69,7 +72,7 @@ class _Game {
 
   List<String> otherMoves(int i) => [
         for (final m in legalMoves(chess.Chess.fromFEN(fens[i])))
-          '${m['from']}${m['to']}${m['promotion'] ?? ''}'
+          '${m['from']}${m['to']}${m['promotion'] ?? ''}',
       ].where((u) => i >= ucis.length || u != ucis[i]).toList();
 }
 
@@ -78,10 +81,15 @@ class _Game {
 /// position is worth. Every question, hold and release goes into [log], in
 /// order.
 class _Engine implements StockfishService {
-  _Engine(this.game, List<double> chances)
-      : value = [for (final w in chances) c(w)];
+  _Engine(this.game, this.whiteChances)
+      : value = [for (final w in whiteChances) c(w)];
 
   final _Game game;
+
+  /// White's winning chances at each position — kept alongside [value] (the
+  /// formatted string) so a second line can be built at an exact gap below
+  /// the first, for the side actually to move there.
+  final List<double> whiteChances;
   final List<String> value;
   final List<String> log = [];
 
@@ -105,18 +113,27 @@ class _Engine implements StockfishService {
     onAsk?.call(i);
     AnalysisLine line(int pv, String evaluation, String uci) =>
         AnalysisLine.fromPv(
-            multipv: pv,
-            depth: depth,
-            eval: evaluation,
-            pvString: uci,
-            startingFen: fen);
+          multipv: pv,
+          depth: depth,
+          eval: evaluation,
+          pvString: uci,
+          startingFen: fen,
+        );
     if (searchMoves != null) {
       return [line(1, value[i + 1], searchMoves.first)];
     }
     final others = game.otherMoves(i);
+    // Phase 1.3 (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md): a puzzle needs the
+    // second line at least `kStandsOut` chances below the first, for the
+    // side to move — the same value as the first (as this used to answer)
+    // finds no puzzle at all under `B`, which is the expected red, not a bug
+    // in the rule. 20 chances below, for whoever is to move at [i]: White's
+    // own chances shift by −20 there, Black's by the mirrored +20.
+    final secondWhite = (i.isEven ? whiteChances[i] - 20 : whiteChances[i] + 20)
+        .clamp(1.0, 99.0);
     return [
       line(1, value[i], others.first),
-      if (multiPV >= 2 && others.length > 1) line(2, value[i], others[1]),
+      if (multiPV >= 2 && others.length > 1) line(2, c(secondWhite), others[1]),
     ];
   }
 
@@ -197,89 +214,97 @@ void main() {
 
   group('where the result lands', () {
     test(
-        'the review runs with no screen, and lands on the board that holds '
-        'the game — found by its moves, not by the nodes it was started on',
-        () async {
-      final runner = _runner();
-      final shown = _tree(_italian);
-      final board = _Board(shown);
-      runner.attachBoard(board);
-      addTearDown(() => runner.detachBoard(board));
+      'the review runs with no screen, and lands on the board that holds '
+      'the game — found by its moves, not by the nodes it was started on',
+      () async {
+        final runner = _runner();
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
 
-      // Started on a copy: the screen that started it is not the one it
-      // lands on.
-      final startedOn = _tree(_italian);
-      final run = runner.start(
-        root: startedOn,
-        start: startedOn,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: _Engine(italian, _twoMistakes),
-      );
-      await run.finished;
+        // Started on a copy: the screen that started it is not the one it
+        // lands on.
+        final startedOn = _tree(_italian);
+        final run = runner.start(
+          root: startedOn,
+          start: startedOn,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await run.finished;
 
-      expect(run.status, ReviewRunStatus.done);
-      expect(run.landing, ReviewLanding.onBoard);
-      expect(board.landed, 1);
-      expect(_nags(shown), [null, null, null, null, '??', '??']);
-      expect(run.marked, 2);
-      // The better move beside the mistake, as Blunder Alert always did.
-      final parent = _moveAt(shown, 3);
-      expect(parent.children, hasLength(2));
-      expect(parent.children[1].nag, '!');
-    });
+        expect(run.status, ReviewRunStatus.done);
+        expect(run.landing, ReviewLanding.onBoard);
+        expect(board.landed, 1);
+        expect(_nags(shown), [null, null, null, null, '??', '??']);
+        expect(run.marked, 2);
+        // The better move beside the mistake, as Blunder Alert always did.
+        final parent = _moveAt(shown, 3);
+        expect(parent.children, hasLength(2));
+        expect(parent.children[1].nag, '!');
+      },
+    );
 
-    test('with no board, the draft that holds the game takes the marks',
-        () async {
-      final runner = _runner();
-      final root = _tree(_italian);
-      await AnalysisDraftService.instance.flush(
-        rootNode: root,
-        currentNode: _moveAt(root, 1),
-        blackOrientation: true,
-        epoch: AccountLocalState.epoch,
-      );
+    test(
+      'with no board, the draft that holds the game takes the marks',
+      () async {
+        final runner = _runner();
+        final root = _tree(_italian);
+        await AnalysisDraftService.instance.flush(
+          rootNode: root,
+          currentNode: _moveAt(root, 1),
+          blackOrientation: true,
+          epoch: AccountLocalState.epoch,
+        );
 
-      final run = runner.start(
-        root: root,
-        start: root,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: _Engine(italian, _twoMistakes),
-      );
-      await run.finished;
+        final run = runner.start(
+          root: root,
+          start: root,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await run.finished;
 
-      expect(run.landing, ReviewLanding.inDraft);
-      final draft = await AnalysisDraftService.instance.load();
-      expect(_nags(draft!.rootNode), [null, null, null, null, '??', '??']);
-      expect(draft.blackOrientation, isTrue,
-          reason: 'the draft is the reader\'s, not only its moves');
-      expect(draft.resolveCurrentNode().fen, italian.fens[2]);
-    });
+        expect(run.landing, ReviewLanding.inDraft);
+        final draft = await AnalysisDraftService.instance.load();
+        expect(_nags(draft!.rootNode), [null, null, null, null, '??', '??']);
+        expect(
+          draft.blackOrientation,
+          isTrue,
+          reason: 'the draft is the reader\'s, not only its moves',
+        );
+        expect(draft.resolveCurrentNode().fen, italian.fens[2]);
+      },
+    );
 
-    test('a draft that holds another game is left alone, and it is said',
-        () async {
-      final runner = _runner();
-      final other = _tree(_queensPawn);
-      await AnalysisDraftService.instance.flush(
-        rootNode: other,
-        currentNode: other,
-        blackOrientation: false,
-        epoch: AccountLocalState.epoch,
-      );
+    test(
+      'a draft that holds another game is left alone, and it is said',
+      () async {
+        final runner = _runner();
+        final other = _tree(_queensPawn);
+        await AnalysisDraftService.instance.flush(
+          rootNode: other,
+          currentNode: other,
+          blackOrientation: false,
+          epoch: AccountLocalState.epoch,
+        );
 
-      final root = _tree(_italian);
-      final run = runner.start(
-        root: root,
-        start: root,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: _Engine(italian, _twoMistakes),
-      );
-      await run.finished;
+        final root = _tree(_italian);
+        final run = runner.start(
+          root: root,
+          start: root,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await run.finished;
 
-      expect(run.landing, ReviewLanding.notLanded);
-      final draft = await AnalysisDraftService.instance.load();
-      expect(_anyNag(draft!.rootNode), isFalse);
-      expect(draft.rootNode.children.single.moveUci, 'd2d4');
-    });
+        expect(run.landing, ReviewLanding.notLanded);
+        final draft = await AnalysisDraftService.instance.load();
+        expect(_anyNag(draft!.rootNode), isFalse);
+        expect(draft.rootNode.children.single.moveUci, 'd2d4');
+      },
+    );
 
     test('a board that lost the moves does not take the marks', () async {
       final runner = _runner();
@@ -333,28 +358,33 @@ void main() {
       expect(_anyNag(draft!.rootNode), isFalse);
     });
 
-    test('reviewed from a position forward, only those moves are judged',
-        () async {
-      final runner = _runner();
-      final shown = _tree(_italian);
-      final board = _Board(shown);
-      runner.attachBoard(board);
-      addTearDown(() => runner.detachBoard(board));
+    test(
+      'reviewed from a position forward, only those moves are judged',
+      () async {
+        final runner = _runner();
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
 
-      final engine = _Engine(italian, _twoMistakes);
-      final run = runner.start(
-        root: shown,
-        start: _moveAt(shown, 4), // after 3.Bc4: only 3...Nf6 is reviewed
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: engine,
-      );
-      await run.finished;
+        final engine = _Engine(italian, _twoMistakes);
+        final run = runner.start(
+          root: shown,
+          start: _moveAt(shown, 4), // after 3.Bc4: only 3...Nf6 is reviewed
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: engine,
+        );
+        await run.finished;
 
-      expect(run.result!.moves, hasLength(1));
-      expect(_nags(shown), [null, null, null, null, null, '??']);
-      expect(engine.asked.where((a) => a.startsWith('p4 ')), isEmpty,
-          reason: 'a position before the start was searched');
-    });
+        expect(run.result!.moves, hasLength(1));
+        expect(_nags(shown), [null, null, null, null, null, '??']);
+        expect(
+          engine.asked.where((a) => a.startsWith('p4 ')),
+          isEmpty,
+          reason: 'a position before the start was searched',
+        );
+      },
+    );
   });
 
   group('what is left, and for whom', () {
@@ -371,8 +401,7 @@ void main() {
         final run = runner.start(
           root: shown,
           start: shown,
-          options:
-              ReviewOptions(depth: 20, markMistakes: true, side: side),
+          options: ReviewOptions(depth: 20, markMistakes: true, side: side),
           engine: _Engine(italian, _twoMistakes),
         );
         await run.finished;
@@ -382,127 +411,142 @@ void main() {
       }
     });
 
-    test('without Blunder Alert nothing is marked; puzzles only when asked',
-        () async {
-      final runner = _runner();
-      final shown = _tree(_italian);
-      final board = _Board(shown);
-      runner.attachBoard(board);
-      addTearDown(() => runner.detachBoard(board));
+    test(
+      'without Blunder Alert nothing is marked; puzzles only when asked',
+      () async {
+        final runner = _runner();
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
 
-      final run = runner.start(
-        root: shown,
-        start: shown,
-        options: const ReviewOptions(depth: 20, findPuzzles: true),
-        engine: _Engine(italian, _twoMistakes),
-      );
-      await run.finished;
+        final run = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(depth: 20, findPuzzles: true),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await run.finished;
 
-      expect(_anyNag(shown), isFalse);
-      expect(board.landed, 0, reason: 'nothing was asked to land');
-      expect(run.puzzles, hasLength(2));
-      // Worst first: Black's forty before White's thirty.
-      expect(run.puzzles.first.sourcePlyIndex, 5);
+        expect(_anyNag(shown), isFalse);
+        expect(board.landed, 0, reason: 'nothing was asked to land');
+        expect(run.puzzles, hasLength(2));
+        // Worst first: Black's forty before White's thirty.
+        expect(run.puzzles.first.sourcePlyIndex, 5);
 
-      runner.dismiss();
-      EvalCache.instance.clear();
-      final capped = runner.start(
-        root: shown,
-        start: shown,
-        options: const ReviewOptions(
-            depth: 20, markMistakes: true, findPuzzles: true, maxPuzzles: 1),
-        engine: _Engine(italian, _twoMistakes),
-      );
-      await capped.finished;
-      expect(capped.puzzles.single.sourcePlyIndex, 5);
+        runner.dismiss();
+        EvalCache.instance.clear();
+        final capped = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(
+            depth: 20,
+            markMistakes: true,
+            findPuzzles: true,
+            maxPuzzles: 1,
+          ),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await capped.finished;
+        expect(capped.puzzles.single.sourcePlyIndex, 5);
 
-      runner.dismiss();
-      EvalCache.instance.clear();
-      final none = runner.start(
-        root: shown,
-        start: shown,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: _Engine(italian, _twoMistakes),
-      );
-      await none.finished;
-      expect(none.puzzles, isEmpty);
-    });
+        runner.dismiss();
+        EvalCache.instance.clear();
+        final none = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: _Engine(italian, _twoMistakes),
+        );
+        await none.finished;
+        expect(none.puzzles, isEmpty);
+      },
+    );
   });
 
   group('the run itself', () {
-    test('the engine is held before the first search and let go after the last',
-        () async {
-      final runner = _runner();
-      final root = _tree(_italian);
-      final engine = _Engine(italian, _twoMistakes);
-      final run = runner.start(
-        root: root,
-        start: root,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: engine,
-      );
-      await run.finished;
+    test(
+      'the engine is held before the first search and let go after the last',
+      () async {
+        final runner = _runner();
+        final root = _tree(_italian);
+        final engine = _Engine(italian, _twoMistakes);
+        final run = runner.start(
+          root: root,
+          start: root,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: engine,
+        );
+        await run.finished;
 
-      expect(engine.log.first, 'hold');
-      expect(engine.log.last, 'release');
-      expect(engine.log.where((e) => e == 'hold'), hasLength(1));
-      expect(engine.log.where((e) => e == 'release'), hasLength(1));
-    });
+        expect(engine.log.first, 'hold');
+        expect(engine.log.last, 'release');
+        expect(engine.log.where((e) => e == 'hold'), hasLength(1));
+        expect(engine.log.where((e) => e == 'release'), hasLength(1));
+      },
+    );
 
-    test('stopped, it lets the engine go and leaves nothing on the game',
-        () async {
-      final runner = _runner();
-      final shown = _tree(_italian);
-      final board = _Board(shown);
-      runner.attachBoard(board);
-      addTearDown(() => runner.detachBoard(board));
+    test(
+      'stopped, it lets the engine go and leaves nothing on the game',
+      () async {
+        final runner = _runner();
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
 
-      final engine = _Engine(italian, _twoMistakes);
-      engine.onAsk = (i) {
-        if (i == 3) runner.cancel();
-      };
-      final run = runner.start(
-        root: shown,
-        start: shown,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: engine,
-      );
-      await run.finished;
+        final engine = _Engine(italian, _twoMistakes);
+        engine.onAsk = (i) {
+          if (i == 3) runner.cancel();
+        };
+        final run = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: engine,
+        );
+        await run.finished;
 
-      expect(run.status, ReviewRunStatus.cancelled);
-      expect(engine.log.last, 'release');
-      expect(board.landed, 0);
-      expect(_anyNag(shown), isFalse);
-    });
+        expect(run.status, ReviewRunStatus.cancelled);
+        expect(engine.log.last, 'release');
+        expect(board.landed, 0);
+        expect(_anyNag(shown), isFalse);
+      },
+    );
 
-    test('a sign-out in the middle stops the review, and nothing lands',
-        () async {
-      final runner = _runner();
-      final shown = _tree(_italian);
-      final board = _Board(shown);
-      runner.attachBoard(board);
-      addTearDown(() => runner.detachBoard(board));
+    test(
+      'a sign-out in the middle stops the review, and nothing lands',
+      () async {
+        final runner = _runner();
+        final shown = _tree(_italian);
+        final board = _Board(shown);
+        runner.attachBoard(board);
+        addTearDown(() => runner.detachBoard(board));
 
-      final engine = _Engine(italian, _twoMistakes);
-      engine.onAsk = (i) {
-        // The wipe raises the epoch at once; what it clears follows.
-        if (i == 3) unawaited(AccountLocalState.clear());
-      };
-      final run = runner.start(
-        root: shown,
-        start: shown,
-        options: const ReviewOptions(depth: 20, markMistakes: true),
-        engine: engine,
-      );
-      await run.finished;
+        final engine = _Engine(italian, _twoMistakes);
+        engine.onAsk = (i) {
+          // The wipe raises the epoch at once; what it clears follows.
+          if (i == 3) unawaited(AccountLocalState.clear());
+        };
+        final run = runner.start(
+          root: shown,
+          start: shown,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: engine,
+        );
+        await run.finished;
 
-      expect(run.status, ReviewRunStatus.cancelled);
-      expect(board.landed, 0);
-      expect(_anyNag(shown), isFalse);
-      expect(engine.log.last, 'release');
-      expect(engine.asked.where((a) => a.startsWith('p6 ')), isEmpty,
-          reason: 'the walk went on after the account was gone');
-    });
+        expect(run.status, ReviewRunStatus.cancelled);
+        expect(board.landed, 0);
+        expect(_anyNag(shown), isFalse);
+        expect(engine.log.last, 'release');
+        expect(
+          engine.asked.where((a) => a.startsWith('p6 ')),
+          isEmpty,
+          reason: 'the walk went on after the account was gone',
+        );
+      },
+    );
 
     test('one review at a time', () async {
       final runner = _runner();
@@ -516,17 +560,21 @@ void main() {
       );
       expect(runner.isRunning, isTrue);
       expect(
-          () => runner.start(
-                root: root,
-                start: root,
-                options: const ReviewOptions(depth: 20, markMistakes: true),
-                engine: engine,
-              ),
-          throwsStateError);
+        () => runner.start(
+          root: root,
+          start: root,
+          options: const ReviewOptions(depth: 20, markMistakes: true),
+          engine: engine,
+        ),
+        throwsStateError,
+      );
       await first.finished;
       expect(runner.isRunning, isFalse);
-      expect(runner.current, same(first),
-          reason: 'a finished run stays until it is dismissed');
+      expect(
+        runner.current,
+        same(first),
+        reason: 'a finished run stays until it is dismissed',
+      );
 
       final second = runner.start(
         root: root,
@@ -564,8 +612,11 @@ void main() {
         engine: engine,
       );
       await second.finished;
-      expect(engine.asked.length, askedFirst,
-          reason: 'a stopped review resumes; it does not start again');
+      expect(
+        engine.asked.length,
+        askedFirst,
+        reason: 'a stopped review resumes; it does not start again',
+      );
       expect(second.tally.searched, 0);
       expect(second.tally.fromStore, greaterThanOrEqualTo(7));
     });

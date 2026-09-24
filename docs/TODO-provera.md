@@ -5878,6 +5878,33 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 241. Zagonetke iz pregleda: pozicija pre greške, jedan jasan potez — 24.9.2026, nije viđeno uživo
+
+Nova verzija aplikacije. `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1.3. Uzmi jednu
+svoju partiju sa bar jednom krupnom greškom. Objašnjenje i linije posle
+rešavanja još ne postoje (faze 2, 3 i 5) — posle poteza i dalje piše samo
+„Correct" / „Not quite".
+
+1. [ ] **Strana i za zagonetke.** U „Review entire game" uključi samo
+   „Extract puzzles…" (Blunder Alert isključen): vidi se Both / White / Black.
+   Izaberi svoju boju — sve nađene zagonetke su tvoji potezi.
+2. [ ] **Pozicija pre greške.** U listi posle pregleda sličica je pozicija
+   *pre* tvog lošeg poteza, red kaže potez („23. Qe7 · lost N") i „Answer: …".
+3. [ ] **Manje, ali jasnih.** Zagonetki je manje nego ranije; pogledaj dve —
+   u obe je odgovor jedan potez koji se jasno ističe, ne jedan od nekoliko
+   podjednako dobrih.
+4. [ ] **Jedini potezi posebno.** Ako ih ima, ispod naslova „Only moves the
+   player found", bez kvačice; „Keep" broji samo označene.
+5. [ ] **Sačuvan zadatak.** Sačuvaj jednu grešku i jedan jedini potez. U
+   Library otvori prvi: pozicija pre greške, uputstvo „A mistake was made in
+   this position. Find the best move.", tvoj potez se ne pominje. Drugi:
+   „The player found the only good move here. Find it."
+6. [ ] **Bez zagonetki kaže to.** Pregled čiste partije sa uključenim
+   zagonetkama završava sa „No puzzle found in this game."
+7. [ ] **Trajanje na telefonu.** Pregled sa zagonetkama traje malo duže nego
+   bez njih (jedna dodatna pretraga po potezu koji si našao); zapiši oba
+   vremena za istu partiju.
+
 ## 240. Pregled partije radi u pozadini — 24.9.2026, nije viđeno uživo
 
 Nova verzija aplikacije. `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1.2b. Najbolje

@@ -7652,3 +7652,45 @@ crveno; URL predat plejeru; izvor postavljen ponovo na Play).
 **Kad test deli posao sa operativnim sistemom, čeka se uslov, ne vreme — i
 kad se pad ne da izazvati opterećenjem, izazovi oblik opterećenja: kašnjenje
 van izolata, ne rad na njemu.**
+
+## 24.9.2026 — faza 1.3: zagonetke, i nameštaljka koja je bacala izuzetak
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` 1.3. Zagonetka je sada pozicija **pre** greške,
+i samo gde jedan potez vodi bar 15 šansi ispred drugog, sa istim najboljim
+potezom u šetnji i u pogledu koji je presudio; mat prima svaki prvi potez koji
+ga forsira; trivijalno (uzimanje nazad, izlaz iz šaha, tri legalna poteza ili
+manje) ide na kraj; šansa propuštena u 4 polupoteza je jedna zagonetka; jedini
+potezi koje je igrač našao su zagonetke za sebe, neoznačene u panelu. Šetnja
+ostaje na jednoj liniji, pa jedini potez traži svoju pretragu od dve linije —
+samo kad su zagonetke tražene, samo za izabranu stranu. `answerPlyCount` je
+podignut u `core/services/answer_line.dart` (tutorijal i dalje 4 i 8, otkriće
+12). Sačuvan zadatak odmah nosi poziciju pre poteza, uputstvo iz §4 i sve tačne
+odgovore; sat je premešten u fazu 3, jedinom čitaocu.
+
+Brojevi: aplikacija 4055 → **4110** (+35 +13 +5 +4 kapija, −1 „today's puzzles"
+u testu sudije, −1 „a puzzle with no answer" u testu panela; 4055 + 57 − 2 =
+4110), pun prolaz u radnom stablu bez ičeg drugog; `flutter analyze` isti 23.
+
+**Nameštaljka koja je bacala izuzetak.** Radnik je stao na jednom slučaju i bio
+u pravu: lažni engine vodećeg računao je drugi i treći potez pri *svakom*
+pozivu (`legal.firstWhere`), a na poziciji sa jednim legalnim potezom to baca
+`Bad state`. `_ask` guta izuzetak, šetnja poziciju vidi kao neodgovorenu, a
+potez pre nje — baš mat oko kog je slučaj — postaje „nepresuđen". Pravilo 9 iz
+drugog ugla: **nameštaljka koja baca umesto da odgovori izgleda kao engine koji
+ćuti**, i kod koji ćutanje pošteno broji to sakriva. Linije koje nisu tražene
+sada se ne računaju. Radnik nije krpio sudiju da prođe — tačno ono što brif
+traži.
+
+**`dart format` u svežem radnom stablu.** Radnik je formatirao pre nego što je
+`.dart_tool/package_config.json` postojao, pa je formater uzeo najnoviju verziju
+jezika i visoki stil; `pubspec` kaže `>=3.0.0`, dakle kratki. Ponovno
+formatiranje posle `pub get` vraća kratki stil, ali **zareze na kraju koje je
+visoki stil dodao zadržava** (kratki stil ih poštuje), pa je diff ove faze
+nekoliko stotina redova šumniji nego što je trebalo. **Formatiraj posle `pub
+get`**, ne pre.
+
+Uz to na ocenjivanju: UCI sastavljen iz SAN-a pisao je `null` kad nema
+promocije (bez posledice danas, jer se gleda samo polje dolaska). 31 mutacija,
+svaka crvena na slučaju svog pravila, osim jedne ekvivalentne: bez čuvara „sve
+tri linije matiraju" drugi red je takođe mat, pa je `B` 0 i zagonetka ionako
+odbijena — čuvar samo drži indeks u opsegu.
