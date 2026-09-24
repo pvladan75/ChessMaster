@@ -126,6 +126,7 @@ class ExerciseDraft {
     this.origin,
     this.sourceTitle,
     this.sourceLabel,
+    this.review,
   });
 
   final String name;
@@ -144,6 +145,11 @@ class ExerciseDraft {
   final String? sourceTitle;
   final String? sourceLabel;
 
+  /// What a puzzle from a game reveals once answered — the wire of
+  /// `readReview` (`services/exercise.js`, `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`
+  /// phases 2 and 4). Null sends nothing, and the server stores none.
+  final Map<String, dynamic>? review;
+
   Map<String, dynamic> toJson() => {
         'name': name,
         if (fen != null) 'fen': fen,
@@ -158,6 +164,7 @@ class ExerciseDraft {
             if (sourceTitle != null) 'title': sourceTitle,
             if (sourceLabel != null) 'label': sourceLabel,
           },
+        if (review != null) 'review': review,
       };
 }
 

@@ -54,8 +54,10 @@ import 'package:chess_app/theme/app_colors.dart';
 const _start = '3r2k1/8/8/8/8/8/8/3Q2K1 w - - 0 1';
 const _afterQd5 = '3r2k1/8/8/3Q4/8/8/8/6K1 b - - 1 1';
 
-/// Black to move after 11...Qc2, about to blunder with 12...Qe7?? (13.Rxe7
-/// wins it); 12...Qc1 held.
+/// Black to move after 11...Qc2, about to blunder with 12...Qe4?? (13.Rxe4
+/// wins it); 12...Qc1 held. (12...Qe7 until phase 4 of
+/// docs/PLAN-ZAGONETKE-IZ-PARTIJE.md — a move the queen on c2 cannot make,
+/// which nothing replayed until the draft began replaying the game's move.)
 const _otherBefore = '6k1/8/8/8/8/8/2q5/4R1K1 b - - 2 12';
 
 LocalPuzzle _puzzle(
@@ -74,12 +76,16 @@ LocalPuzzle _puzzle(
       playedSan: move,
       playedUci: '0000',
       answers: [answer],
+      // A puzzle always carries the line behind its answer — the builder makes
+      // none without one — and since phase 4 of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md
+      // a puzzle whose line does not play cannot be kept at all.
+      bestLine: [answer],
       bestChances: bestChances,
       playedChances: playedChances,
     );
 
 final _hanging = _puzzle('a', fen: _start, move: 'Qd5+', answer: 'Qd3');
-final _rookTakes = _puzzle('b', fen: _otherBefore, move: 'Qe7', answer: 'Qc1');
+final _rookTakes = _puzzle('b', fen: _otherBefore, move: 'Qe4', answer: 'Qc1');
 
 class _Server {
   final List<http.Request> posts = [];
@@ -236,12 +242,22 @@ void main() {
         ],
         'origin': 'mistakes',
         'source': {'title': 'Game of test', 'label': '1.Qd5+'},
+        // Since phase 4 of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md the review goes
+        // with it — still the whole body, so anything else that starts
+        // travelling shows.
+        'review': {
+          'played': 'Qd5+',
+          'bestLine': ['Qd3'],
+          'refutationLine': [],
+          'secondLine': [],
+          'chances': {'best': 90.0, 'played': 10.0},
+        },
       });
       expect(server.bodies[1]['name'], 'Game of test, move 12');
       expect(server.bodies[1]['instruction'], kMistakeInstruction);
       expect(server.bodies[1]['source'], {
         'title': 'Game of test',
-        'label': '12...Qe7',
+        'label': '12...Qe4',
       });
       expect(done, [2]);
     });

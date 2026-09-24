@@ -29,19 +29,34 @@ String puzzleMoveLabel(LocalPuzzle p) {
   return black ? '$number...${p.playedSan}' : '$number. ${p.playedSan}';
 }
 
-/// The exercise [p] becomes, or null when an answer does not play.
+/// Whether [sans] plays, move by move, from [fen].
+bool _plays(String fen, List<String> sans) {
+  try {
+    final board = chess.Chess.fromFEN(fen);
+    for (final san in sans) {
+      if (!board.move(san)) return false;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// The exercise [p] becomes, or null when an answer or a line does not play.
 ///
 /// **The writer reads its own work back**: every answer is replayed on the
-/// position before a request is made, so a move that cannot be played there
-/// never reaches the server as an exercise's solution.
+/// position, and so is every line of the review — the best and the second
+/// from the position, the refutation from the position after the game's move
+/// — before a request is made. The server replays them again
+/// (`readReview`, `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` phases 2 and 4); a line
+/// it would refuse is one this should never have sent.
 ExerciseDraft? puzzleExerciseDraft(LocalPuzzle p, {required String name}) {
   for (final answer in p.answers) {
-    try {
-      if (!chess.Chess.fromFEN(p.fen).move(answer)) return null;
-    } catch (_) {
-      return null;
-    }
+    if (!_plays(p.fen, [answer])) return null;
   }
+  if (p.bestLine.isEmpty || !_plays(p.fen, p.bestLine)) return null;
+  if (!_plays(p.fen, p.secondLine)) return null;
+  if (!_plays(p.fen, [p.playedSan, ...p.refutationLine])) return null;
   final label = puzzleMoveLabel(p);
   final number = label.split('.').first;
   return ExerciseDraft(
@@ -53,6 +68,19 @@ ExerciseDraft? puzzleExerciseDraft(LocalPuzzle p, {required String name}) {
     origin: 'mistakes',
     sourceTitle: name,
     sourceLabel: label.replaceAll(' ', ''),
+    // No words until the language model writes them (phase 3): absent, not an
+    // empty string that would read as an explanation with nothing in it.
+    review: {
+      'played': p.playedSan,
+      'bestLine': p.bestLine,
+      'refutationLine': p.refutationLine,
+      'secondLine': p.secondLine,
+      'chances': {
+        'best': p.bestChances,
+        'played': p.playedChances,
+        if (p.secondChances != null) 'second': p.secondChances,
+      },
+    },
   );
 }
 
@@ -86,10 +114,17 @@ class _KeepPuzzlesPanelState extends State<KeepPuzzlesPanel> {
     text: widget.defaultName,
   );
 
-  /// Ticked by index into [KeepPuzzlesPanel.puzzles] — every mistake, by
-  /// default; no only move.
-  late final Set<int> _ticked = {
+  /// The puzzles that can be kept: those whose answers and lines all play
+  /// ([puzzleExerciseDraft]). Any other cannot be ticked, and says so.
+  late final Set<int> _keepable = {
     for (var i = 0; i < widget.puzzles.length; i++)
+      if (puzzleExerciseDraft(widget.puzzles[i], name: 'check') != null) i,
+  };
+
+  /// Ticked by index into [KeepPuzzlesPanel.puzzles] — every mistake that can
+  /// be kept, by default; no only move.
+  late final Set<int> _ticked = {
+    for (final i in _keepable)
       if (widget.puzzles[i].kind == PuzzleKind.mistake) i,
   };
   bool _saving = false;
@@ -219,7 +254,7 @@ class _KeepPuzzlesPanelState extends State<KeepPuzzlesPanel> {
           Checkbox(
             key: ValueKey('keep-puzzle-tick-$i'),
             value: _ticked.contains(i),
-            onChanged: _saving
+            onChanged: _saving || !_keepable.contains(i)
                 ? null
                 : (on) => setState(() {
                       if (on == true) {
@@ -240,10 +275,15 @@ class _KeepPuzzlesPanelState extends State<KeepPuzzlesPanel> {
                   style: AppText.body.copyWith(color: colors.textPrimary),
                 ),
                 Text(
-                  'Answer: ${p.answers.join(' or ')}',
+                  _keepable.contains(i)
+                      ? 'Answer: ${p.answers.join(' or ')}'
+                      : 'Its line does not play here — cannot be kept',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppText.caption.copyWith(color: colors.textSecondary),
+                  style: AppText.caption.copyWith(
+                      color: _keepable.contains(i)
+                          ? colors.textSecondary
+                          : colors.danger),
                 ),
               ],
             ),

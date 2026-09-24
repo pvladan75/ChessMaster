@@ -7758,3 +7758,25 @@ Mutacije: jedanaest, sve crvene na svom slučaju pošto je „Back to the puzzle
 testiran sa kraja linije — sa početka je tabla već bila zagonetka, pa dugme
 nije imalo šta da dokaže. Dva čuvara za tastere su bila ekvivalentna (prazan
 kursor i provera da linija postoji); višak (`enabled`) je obrisan.
+
+## 25.9.2026 — faza 4: sačuvana zagonetka nosi pregled, i potez koji nije mogao
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 4 — poslednja od tri po vlasnikovom
+redosledu (2, 5, 4). „Keep N as exercises" sada šalje uz svaku zagonetku potez
+iz partije, tri linije i šanse; reči ne šalje dok ih faza 3 ne napiše (bez
+ključa, ne prazan string). Pre zahteva se odigra svaki odgovor i svaka linija —
+pobijanje od pozicije posle poteza iz partije — i zagonetka čija linija ne
+igra ne može da se označi. Tri oblika koje aplikacija šalje (greška, jedini
+potez, mat sa dva odgovora) provereni su kroz serverov `readReview` — sva tri
+prihvaćena.
+
+Brojevi: aplikacija 4132 → **4136** (+4 u `keep_review_sent_test`), pun
+prolaz; analyze isti 23. U `game_review_exercises_test` nameštaljke su dobile
+najbolju liniju (graditelj ne pravi zagonetku bez nje), a slučaj koji tvrdi
+celo telo zahteva proširen je otvoreno za `review`.
+
+**Potez koji nije mogao.** Čim je nacrt počeo da igra i potez iz partije,
+nameštaljka iz 1.3 je pala: „12...Qe7" iz pozicije gde dama stoji na c2 — potez
+koji dama ne može da napravi. Do sada ga niko nije igrao, pa je test prolazio
+na partiji koja ne postoji (pravilo 6). Sada je 12...Qe4. **Pisac koji počne da
+čita svoj rad nazad čita i rad nameštaljki.**

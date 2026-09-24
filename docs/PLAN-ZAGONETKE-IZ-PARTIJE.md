@@ -1303,6 +1303,20 @@ mistake was made here", and only in the panel's own detail the move played.
 Gate: the draft's request asserted on the client seam (rule 7); a puzzle whose
 line does not replay cannot be ticked.
 
+*Built 25.9.2026 by the lead* (app 4132 → **4136**, analyze the same 23; a
+full run). `ExerciseDraft.review`; `puzzleExerciseDraft` replays every answer
+and every line — the refutation from the position after the game's move —
+and sends `played`, the three lines and the chances, **no `words` key** until
+phase 3 writes them (absent, not an empty string). A puzzle whose line does
+not play cannot be ticked, and its row says so. The app's three shapes (a
+mistake, an only move, a mate with two answers) were fed to the server's own
+`readReview` and all three accepted. **The new replay found a fixture error
+from 1.3**: `game_review_exercises_test`'s 12...Qe7 was a move the queen on
+c2 cannot make — nothing replayed the game's move until now (rule 6: a
+fixture luckier than the real thing); it is 12...Qe4. Seven mutations, each
+red on its own case. Live check: `docs/TODO-provera.md`, item 242, which
+also covers phases 2 and 5.
+
 ### Phase 5 — the reveal [implementer]
 
 On the solve screen, own exercises and homework alike, after the verdict —

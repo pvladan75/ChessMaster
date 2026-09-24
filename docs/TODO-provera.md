@@ -5878,6 +5878,31 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 242. Zagonetka posle odgovora pokazuje linije — 25.9.2026, nije viđeno uživo
+
+Nova verzija aplikacije **i servera** (server mora biti restartovan posle
+commita b7c7abf: pri startu dodaje kolonu `review`). `PLAN-ZAGONETKE-IZ-PARTIJE.md`,
+faze 2, 4 i 5. Objašnjenje rečima još ne postoji (faza 3).
+
+1. [ ] **Čuvanje.** „Review entire game" sa zagonetkama na partiji sa
+   greškom; sačuvaj dve zagonetke. (Stare zagonetke, sačuvane pre ovoga,
+   nemaju linije — pokazuju samo „Correct" / „Not quite", kao ranije.)
+2. [ ] **Pre poteza ništa.** U Library → „Solve" na jednoj: vidi se samo
+   pozicija i „A mistake was made in this position. Find the best move." —
+   nigde se ne pominje potez iz partije.
+3. [ ] **Pogrešan odgovor.** Odigraj pogrešan potez: ispod presude pločice
+   „What was played: …" (sa „Its refutation" ili „How the advantage went") i
+   „What was best: …". Dodir na pločicu: tabla se vrati na vrh ako je bila
+   pomerena, cela tabla je na ekranu, strelica pokazuje potez, a traka ispod
+   table ide napred i nazad kroz liniju; „Back to the puzzle" vraća poziciju
+   zadatka. Na Windows-u i strelice na tastaturi.
+4. [ ] **Tvoj potez.** Ako je tvoj pogrešan potez baš druga linija engine-a,
+   pojavi se i „Your move: …" sa njenom linijom; ako nije, piše „No line for
+   this move." — nikad tuđa linija ispod tvog poteza.
+5. [ ] **Tačan odgovor** na drugoj zagonetki: iste pločice, bez rečenice o
+   tvom potezu.
+6. [ ] **Na telefonu**, 360 dp uspravno: sve pločice i traka se čitaju cele.
+
 ## 241. Zagonetke iz pregleda: pozicija pre greške, jedan jasan potez — 24.9.2026, nije viđeno uživo
 
 Nova verzija aplikacije. `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1.3. Uzmi jednu
