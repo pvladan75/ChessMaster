@@ -2,6 +2,9 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
+import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
+import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/move_tree.dart';
 
 /// One lesson step, built from one node of the analysis tree.
@@ -50,6 +53,18 @@ class StudioLessonStep {
       reading: LessonStepLine.read(fen: fen, pgn: pgn),
     );
   }
+
+  /// The steps a line from [anchor] becomes when it goes into a tutorial —
+  /// one per line, in the order „Insert a line here" makes (D2 of
+  /// `docs/PLAN-MAPA-DELOVA.md`): the film walks first children, so a side
+  /// line kept inside one step would be sent and never shown. A copy is
+  /// split; [anchor]'s tree is not touched. Each is built by [from], so each
+  /// is read back like any other.
+  static List<StudioLessonStep> partsFrom(AnalysisNode anchor) => [
+        for (final part
+            in splitAtForks(TutorialSection(root: copyTree(anchor))))
+          from(part.root),
+      ];
 
   /// The line as text, with the map of where each node sits inside it.
   ///

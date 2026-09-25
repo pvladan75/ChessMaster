@@ -8134,3 +8134,49 @@ da vidi da poništavanje fali.**
 okrenut preko prelomne tačke menja raspored u telefonski, koji nema karticu
 PGN, a tabla ostaje: bez izveštaja na `dispose`, svaki sledeći drugi potez bi
 bio odbijen zbog teksta koga više nema. Mutacija to potvrđuje.
+
+## 25.9.2026 — Delovi kao mapa: izlazak iz dela preko neprimenjenog teksta
+
+Aplikacija **4040 → 4052**, pun prolaz: dvanaest slučajeva u
+`tutorial_pgn_tab_test` (četiri, sedam vrata iz tabele, Ctrl+Z). `analyze` isti
+22.
+
+**Vlasnik je imenovao jedna vrata; posledica ih ima deset.** Pitanje je bilo
+„klik na drugi deo", a polje se gradi iznova kad god se promeni koren otvorenog
+dela: novi deo, kloniranje, brisanje otvorenog ili dela ispred njega, delovi iz
+drugog tutorijala, „Insert a line here", „Position setup", Undo i Redo.
+Undo je među njima jer `AnalysisNode.fromJson` pravi nove id-jeve. **Traži
+vrata po posledici, ne po imenu koje je korisnik rekao** — ovde je to bio ključ
+panela (`ValueKey(_root.id)`) i svako mesto koje menja koren.
+
+**Prečica koja je bliža polju od polja uzima i tipkanje.** Ctrl+Z u polju PGN
+bio je Undo studija, koji je deo gradio iznova i bacao tekst. Zabrana bi tu
+samo zamenila tihi gubitak porukom na svaki pritisak; akcija koja preko
+neprimenjenog teksta kaže da je isključena pušta taster dalje, do polja.
+
+## 26.9.2026 — Delovi kao mapa: faza 2
+
+Svaka druga vrata dele račvu na delove. Aplikacija **4052 → 4075** (pun
+prolaz): +10 `tutorial_split_at_forks_test`, +12 `tutorial_fork_doors_test`,
++1 u `pgn_game_import_test` (igra bez varijante ostaje jedan deo, tekst kakav je
+došao); tri stara slučaja prepisana otvoreno, jer su tvrdila „jedna igra, jedan
+deo" na igri sa varijantom. Backend **1743 → 1747** bez baze, **1899 → 1905**
+sa privremenim klasterom — oba izmerena, oba kako je izvedeno. `analyze` isti 22.
+
+**Isto pravilo primenjeno ponovo nije isto što i primenjeno još jednom.**
+`splitForLine` stavlja sve sporedne linije sa jednog polja u jedan novi deo;
+kad se taj deo iseče na sopstvenom korenu, nastavak dolazi pre ostalih —
+obrnut redosled. Zato `splitAtForks` pravi deo po sporednoj liniji.
+
+**Kapija ima rupu tamo gde fixture nema oblik.** Nijedan fixture nije stavio
+rečenicu ili strelicu na polje sa dve sporedne linije, pa mutacije „rečenica
+na svakom" i „bez strelica" nisu imale šta da obore dok slučaj nije dodat.
+
+**Crveno od suseda nije ulov.** Slučaj koji padne pre svog zatvaranja ostavi
+ekran, i sledeći slučaj pada pod mutacijom koja ga ne može dotaći. Zatvaranje
+ide u `addTearDown`, a svaki slučaj pravi svoj id lekcije.
+
+**Ruta je već bila atomska.** Plan je tražio transakciju za niz koraka;
+`UPDATE … position_list || $1` je jedna naredba, pa je dovoljno sve korake
+izgraditi pre pisanja. Mutacija koja tiho izbaci loš korak (polovično pisanje)
+pala je i na stubu i na pravoj bazi.

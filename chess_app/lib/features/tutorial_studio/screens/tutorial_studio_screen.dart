@@ -106,6 +106,19 @@ class _RedoIntent extends Intent {
   const _RedoIntent();
 }
 
+/// The studio's Ctrl+Z / Ctrl+Y, stepping aside while [enabled] says no.
+///
+/// A disabled action does not take the key, so it goes on up to the app's
+/// text-editing shortcuts and the focused field undoes its own typing.
+class _StudioHistoryAction<T extends Intent> extends CallbackAction<T> {
+  _StudioHistoryAction({required super.onInvoke, required this.enabled});
+
+  final bool Function() enabled;
+
+  @override
+  bool isEnabled(T intent) => enabled();
+}
+
 class TutorialStudioScreen extends StatefulWidget {
   const TutorialStudioScreen({
     super.key,
@@ -186,6 +199,23 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// `onEdited`; nothing draws from it, so it is a field and not state.
   bool _pgnEdited = false;
 
+  /// True, and said, when the PGN tab holds text that was not applied.
+  ///
+  /// The field is rebuilt whenever the open part's line is a different one —
+  /// another part opened, the part started over, a snapshot put back — and
+  /// its text would be gone without a word; carried across, it would be
+  /// applied to a part it was not written for. So every door that would do
+  /// that asks here first (the owner's decisions of 25.9.2026, for a move
+  /// that opens a part and then for every other way out of a part). Said
+  /// before anything else happens, because nothing else does.
+  bool _heldForPgn(String what) {
+    if (!_pgnEdited) return false;
+    AppFeedback.info(context, '$what $_pgnFirst');
+    return true;
+  }
+
+  static const _pgnFirst = 'Apply or discard the text in the PGN tab first.';
+
   /// Which of Line/Parts is open on the phone layout ([_PhoneLayout]).
   /// The screen's own, like [_selectedTab] — the controller holds none of it.
   int _phoneTab = 0;
@@ -251,9 +281,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     };
 
     if (handover != null) {
-      draft.section.root = handover.root;
-      draft.section.cursorNode = handover.root;
+      // Before the split, so every part it makes faces the same way.
       draft.section.blackOrientation = handover.blackOrientation;
+      openLineAsParts(draft, handover.root);
     }
     _c = TutorialDraftController(draft: draft);
     _c.addListener(_onController);
@@ -331,9 +361,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         // The parts already written stay; the one being written is the line
         // the trainer just handed over.
         stored.selected = stored.sections.length - 1;
-        stored.section.root = handover.root;
-        stored.section.cursorNode = handover.root;
-        stored.section.storedPgn = null;
+        openLineAsParts(stored, handover.root);
         _c.adopt(stored);
 
       case TutorialEntrySaved():
@@ -544,11 +572,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   }
 
   void _undo() {
+    if (_heldForPgn('Undo would replace this part.')) return;
     _annotationController.stop();
     _c.undo();
   }
 
   void _redo() {
+    if (_heldForPgn('Redo would replace this part.')) return;
     _annotationController.stop();
     _c.redo();
   }
@@ -646,10 +676,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         // another tab is showing, so the sentence names the tab.
         _boardController.loadFen(_current.fen);
         AppFeedback.info(
-          context,
-          'This move would start a new part. '
-          'Apply or discard the text in the PGN tab first.',
-        );
+            context, 'This move would start a new part. $_pgnFirst');
       case MoveOutcome.played:
         break;
       case MoveOutcome.branched:
@@ -700,6 +727,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// through the door as a whole tree rather than through a second importer
   /// written beside the first.
   void _showSetupDialog() {
+    if (_heldForPgn('That would start the part over.')) return;
     showDialog<void>(
       context: context,
       builder: (ctx) => AnalysisBoardSetupDialog(
@@ -720,6 +748,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// one step per pause, so one undo is enough for both. These shortcuts sit
   /// nearer the fields than the app's text-editing ones, which is what makes
   /// them win.
+  ///
+  /// **Except over unapplied PGN text.** The studio's undo rebuilds the part,
+  /// and the field with it, so while the PGN tab holds text of its own the
+  /// studio's history steps aside and the keys reach the field — a typo fixed
+  /// with Ctrl+Z used to throw the whole text away. The toolbar's Undo still
+  /// says why it will not ([_heldForPgn]).
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
@@ -731,13 +765,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
-          _UndoIntent: CallbackAction<_UndoIntent>(
+          _UndoIntent: _StudioHistoryAction<_UndoIntent>(
+            enabled: () => !_pgnEdited,
             onInvoke: (_) {
               _undo();
               return null;
             },
           ),
-          _RedoIntent: CallbackAction<_RedoIntent>(
+          _RedoIntent: _StudioHistoryAction<_RedoIntent>(
+            enabled: () => !_pgnEdited,
             onInvoke: (_) {
               _redo();
               return null;
@@ -1095,7 +1131,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     }
   }
 
-  void _selectSection(int index) => _c.select(index);
+  /// Tapping the open part again only puts the cursor back on its start, so
+  /// that one is never held back.
+  void _selectSection(int index) {
+    if (index != _c.draft.selected && _heldForPgn(_otherPart)) return;
+    _c.select(index);
+  }
+
+  static const _otherPart = 'That would open another part.';
 
   /// „Novi prikaz" — the next demonstration, and the board it opens on.
   ///
@@ -1105,6 +1148,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// fresh example. The old wording asked where a *deo* begins, which is the
   /// word this screen no longer makes a trainer think in.
   Future<void> _addShowSection() async {
+    if (_heldForPgn(_otherPart)) return;
     final continueFromEnd = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1143,6 +1187,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// parts goes from 114 px to 70 at 1366 × 768 and from 87 to 43 at
   /// 840 × 700, which is one row of parts.
   void _insertLine() {
+    if (_heldForPgn(_otherPart)) return;
     _annotationController.stop();
     _c.insertLine();
     AppFeedback.success(context, 'New line inserted. Play it on the board.');
@@ -1174,6 +1219,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// read; copying is what makes that true, and it is why this needs no second
   /// write and cannot half-succeed.
   Future<void> _addPartsFromTutorial() async {
+    if (_heldForPgn(_otherPart)) return;
     final chosen = await showDialog<CourseSummary>(
       context: context,
       builder: (_) => CoursePickerDialog(
@@ -1302,11 +1348,22 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  void _moveSection(int from, int to) => _c.moveSection(from, to);
+  /// Moving a part opens the part moved, so only moving the open one keeps
+  /// the PGN tab's text where it was written.
+  void _moveSection(int from, int to) {
+    if (from != _c.draft.selected && _heldForPgn(_otherPart)) return;
+    _c.moveSection(from, to);
+  }
 
-  void _cloneSection(int index) => _c.cloneSection(index);
+  void _cloneSection(int index) {
+    if (_heldForPgn(_otherPart)) return;
+    _c.cloneSection(index);
+  }
 
+  /// Deleting a part after the open one leaves it open; deleting it, or one
+  /// before it, leaves another part at its place.
   void _removeSection(int index) {
+    if (index <= _c.draft.selected && _heldForPgn(_otherPart)) return;
     if (!_c.removeSection(index)) {
       AppFeedback.info(context, 'The last part cannot be deleted.');
     }
@@ -1536,8 +1593,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // Nothing to invalidate by hand: `isPristine` compares `treeSignature`
     // against the tree itself, and this is a different tree.
     _annotationController.cancelPending();
-    _c.replaceLine(read.root);
-    AppFeedback.success(context, 'Applied.');
+    final parts = _c.replaceLine(read.root);
+    AppFeedback.success(
+      context,
+      parts == 1
+          ? 'Applied.'
+          : 'Applied as $parts parts: every side line is a part of its own.',
+    );
   }
 
   /// Asked once, never assumed: taking the pasted position changes the board a

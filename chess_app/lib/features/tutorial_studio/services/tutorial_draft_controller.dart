@@ -464,14 +464,21 @@ class TutorialDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// A whole line read from text, made the part's line. The cursor goes to
-  /// the end of it — the last move is the one that was just written.
-  void replaceLine(AnalysisNode root) {
-    section.root = root;
-    section.cursorNode = endOfMainLine(root);
+  /// A whole line read from text, made the part's line — and made into parts
+  /// at every fork (D2 of `docs/PLAN-MAPA-DELOVA.md`), the first of them left
+  /// open. The cursor goes to the end of that one's line: the trainer pressed
+  /// Apply having just written a move. Answers how many parts it became.
+  int replaceLine(AnalysisNode root) {
+    final count = openLineAsParts(_draft, root);
+    section.cursorNode = endOfMainLine(section.root);
+    if (count > 1) {
+      _renumberGeneratedTitles();
+      _generation++;
+    }
     _lastMove = null;
     persist();
     notifyListeners();
+    return count;
   }
 
   /// The words of one move. [typing] says the text is being typed into a

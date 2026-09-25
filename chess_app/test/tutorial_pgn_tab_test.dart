@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -11,6 +12,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/arrow_colors.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -431,6 +433,242 @@ void main() {
       );
       expect(opened.line.movesSan, ['d4']);
 
+      await close(tester);
+    });
+  });
+
+  // The owner's decision of 25.9.2026, after the one about a move that opens a
+  // part: no way out of a part loses the PGN tab's unapplied text. The field
+  // is rebuilt for whichever line is open, so every door that would open
+  // another one — or put a different line in this one — is held back and
+  // says why, and the doors that leave the open part alone are not.
+  group('leaving the part', () {
+    const typed = '1. c4 c5 { Moj tekst. }';
+    const held = 'Apply or discard the text in the PGN tab first.';
+
+    Map<String, dynamic> twoParts() => {
+          'id': nextLessonId++,
+          'title': 'Otvaranje',
+          'position_list': [
+            {
+              'id': 'step-a',
+              'fen': startFen,
+              'title': 'First',
+              'pgn': '1. e4 e5 *',
+              'kind': 'show',
+            },
+            {
+              'id': 'step-b',
+              'fen': startFen,
+              'title': 'Second',
+              'pgn': '1. d4 *',
+              'kind': 'show',
+            },
+          ],
+        };
+
+    Finder partRow(String title) => find.descendant(
+        of: find.byType(TutorialSectionsPanel), matching: find.text(title));
+
+    Future<void> openWithText(WidgetTester tester) async {
+      await open(tester, twoParts());
+      await openTab(tester);
+      await typeInto(tester, typed);
+    }
+
+    /// What was sent: the parts' lines, read back by the child's reader.
+    Future<List<List<String>>> savedLines(WidgetTester tester) async {
+      await tester.tap(find.text('Save tutorial'));
+      await tester.pumpAndSettle();
+      return [
+        for (final part in saves.last['positionList'] as List)
+          LessonStepLine.read(
+            fen: (part as Map)['fen'].toString(),
+            pgn: part['pgn']?.toString(),
+          ).line.movesSan,
+      ];
+    }
+
+    Future<void> discard(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('pgn-discard')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('another part is not opened, and the screen says why',
+        (tester) async {
+      await openWithText(tester);
+
+      await tester.tap(partRow('Second'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(held), findsOneWidget);
+      expect(fieldText(tester), contains('Moj tekst.'),
+          reason: 'the field was rebuilt for the other part');
+      await close(tester);
+    });
+
+    testWidgets('discarded, the same tap opens the other part', (tester) async {
+      await openWithText(tester);
+      await discard(tester);
+
+      await tester.tap(partRow('Second'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(held), findsNothing);
+      expect(fieldText(tester), contains('d4'));
+      expect(fieldText(tester), isNot(contains('e5')));
+      await close(tester);
+    });
+
+    testWidgets('the open part tapped again is not held back', (tester) async {
+      await openWithText(tester);
+
+      await tester.tap(partRow('First'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(held), findsNothing);
+      expect(fieldText(tester), contains('Moj tekst.'));
+      await close(tester);
+    });
+
+    testWidgets('moving the open part is not held back', (tester) async {
+      await openWithText(tester);
+
+      await tester.tap(find.byTooltip('Move down'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(held), findsNothing);
+      expect(fieldText(tester), contains('Moj tekst.'));
+      await discard(tester);
+      expect(
+          await savedLines(tester),
+          [
+            ['d4'],
+            ['e4', 'e5'],
+          ],
+          reason: 'the move went through');
+      await close(tester);
+    });
+
+    // Every other door, each held back with the parts and their lines as they
+    // were. [before] runs ahead of the typing, for a door that needs something
+    // to stand on; [door] is the trainer's reach for it.
+    final unchanged = [
+      ['e4', 'e5'],
+      ['d4'],
+    ];
+    final doors = <String,
+        ({
+      Future<void> Function(WidgetTester)? before,
+      Future<void> Function(WidgetTester) door,
+      List<List<String>> lines,
+    })>{
+      'New part': (
+        before: null,
+        door: (t) => t.tap(find.byKey(const Key('add-show'))),
+        lines: unchanged,
+      ),
+      'Clone part': (
+        before: null,
+        door: (t) => t.tap(find.byTooltip('Clone part')),
+        lines: unchanged,
+      ),
+      'Delete part': (
+        before: null,
+        door: (t) async {
+          await t.tap(find.byTooltip('Delete part'));
+          await t.pumpAndSettle();
+          await t.tap(find.widgetWithText(FilledButton, 'Delete'));
+        },
+        lines: unchanged,
+      ),
+      'Add parts from a tutorial…': (
+        before: null,
+        door: (t) async {
+          await t.tap(find.byKey(const Key('parts-menu')));
+          await t.pumpAndSettle();
+          await t.tap(find.byKey(const Key('parts-menu-add')));
+        },
+        lines: unchanged,
+      ),
+      'Position setup': (
+        before: null,
+        door: (t) => t.tap(find.byTooltip('Position setup')),
+        lines: unchanged,
+      ),
+      'Insert a line here': (
+        before: (t) async {
+          board(t).onMove('e2', 'e4', '');
+          await t.pumpAndSettle();
+        },
+        door: (t) async {
+          await t.tap(find.byKey(const Key('tok-tab')));
+          await t.pumpAndSettle();
+          await t.tap(find.byKey(const Key('insert-line')));
+          await t.pumpAndSettle();
+          await openTab(t);
+        },
+        lines: unchanged,
+      ),
+      'Undo': (
+        before: (t) async {
+          for (final m in ['e2e4', 'e7e5', 'g1f3']) {
+            board(t).onMove(m.substring(0, 2), m.substring(2), '');
+            await t.pumpAndSettle();
+          }
+        },
+        door: (t) => t.tap(find.byKey(const Key('tutorial-undo'))),
+        lines: [
+          ['e4', 'e5', 'Nf3'],
+          ['d4'],
+        ],
+      ),
+    };
+
+    for (final MapEntry(key: name, value: d) in doors.entries) {
+      testWidgets('„$name" is held back', (tester) async {
+        await open(tester, twoParts());
+        if (d.before != null) await d.before!(tester);
+        await openTab(tester);
+        await typeInto(tester, typed);
+
+        await d.door(tester);
+        await tester.pumpAndSettle();
+
+        expect(find.textContaining(held), findsOneWidget);
+        expect(fieldText(tester), contains('Moj tekst.'));
+        await discard(tester);
+        expect(await savedLines(tester), d.lines);
+        await close(tester);
+      });
+    }
+
+    testWidgets('Ctrl+Z in the field is the field\'s, not the studio\'s',
+        (tester) async {
+      // The studio's shortcuts sit nearer the fields than the app's text
+      // editing ones, so Ctrl+Z while typing here used to undo the studio —
+      // which rebuilt the part and threw the text away. Over unapplied text
+      // the studio's history steps aside, and nothing is refused either.
+      await open(tester, twoParts());
+      for (final m in ['e2e4', 'e7e5', 'g1f3']) {
+        board(tester).onMove(m.substring(0, 2), m.substring(2), '');
+        await tester.pumpAndSettle();
+      }
+      await openTab(tester);
+      await typeInto(tester, typed);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyZ);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining(held), findsNothing,
+          reason: 'the key went to the studio, which refused it');
+      if (find.byKey(const Key('pgn-discard')).evaluate().isNotEmpty) {
+        await discard(tester);
+      }
+      expect((await savedLines(tester)).first, ['e4', 'e5', 'Nf3'],
+          reason: 'the studio undid a move under the trainer\'s text');
       await close(tester);
     });
   });

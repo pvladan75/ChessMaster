@@ -154,6 +154,11 @@ void main() {
 
   testWidgets('a reviewed game is not offered questions, and comes in whole',
       (tester) async {
+    // Superseded in part 26.9.2026 by D2 of `docs/PLAN-MAPA-DELOVA.md`: every
+    // tutorial here was one part, and the reviewed game's `(3... Bc5! …)` was
+    // saved inside it and never filmed. It comes in as three parts now — up to
+    // the fork, the side line, the game going on — each of them showing, and
+    // „whole" means every move arrives.
     final api = _SavingApi();
     await openCard(tester, api: api, files: [
       (name: 'reviewed.pgn', text: reviewedGame),
@@ -162,19 +167,27 @@ void main() {
 
     expect(find.text('Make questions from the mistakes?'), findsNothing);
 
-    // Three tutorials, every one of them a single demonstration.
+    // Three tutorials, every part of them a demonstration.
     await tester.tap(find.textContaining('to the library'));
     await tester.pumpAndSettle();
 
     expect(api.posted, hasLength(3));
+    expect([for (final b in api.posted) (b['positionList'] as List).length],
+        [3, 1, 1]);
     for (final body in api.posted) {
-      final parts = body['positionList'] as List;
-      expect(parts, hasLength(1));
-      final part = parts.single as Map;
-      expect(part['kind'] ?? 'show', 'show');
-      for (final field in ['instruction', 'solutionSan']) {
-        expect(part.containsKey(field), isFalse, reason: field);
+      for (final part in (body['positionList'] as List).cast<Map>()) {
+        expect(part['kind'] ?? 'show', 'show');
+        for (final field in ['instruction', 'solutionSan']) {
+          expect(part.containsKey(field), isFalse, reason: field);
+        }
       }
+    }
+    final reviewedText = [
+      for (final p in (api.posted.first['positionList'] as List).cast<Map>())
+        p['pgn'] as String,
+    ].join(' ');
+    for (final move in ['e4', 'Nd4', 'Bc5', 'O-O', 'Nxe5', 'Qg5']) {
+      expect(reviewedText, contains(move), reason: 'the game came in short');
     }
   });
 
