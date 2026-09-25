@@ -8088,3 +8088,17 @@ svaku stavku proverila da beleška imenuje isti odeljak.
 **Primer iz dokumenta se proverava na dokumentu, ne na kopiji.** Primer u
 `PGN-TUTORIAL-FORMAT.md` je pročitan kroz `readTutorialJson` tako što je test
 izvukao JSON iz samog izmenjenog fajla; kopija u testu bi dokazala kopiju.
+
+## 25.9.2026 — Delovi kao mapa: faza 0
+
+Osnova izmerena u worktree-u na `3c607c45`, ništa drugo nije radilo:
+aplikacija 4019 i 1 preskočen, `flutter analyze` 22 infoa, backend 1743 bez
+`.env` i 1899 sa privremenim klasterom — sve kao što `CLAUDE.md` kaže. Dodato
+pet slučajeva fixture-a (`tutorial_part_fixtures_test.dart`): **4019 + 5 =
+4024**, izvedeno; fajl je pušten sam, 5/5.
+
+**Test fixture-a je prva kapija kroz koju fixture mora da prođe.** Osam
+delova iz skice je na prvom puštanju pao: `19. Rfe1` u delu 7, gde lovac na
+c1 ostavlja samo jedan top koji stiže na e1, pa je potez `Re1` i čitač ga
+odbija. Bez tog testa, svako kasnije „nijedan deo se ne račva" stajalo bi na
+delu kome fali poslednji potez — zeleno iz pogrešnog razloga.

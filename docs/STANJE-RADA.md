@@ -73,11 +73,14 @@ za liniju predatu iz Analize i za „Add this line to a tutorial…".
 preporuci, napiši plan"**: deo je jedna linija — drugi potez na tabli pravi nov
 deo odmah posle otvorenog (D1); ostala vrata račvu dele na delove redom kao
 „Insert a line here" (D2); lista delova postaje mapa — redovi po redu filma,
-trake levo za to kako se spajaju (D3); postojeći delovi sa račvom se ne menjaju
-sami, studio to kaže i nudi dugme „Make it a part" (D4). Na širokom prozoru mapa
+trake levo za to kako se spajaju (D3). Za postojeće tutorijale se ne radi ništa
+(D4 — vlasnikova reč posle commit-a: „Ne moraš ništa da prilagođavaš već
+postojećim tutorijalima"); deo sačuvan sa račvom ostaje kakav je. Na širokom prozoru mapa
 dobija kolonu levo od table ako tabla zadržava veličinu, a naslov ide u gornju
-traku, oznake i jezik iza „Details…". Faze 0–6; sledeća je faza 0 (merenje u
-worktree-u i zajednički fixture-i).
+traku, oznake i jezik iza „Details…". Faze 0–6. **Faza 0 gotova 25.9.2026**: osnova izmerena u
+worktree-u (4019 / 22 / 1743 / 1899, sve kao u `CLAUDE.md`), zajednički
+fixture-i sa svojim testom (→ 4024); sledeća je faza 1 — drugi potez na tabli
+pravi nov deo.
 
 ## Tutorijal služi samo za video — 25.9.2026, faze 0, 2 i 3 u kodu, ostaje provera uživo ([246.1]–[246.10])
 

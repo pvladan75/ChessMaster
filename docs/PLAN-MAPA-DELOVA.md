@@ -149,19 +149,17 @@ part forks. *Other way, not taken:* refuse an input with variations.
 film; the lanes are the tree. *Other way, not taken:* a free canvas like the
 move tree, with pan and zoom and the order as a number on each card.
 
-**D4. A part that already forks is not changed by itself; the studio says so.**
-Opening a part that forks (every tutorial saved before this plan, like the
-owner's) shows „This part has a side line the film doesn't show: 18... h6 19.
-Rxe5" and one button, „Make it a part", which gives what D1 would have given:
-the part keeps its main line and each side line follows it as a part of its
-own. The rule of 25.9.2026 — nothing existing is adapted — holds: the trainer
-presses it. *Other way, not taken:* say nothing.
+**D4. Nothing is done for tutorials that already fork — withdrawn by the owner.**
+Recommended first was a notice on a part that already forks, with a button to
+make its side lines parts. **The owner's word of 25.9.2026, after the plan was
+committed: „Ne moraš ništa da prilagođavaš već postojećim tutorijalima"** —
+nothing is adapted to existing tutorials. A part saved with a fork stays as it
+is and films its main line, as it always has; the app is in testing and such a
+tutorial may be deleted. So there is no notice, no button and no function for
+it, and no test of one.
 
-Two follow from these and are the lead's, reversible in one line each:
+One follows from these and is the lead's, reversible in one line:
 
-- **D4's button makes D1's shape, not D2's.** It is the shape the trainer would
-  have got had the rule existed when they played the move, and it is the one the
-  sketch showed (part 4 hanging off part 3, part 3 whole).
 - **The title moves into the bar, labels and language behind „Details…"** — the
   sketch the owner answered. One dialog for both layouts: the phone's
   `_showDetails` moves out of the phone layout and both call it.
@@ -190,8 +188,8 @@ into „Details…").
 
 **Stays:** `filmBeatsOf`, `beatsOf`, the film's signature and the renderer —
 unchanged; the film already says what the map draws. `splitForLine` and „Insert
-a line here". The Tree tab (a part is a chain now; it still navigates and still
-draws a legacy fork). The stored shape of a step, and the server's ignorance of
+a line here". The Tree tab (a part is a chain now; it still navigates, and still draws the
+fork of a part saved before this plan). The stored shape of a step, and the server's ignorance of
 PGN.
 
 ## 6. Phases, each with its gate
@@ -201,7 +199,21 @@ backend **1743** without a database / **1899** with, `flutter analyze` the same
 **22** infos (`CLAUDE.md`, header). Each phase ends with its arithmetic in
 `docs/LESSONS.md` and the block in `CLAUDE.md` updated.
 
-### Phase 0 — the baseline and the fixtures [lead]
+### Phase 0 — the baseline and the fixtures [lead] — done 25.9.2026
+
+Measured in a worktree at `3c607c45`, nothing else running: app **4019**
+passed, 1 skipped (9 min 39 s); `flutter analyze` **22** infos, every one
+`curly_braces_in_flow_control_structures`, no error or warning; backend
+**1743** without a `.env` and **1899** against a throwaway cluster. The
+fixtures are `T/support/tutorial_part_fixtures.dart`, held by
+`T/tutorial_part_fixtures_test.dart` (5 cases, → **4024**), which also pins
+§3's entries and labels to `partOpeningsOf` as it stands. Proved by mutation:
+the nested side line removed turns the fork-shape and „every branch" cases
+red; part 4 started on the wrong position turns the replay and the openings
+cases red. The fixture test was red on its own first run for a real reason —
+`19. Rfe1` in part 7, where the bishop on c1 leaves only one rook able to
+reach e1, so the move is `Re1` and the reader refused it.
+
 
 - Measure the three counts in a worktree, nothing else running.
 - Write the shared fixtures: the owner's 12.9 example
@@ -214,7 +226,7 @@ backend **1743** without a database / **1899** with, `flutter analyze` the same
 - **Gate:** the counts written here; the fixtures replay with
   `rejectedMoves == 0`.
 
-### Phase 1 — a part is one line on the board, and a fork says so [implementer]
+### Phase 1 — a part is one line on the board [implementer]
 
 - `playMove`: when the cursor has children and the move is not one of them, D1.
   The new part: root on the cursor's position, carrying its arrows and squares
@@ -222,12 +234,6 @@ backend **1743** without a database / **1899** with, `flutter analyze` the same
   again — `splitForLine`'s rule for C); the part's orientation; inserted at
   `selected + 1`, selected, cursor on the move. Said after it is done, through
   `AppFeedback`: „18... h6 starts part 4. The film shows it after part 3."
-- One pure function, `sidelinesAsParts(TutorialSection)` in `TS/services/`:
-  the main line as one part (keeping step id and name), then each side line as
-  a part in D1's shape, recursively. D4's button calls it through the
-  controller as one undo step.
-- The banner on a part whose tree forks, on both layouts, naming the first side
-  line (at most two moves, then „…").
 - **Gate** (new file `T/tutorial_one_line_test.dart`, headless where it can be):
   - a second move at 18. Rfe1 leaves part 3's `treeSignature` unchanged,
     inserts exactly one part at `selected + 1` whose root fen is the fork's and
@@ -238,14 +244,9 @@ backend **1743** without a database / **1899** with, `flutter analyze` the same
   - `partOpeningsOf` calls the new part `returns` with `afterMove` „18. Rfe1";
   - one undo gives back one part and the cursor where it was;
   - the new part carries the fork's arrows and squares and not its sentence;
-  - on the fork fixture, `sidelinesAsParts` leaves no part that forks; every
-    node of the original appears in the film exactly once with its comment,
-    arrows and squares; the first part keeps the step id;
-  - the banner is drawn for a forked part and not for a one-line part — the
-    absence case **on a part that has moves**, so it could fail;
   - mutations, each red on the right case: the new-part branch removed (the
     film loses the move); inserted at `selected` instead of `+ 1`; the fork's
-    comment copied; `sidelinesAsParts` dropping a nested side line.
+    comment copied.
 - **Phone:** the same controller; one case at 360 × 640 that the move makes a
   part and the Parts tab shows it.
 
@@ -259,14 +260,14 @@ backend **1743** without a database / **1899** with, `flutter analyze` the same
   sites call it.
 - Doors 4 and 5: split where an imported tutorial's `position_list` is made, so
   „Open" and „Save" both get it — not in `TutorialDraft.fromLesson`, which also
-  reads saved tutorials (D4: those are not changed).
+  reads saved tutorials (D4: those are left as they are).
 - Door 6: `POST /lessons/:id/steps` accepts `steps: [...]` beside `step`,
   appended in one transaction, the same checks per step; the app sends the
   split parts. **The route is the lead's** (no schema change, but it writes a
   tutorial's list, and a list written by several requests is left half-written
   by the first one that fails). Written in a worktree — nodemon watches every
   `.js`.
-- Doors 7 and 8 unchanged; a copied fork gets D4's banner.
+- Doors 7 and 8 unchanged: they copy what their source holds (D4).
 - **Gate:** one test per door feeding the fork fixture and asserting no part of
   the result forks and the film contains every move once; the 12.9 example
   through the PGN tab gives the three parts `splitForLine` gives; the
@@ -360,9 +361,9 @@ backend **1743** without a database / **1899** with, `flutter analyze` the same
 
 ### Phase 6 — the owner's live pass [owner]
 
-The ones that matter most: the owner's own tutorial — the banner on part 3,
-„Make it a part", and the film exported again showing 18... h6 19. Rxe5 after
-„Back to the position after 18. Rfe1"; a second move played live making part 4;
+The ones that matter most: in a new tutorial on the position of 25.9, 18... h6
+played beside 18... cxd4 makes part 4, and the exported film shows 18... h6
+19. Rxe5 after „Back to the position after 18. Rfe1";
 a PGN with variations imported and filmed; the map on his window and on the
 phone; the title whole in the bar.
 
@@ -372,9 +373,9 @@ phone; the title whole in the bar.
 - **One move tree of the whole tutorial** (every part's moves in one Tree, the
   parts as stretches of it). The map shows the joins; this would show the chess.
   Asked for if missed.
-- **Changing existing forked parts by themselves** — D4.
+- **Anything for tutorials saved with a fork** — D4, the owner's word.
 - **The rule on the server.** It has no PGN reader and must not get one
   (rule 13); the app holds the rule at every door, and the table in §2 is
   re-grepped in phase 2.
 - **The per-move main/side fill in Tree** for a colourblind reader: with one
-  line per part it only remains on legacy forks, which the banner names in words.
+  line per part it only remains on parts saved with a fork before this plan.

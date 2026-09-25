@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4019 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4024 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1899 with TEST_DATABASE_URL, 1743 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -814,6 +814,14 @@ the glossary (**Tutorial video**), the pricing doc (D5 as an open question),
 and 55 live-check items moved to the archive as superseded. **A label test
 proves a word exists, not that it is where the text says**: two manual pages
 had sent readers to a Home „Review" card that never showed their drills.
+Then `docs/PLAN-MAPA-DELOVA.md` (a part is one line, the parts drawn as a map),
+and its phase 0 (→ **4024**: 4019, 1 skipped, measured in a worktree with the
+22 infos and backend **1743 / 1899** both measured, plus five fixture cases):
+a side line played inside a part is saved and never filmed, because the film
+walks first children. **A fixture's own test is the first gate it has to
+pass**: the eight-part fixture was red on its first run, `19. Rfe1` where
+only one rook can reach e1, which the reader refuses as `Re1` — every later
+„no part forks" case would have stood on a part missing its last move.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
