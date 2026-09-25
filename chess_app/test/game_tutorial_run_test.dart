@@ -269,8 +269,7 @@ void main() {
     expect(jsonEncode(rig.requests.single['moments']),
         jsonEncode(expected['wordsRequest']['moments']));
     expect(rig.requests.single['game'], isNot(contains('[')));
-    // Only the parts that show (`withoutQuestions`, docs/PLAN-TUTORIJAL-
-    // VIDEO.md phase 4) — until phase 5 stops the skeleton making the others.
+    // Every part shows, since phase 5 of docs/PLAN-TUTORIJAL-VIDEO.md.
     int shows(String key) => (expected[key]['positionList'] as List)
         .where((s) => (s as Map)['kind'] == 'show')
         .length;

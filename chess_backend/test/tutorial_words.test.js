@@ -43,7 +43,7 @@ test('the template asks for exactly the five names the request gives', () => {
 test('every cap is at least twice what the ten games reach', () => {
   const most = {
     gameChars: 0, openingChars: 0, moments: 0, labelChars: 0, sanChars: 0,
-    costTextChars: 0, boardChars: 0, correct: 0, slotsPerMoment: 0, slotTextChars: 0,
+    costTextChars: 0, boardChars: 0, slotsPerMoment: 0, slotTextChars: 0,
     promptChars: 0, storyEvents: 0, eventsPerMoment: 0, eventChars: 0, arcChars: 0,
   };
   const up = (key, n) => { most[key] = Math.max(most[key], n); };
@@ -58,10 +58,9 @@ test('every cap is at least twice what the ten games reach', () => {
     up('arcChars', Math.max(r.arc.opening.length, r.arc.ending.length));
     for (const m of r.moments) {
       up('labelChars', Math.max(m.label.length, m.played.length));
-      up('sanChars', Math.max(m.best.length, ...m.correct.map((c) => c.length)));
+      up('sanChars', m.best.length);
       up('costTextChars', m.cost_text.length);
       up('boardChars', (m.board || '').length);
-      up('correct', m.correct.length);
       up('slotsPerMoment', m.slots.length);
       for (const s of m.slots) up('slotTextChars', s.text.length);
       up('eventsPerMoment', m.events.length);
@@ -69,7 +68,7 @@ test('every cap is at least twice what the ten games reach', () => {
   }
   for (const [key, value] of Object.entries(most)) {
     // Eight moments is the skeleton's own maximum, not a measurement to double.
-    const margin = key === 'moments' || key === 'correct' ? 1 : 2;
+    const margin = key === 'moments' ? 1 : 2;
     assert.ok(CAPS[key] >= margin * value, `${key}: cap ${CAPS[key]}, games reach ${value}`);
   }
 });
@@ -138,7 +137,6 @@ test('a request that is not the skeleton is refused with the reason', () => {
     ['a slot id twice', (r) => { r.moments[0].slots[1].id = r.moments[0].slots[0].id; }, /slot/],
     ['a slot too long', (r) => { r.moments[0].slots[0].text = 'x'.repeat(CAPS.slotTextChars + 1); }, /longer/],
     ['a game too long', (r) => { r.game = '1. e4 '.repeat(CAPS.gameChars); }, /longer/],
-    ['asks not a boolean', (r) => { r.moments[0].asks = 'yes'; }, /true or false/],
   ];
   for (const [name, change, pattern] of cases) {
     const request = base();
@@ -155,7 +153,7 @@ test('a skeleton that passes every field cap can still be too large to send', ()
     opening: null,
     moments: Array.from({ length: CAPS.moments }, (_, i) => ({
       id: `m${i + 1}`, label: '1. e4', mover: 'White', played: '1. e4',
-      cost_text: 'cost 1 pawn', best: 'd4', asks: false, correct: [], left_book: false,
+      cost_text: 'cost 1 pawn', best: 'd4', left_book: false,
       board: null,
       slots: Array.from({ length: CAPS.slotsPerMoment }, (_, k) => ({
         id: `m${i + 1}.answer.${k + 1}`, text: 'x'.repeat(CAPS.slotTextChars - 100),
@@ -182,11 +180,10 @@ test('the harness\'s bad answers: shape is refused, truth is left to the app', (
   assert.equal(verdict['the answer is not JSON'].ok, false);
   assert.equal(verdict['a moment chosen that was not offered'].ok, false);
   assert.equal(verdict['only one moment chosen'].ok, false);
-  // A missing slot and a sentence naming a move and a fork are the app's to
-  // report, beside the facts: the shape is right.
+  // A missing slot is the app's to report, beside the facts: the shape is
+  // right.
   assert.equal(verdict['a lead-in left without words'].ok, true);
-  assert.equal(verdict['a question that names a move and a fork'].ok, true);
-  assert.equal(Object.keys(verdict).length, 5, 'every case the harness judged is judged here');
+  assert.equal(Object.keys(verdict).length, 4, 'every case the harness judged is judged here');
 });
 
 test('an answer wrapped in a fence or in prose is still read', () => {
@@ -224,7 +221,7 @@ test('an answer that writes outside what was offered is refused', () => {
 test('the moment the game turned on reaches the prompt, and only it', () => {
   const moment = (id, turning) => ({
     id, label: '1. e4', mover: 'White', played: '1. e4', cost_text: 'cost 1 pawn',
-    best: 'd4', asks: false, correct: [], left_book: false, turning_point: turning,
+    best: 'd4', left_book: false, turning_point: turning,
     board: null, slots: [{ id: `${id}.answer.1`, text: 'a sentence' }],
   });
   const request = {
@@ -249,7 +246,7 @@ test('a request from an app that does not know the field is still served', () =>
     game: '1. e4 e5', opening: null,
     moments: [1, 2].map((n) => ({
       id: `m${n}`, label: '1. e4', mover: 'White', played: '1. e4',
-      cost_text: 'cost 1 pawn', best: 'd4', asks: false, correct: [],
+      cost_text: 'cost 1 pawn', best: 'd4',
       left_book: false, board: null,
       slots: [{ id: `m${n}.answer.1`, text: 'a sentence' }],
     })),
@@ -264,7 +261,7 @@ test('a turning_point that is not true or false is refused', () => {
     game: '1. e4 e5', opening: null,
     moments: [{
       id: 'm1', label: '1. e4', mover: 'White', played: '1. e4',
-      cost_text: 'cost 1 pawn', best: 'd4', asks: false, correct: [],
+      cost_text: 'cost 1 pawn', best: 'd4',
       left_book: false, turning_point: 'yes', board: null,
       slots: [{ id: 'm1.answer.1', text: 'a sentence' }],
     }],

@@ -15,14 +15,18 @@ the program decides all of that from the facts `make_facts.py` computed:
    of them (the verdicts are in the facts, `played.judged`, written by
    `chess_app/tool/judge_facts.dart`; until 1b, a cost of `min_cost` pawns);
  * for each, **a block of parts**: the last `lead_plies` moves of the game
-   leading into it, a question when the moves that would not themselves be a
-   mistake number at most `max_correct` (all of them accepted), and the answer
-   as the best line from the facts;
+   leading into it, and the answer as the best line from the facts;
  * every FEN, every move in the board's own SAN, every answer.
 
 The model is left with the one decision it did well - which moments teach a
 student the most - and the words: it chooses two or three moments by id and fills
 the empty slots of those, each slot shown with the facts it may speak from.
+
+**A tutorial is material for a film, and asks nothing** (the owner's word of
+25.9.2026, `docs/PLAN-TUTORIJAL-VIDEO.md`): no moment offers a question, and no
+slot is a question's answer. `correct` - the candidates as good as the best -
+is still computed, because the alternative („other") part uses its length to
+find the next move that is clearly worse, but it never leaves this file.
 
 **The parameters are applied here, never stored in the facts.** A facts file is
 engine output and the judge's verdicts on it; the shape of a tutorial can change
@@ -61,7 +65,6 @@ INPUT_DIR = os.path.join(HERE, 'input')
 # `chess_app/tool/judge_facts.dart` - and a move counts as correct when it
 # would not itself be a mistake (MISTAKE_LOSS chances of the best).
 DEFAULTS = {
-    'max_correct': 3,      # more right answers than this, and no question
     'max_moments': 8,      # candidates offered to the model
     'lead_plies': 3,       # game moves shown before a moment
     'answer_plies': 4,     # moves of the best line shown as the answer
@@ -612,8 +615,11 @@ def moments(name, cfg=None):
         judged = judged_of(row)
         # An only move the player found: the game played the best move.
         only = not judged.get('mistake')
+        # Every candidate as good as the best - used below by the alternative
+        # („other") part to find the next move that is clearly worse. Never
+        # asked of the student: a tutorial is material for a film, and asks
+        # nothing.
         correct = correct_candidates(row['candidates'])
-        asks = len(correct) <= cfg['max_correct']
         board_here = rows[i - 1].get('motifs_after_played') if i > 0 else None
         if not board_here:
             # In the book the detector is quiet on purpose, and this is what
@@ -663,39 +669,6 @@ def moments(name, cfg=None):
                             'motifs': ''}
             parts.append({'kind': 'show', 'fen': rows[start]['fen'],
                           'intro': intro, 'moves': moves, 'lead': True})
-
-        # The question.
-        if asks:
-            qid = '%s.question' % mid
-            if only:
-                nxt = row['candidates'][1] if len(row['candidates']) > 1 else None
-                next_text = (' The next best, %s, leaves %s.' % (
-                    nxt['move'], words_for(nxt.get('eval')))) if nxt else ''
-                slots[qid] = (
-                    '%s to move. Only one move holds here: %s, and afterwards %s. '
-                    'What follows it: %s. Every other move is clearly worse.%s '
-                    'The game found it.%s Ask for the move in one sentence, '
-                    'without naming it or its destination square.' % (
-                        mover, best['move'], words_for(best['eval']),
-                        best['line'], next_text,
-                        (' On the board: %s.' % board_here) if board_here else ''))
-            else:
-                slots[qid] = (
-                    '%s to move. The best move is %s, and afterwards %s. Also counted '
-                    'correct: %s. What follows the best move: %s. In the game %s was '
-                    'played instead; it %s and afterwards %s.%s Ask for the '
-                    'move in one sentence, without naming it or its destination square.' % (
-                        mover, best['move'], words_for(best['eval']),
-                        ', '.join(c['move'] for c in correct[1:]) or 'nothing else',
-                        best['line'], played['move'], cost_text(played),
-                        words_for(played.get('eval')),
-                        (' On the board: %s.' % board_here) if board_here else ''))
-            facts[qid] = {'gain': 0, 'mate': False, 'fork': False, 'pin': False,
-                          'motifs': board_here or '', 'question': True,
-                          'names': [best['move'], best['move'].rstrip('+#')[-2:]]}
-            parts.append({'kind': 'ask_move', 'fen': row['fen'],
-                          'instruction': qid, 'solution': best['move'],
-                          'accepted': [c['move'] for c in correct[1:]]})
 
         # The answer: the best line.
         board = chess.Board(row['fen'])
@@ -836,8 +809,7 @@ def moments(name, cfg=None):
             'cost': played.get('cost_pawns'),
             'cost_text': 'was the only move that held' if only else cost_text(played),
             'left_book': bool(played.get('left_book')),
-            'best': best['move'], 'asks': asks,
-            'correct': [c['move'] for c in correct], 'board': board_here,
+            'best': best['move'], 'board': board_here,
             'parts': parts, 'slots': slots, 'facts': facts, 'program': program,
             'events': [e['text'] for e in story if e['ply'] == i],
         })
@@ -977,7 +949,7 @@ def words_request(name, cfg=None):
         request_moments.append({
             'id': m['id'], 'label': m['label'], 'mover': m['mover'],
             'played': m['played'], 'cost_text': m['cost_text'], 'best': m['best'],
-            'asks': m['asks'], 'correct': m['correct'], 'left_book': m['left_book'],
+            'left_book': m['left_book'],
             'turning_point': m['turning_point'],
             'board': m['board'], 'events': m['events'], 'slots': slots,
         })
@@ -994,11 +966,8 @@ def prompt_from_request(request):
     blocks = []
     for m in request['moments']:
         head = ('### %s - at %s, %s to move\nIn the game %s was played and it %s; '
-                'the best move was %s. %s' % (
-                    m['id'], m['label'], m['mover'], m['played'], m['cost_text'], m['best'],
-                    ('There is a question here; correct answers: %s.' % ', '.join(m['correct']))
-                    if m['asks'] else
-                    'No question here: too many moves are about as good.'))
+                'the best move was %s.' % (
+                    m['id'], m['label'], m['mover'], m['played'], m['cost_text'], m['best']))
         if m['turning_point']:
             # After the book hook and before the board, so a moment that is
             # both reads in one order.
@@ -1091,11 +1060,11 @@ def _claims(sid, text, facts, context=''):
     if re.search(r'[+-]\d+\.\d+|\b\d+\.\d+\b', text):
         found.append('%s prints an evaluation' % sid)
     if re.search(r'\b(win|wins|won|winning a)\b', low) and 'winning' not in low \
-            and not facts.get('gain') and not facts.get('mate') and not facts.get('question') \
+            and not facts.get('gain') and not facts.get('mate') \
             and 'winning' not in shown and ' mates in ' not in shown:
         found.append('%s says a move wins, and the facts show no material won' % sid)
     if re.search(r'\b(checkmate|mates|mate)\b', low) and not facts.get('mate') \
-            and 'mate' not in shown and not facts.get('question'):
+            and 'mate' not in shown:
         found.append('%s speaks of mate, and the facts of that slot have none' % sid)
     if 'fork' in low and not facts.get('fork') and 'fork' not in shown:
         found.append('%s names a fork the facts do not show' % sid)
@@ -1111,22 +1080,6 @@ def _claims(sid, text, facts, context=''):
     if facts.get('to') and squares and facts['to'] not in squares:
         found.append('%s says a piece goes to %s, and this move goes to %s' % (
             sid, ', '.join(sorted(squares)), facts['to']))
-    if facts.get('question'):
-        answer = facts['names'][0].rstrip('+#')
-        if answer and answer in text or facts['names'][1] in low:
-            found.append('%s names its answer or its square' % sid)
-        # And any other move written in notation. A bare square ("the pawn on
-        # b7") is a place on the board and fair to name; a move with its piece
-        # letter or its capture is notation, and on 13.9.2026 two questions of
-        # twenty-nine named the move played in the game - which the slot hands
-        # the model, and which eliminates a candidate as surely as the answer
-        # would.
-        others = [m for m in re.findall(
-            r'\b([KQRBN][a-h]?[1-8]?x?[a-h][1-8][+#]?|[a-h]x[a-h][1-8][+#]?'
-            r'|O-O(?:-O)?)\b', text) if m.rstrip('+#') != answer]
-        if others:
-            found.append('%s names %s, a move that is not the answer'
-                         % (sid, ', '.join(sorted(set(others)))))
     return found
 
 
@@ -1273,14 +1226,7 @@ def _steps(parts, words):
         # throughout, because the reader and the video export can turn it.
         step = {'title': 'Part %d' % (len(steps) + 1), 'fen': part['fen'],
                 'kind': part['kind']}
-        if part['kind'] == 'show':
-            step['pgn'] = _pgn(part, words)
-        else:
-            step['instruction'] = words.get(part['instruction'], '')
-            step['solutionSan'] = part['solution']
-            if part['accepted']:
-                step['acceptedSans'] = part['accepted']
-            step['pgn'] = ''
+        step['pgn'] = _pgn(part, words)
         steps.append(step)
     return steps
 

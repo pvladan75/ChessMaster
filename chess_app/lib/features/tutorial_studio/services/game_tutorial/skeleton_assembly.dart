@@ -156,12 +156,10 @@ List<String> claimsFor(
   final hasWin = RegExp(r'\b(win|wins|won|winning a)\b').hasMatch(low);
   final gain = facts['gain'] as num? ?? 0;
   final mate = facts['mate'] == true;
-  final question = facts['question'] == true;
   if (hasWin &&
       !low.contains('winning') &&
       gain == 0 &&
       !mate &&
-      !question &&
       !shown.contains('winning') &&
       !shown.contains(' mates in ')) {
     found.add('$sid says a move wins, and the facts show no material won');
@@ -169,8 +167,7 @@ List<String> claimsFor(
 
   if (RegExp(r'\b(checkmate|mates|mate)\b').hasMatch(low) &&
       !mate &&
-      !shown.contains('mate') &&
-      !question) {
+      !shown.contains('mate')) {
     found.add('$sid speaks of mate, and the facts of that slot have none');
   }
 
@@ -223,31 +220,6 @@ List<String> claimsFor(
       final sortedOutside = outside.toList()..sort();
       found.add(
         '$sid names ${sortedOutside.join(', ')}, a move not in its lines',
-      );
-    }
-  }
-
-  if (question) {
-    final names =
-        (facts['names'] as List?)?.map((e) => e.toString()).toList() ?? [];
-    final rawAnswer = names.isNotEmpty ? names[0] : '';
-    final answer = _bareSan(rawAnswer);
-    final sqName = names.length > 1 ? names[1] : '';
-    if ((answer.isNotEmpty && text.contains(answer)) ||
-        (sqName.isNotEmpty && low.contains(sqName))) {
-      found.add('$sid names its answer or its square');
-    }
-    final others = <String>{};
-    for (final m in _sanInText.allMatches(text)) {
-      final matched = m.group(0)!;
-      if (_bareSan(matched) != answer) {
-        others.add(matched);
-      }
-    }
-    if (others.isNotEmpty) {
-      final sortedOthers = others.toList()..sort();
-      found.add(
-        '$sid names ${sortedOthers.join(', ')}, a move that is not the answer',
       );
     }
   }
@@ -371,18 +343,7 @@ List<Map<String, dynamic>> stepsFor(
       'fen': part['fen'],
       'kind': kind,
     };
-    if (kind == 'show') {
-      step['pgn'] = pgnForPart(part, words);
-    } else {
-      final instKey = part['instruction'] as String?;
-      step['instruction'] = (instKey != null ? words[instKey] : null) ?? '';
-      step['solutionSan'] = part['solution'];
-      final accepted = part['accepted'] as List?;
-      if (accepted != null && accepted.isNotEmpty) {
-        step['acceptedSans'] = accepted;
-      }
-      step['pgn'] = '';
-    }
+    step['pgn'] = pgnForPart(part, words);
     steps.add(step);
   }
   return steps;

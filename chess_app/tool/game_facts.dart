@@ -252,8 +252,7 @@ Map<String, dynamic> _compare(
   List<String> momentsOf(Map<String, dynamic> facts) => [
         for (final m in skeletonMoments(
             jsonDecode(jsonEncode(facts)) as Map<String, dynamic>))
-          '${m['label']} best=${m['best']} asks=${m['asks']} '
-              'correct=${(m['correct'] as List).join(',')}'
+          '${m['label']} best=${m['best']}'
       ];
   final mx = momentsOf(harness), my = momentsOf(device);
   final same = mx.join('\n') == my.join('\n');

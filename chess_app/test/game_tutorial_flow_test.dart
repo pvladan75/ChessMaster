@@ -28,14 +28,14 @@ final _fixture = jsonDecode(
 GameTutorialResult _result({String? mastersNote}) {
   final expected = _fixture['expected'] as Map<String, dynamic>;
   return GameTutorialResult(
-    // As the real run hands them over: without the question parts the
-    // skeleton still makes until phase 5 of docs/PLAN-TUTORIJAL-VIDEO.md.
-    keyMoments: readTutorialJson(jsonEncode(
-        withoutQuestions(expected['tutorial'] as Map<String, dynamic>))),
-    wholeGame: readTutorialJson(jsonEncode(
-        withoutQuestions(expected['tutorialGame'] as Map<String, dynamic>))),
+    // As the real run hands them over — every part shows, since phase 5 of
+    // docs/PLAN-TUTORIJAL-VIDEO.md.
+    keyMoments: readTutorialJson(
+        jsonEncode(expected['tutorial'] as Map<String, dynamic>)),
+    wholeGame: readTutorialJson(
+        jsonEncode(expected['tutorialGame'] as Map<String, dynamic>)),
     report: const {
-      'claims': ['m1.question names its answer or its square'],
+      'claims': ['m1.lead.1 names a fork the facts do not show'],
       'missing_slots': <String>[],
     },
     momentsOffered: 6,
@@ -317,9 +317,10 @@ void main() {
 
   // The owner, 14.9.2026: a tutorial made for a film asks nothing — a
   // question in a video is a board waiting for an answer nobody can give.
-  testWidgets(
-      'a tutorial from a game has no question parts, and says how many '
-      'parts that leaves', (tester) async {
+  // Since phase 5 of docs/PLAN-TUTORIJAL-VIDEO.md the skeleton itself makes
+  // no question part, so every part of the game already shows.
+  testWidgets('a tutorial from a game asks nothing, and every part shows',
+      (tester) async {
     final opened = <ImportedTutorial>[];
     await _pump(tester,
         runner: _Runner(finish: (_) => _result()), opened: opened);
@@ -329,22 +330,19 @@ void main() {
     final expected =
         ((_fixture['expected'] as Map)['tutorialGame']['positionList'] as List)
             .cast<Map>();
-    final shows = expected.where((s) => s['kind'] == 'show').length;
-    expect(shows, lessThan(expected.length),
-        reason: 'the fixture must ask something, or this test cannot tell');
-    // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4): there is no
-    // „For students" / „For a video" to choose between any more.
+    expect(expected.every((s) => s['kind'] == 'show'), isTrue);
+    // There is no „For students" / „For a video" to choose between any more
+    // (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4).
     expect(find.byKey(const Key('game-tutorial-for-video')), findsNothing);
     expect(find.byKey(const Key('game-tutorial-for-students')), findsNothing);
-    expect(find.textContaining('$shows parts —'), findsOneWidget);
-    expect(find.textContaining('${expected.length} parts —'), findsNothing);
+    expect(find.textContaining('${expected.length} parts —'), findsOneWidget);
 
     final whole = find.byKey(const Key('game-tutorial-whole-game'));
     await tester.ensureVisible(whole);
     await tester.tap(whole);
     await tester.pumpAndSettle();
 
-    expect(opened.single.partCount, shows);
+    expect(opened.single.partCount, expected.length);
     expect(opened.single.positionList.map((s) => s['kind']).toSet(), {'show'});
     expect(tester.takeException(), isNull);
   });

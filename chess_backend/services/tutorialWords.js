@@ -4,7 +4,7 @@
 // docs/PLAN-SKELET.md, phase 3. **The client never sends a prompt.** A route
 // that forwarded one would be this server's model key as an open proxy for
 // anything. The app sends the skeleton as data — moments, their labels, the
-// moves, the correct answers, the slot ids and their fact texts — and the
+// moves, the slot ids and their fact texts — and the
 // prompt is written here from `prompts/tutorial_words.txt`, which is the one
 // copy of the template: the harness reads the same file.
 //
@@ -36,7 +36,6 @@ const CAPS = Object.freeze({
   sanChars: 12,
   costTextChars: 120,
   boardChars: 1200,
-  correct: 4,
   slotsPerMoment: 40,
   slotTextChars: 1500,
   // The story of the game and the arc (docs/PLAN-NARACIJA.md): sentences the
@@ -53,10 +52,8 @@ const CAPS = Object.freeze({
   descriptionChars: 500,
   tags: 5,
   tagChars: 60,
-  // No more than a part's task may hold (`lessonSteps.js`, MAX_INSTRUCTION):
-  // a question sentence becomes a task, and since 16.9.2026 a longer task is
-  // refused at save rather than cut. Refused here instead, where the answer
-  // is checked and a model can be asked again.
+  // A slot's answer text, capped generously against a model that ran long.
+  // Refused here, where the answer is checked and a model can be asked again.
   answerSlotChars: 500,
 });
 
@@ -125,8 +122,8 @@ function validateWordsRequest(body) {
     if (m.mover !== 'White' && m.mover !== 'Black') {
       throw new RangeError(`${at}.mover must be White or Black.`);
     }
-    if (typeof m.asks !== 'boolean' || typeof m.left_book !== 'boolean') {
-      throw new RangeError(`${at}.asks and left_book must be true or false.`);
+    if (typeof m.left_book !== 'boolean') {
+      throw new RangeError(`${at}.left_book must be true or false.`);
     }
     // **Optional, unlike the two above, and that is deliberate.** The server is
     // deployed apart from the app, so an app already on a trainer's machine
@@ -135,9 +132,6 @@ function validateWordsRequest(body) {
     // no third answer to have here, the way there is for a stored column.
     if (typeof m.turning_point !== 'undefined' && typeof m.turning_point !== 'boolean') {
       throw new RangeError(`${at}.turning_point must be true or false.`);
-    }
-    if (!Array.isArray(m.correct) || m.correct.length > CAPS.correct) {
-      throw new RangeError(`${at}.correct must be a list of at most ${CAPS.correct} moves.`);
     }
     if (!Array.isArray(m.slots) || m.slots.length === 0 || m.slots.length > CAPS.slotsPerMoment) {
       throw new RangeError(`${at}.slots must hold 1 to ${CAPS.slotsPerMoment} slots.`);
@@ -161,8 +155,6 @@ function validateWordsRequest(body) {
       played: text(m.played, `${at}.played`, CAPS.labelChars),
       cost_text: text(m.cost_text, `${at}.cost_text`, CAPS.costTextChars),
       best: text(m.best, `${at}.best`, CAPS.sanChars),
-      asks: m.asks,
-      correct: m.correct.map((c, k) => text(c, `${at}.correct[${k}]`, CAPS.sanChars)),
       left_book: m.left_book,
       turning_point: m.turning_point === true,
       board: text(m.board, `${at}.board`, CAPS.boardChars, { optional: true }),
@@ -192,10 +184,7 @@ function buildPrompt(request) {
   const blocks = request.moments.map((m) => {
     let head = `### ${m.id} - at ${m.label}, ${m.mover} to move\n`
       + `In the game ${m.played} was played and it ${m.cost_text}; `
-      + `the best move was ${m.best}. `
-      + (m.asks
-        ? `There is a question here; correct answers: ${m.correct.join(', ')}.`
-        : 'No question here: too many moves are about as good.');
+      + `the best move was ${m.best}.`;
     if (m.turning_point) head += '\nThis is the moment the game turned on.';
     if (m.left_book) head += '\nThis is the move that left the masters database.';
     for (const event of m.events || []) head += `\nIn the story of the game: ${event}.`;

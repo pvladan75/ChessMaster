@@ -160,22 +160,6 @@ Map<String, dynamic> facingWhite(Map<String, dynamic> tutorial) => {
       ],
     };
 
-/// [tutorial] with only the parts that show — a film is all a tutorial makes
-/// (`docs/PLAN-TUTORIJAL-VIDEO.md`), and the importer refuses a part that
-/// asks. The owner's rule of 14.9.2026 made this the „For a video" version;
-/// since 25.9.2026 it is the only one.
-///
-/// **Until phase 5 of that plan the skeleton still writes the question part**
-/// (and its words are still asked for); it is dropped here, before the
-/// tutorial is read. Phase 5 stops writing it, and this goes with it.
-Map<String, dynamic> withoutQuestions(Map<String, dynamic> tutorial) => {
-      ...tutorial,
-      'positionList': [
-        for (final step in (tutorial['positionList'] as List? ?? const []))
-          if (((step as Map)['kind'] ?? 'show') == 'show') step,
-      ],
-    };
-
 /// What the trainer is shown once the engine and the judge are done and before
 /// the words are paid for — point 6 of the owner's live pass, 14.9.2026.
 ///
@@ -454,11 +438,10 @@ class GameTutorialRunner {
           'The words that came back did not fit this game ($problems).');
     }
     return GameTutorialResult(
-      keyMoments: readTutorialJson(
-          jsonEncode(withoutQuestions(facingWhite(assembled.tutorial!))),
+      keyMoments: readTutorialJson(jsonEncode(facingWhite(assembled.tutorial!)),
           fileName: gameName),
       wholeGame: readTutorialJson(
-          jsonEncode(withoutQuestions(facingWhite(assembled.tutorialGame!))),
+          jsonEncode(facingWhite(assembled.tutorialGame!)),
           fileName: gameName),
       report: assembled.report,
       momentsOffered: offered.length,

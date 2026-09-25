@@ -43,8 +43,7 @@ Map<String, dynamic> wordsRequestOf(
 }
 
 /// One moment, with its slots in the order the student meets them: each part's
-/// introduction, then its question, then its moves — the order the prompt
-/// lists them in.
+/// introduction, then its moves — the order the prompt lists them in.
 Map<String, dynamic> _momentRequest(Map<String, dynamic> m) {
   final texts = (m['slots'] as Map).cast<String, String>();
   final slots = <Map<String, dynamic>>[];
@@ -69,8 +68,6 @@ Map<String, dynamic> _momentRequest(Map<String, dynamic> m) {
     'played': m['played'],
     'cost_text': m['cost_text'],
     'best': m['best'],
-    'asks': m['asks'],
-    'correct': m['correct'],
     'left_book': m['left_book'],
     'turning_point': m['turning_point'],
     'board': m['board'],

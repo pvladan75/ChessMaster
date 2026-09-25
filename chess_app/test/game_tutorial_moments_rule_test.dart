@@ -255,10 +255,6 @@ void main() {
         expect(slots.values.join(' '),
             isNot(contains('which the game did not play')));
         expect(slots.values.join(' '), isNot(contains('was played instead')));
-        if (m['asks'] == true) {
-          expect(slots['${m['id']}.question'],
-              contains('Only one move holds here'));
-        }
       }
       for (final m in mistakes) {
         final slots = (m['slots'] as Map).cast<String, String>();

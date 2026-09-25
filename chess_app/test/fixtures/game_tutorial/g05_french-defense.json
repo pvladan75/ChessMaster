@@ -2,7 +2,6 @@
  "about": "Written by tools/game_annotate/export_fixtures.py from skeleton.py. Do not edit by hand: change the harness, then run the script again.",
  "game": "g05_french-defense",
  "parameters": {
-  "max_correct": 3,
   "max_moments": 8,
   "lead_plies": 3,
   "answer_plies": 4,
@@ -3280,7 +3279,7 @@
   ]
  },
  "plainPgn": "[Event \"Analysis Studio Session\"]\n[Site \"Chess trainer\"]\n[Date \"2026.09.13\"]\n[Round \"1\"]\n[White \"Player\"]\n[Black \"Analysis Engine\"]\n[Result \"*\"]\n\n1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 g6 5. Nc3 Bg7 6. Nf3 dxc4 7. Bxc4 Ne7 8.\nO-O O-O 9. Re1 Nf5 10. Bg5 Qd6 11. Qb3 Nxd4 12. Nxd4 Bxd4 13. Rad1 c5 14. Be7\nQf4 15. Bxf8 Bxf2+ 16. Kh1 Bxe1 17. Bxc5 Be6 18. Rxe1 Bxc4 19. Re8+ Kg7 20.\nBf8+ Kf6 21. Ne4+ Qxe4 22. Qc3+ Kf5 23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5\n26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6 29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32.\nQe4+ Kh5 33. Qxf3+ Kh6 34. Qh3# *\n",
- "answer": "{\"title\": \"A Tactical French: Chances Taken\", \"description\": \"A French Defense battle where two missed defensive moves decide the fight.\", \"tags\": [\"French Defense\", \"Tactics\"], \"chosen\": [\"m2\", \"m4\"], \"slots\": {\"story.opening\": \"This is a tactical fight full of turns, where chances appear and must be seized at once. Watch how pressure builds and how one side's missed defence changes everything.\", \"m2.lead.intro\": \"White has the initiative and is pressing, while Black must find a way to stay in the game.\", \"m2.lead.1\": \"The bishop strikes at the queen, pinning the pawn in front of the king and forcing Black to respond.\", \"m2.lead.2\": \"The queen steps out of the attack, but White's pressure does not ease.\", \"m2.lead.3\": \"White's queen joins the attack, pinning the king's pawn and keeping the initiative.\", \"m2.question\": \"Black is under pressure: find the move that holds White to only a slight edge, not the one that loses control.\", \"m2.answer.1\": \"The missing best move develops a knight and keeps White's advantage small.\", \"m2.answer.2\": \"The knight leaps in and hits the queen, while the pawn in front of the king remains pinned.\", \"m2.answer.3\": \"Black grabs the pawn in the centre, and the knight now hits the queen and both white knights.\", \"m2.answer.4\": \"White recaptures the knight, and the knight on c6 is left under attack as the pin on the king's pawn remains.\", \"m2.answer.5\": \"Black recaptures, hitting the queen and the other knight.\", \"m2.other.intro\": \"There is another candidate, but it is weaker: it lets White end the line clearly better.\", \"m2.other.1\": \"The second choice is too slow; White keeps a clear edge.\", \"m2.other.2\": \"\", \"m2.other.3\": \"The bishop challenges the knight in the centre.\", \"m2.other.4\": \"White takes the bishop and hits the queen.\", \"m2.other.5\": \"Black recaptures the rook, and the knight in the centre is under fire.\", \"m4.lead.intro\": \"White is pressing hard, and Black is fighting to survive the attack.\", \"m4.lead.1\": \"White takes the pawn, and the bishop is no longer hanging.\", \"m4.lead.2\": \"This move pins the white bishop to the queen and adds pressure on it.\", \"m4.lead.3\": \"White recaptures and hits the bishop, keeping the bishop pair. Without a dark-squared bishop, Black's dark squares are weak.\", \"m4.question\": \"Black's bishop is under attack and the dark squares are weak; find the only move that keeps White to a clear but not winning edge.\", \"m4.answer.1\": \"The missing best move develops a knight and attacks the bishop, holding White to a clear edge.\", \"m4.answer.2\": \"White grabs a pawn on the wing, but this is not the main try.\", \"m4.answer.3\": \"Black finally takes the bishop, hitting the queen and the knight.\", \"m4.answer.4\": \"White takes the pawn and hits both the knight and the rook.\", \"m4.other.intro\": \"There is a second candidate, but it fails to hold: the line ends with White winning.\", \"m4.other.1\": \"The other knight move also hits the bishop, but it is not enough.\", \"m4.other.2\": \"White takes the pawn and attacks both black pieces on the queenside.\", \"m4.other.3\": \"Black offers an exchange by hitting the queen.\", \"m4.other.4\": \"White takes the knight and turns on the bishop.\", \"m4.other.5\": \"Black takes the bishop and hits the queen, but the damage is already done.\", \"m4.other.6\": \"White moves the queen away and keeps the bishop under fire.\", \"story.ending\": \"White wins by checkmate, after taking the chance Black offered on move eleven and never surrendering the winning position.\"}}",
+ "answer": "{\"title\": \"A Tactical French: Chances Taken\", \"description\": \"A French Defense battle where two missed defensive moves decide the fight.\", \"tags\": [\"French Defense\", \"Tactics\"], \"chosen\": [\"m2\", \"m4\"], \"slots\": {\"story.opening\": \"This is a tactical fight full of turns, where chances appear and must be seized at once. Watch how pressure builds and how one side's missed defence changes everything.\", \"m2.lead.intro\": \"White has the initiative and is pressing, while Black must find a way to stay in the game.\", \"m2.lead.1\": \"The bishop strikes at the queen, pinning the pawn in front of the king and forcing Black to respond.\", \"m2.lead.2\": \"The queen steps out of the attack, but White's pressure does not ease.\", \"m2.lead.3\": \"White's queen joins the attack, pinning the king's pawn and keeping the initiative.\", \"m2.answer.1\": \"The missing best move develops a knight and keeps White's advantage small.\", \"m2.answer.2\": \"The knight leaps in and hits the queen, while the pawn in front of the king remains pinned.\", \"m2.answer.3\": \"Black grabs the pawn in the centre, and the knight now hits the queen and both white knights.\", \"m2.answer.4\": \"White recaptures the knight, and the knight on c6 is left under attack as the pin on the king's pawn remains.\", \"m2.answer.5\": \"Black recaptures, hitting the queen and the other knight.\", \"m2.other.intro\": \"There is another candidate, but it is weaker: it lets White end the line clearly better.\", \"m2.other.1\": \"The second choice is too slow; White keeps a clear edge.\", \"m2.other.2\": \"\", \"m2.other.3\": \"The bishop challenges the knight in the centre.\", \"m2.other.4\": \"White takes the bishop and hits the queen.\", \"m2.other.5\": \"Black recaptures the rook, and the knight in the centre is under fire.\", \"m4.lead.intro\": \"White is pressing hard, and Black is fighting to survive the attack.\", \"m4.lead.1\": \"White takes the pawn, and the bishop is no longer hanging.\", \"m4.lead.2\": \"This move pins the white bishop to the queen and adds pressure on it.\", \"m4.lead.3\": \"White recaptures and hits the bishop, keeping the bishop pair. Without a dark-squared bishop, Black's dark squares are weak.\", \"m4.answer.1\": \"The missing best move develops a knight and attacks the bishop, holding White to a clear edge.\", \"m4.answer.2\": \"White grabs a pawn on the wing, but this is not the main try.\", \"m4.answer.3\": \"Black finally takes the bishop, hitting the queen and the knight.\", \"m4.answer.4\": \"White takes the pawn and hits both the knight and the rook.\", \"m4.other.intro\": \"There is a second candidate, but it fails to hold: the line ends with White winning.\", \"m4.other.1\": \"The other knight move also hits the bishop, but it is not enough.\", \"m4.other.2\": \"White takes the pawn and attacks both black pieces on the queenside.\", \"m4.other.3\": \"Black offers an exchange by hitting the queen.\", \"m4.other.4\": \"White takes the knight and turns on the bishop.\", \"m4.other.5\": \"Black takes the bishop and hits the queen, but the damage is already done.\", \"m4.other.6\": \"White moves the queen away and keeps the bishop under fire.\", \"story.ending\": \"White wins by checkmate, after taking the chance Black offered on move eleven and never surrendering the winning position.\"}}",
  "expected": {
   "wordsFor": {
    "#-3": "Black mates in 3",
@@ -5389,13 +5388,6 @@
     "cost_text": "cost 1.72 pawns",
     "left_book": false,
     "best": "g4",
-    "asks": false,
-    "correct": [
-     "g4",
-     "Nd5",
-     "Rc1",
-     "h3"
-    ],
     "board": "The black queen on d8 is no longer hanging.",
     "parts": [
      {
@@ -5583,11 +5575,6 @@
     "cost_text": "cost 3.14 pawns",
     "left_book": false,
     "best": "Nc6",
-    "asks": true,
-    "correct": [
-     "Nc6",
-     "Qb6"
-    ],
     "board": null,
     "parts": [
      {
@@ -5615,15 +5602,6 @@
        }
       ],
       "lead": true
-     },
-     {
-      "kind": "ask_move",
-      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
-      "instruction": "m2.question",
-      "solution": "Nc6",
-      "accepted": [
-       "Qb6"
-      ]
      },
      {
       "kind": "show",
@@ -5699,7 +5677,6 @@
      "m2.lead.2": "Qd6 by Black (queen d8-d6); played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.",
      "m2.lead.3": "Qb3 by White (queen d1-b3); pinned to their king afterwards: f7; played in the game; afterwards White is slightly better",
      "m2.lead.intro": "the scene, a few moves before the moment: White to move, White is clearly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.",
-     "m2.question": "Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: Qb6. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.",
      "m2.answer.1": "Nc6 by Black (knight b8-c6); the best move, which the game did not play",
      "m2.answer.2": "Nb5 by White (knight c3-b5); the moved piece now attacks: queen on d6; pinned to their king afterwards: f7; not played",
      "m2.answer.3": "Nfxd4 by Black (knight f5-d4); it captures a pawn; the moved piece now attacks: queen on b3, knight on f3, knight on b5; not played",
@@ -5750,19 +5727,6 @@
       "pin": false,
       "motifs": "",
       "text": "the scene, a few moves before the moment: White to move, White is clearly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played."
-     },
-     "m2.question": {
-      "gain": 0,
-      "mate": false,
-      "fork": false,
-      "pin": false,
-      "motifs": "",
-      "question": true,
-      "names": [
-       "Nc6",
-       "c6"
-      ],
-      "text": "Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: Qb6. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square."
      },
      "m2.answer.1": {
       "words": "Nc6 by Black (knight b8-c6)",
@@ -5891,13 +5855,6 @@
     "cost_text": "cost 3.96 pawns",
     "left_book": false,
     "best": "Qxb7",
-    "asks": false,
-    "correct": [
-     "Qxb7",
-     "Rd8+",
-     "Bxe6",
-     "Rd4"
-    ],
     "board": "The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.",
     "parts": [
      {
@@ -6070,10 +6027,6 @@
     "cost_text": "cost 7.07 pawns",
     "left_book": false,
     "best": "Nd7",
-    "asks": true,
-    "correct": [
-     "Nd7"
-    ],
     "board": "The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
     "parts": [
      {
@@ -6101,13 +6054,6 @@
        }
       ],
       "lead": true
-     },
-     {
-      "kind": "ask_move",
-      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
-      "instruction": "m4.question",
-      "solution": "Nd7",
-      "accepted": []
      },
      {
       "kind": "show",
@@ -6183,7 +6129,6 @@
      "m4.lead.2": "Be6 by Black (bishop c8-e6); the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.",
      "m4.lead.3": "Rxe1 by White (rook d1-e1); it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
      "m4.lead.intro": "the scene, a few moves before the moment: White to move, White is winning, Black is 2 points of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.",
-     "m4.question": "Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square.",
      "m4.answer.1": "Nd7 by Black (knight b8-d7); the moved piece now attacks: bishop on c5; the best move, which the game did not play",
      "m4.answer.2": "Bxa7 by White (bishop c5-a7); it captures a pawn; not played",
      "m4.answer.3": "Qxc4 by Black (queen f4-c4); it captures a bishop; the moved piece now attacks: queen on b3, knight on c3; not played",
@@ -6234,19 +6179,6 @@
       "pin": false,
       "motifs": "",
       "text": "the scene, a few moves before the moment: White to move, White is winning, Black is 2 points of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played."
-     },
-     "m4.question": {
-      "gain": 0,
-      "mate": false,
-      "fork": false,
-      "pin": false,
-      "motifs": "The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
-      "question": true,
-      "names": [
-       "Nd7",
-       "d7"
-      ],
-      "text": "Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square."
      },
      "m4.answer.1": {
       "words": "Nd7 by Black (knight b8-d7); the moved piece now attacks: bishop on c5",
@@ -6385,13 +6317,6 @@
      "played": "11. Qb3",
      "cost_text": "cost 1.72 pawns",
      "best": "g4",
-     "asks": false,
-     "correct": [
-      "g4",
-      "Nd5",
-      "Rc1",
-      "h3"
-     ],
      "left_book": false,
      "turning_point": false,
      "board": "The black queen on d8 is no longer hanging.",
@@ -6442,11 +6367,6 @@
      "played": "11... Nxd4",
      "cost_text": "cost 3.14 pawns",
      "best": "Nc6",
-     "asks": true,
-     "correct": [
-      "Nc6",
-      "Qb6"
-     ],
      "left_book": false,
      "turning_point": false,
      "board": null,
@@ -6467,10 +6387,6 @@
       {
        "id": "m2.lead.3",
        "text": "Qb3 by White (queen d1-b3); pinned to their king afterwards: f7; played in the game; afterwards White is slightly better"
-      },
-      {
-       "id": "m2.question",
-       "text": "Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: Qb6. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square."
       },
       {
        "id": "m2.answer.1",
@@ -6525,13 +6441,6 @@
      "played": "18. Rxe1",
      "cost_text": "cost 3.96 pawns",
      "best": "Qxb7",
-     "asks": false,
-     "correct": [
-      "Qxb7",
-      "Rd8+",
-      "Bxe6",
-      "Rd4"
-     ],
      "left_book": false,
      "turning_point": false,
      "board": "The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.",
@@ -6578,10 +6487,6 @@
      "played": "18... Bxc4",
      "cost_text": "cost 7.07 pawns",
      "best": "Nd7",
-     "asks": true,
-     "correct": [
-      "Nd7"
-     ],
      "left_book": false,
      "turning_point": true,
      "board": "The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.",
@@ -6602,10 +6507,6 @@
       {
        "id": "m4.lead.3",
        "text": "Rxe1 by White (rook d1-e1); it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak."
-      },
-      {
-       "id": "m4.question",
-       "text": "Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square."
       },
       {
        "id": "m4.answer.1",
@@ -6655,10 +6556,9 @@
     }
    ]
   },
-  "prompt": "# Write the words for a chess tutorial, as the story of a game\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud one after the\nother. The student plays in a club and knows how the pieces move and what a fork\nand a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids. Prefer the moments the story of the game turns on.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## The voice\n\nA game of chess is a fight, and the tutorial tells it. Everything you write is\nheard in order, together with a few sentences the program adds, as **one story**:\nwhere the fight stands, who is pressing, the chance one side gives the other,\nwhat was taken or missed, and what it cost.\n\n- **The board plays each move while its slot is read.** Never announce the move\n  („Black plays Qc7\") and never describe where a piece goes („the queen from d8\n  to c7\") - the student is watching it happen. Say what the move means: what it\n  attacks, defends, prepares, allows or gives away.\n- **Name a move in notation only when it is not the move of this slot.**\n- **Carry on from the slot before.** Do not open two slots with the same words,\n  and do not start every sentence with a colour.\n- **A move slot of a lead-in or of a line may be an empty string** (\"\") when the\n  move needs no words; the board waits over it in silence. Leave at most half of\n  a part's move slots empty, and never the first move of a best line.\n- **Never write a sentence whose only content is that the line carries on.**\n  „The line goes on\", „and the line continues\", „this is how the line goes\" say\n  nothing a student can use, and they read as the same sentence four times over.\n  If a move has nothing to tell, its slot is the empty string.\n- Short, concrete sentences in the present tense.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep what happened apart from what should have.** A slot marked „not played\"\n  is a move the game did not contain: say it as a line that was there, never as\n  something that happened.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"story.opening\": \"...\", \"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\", \"story.ending\": \"...\"}}\n\n## The game\n\nThe opening is the French Defense: Exchange Variation, Monte Carlo Variation. 4... g6 left the masters database: 1367 master games had reached that position and not one played it.\n\n```\n1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 g6 5. Nc3 Bg7 6. Nf3 dxc4 7. Bxc4 Ne7 8.\nO-O O-O 9. Re1 Nf5 10. Bg5 Qd6 11. Qb3 Nxd4 12. Nxd4 Bxd4 13. Rad1 c5 14. Be7\nQf4 15. Bxf8 Bxf2+ 16. Kh1 Bxe1 17. Bxc5 Be6 18. Rxe1 Bxc4 19. Re8+ Kg7 20.\nBf8+ Kf6 21. Ne4+ Qxe4 22. Qc3+ Kf5 23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5\n26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6 29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32.\nQe4+ Kh5 33. Qxf3+ Kh6 34. Qh3# *\n```\n\n## The story of the game\n\nComputed from the engine's evaluations, in game order. These are facts; tell\nthem, do not add to them.\n\n- 9... Nf5 is the first mistake of the game that gives one side a big advantage: afterwards White is clearly better.\n- 9... Nf5 hands White a chance, and White takes it with 10. Bg5: afterwards White is clearly better.\n- 11... Nxd4 hands White a chance, and White takes it with 12. Nxd4: afterwards White is winning.\n- with 21. Ne4+ White gives up material, and two moves later is still 3 points of material behind and White is winning - material for activity.\n\n## The beginning and the end\n\nTwo slots belong to the whole game, and both tutorials use them: the first words\nthe student hears, and the last. Write both, with the same ids, in `slots`.\n\n- `story.opening`: before the first move: 34 moves; 3 turning points in all; chances missed: none; the motif sentences of the game are 77 tactical and 11 positional - mostly tactical; the opening is the French Defense: Exchange Variation, Monte Carlo Variation. The program names the opening right after this, so do not name it. In one or two sentences tell the student what kind of game is coming - quiet or full of turns, a tactical or a positional fight - and what to watch for, without saying who wins and without naming a move.\n- `story.ending`: after the last move (34. Qh3#): Black is checkmated: White wins; the last turning point: 11... Nxd4 hands White a chance, and White takes it with 12. Nxd4: afterwards White is winning. In one sentence end the story: who came out on top and what decided it, from the story of the game. Do not invent a resignation, a clock or a result that is not here.\n\n## The moments\n\nBefore the best line of each moment the program itself says „In this position\n<side> played <move>. The best move was…\" over the board, with the move played\ndrawn as an arrow. Your first slot of the best line follows that sentence.\n\n### m1 - at 10... Qd6, White to move\nIn the game 11. Qb3 was played and it cost 1.72 pawns; the best move was g4. No question here: too many moves are about as good.\nOn the board: The black queen on d8 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the scene, a few moves before the moment: Black to move, White is slightly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m1.lead.1`: Nf5 by Black (knight e7-f5); played in the game; afterwards White is clearly better; on the board after it: The white pawn on d4 is attacked three times and defended only twice.\n- `m1.lead.2`: Bg5 by White (bishop c1-g5); the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m1.lead.3`: Qd6 by Black (queen d8-d6); played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m1.answer.1`: g4 by White (pawn g2-g4); the moved piece now attacks: knight on f5; pinned to their king afterwards: f7; the best move, which the game did not play\n- `m1.answer.2`: Nxd4 by Black (knight f5-d4); it captures a pawn; the moved piece now attacks: knight on f3; not played\n- `m1.answer.3`: Be7 by White (bishop g5-e7); the moved piece now attacks: queen on d6, rook on f8; pinned to their king afterwards: f7; not played\n- `m1.answer.4`: Qd7 by Black (queen d6-d7); the moved piece now attacks: bishop on e7; not played\n- `m1.answer.5`: Nxd4 by White (knight f3-d4); it captures a knight; pinned to their king afterwards: f7; not played\n\n### m2 - at 11. Qb3, Black to move\nIn the game 11... Nxd4 was played and it cost 3.14 pawns; the best move was Nc6. There is a question here; correct answers: Nc6, Qb6.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the scene, a few moves before the moment: White to move, White is clearly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m2.lead.1`: Bg5 by White (bishop c1-g5); the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m2.lead.2`: Qd6 by Black (queen d8-d6); played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m2.lead.3`: Qb3 by White (queen d1-b3); pinned to their king afterwards: f7; played in the game; afterwards White is slightly better\n- `m2.question`: Black to move. The best move is Nc6, and afterwards White is slightly better. Also counted correct: Qb6. What follows the best move: Nc6 Nb5 Nfxd4 Nfxd4 Nxd4 Nxd6. In the game Nxd4 was played instead; it cost 3.14 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m2.answer.1`: Nc6 by Black (knight b8-c6); the best move, which the game did not play\n- `m2.answer.2`: Nb5 by White (knight c3-b5); the moved piece now attacks: queen on d6; pinned to their king afterwards: f7; not played\n- `m2.answer.3`: Nfxd4 by Black (knight f5-d4); it captures a pawn; the moved piece now attacks: queen on b3, knight on f3, knight on b5; not played\n- `m2.answer.4`: Nfxd4 by White (knight f3-d4); it captures a knight; the moved piece now attacks: knight on c6; pinned to their king afterwards: f7; not played\n- `m2.answer.5`: Nxd4 by Black (knight c6-d4); it captures a knight; the moved piece now attacks: queen on b3, knight on b5; not played\n- `m2.other.intro`: the other line: the next best move here is not as good as Nc6. At the end of it White is clearly better, against White is slightly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m2.other.1`: Na6 by Black (knight b8-a6); the next best move, and not as good as Nc6\n- `m2.other.2`: Nd5 by White (knight c3-d5); not played\n- `m2.other.3`: Be6 by Black (bishop c8-e6); the moved piece now attacks: knight on d5; not played\n- `m2.other.4`: Rxe6 by White (rook e1-e6); it captures a bishop; the moved piece now attacks: queen on d6; not played\n- `m2.other.5`: fxe6 by Black (pawn f7-e6); it captures a rook; the moved piece now attacks: knight on d5; not played\n\n### m3 - at 17... Be6, White to move\nIn the game 18. Rxe1 was played and it cost 3.96 pawns; the best move was Qxb7. No question here: too many moves are about as good.\nOn the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the scene, a few moves before the moment: Black to move, White is winning, White is 3 points of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m3.lead.1`: Bxe1 by Black (bishop f2-e1); it captures a rook; the moved piece now attacks: knight on c3; played in the game; afterwards White is winning; on the board after it: The black pawn on c5 is attacked by the white bishop on f8 and has no defender. The white rook on e1 no longer stands on the open e-file.\n- `m3.lead.2`: Bxc5 by White (bishop f8-c5); it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m3.lead.3`: Be6 by Black (bishop c8-e6); the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m3.answer.1`: Qxb7 by White (queen b3-b7); it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; the best move, which the game did not play\n- `m3.answer.2`: Qxc4 by Black (queen f4-c4); it captures a bishop; the moved piece now attacks: knight on c3, bishop on c5; not played\n- `m3.answer.3`: Qxa8 by White (queen b7-a8); it captures a rook; the moved piece now attacks: knight on b8; pinned to their king afterwards: b8; not played\n- `m3.answer.4`: h6 by Black (pawn h7-h6); not played\n\n### m4 - at 18. Rxe1, Black to move\nIn the game 18... Bxc4 was played and it cost 7.07 pawns; the best move was Nd7. There is a question here; correct answers: Nd7.\nThis is the moment the game turned on.\nOn the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the scene, a few moves before the moment: White to move, White is winning, Black is 2 points of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m4.lead.1`: Bxc5 by White (bishop f8-c5); it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m4.lead.2`: Be6 by Black (bishop c8-e6); the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m4.lead.3`: Rxe1 by White (rook d1-e1); it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n- `m4.question`: Black to move. The best move is Nd7, and afterwards White is clearly better. Also counted correct: nothing else. What follows the best move: Nd7 Bxa7 Qxc4 Qxb7 Re8 h3. In the game Bxc4 was played instead; it cost 7.07 pawns and afterwards White is winning. On the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.. Ask for the move in one sentence, without naming it or its destination square.\n- `m4.answer.1`: Nd7 by Black (knight b8-d7); the moved piece now attacks: bishop on c5; the best move, which the game did not play\n- `m4.answer.2`: Bxa7 by White (bishop c5-a7); it captures a pawn; not played\n- `m4.answer.3`: Qxc4 by Black (queen f4-c4); it captures a bishop; the moved piece now attacks: queen on b3, knight on c3; not played\n- `m4.answer.4`: Qxb7 by White (queen b3-b7); it captures a pawn; the moved piece now attacks: knight on d7, rook on a8; not played\n- `m4.other.intro`: the other line: the next best move here is not as good as Nd7. At the end of it White is winning, against White is clearly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m4.other.1`: Na6 by Black (knight b8-a6); the moved piece now attacks: bishop on c5; the next best move, and not as good as Nd7\n- `m4.other.2`: Qxb7 by White (queen b3-b7); it captures a pawn; the moved piece now attacks: knight on a6, rook on a8; not played\n- `m4.other.3`: Rb8 by Black (rook a8-b8); the moved piece now attacks: queen on b7; not played\n- `m4.other.4`: Qxa6 by White (queen b7-a6); it captures a knight; the moved piece now attacks: bishop on e6; not played\n- `m4.other.5`: Bxc4 by Black (bishop e6-c4); it captures a bishop; the moved piece now attacks: queen on a6; not played\n- `m4.other.6`: Qa4 by White (queen a6-a4); the moved piece now attacks: bishop on c4; not played\n",
+  "prompt": "# Write the words for a chess tutorial, as the story of a game\n\nA trainer's game is being turned into a tutorial video for a student of 13 or\nolder: the board plays the moves, and every sentence is read aloud one after\nthe other. The student plays in a club and knows how the pieces move and what\na fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move and every line. None of it can change. You\ndo two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids. Prefer the moments the story of the game turns on.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## The voice\n\nA game of chess is a fight, and the tutorial tells it. Everything you write is\nheard in order, together with a few sentences the program adds, as **one story**:\nwhere the fight stands, who is pressing, the chance one side gives the other,\nwhat was taken or missed, and what it cost.\n\n- **The board plays each move while its slot is read.** Never announce the move\n  („Black plays Qc7\") and never describe where a piece goes („the queen from d8\n  to c7\") - the student is watching it happen. Say what the move means: what it\n  attacks, defends, prepares, allows or gives away.\n- **Name a move in notation only when it is not the move of this slot.**\n- **Carry on from the slot before.** Do not open two slots with the same words,\n  and do not start every sentence with a colour.\n- **A move slot of a lead-in or of a line may be an empty string** (\"\") when the\n  move needs no words; the board waits over it in silence. Leave at most half of\n  a part's move slots empty, and never the first move of a best line.\n- **Never write a sentence whose only content is that the line carries on.**\n  „The line goes on\", „and the line continues\", „this is how the line goes\" say\n  nothing a student can use, and they read as the same sentence four times over.\n  If a move has nothing to tell, its slot is the empty string.\n- Short, concrete sentences in the present tense.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep what happened apart from what should have.** A slot marked „not played\"\n  is a move the game did not contain: say it as a line that was there, never as\n  something that happened.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"story.opening\": \"...\", \"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"...\": \"...\", \"story.ending\": \"...\"}}\n\n## The game\n\nThe opening is the French Defense: Exchange Variation, Monte Carlo Variation. 4... g6 left the masters database: 1367 master games had reached that position and not one played it.\n\n```\n1. e4 e6 2. d4 d5 3. exd5 exd5 4. c4 g6 5. Nc3 Bg7 6. Nf3 dxc4 7. Bxc4 Ne7 8.\nO-O O-O 9. Re1 Nf5 10. Bg5 Qd6 11. Qb3 Nxd4 12. Nxd4 Bxd4 13. Rad1 c5 14. Be7\nQf4 15. Bxf8 Bxf2+ 16. Kh1 Bxe1 17. Bxc5 Be6 18. Rxe1 Bxc4 19. Re8+ Kg7 20.\nBf8+ Kf6 21. Ne4+ Qxe4 22. Qc3+ Kf5 23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5\n26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6 29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32.\nQe4+ Kh5 33. Qxf3+ Kh6 34. Qh3# *\n```\n\n## The story of the game\n\nComputed from the engine's evaluations, in game order. These are facts; tell\nthem, do not add to them.\n\n- 9... Nf5 is the first mistake of the game that gives one side a big advantage: afterwards White is clearly better.\n- 9... Nf5 hands White a chance, and White takes it with 10. Bg5: afterwards White is clearly better.\n- 11... Nxd4 hands White a chance, and White takes it with 12. Nxd4: afterwards White is winning.\n- with 21. Ne4+ White gives up material, and two moves later is still 3 points of material behind and White is winning - material for activity.\n\n## The beginning and the end\n\nTwo slots belong to the whole game, and both tutorials use them: the first words\nthe student hears, and the last. Write both, with the same ids, in `slots`.\n\n- `story.opening`: before the first move: 34 moves; 3 turning points in all; chances missed: none; the motif sentences of the game are 77 tactical and 11 positional - mostly tactical; the opening is the French Defense: Exchange Variation, Monte Carlo Variation. The program names the opening right after this, so do not name it. In one or two sentences tell the student what kind of game is coming - quiet or full of turns, a tactical or a positional fight - and what to watch for, without saying who wins and without naming a move.\n- `story.ending`: after the last move (34. Qh3#): Black is checkmated: White wins; the last turning point: 11... Nxd4 hands White a chance, and White takes it with 12. Nxd4: afterwards White is winning. In one sentence end the story: who came out on top and what decided it, from the story of the game. Do not invent a resignation, a clock or a result that is not here.\n\n## The moments\n\nBefore the best line of each moment the program itself says „In this position\n<side> played <move>. The best move was…\" over the board, with the move played\ndrawn as an arrow. Your first slot of the best line follows that sentence.\n\n### m1 - at 10... Qd6, White to move\nIn the game 11. Qb3 was played and it cost 1.72 pawns; the best move was g4.\nOn the board: The black queen on d8 is no longer hanging.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the scene, a few moves before the moment: Black to move, White is slightly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m1.lead.1`: Nf5 by Black (knight e7-f5); played in the game; afterwards White is clearly better; on the board after it: The white pawn on d4 is attacked three times and defended only twice.\n- `m1.lead.2`: Bg5 by White (bishop c1-g5); the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m1.lead.3`: Qd6 by Black (queen d8-d6); played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m1.answer.1`: g4 by White (pawn g2-g4); the moved piece now attacks: knight on f5; pinned to their king afterwards: f7; the best move, which the game did not play\n- `m1.answer.2`: Nxd4 by Black (knight f5-d4); it captures a pawn; the moved piece now attacks: knight on f3; not played\n- `m1.answer.3`: Be7 by White (bishop g5-e7); the moved piece now attacks: queen on d6, rook on f8; pinned to their king afterwards: f7; not played\n- `m1.answer.4`: Qd7 by Black (queen d6-d7); the moved piece now attacks: bishop on e7; not played\n- `m1.answer.5`: Nxd4 by White (knight f3-d4); it captures a knight; pinned to their king afterwards: f7; not played\n\n### m2 - at 11. Qb3, Black to move\nIn the game 11... Nxd4 was played and it cost 3.14 pawns; the best move was Nc6.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the scene, a few moves before the moment: White to move, White is clearly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m2.lead.1`: Bg5 by White (bishop c1-g5); the moved piece now attacks: queen on d8; pinned to their king afterwards: f7; played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is attacked by the white bishop on g5, a cheaper piece.\n- `m2.lead.2`: Qd6 by Black (queen d8-d6); played in the game; afterwards White is clearly better; on the board after it: The black queen on d8 is no longer hanging.\n- `m2.lead.3`: Qb3 by White (queen d1-b3); pinned to their king afterwards: f7; played in the game; afterwards White is slightly better\n- `m2.answer.1`: Nc6 by Black (knight b8-c6); the best move, which the game did not play\n- `m2.answer.2`: Nb5 by White (knight c3-b5); the moved piece now attacks: queen on d6; pinned to their king afterwards: f7; not played\n- `m2.answer.3`: Nfxd4 by Black (knight f5-d4); it captures a pawn; the moved piece now attacks: queen on b3, knight on f3, knight on b5; not played\n- `m2.answer.4`: Nfxd4 by White (knight f3-d4); it captures a knight; the moved piece now attacks: knight on c6; pinned to their king afterwards: f7; not played\n- `m2.answer.5`: Nxd4 by Black (knight c6-d4); it captures a knight; the moved piece now attacks: queen on b3, knight on b5; not played\n- `m2.other.intro`: the other line: the next best move here is not as good as Nc6. At the end of it White is clearly better, against White is slightly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m2.other.1`: Na6 by Black (knight b8-a6); the next best move, and not as good as Nc6\n- `m2.other.2`: Nd5 by White (knight c3-d5); not played\n- `m2.other.3`: Be6 by Black (bishop c8-e6); the moved piece now attacks: knight on d5; not played\n- `m2.other.4`: Rxe6 by White (rook e1-e6); it captures a bishop; the moved piece now attacks: queen on d6; not played\n- `m2.other.5`: fxe6 by Black (pawn f7-e6); it captures a rook; the moved piece now attacks: knight on d5; not played\n\n### m3 - at 17... Be6, White to move\nIn the game 18. Rxe1 was played and it cost 3.96 pawns; the best move was Qxb7.\nOn the board: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the scene, a few moves before the moment: Black to move, White is winning, White is 3 points of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m3.lead.1`: Bxe1 by Black (bishop f2-e1); it captures a rook; the moved piece now attacks: knight on c3; played in the game; afterwards White is winning; on the board after it: The black pawn on c5 is attacked by the white bishop on f8 and has no defender. The white rook on e1 no longer stands on the open e-file.\n- `m3.lead.2`: Bxc5 by White (bishop f8-c5); it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m3.lead.3`: Be6 by Black (bishop c8-e6); the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m3.answer.1`: Qxb7 by White (queen b3-b7); it captures a pawn; the moved piece now attacks: rook on a8, knight on b8; the best move, which the game did not play\n- `m3.answer.2`: Qxc4 by Black (queen f4-c4); it captures a bishop; the moved piece now attacks: knight on c3, bishop on c5; not played\n- `m3.answer.3`: Qxa8 by White (queen b7-a8); it captures a rook; the moved piece now attacks: knight on b8; pinned to their king afterwards: b8; not played\n- `m3.answer.4`: h6 by Black (pawn h7-h6); not played\n\n### m4 - at 18. Rxe1, Black to move\nIn the game 18... Bxc4 was played and it cost 7.07 pawns; the best move was Nd7.\nThis is the moment the game turned on.\nOn the board: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the scene, a few moves before the moment: White to move, White is winning, Black is 2 points of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m4.lead.1`: Bxc5 by White (bishop f8-c5); it captures a pawn; pinned to their king afterwards: f7; played in the game; afterwards White is winning; on the board after it: The white bishop on f8 is no longer hanging.\n- `m4.lead.2`: Be6 by Black (bishop c8-e6); the moved piece now attacks: bishop on c4; played in the game; afterwards White is winning; on the board after it: The black bishop on e6 pins the white bishop on c4 to the queen on b3. The white bishop on c4 is attacked twice and defended only once. The black pawn on f7 is no longer pinned.\n- `m4.lead.3`: Rxe1 by White (rook d1-e1); it captures a bishop; the moved piece now attacks: bishop on e6; played in the game; afterwards White is clearly better; on the board after it: The black bishop on e6 is attacked twice and defended only once. White has the bishop pair. Black has no dark-squared bishop, and four of its pawns stand on light squares, so the dark squares are weak.\n- `m4.answer.1`: Nd7 by Black (knight b8-d7); the moved piece now attacks: bishop on c5; the best move, which the game did not play\n- `m4.answer.2`: Bxa7 by White (bishop c5-a7); it captures a pawn; not played\n- `m4.answer.3`: Qxc4 by Black (queen f4-c4); it captures a bishop; the moved piece now attacks: queen on b3, knight on c3; not played\n- `m4.answer.4`: Qxb7 by White (queen b3-b7); it captures a pawn; the moved piece now attacks: knight on d7, rook on a8; not played\n- `m4.other.intro`: the other line: the next best move here is not as good as Nd7. At the end of it White is winning, against White is clearly better at the end of the best line. Say that there was a second choice and that it is weaker, in one sentence, without naming it - the move after this sentence names it.\n- `m4.other.1`: Na6 by Black (knight b8-a6); the moved piece now attacks: bishop on c5; the next best move, and not as good as Nd7\n- `m4.other.2`: Qxb7 by White (queen b3-b7); it captures a pawn; the moved piece now attacks: knight on a6, rook on a8; not played\n- `m4.other.3`: Rb8 by Black (rook a8-b8); the moved piece now attacks: queen on b7; not played\n- `m4.other.4`: Qxa6 by White (queen b7-a6); it captures a knight; the moved piece now attacks: bishop on e6; not played\n- `m4.other.5`: Bxc4 by Black (bishop e6-c4); it captures a bishop; the moved piece now attacks: queen on a6; not played\n- `m4.other.6`: Qa4 by White (queen a6-a4); the moved piece now attacks: bishop on c4; not played\n",
   "report": {
    "parameters": {
-    "max_correct": 3,
     "max_moments": 8,
     "lead_plies": 3,
     "answer_plies": 4,
@@ -6690,7 +6590,7 @@
     "merged": 2,
     "recap": "m4",
     "left_book_at": 7,
-    "parts": 12
+    "parts": 10
    }
   },
   "tutorial": {
@@ -6711,60 +6611,41 @@
     {
      "title": "Part 2",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
-     "kind": "ask_move",
-     "instruction": "Black is under pressure: find the move that holds White to only a slight edge, not the one that loses control.",
-     "solutionSan": "Nc6",
-     "acceptedSans": [
-      "Qb6"
-     ],
-     "pgn": ""
+     "kind": "show",
+     "pgn": "{ [%cal Bf5d4] In this position Black played Nxd4. The best move was… } *"
     },
     {
      "title": "Part 3",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
      "kind": "show",
-     "pgn": "{ [%cal Bf5d4] In this position Black played Nxd4. The best move was… } *"
+     "pgn": "11... Nc6\n{ The missing best move develops a knight and keeps White's advantage small. }\n12. Nb5\n{ The knight leaps in and hits the queen, while the pawn in front of the king remains pinned. }\n12... Nfxd4\n{ Black grabs the pawn in the centre, and the knight now hits the queen and both white knights. }\n13. Nfxd4\n{ White recaptures the knight, and the knight on c6 is left under attack as the pin on the king's pawn remains. }\n13... Nxd4 { Black recaptures, hitting the queen and the other knight. } *"
     },
     {
      "title": "Part 4",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
      "kind": "show",
-     "pgn": "11... Nc6\n{ The missing best move develops a knight and keeps White's advantage small. }\n12. Nb5\n{ The knight leaps in and hits the queen, while the pawn in front of the king remains pinned. }\n12... Nfxd4\n{ Black grabs the pawn in the centre, and the knight now hits the queen and both white knights. }\n13. Nfxd4\n{ White recaptures the knight, and the knight on c6 is left under attack as the pin on the king's pawn remains. }\n13... Nxd4 { Black recaptures, hitting the queen and the other knight. } *"
-    },
-    {
-     "title": "Part 5",
-     "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
-     "kind": "show",
      "pgn": "{ There is another candidate, but it is weaker: it lets White end the line clearly better. }\n11... Na6 { The second choice is too slow; White keeps a clear edge. } 12. Nd5\nBe6 { The bishop challenges the knight in the centre. } 13. Rxe6\n{ White takes the bishop and hits the queen. } 13... fxe6\n{ Black recaptures the rook, and the knight in the centre is under fire. } *"
     },
     {
-     "title": "Part 6",
+     "title": "Part 5",
      "fen": "rnb2Bk1/pp3p1p/6p1/2p5/2B2q2/1QN5/PP4PP/3Rb2K w - - 0 17",
      "kind": "show",
      "pgn": "{ Back to the game. White is pressing hard, and Black is fighting to survive the attack. }\n17. Bxc5 { White takes the pawn, and the bishop is no longer hanging. } 17...\nBe6 { This move pins the white bishop to the queen and adds pressure on it. }\n18. Rxe1\n{ White recaptures and hits the bishop, keeping the bishop pair. Without a dark-squared bishop, Black's dark squares are weak. }\n*"
     },
     {
-     "title": "Part 7",
-     "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
-     "kind": "ask_move",
-     "instruction": "Black's bishop is under attack and the dark squares are weak; find the only move that keeps White to a clear but not winning edge.",
-     "solutionSan": "Nd7",
-     "pgn": ""
-    },
-    {
-     "title": "Part 8",
+     "title": "Part 6",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "{ [%cal Be6c4] In this position Black played Bxc4. The best move was… } *"
     },
     {
-     "title": "Part 9",
+     "title": "Part 7",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "18... Nd7\n{ The missing best move develops a knight and attacks the bishop, holding White to a clear edge. }\n19. Bxa7 { White grabs a pawn on the wing, but this is not the main try. }\n19... Qxc4\n{ Black finally takes the bishop, hitting the queen and the knight. } 20. Qxb7\n{ White takes the pawn and hits both the knight and the rook. } *"
     },
     {
-     "title": "Part 10",
+     "title": "Part 8",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "{ There is a second candidate, but it fails to hold: the line ends with White winning. }\n18... Na6 { The other knight move also hits the bishop, but it is not enough. }\n19. Qxb7\n{ White takes the pawn and attacks both black pieces on the queenside. } 19...\nRb8 { Black offers an exchange by hitting the queen. } 20. Qxa6\n{ White takes the knight and turns on the bishop. } 20... Bxc4\n{ Black takes the bishop and hits the queen, but the damage is already done. }\n21. Qa4\n{ White moves the queen away and keeps the bishop under fire. White wins by checkmate, after taking the chance Black offered on move eleven and never surrendering the winning position. }\n*"
@@ -6789,72 +6670,53 @@
     {
      "title": "Part 2",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
-     "kind": "ask_move",
-     "instruction": "Black is under pressure: find the move that holds White to only a slight edge, not the one that loses control.",
-     "solutionSan": "Nc6",
-     "acceptedSans": [
-      "Qb6"
-     ],
-     "pgn": ""
+     "kind": "show",
+     "pgn": "{ [%cal Bf5d4] In this position Black played Nxd4. The best move was… } *"
     },
     {
      "title": "Part 3",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
      "kind": "show",
-     "pgn": "{ [%cal Bf5d4] In this position Black played Nxd4. The best move was… } *"
+     "pgn": "11... Nc6\n{ The missing best move develops a knight and keeps White's advantage small. }\n12. Nb5\n{ The knight leaps in and hits the queen, while the pawn in front of the king remains pinned. }\n12... Nfxd4\n{ Black grabs the pawn in the centre, and the knight now hits the queen and both white knights. }\n13. Nfxd4\n{ White recaptures the knight, and the knight on c6 is left under attack as the pin on the king's pawn remains. }\n13... Nxd4 { Black recaptures, hitting the queen and the other knight. } *"
     },
     {
      "title": "Part 4",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
      "kind": "show",
-     "pgn": "11... Nc6\n{ The missing best move develops a knight and keeps White's advantage small. }\n12. Nb5\n{ The knight leaps in and hits the queen, while the pawn in front of the king remains pinned. }\n12... Nfxd4\n{ Black grabs the pawn in the centre, and the knight now hits the queen and both white knights. }\n13. Nfxd4\n{ White recaptures the knight, and the knight on c6 is left under attack as the pin on the king's pawn remains. }\n13... Nxd4 { Black recaptures, hitting the queen and the other knight. } *"
+     "pgn": "{ There is another candidate, but it is weaker: it lets White end the line clearly better. }\n11... Na6 { The second choice is too slow; White keeps a clear edge. } 12. Nd5\nBe6 { The bishop challenges the knight in the centre. } 13. Rxe6\n{ White takes the bishop and hits the queen. } 13... fxe6\n{ Black recaptures the rook, and the knight in the centre is under fire. } *"
     },
     {
      "title": "Part 5",
      "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
      "kind": "show",
-     "pgn": "{ There is another candidate, but it is weaker: it lets White end the line clearly better. }\n11... Na6 { The second choice is too slow; White keeps a clear edge. } 12. Nd5\nBe6 { The bishop challenges the knight in the centre. } 13. Rxe6\n{ White takes the bishop and hits the queen. } 13... fxe6\n{ Black recaptures the rook, and the knight in the centre is under fire. } *"
-    },
-    {
-     "title": "Part 6",
-     "fen": "rnb2rk1/ppp2pbp/3q2p1/5nB1/2BP4/1QN2N2/PP3PPP/R3R1K1 b - - 8 11",
-     "kind": "show",
      "pgn": "11... Nxd4 { Back in the game, Black played Nxd4, and White is winning. } 12.\nNxd4 { White takes the chance. } 12... Bxd4 13. Rad1 c5 14. Be7 Qf4 15. Bxf8\nBxf2+ 16. Kh1 Bxe1\n{ White is pressing hard, and Black is fighting to survive the attack. } 17.\nBxc5 { White takes the pawn, and the bishop is no longer hanging. } 17... Be6\n{ This move pins the white bishop to the queen and adds pressure on it. } 18.\nRxe1\n{ White recaptures and hits the bishop, keeping the bishop pair. Without a dark-squared bishop, Black's dark squares are weak. }\n*"
     },
     {
-     "title": "Part 7",
-     "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
-     "kind": "ask_move",
-     "instruction": "Black's bishop is under attack and the dark squares are weak; find the only move that keeps White to a clear but not winning edge.",
-     "solutionSan": "Nd7",
-     "pgn": ""
-    },
-    {
-     "title": "Part 8",
+     "title": "Part 6",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "{ [%cal Be6c4] In this position Black played Bxc4. The best move was… } *"
     },
     {
-     "title": "Part 9",
+     "title": "Part 7",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "18... Nd7\n{ The missing best move develops a knight and attacks the bishop, holding White to a clear edge. }\n19. Bxa7 { White grabs a pawn on the wing, but this is not the main try. }\n19... Qxc4\n{ Black finally takes the bishop, hitting the queen and the knight. } 20. Qxb7\n{ White takes the pawn and hits both the knight and the rook. } *"
     },
     {
-     "title": "Part 10",
+     "title": "Part 8",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "{ There is a second candidate, but it fails to hold: the line ends with White winning. }\n18... Na6 { The other knight move also hits the bishop, but it is not enough. }\n19. Qxb7\n{ White takes the pawn and attacks both black pieces on the queenside. } 19...\nRb8 { Black offers an exchange by hitting the queen. } 20. Qxa6\n{ White takes the knight and turns on the bishop. } 20... Bxc4\n{ Black takes the bishop and hits the queen, but the damage is already done. }\n21. Qa4 { White moves the queen away and keeps the bishop under fire. } *"
     },
     {
-     "title": "Part 11",
+     "title": "Part 9",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "18... Bxc4 { Returning to the game, Black chose Bxc4, and White is winning. }\n19. Re8+ Kg7 20. Bf8+ Kf6 21. Ne4+\n{ White is down material, and has activity for it. } 21... Qxe4 22. Qc3+ Kf5\n23. Rxe4 Kxe4 24. Qxc4+ Kf5 25. Qc8+ Kg5 26. Qxb7 Nc6 27. Qxa8 Ne5 28. Qd5 f6\n29. Bg7 Kf5 30. g4+ Kxg4 31. Bxf6 Nf3 32. Qe4+ Kh5 33. Qxf3+ Kh6 34. Qh3#\n{ Checkmate. White wins by checkmate, after taking the chance Black offered on move eleven and never surrendering the winning position. }\n*"
     },
     {
-     "title": "Part 12",
+     "title": "Part 10",
      "fen": "rn4k1/pp3p1p/4b1p1/2B5/2B2q2/1QN5/PP4PP/4R2K b - - 0 18",
      "kind": "show",
      "pgn": "{ [%cal Be6c4] Looking back, the game turned on 18... Bxc4. This is what was there instead. }\n18... Nd7\n{ The missing best move develops a knight and attacks the bishop, holding White to a clear edge. }\n19. Bxa7 { White grabs a pawn on the wing, but this is not the main try. }\n19... Qxc4\n{ Black finally takes the bishop, hitting the queen and the knight. } 20. Qxb7\n{ White takes the pawn and hits both the knight and the rook. } *"

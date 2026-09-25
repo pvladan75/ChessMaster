@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 3981 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4019 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1886 with TEST_DATABASE_URL, 1730 without
+cd chess_backend && npm test          # node --test, 1899 with TEST_DATABASE_URL, 1743 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -801,6 +801,13 @@ number, and „Add to tutorial" makes a position's task the part's first
 sentence. **After deleting a feature, grep its vocabulary in the tests, not
 only the list of reds** — several tests of the questions stayed green because
 what they checked became true by itself.
+Then its phase 5 (→ **4019**; backend → **1743** measured without a
+database, 1899 with it derived): the tutorial from a game asks nothing — the
+question part is no longer made by the Python harness, the Dart port or the
+server's prompt, and `withoutQuestions` is gone. **A test generated from a
+fixture's rows goes with the row**: the worker counted two deleted tests and
+the full run was one short, because a case of `answer_cases.json` was the
+third.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

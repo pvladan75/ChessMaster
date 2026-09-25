@@ -2,7 +2,6 @@
  "about": "Written by tools/game_annotate/export_fixtures.py from skeleton.py. Do not edit by hand: change the harness, then run the script again.",
  "game": "g01_scandinavian-defense",
  "parameters": {
-  "max_correct": 3,
   "max_moments": 8,
   "lead_plies": 3,
   "answer_plies": 4,
@@ -3058,7 +3057,7 @@
   ]
  },
  "plainPgn": "[Event \"Analysis Studio Session\"]\n[Site \"Chess trainer\"]\n[Date \"2026.09.13\"]\n[Round \"1\"]\n[White \"Player\"]\n[Black \"Analysis Engine\"]\n[Result \"*\"]\n\n1. e4 d5 2. exd5 Qxd5 3. Nc3 Qe6+ 4. Qe2 f6 5. d4 Qf7 6. Nf3 e6 7. Bd2 Bd6 8.\nO-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6 13. g5 f5 14. h5 Qe8 15. Ne5\nb5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+ gxh6 20. Bxh6 b4 21. Bxf8 Qxf8\n22. h6 bxa3 23. Qh5 axb2+ 24. Kb1 Ba6 25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4\n28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+ Kg5 31. Qeh5+ Kf4 32. Rh4# *\n",
- "answer": "{\"title\": \"The Attack That Broke Through\", \"description\": \"A tactical king hunt where material is sacrificed and chances must be taken.\", \"tags\": [\"attack\", \"tactics\"], \"chosen\": [\"m2\", \"m3\", \"m4\"], \"slots\": {\"story.opening\": \"A long fight of four turning points, tactical and positional in turn. Watch for chances given and taken, and an attack that builds.\", \"m2.lead.intro\": \"White has given up material to rip open the kingside, and the attack is the whole game now.\", \"m2.lead.1\": \"A rook is taken, and the queen is skewered against the bishop behind it.\", \"m2.lead.2\": \"Black takes the bishop, escaping the skewer and gaining the bishop pair, but White stays clearly better.\", \"m2.lead.3\": \"The pawn push keeps the attack going, and White stays clearly better.\", \"m2.answer.1\": \"The best move was here, and the game missed it.\", \"m2.answer.2\": \"White could take the pawn and hit the knight on d5, but this line was not played.\", \"m2.answer.3\": \"The knight can come to f4, attacking the queen, but the game did not go there.\", \"m2.answer.4\": \"The queen could step to e3 and attack the knight on f4, but this was not played.\", \"m2.answer.5\": \"Taking the pawn on g6 with the knight was possible, but not played.\", \"m3.lead.intro\": \"White's attack is in full flow and Black is fighting to survive; the initiative is everything now.\", \"m3.lead.1\": \"White pushes another pawn forward, tightening the grip around the king.\", \"m3.lead.2\": \"Black takes on a3, but the queenside pawns are isolated and White is winning.\", \"m3.lead.3\": \"The queen joins the attack, and White remains clearly better.\", \"m3.question\": \"Black is under pressure and has a forcing resource. Find the best move for Black.\", \"m3.answer.1\": \"This check drives the king away and was the best move, though the game did not play it.\", \"m3.answer.2\": \"The king would step to b1 in this line, but the game never reached it.\", \"m3.answer.3\": \"The knight comes to f6, attacking the queen, but this line was not played.\", \"m3.answer.4\": \"The pawn pushes to g7, hitting the queen on f8, but this was not played.\", \"m4.lead.intro\": \"White is winning and the attack is closing in; Black must defend exactly or the king falls.\", \"m4.lead.1\": \"The queen joins the hunt, and White stays clearly better.\", \"m4.lead.2\": \"The pawn takes on b2 with check, creating passed pawns, but White is now winning.\", \"m4.lead.3\": \"The king steps to b1, away from the check, but its pawn shield is gone.\", \"m4.answer.1\": \"The knight comes to f6 and attacks the queen; this was the best move, but the game did not play it.\", \"m4.answer.2\": \"The queen moves to g5 and attacks the knight, but this was not played.\", \"m4.answer.3\": \"The rook goes to a7, but this line was not played.\", \"m4.answer.4\": \"The bishop moves to c4 and pins the e6 pawn to the king, but this was not played.\", \"story.ending\": \"White wins by checkmate; the game turned when Black's queenside play gave a chance and White took it.\"}}",
+ "answer": "{\"title\": \"The Attack That Broke Through\", \"description\": \"A tactical king hunt where material is sacrificed and chances must be taken.\", \"tags\": [\"attack\", \"tactics\"], \"chosen\": [\"m2\", \"m3\", \"m4\"], \"slots\": {\"story.opening\": \"A long fight of four turning points, tactical and positional in turn. Watch for chances given and taken, and an attack that builds.\", \"m2.lead.intro\": \"White has given up material to rip open the kingside, and the attack is the whole game now.\", \"m2.lead.1\": \"A rook is taken, and the queen is skewered against the bishop behind it.\", \"m2.lead.2\": \"Black takes the bishop, escaping the skewer and gaining the bishop pair, but White stays clearly better.\", \"m2.lead.3\": \"The pawn push keeps the attack going, and White stays clearly better.\", \"m2.answer.1\": \"The best move was here, and the game missed it.\", \"m2.answer.2\": \"White could take the pawn and hit the knight on d5, but this line was not played.\", \"m2.answer.3\": \"The knight can come to f4, attacking the queen, but the game did not go there.\", \"m2.answer.4\": \"The queen could step to e3 and attack the knight on f4, but this was not played.\", \"m2.answer.5\": \"Taking the pawn on g6 with the knight was possible, but not played.\", \"m3.lead.intro\": \"White's attack is in full flow and Black is fighting to survive; the initiative is everything now.\", \"m3.lead.1\": \"White pushes another pawn forward, tightening the grip around the king.\", \"m3.lead.2\": \"Black takes on a3, but the queenside pawns are isolated and White is winning.\", \"m3.lead.3\": \"The queen joins the attack, and White remains clearly better.\", \"m3.answer.1\": \"This check drives the king away and was the best move, though the game did not play it.\", \"m3.answer.2\": \"The king would step to b1 in this line, but the game never reached it.\", \"m3.answer.3\": \"The knight comes to f6, attacking the queen, but this line was not played.\", \"m3.answer.4\": \"The pawn pushes to g7, hitting the queen on f8, but this was not played.\", \"m4.lead.intro\": \"White is winning and the attack is closing in; Black must defend exactly or the king falls.\", \"m4.lead.1\": \"The queen joins the hunt, and White stays clearly better.\", \"m4.lead.2\": \"The pawn takes on b2 with check, creating passed pawns, but White is now winning.\", \"m4.lead.3\": \"The king steps to b1, away from the check, but its pawn shield is gone.\", \"m4.answer.1\": \"The knight comes to f6 and attacks the queen; this was the best move, but the game did not play it.\", \"m4.answer.2\": \"The queen moves to g5 and attacks the knight, but this was not played.\", \"m4.answer.3\": \"The rook goes to a7, but this line was not played.\", \"m4.answer.4\": \"The bishop moves to c4 and pins the e6 pawn to the king, but this was not played.\", \"story.ending\": \"White wins by checkmate; the game turned when Black's queenside play gave a chance and White took it.\"}}",
  "expected": {
   "wordsFor": {
    "#1": "White mates in 1",
@@ -4903,13 +4902,6 @@
     "cost_text": "cost 1.26 pawns",
     "left_book": false,
     "best": "Qxe2+",
-    "asks": false,
-    "correct": [
-     "Qxe2+",
-     "c6",
-     "a6",
-     "Na6"
-    ],
     "board": "White's pawns hold more of the centre.",
     "parts": [
      {
@@ -5084,13 +5076,6 @@
     "cost_text": "cost 2.11 pawns",
     "left_book": false,
     "best": "Qf6",
-    "asks": false,
-    "correct": [
-     "Qf6",
-     "Bf4+",
-     "Qe7",
-     "b3"
-    ],
     "board": null,
     "parts": [
      {
@@ -5278,12 +5263,6 @@
     "cost_text": "cost 2.07 pawns",
     "left_book": false,
     "best": "Bf4+",
-    "asks": true,
-    "correct": [
-     "Bf4+",
-     "Qxh6+",
-     "Nf6"
-    ],
     "board": null,
     "parts": [
      {
@@ -5311,16 +5290,6 @@
        }
       ],
       "lead": true
-     },
-     {
-      "kind": "ask_move",
-      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
-      "instruction": "m3.question",
-      "solution": "Bf4+",
-      "accepted": [
-       "Qxh6+",
-       "Nf6"
-      ]
      },
      {
       "kind": "show",
@@ -5363,7 +5332,6 @@
      "m3.lead.2": "bxa3 by Black (pawn b4-a3); it captures a pawn; played in the game; afterwards White is winning; on the board after it: The black pawns on a3 and a4 are isolated: no pawn on a neighbouring file can defend them. The black pawn on c6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on c6 is no longer backward.",
      "m3.lead.3": "Qh5 by White (queen e2-h5); played in the game; afterwards White is clearly better",
      "m3.lead.intro": "the scene, a few moves before the moment: White to move, White is clearly better, White is 1 point of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.",
-     "m3.question": "Black to move. The best move is Bf4+, and afterwards White is clearly better. Also counted correct: Qxh6+, Nf6. What follows the best move: Bf4+ Kb1 Nf6 g7 Qxg7 hxg7. In the game axb2+ was played instead; it cost 2.07 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.",
      "m3.answer.1": "Bf4+ by Black (bishop d6-f4); it gives check; the moved piece now attacks: king on c1; the best move, which the game did not play",
      "m3.answer.2": "Kb1 by White (king c1-b1); not played",
      "m3.answer.3": "Nf6 by Black (knight d5-f6); the moved piece now attacks: queen on h5; not played",
@@ -5407,19 +5375,6 @@
       "pin": false,
       "motifs": "",
       "text": "the scene, a few moves before the moment: White to move, White is clearly better, White is 1 point of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played."
-     },
-     "m3.question": {
-      "gain": 0,
-      "mate": false,
-      "fork": false,
-      "pin": false,
-      "motifs": "",
-      "question": true,
-      "names": [
-       "Bf4+",
-       "f4"
-      ],
-      "text": "Black to move. The best move is Bf4+, and afterwards White is clearly better. Also counted correct: Qxh6+, Nf6. What follows the best move: Bf4+ Kb1 Nf6 g7 Qxg7 hxg7. In the game axb2+ was played instead; it cost 2.07 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square."
      },
      "m3.answer.1": {
       "words": "Bf4+ by Black (bishop d6-f4); it gives check; the moved piece now attacks: king on c1",
@@ -5480,13 +5435,6 @@
     "cost_text": "allowed a forced mate",
     "left_book": false,
     "best": "Nf6",
-    "asks": false,
-    "correct": [
-     "Nf6",
-     "Nf4",
-     "Ra7",
-     "Nd7"
-    ],
     "board": "The white king on b1 has lost its pawn shield.",
     "parts": [
      {
@@ -5670,13 +5618,6 @@
      "played": "5... Qf7",
      "cost_text": "cost 1.26 pawns",
      "best": "Qxe2+",
-     "asks": false,
-     "correct": [
-      "Qxe2+",
-      "c6",
-      "a6",
-      "Na6"
-     ],
      "left_book": false,
      "turning_point": false,
      "board": "White's pawns hold more of the centre.",
@@ -5725,13 +5666,6 @@
      "played": "22... bxa3",
      "cost_text": "cost 2.11 pawns",
      "best": "Qf6",
-     "asks": false,
-     "correct": [
-      "Qf6",
-      "Bf4+",
-      "Qe7",
-      "b3"
-     ],
      "left_book": false,
      "turning_point": true,
      "board": null,
@@ -5782,12 +5716,6 @@
      "played": "23... axb2+",
      "cost_text": "cost 2.07 pawns",
      "best": "Bf4+",
-     "asks": true,
-     "correct": [
-      "Bf4+",
-      "Qxh6+",
-      "Nf6"
-     ],
      "left_book": false,
      "turning_point": false,
      "board": null,
@@ -5808,10 +5736,6 @@
       {
        "id": "m3.lead.3",
        "text": "Qh5 by White (queen e2-h5); played in the game; afterwards White is clearly better"
-      },
-      {
-       "id": "m3.question",
-       "text": "Black to move. The best move is Bf4+, and afterwards White is clearly better. Also counted correct: Qxh6+, Nf6. What follows the best move: Bf4+ Kb1 Nf6 g7 Qxg7 hxg7. In the game axb2+ was played instead; it cost 2.07 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square."
       },
       {
        "id": "m3.answer.1",
@@ -5838,13 +5762,6 @@
      "played": "24... Ba6",
      "cost_text": "allowed a forced mate",
      "best": "Nf6",
-     "asks": false,
-     "correct": [
-      "Nf6",
-      "Nf4",
-      "Ra7",
-      "Nd7"
-     ],
      "left_book": false,
      "turning_point": false,
      "board": "The white king on b1 has lost its pawn shield.",
@@ -5886,10 +5803,9 @@
     }
    ]
   },
-  "prompt": "# Write the words for a chess tutorial, as the story of a game\n\nA trainer's game is being turned into a tutorial that a student of 13 or older\nwalks through alone, on a board, with every sentence read aloud one after the\nother. The student plays in a club and knows how the pieces move and what a fork\nand a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move, every question and every correct answer.\nNone of it can change. You do two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids. Prefer the moments the story of the game turns on.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## The voice\n\nA game of chess is a fight, and the tutorial tells it. Everything you write is\nheard in order, together with a few sentences the program adds, as **one story**:\nwhere the fight stands, who is pressing, the chance one side gives the other,\nwhat was taken or missed, and what it cost.\n\n- **The board plays each move while its slot is read.** Never announce the move\n  („Black plays Qc7\") and never describe where a piece goes („the queen from d8\n  to c7\") - the student is watching it happen. Say what the move means: what it\n  attacks, defends, prepares, allows or gives away.\n- **Name a move in notation only when it is not the move of this slot.**\n- **Carry on from the slot before.** Do not open two slots with the same words,\n  and do not start every sentence with a colour.\n- **A move slot of a lead-in or of a line may be an empty string** (\"\") when the\n  move needs no words; the board waits over it in silence. Leave at most half of\n  a part's move slots empty, and never the first move of a best line.\n- **Never write a sentence whose only content is that the line carries on.**\n  „The line goes on\", „and the line continues\", „this is how the line goes\" say\n  nothing a student can use, and they read as the same sentence four times over.\n  If a move has nothing to tell, its slot is the empty string.\n- Short, concrete sentences in the present tense.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep what happened apart from what should have.** A slot marked „not played\"\n  is a move the game did not contain: say it as a line that was there, never as\n  something that happened.\n- **A question never names a move in notation** - not its answer, and not the\n  move played in the game either. Naming the rejected move eliminates a\n  candidate and tells the student what not to look at, which is half the\n  exercise. Say what is on the board, not what was played.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"story.opening\": \"...\", \"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"m2.question\": \"...\", \"...\": \"...\", \"story.ending\": \"...\"}}\n\n## The game\n\nThe opening is the Scandinavian Defense: Mieses-Kotroc Variation. 4... f6 left the masters database: 1 master game had reached that position and not one played it.\n\n```\n1. e4 d5 2. exd5 Qxd5 3. Nc3 Qe6+ 4. Qe2 f6 5. d4 Qf7 6. Nf3 e6 7. Bd2 Bd6 8.\nO-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6 13. g5 f5 14. h5 Qe8 15. Ne5\nb5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+ gxh6 20. Bxh6 b4 21. Bxf8 Qxf8\n22. h6 bxa3 23. Qh5 axb2+ 24. Kb1 Ba6 25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4\n28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+ Kg5 31. Qeh5+ Kf4 32. Rh4# *\n```\n\n## The story of the game\n\nComputed from the engine's evaluations, in game order. These are facts; tell\nthem, do not add to them.\n\n- 5... Qf7 is the first mistake of the game that gives one side a big advantage: afterwards White is clearly better.\n- 5... Qf7 hands White a chance, and White takes it with 6. Nf3: afterwards White is clearly better.\n- 10... a5 hands White a chance, and White misses it - the last chance of the game given and not taken - with 11. g4: afterwards White is slightly better.\n- 11... a4 hands White a chance, and White takes it with 12. a3: afterwards White is clearly better.\n- with 19. Nxh6+ White gives up material, and two moves later is still 1 point of material behind and White is clearly better - material for activity.\n\n## The beginning and the end\n\nTwo slots belong to the whole game, and both tutorials use them: the first words\nthe student hears, and the last. Write both, with the same ids, in `slots`.\n\n- `story.opening`: before the first move: 32 moves; 4 turning points in all; chances missed: White missed 1; the motif sentences of the game are 31 tactical and 29 positional - tactical and positional in turn; the opening is the Scandinavian Defense: Mieses-Kotroc Variation. The program names the opening right after this, so do not name it. In one or two sentences tell the student what kind of game is coming - quiet or full of turns, a tactical or a positional fight - and what to watch for, without saying who wins and without naming a move.\n- `story.ending`: after the last move (32. Rh4#): Black is checkmated: White wins; the last turning point: 11... a4 hands White a chance, and White takes it with 12. a3: afterwards White is clearly better. In one sentence end the story: who came out on top and what decided it, from the story of the game. Do not invent a resignation, a clock or a result that is not here.\n\n## The moments\n\nBefore the best line of each moment the program itself says „In this position\n<side> played <move>. The best move was…\" over the board, with the move played\ndrawn as an arrow. Your first slot of the best line follows that sentence.\n\n### m1 - at 5. d4, Black to move\nIn the game 5... Qf7 was played and it cost 1.26 pawns; the best move was Qxe2+. No question here: too many moves are about as good.\nIn the story of the game: 5... Qf7 is the first mistake of the game that gives one side a big advantage: afterwards White is clearly better.\nOn the board: White's pawns hold more of the centre.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the scene, a few moves before the moment: White to move, White is slightly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m1.lead.1`: Qe2 by White (queen d1-e2); the moved piece now attacks: queen on e6; played in the game; afterwards about even. In the masters database: 10 master games have reached this position, and 10% of them played Qe2; the other moves played here are Be2 90%\n- `m1.lead.2`: f6 by Black (pawn f7-f6); pinned to their king afterwards: e2; played in the game; afterwards White is slightly better. In the masters database: 1 master game has reached this position and not one of them played f6; the other moves played here are Nc6 100%\n- `m1.lead.3`: d4 by White (pawn d2-d4); played in the game; afterwards White is slightly better; on the board after it: White's pawns hold more of the centre.\n- `m1.answer.1`: Qxe2+ by Black (queen e6-e2); it captures a queen; it gives check; the moved piece now attacks: king on e1, bishop on f1; the best move, which the game did not play\n- `m1.answer.2`: Ngxe2 by White (knight g1-e2); it captures a queen; not played\n- `m1.answer.3`: Na6 by Black (knight b8-a6); not played\n- `m1.answer.4`: Be3 by White (bishop c1-e3); not played\n\n### m2 - at 22. h6, Black to move\nIn the game 22... bxa3 was played and it cost 2.11 pawns; the best move was Qf6. No question here: too many moves are about as good.\nThis is the moment the game turned on.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the scene, a few moves before the moment: White to move, White is clearly better, Black is 1 point of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m2.lead.1`: Bxf8 by White (bishop h6-f8); it captures a rook; the moved piece now attacks: queen on e7; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.\n- `m2.lead.2`: Qxf8 by Black (queen e7-f8); it captures a bishop; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is no longer hanging. The black queen on e7 is no longer skewered. Black has the bishop pair.\n- `m2.lead.3`: h6 by White (pawn h5-h6); played in the game; afterwards White is clearly better\n- `m2.answer.1`: Qf6 by Black (queen f8-f6); the best move, which the game did not play\n- `m2.answer.2`: Nxb4 by White (knight a2-b4); it captures a pawn; the moved piece now attacks: knight on d5; not played\n- `m2.answer.3`: Nf4 by Black (knight d5-f4); the moved piece now attacks: queen on e2; not played\n- `m2.answer.4`: Qe3 by White (queen e2-e3); the moved piece now attacks: knight on f4; not played\n- `m2.answer.5`: Nxg6 by Black (knight f4-g6); it captures a pawn; not played\n\n### m3 - at 23. Qh5, Black to move\nIn the game 23... axb2+ was played and it cost 2.07 pawns; the best move was Bf4+. There is a question here; correct answers: Bf4+, Qxh6+, Nf6.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the scene, a few moves before the moment: White to move, White is clearly better, White is 1 point of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m3.lead.1`: h6 by White (pawn h5-h6); played in the game; afterwards White is clearly better\n- `m3.lead.2`: bxa3 by Black (pawn b4-a3); it captures a pawn; played in the game; afterwards White is winning; on the board after it: The black pawns on a3 and a4 are isolated: no pawn on a neighbouring file can defend them. The black pawn on c6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on c6 is no longer backward.\n- `m3.lead.3`: Qh5 by White (queen e2-h5); played in the game; afterwards White is clearly better\n- `m3.question`: Black to move. The best move is Bf4+, and afterwards White is clearly better. Also counted correct: Qxh6+, Nf6. What follows the best move: Bf4+ Kb1 Nf6 g7 Qxg7 hxg7. In the game axb2+ was played instead; it cost 2.07 pawns and afterwards White is winning. Ask for the move in one sentence, without naming it or its destination square.\n- `m3.answer.1`: Bf4+ by Black (bishop d6-f4); it gives check; the moved piece now attacks: king on c1; the best move, which the game did not play\n- `m3.answer.2`: Kb1 by White (king c1-b1); not played\n- `m3.answer.3`: Nf6 by Black (knight d5-f6); the moved piece now attacks: queen on h5; not played\n- `m3.answer.4`: g7 by White (pawn g6-g7); the moved piece now attacks: queen on f8; not played\n\n### m4 - at 24. Kb1, Black to move\nIn the game 24... Ba6 was played and it allowed a forced mate; the best move was Nf6. No question here: too many moves are about as good.\nOn the board: The white king on b1 has lost its pawn shield.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the scene, a few moves before the moment: White to move, White is winning, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m4.lead.1`: Qh5 by White (queen e2-h5); played in the game; afterwards White is clearly better\n- `m4.lead.2`: axb2+ by Black (pawn a3-b2); it captures a pawn; it gives check; the moved piece now attacks: king on c1; played in the game; afterwards White is winning; on the board after it: The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.\n- `m4.lead.3`: Kb1 by White (king c1-b1); played in the game; afterwards White is winning; on the board after it: The white king on b1 has lost its pawn shield.\n- `m4.answer.1`: Nf6 by Black (knight d5-f6); the moved piece now attacks: queen on h5; the best move, which the game did not play\n- `m4.answer.2`: Qg5 by White (queen h5-g5); the moved piece now attacks: knight on f6; not played\n- `m4.answer.3`: Ra7 by Black (rook a8-a7); not played\n- `m4.answer.4`: Bc4 by White (bishop f1-c4); pinned to their king afterwards: e6; not played\n",
+  "prompt": "# Write the words for a chess tutorial, as the story of a game\n\nA trainer's game is being turned into a tutorial video for a student of 13 or\nolder: the board plays the moves, and every sentence is read aloud one after\nthe other. The student plays in a club and knows how the pieces move and what\na fork and a pin are.\n\n**Everything except the words is already done**, by a program and a chess\nengine: every position, every move and every line. None of it can change. You\ndo two things.\n\n1. **Choose** two or three of the moments below - the ones a student learns the\n   most from - by their ids. Prefer the moments the story of the game turns on.\n2. **Write** a title (under 60 characters), a one-sentence description, one or\n   two tags, and the text of **every slot of the moments you chose**, and of no\n   other slot.\n\n## The voice\n\nA game of chess is a fight, and the tutorial tells it. Everything you write is\nheard in order, together with a few sentences the program adds, as **one story**:\nwhere the fight stands, who is pressing, the chance one side gives the other,\nwhat was taken or missed, and what it cost.\n\n- **The board plays each move while its slot is read.** Never announce the move\n  („Black plays Qc7\") and never describe where a piece goes („the queen from d8\n  to c7\") - the student is watching it happen. Say what the move means: what it\n  attacks, defends, prepares, allows or gives away.\n- **Name a move in notation only when it is not the move of this slot.**\n- **Carry on from the slot before.** Do not open two slots with the same words,\n  and do not start every sentence with a colour.\n- **A move slot of a lead-in or of a line may be an empty string** (\"\") when the\n  move needs no words; the board waits over it in silence. Leave at most half of\n  a part's move slots empty, and never the first move of a best line.\n- **Never write a sentence whose only content is that the line carries on.**\n  „The line goes on\", „and the line continues\", „this is how the line goes\" say\n  nothing a student can use, and they read as the same sentence four times over.\n  If a move has nothing to tell, its slot is the empty string.\n- Short, concrete sentences in the present tense.\n\n## Rules for every sentence\n\n- **Say only what the facts beside the slot say.** Do not judge a move yourself.\n  A move wins material only if its facts say it captures something and the\n  material count bears it out; a fork or a pin exists only if the facts name it.\n- **No numbers for evaluations.** The facts turn them into words; use the words.\n- **A move slot is about that one move**, not the move after it.\n- **Keep what happened apart from what should have.** A slot marked „not played\"\n  is a move the game did not contain: say it as a line that was there, never as\n  something that happened.\n- One or two short sentences per slot, at most 140 characters.\n- Teach, do not score: say what to notice, not only that a move was bad.\n\n## Answer format\n\nReturn one JSON object and nothing else - no prose, no code fence:\n\n{\"title\": \"...\", \"description\": \"...\", \"tags\": [\"...\"], \"chosen\": [\"m2\", \"m5\"],\n \"slots\": {\"story.opening\": \"...\", \"m2.lead.intro\": \"...\", \"m2.lead.1\": \"...\", \"...\": \"...\", \"story.ending\": \"...\"}}\n\n## The game\n\nThe opening is the Scandinavian Defense: Mieses-Kotroc Variation. 4... f6 left the masters database: 1 master game had reached that position and not one played it.\n\n```\n1. e4 d5 2. exd5 Qxd5 3. Nc3 Qe6+ 4. Qe2 f6 5. d4 Qf7 6. Nf3 e6 7. Bd2 Bd6 8.\nO-O-O Ne7 9. Re1 O-O 10. h4 a5 11. g4 a4 12. a3 c6 13. g5 f5 14. h5 Qe8 15. Ne5\nb5 16. Na2 Nd5 17. g6 h6 18. Nf7 Qe7 19. Nxh6+ gxh6 20. Bxh6 b4 21. Bxf8 Qxf8\n22. h6 bxa3 23. Qh5 axb2+ 24. Kb1 Ba6 25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4\n28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+ Kg5 31. Qeh5+ Kf4 32. Rh4# *\n```\n\n## The story of the game\n\nComputed from the engine's evaluations, in game order. These are facts; tell\nthem, do not add to them.\n\n- 5... Qf7 is the first mistake of the game that gives one side a big advantage: afterwards White is clearly better.\n- 5... Qf7 hands White a chance, and White takes it with 6. Nf3: afterwards White is clearly better.\n- 10... a5 hands White a chance, and White misses it - the last chance of the game given and not taken - with 11. g4: afterwards White is slightly better.\n- 11... a4 hands White a chance, and White takes it with 12. a3: afterwards White is clearly better.\n- with 19. Nxh6+ White gives up material, and two moves later is still 1 point of material behind and White is clearly better - material for activity.\n\n## The beginning and the end\n\nTwo slots belong to the whole game, and both tutorials use them: the first words\nthe student hears, and the last. Write both, with the same ids, in `slots`.\n\n- `story.opening`: before the first move: 32 moves; 4 turning points in all; chances missed: White missed 1; the motif sentences of the game are 31 tactical and 29 positional - tactical and positional in turn; the opening is the Scandinavian Defense: Mieses-Kotroc Variation. The program names the opening right after this, so do not name it. In one or two sentences tell the student what kind of game is coming - quiet or full of turns, a tactical or a positional fight - and what to watch for, without saying who wins and without naming a move.\n- `story.ending`: after the last move (32. Rh4#): Black is checkmated: White wins; the last turning point: 11... a4 hands White a chance, and White takes it with 12. a3: afterwards White is clearly better. In one sentence end the story: who came out on top and what decided it, from the story of the game. Do not invent a resignation, a clock or a result that is not here.\n\n## The moments\n\nBefore the best line of each moment the program itself says „In this position\n<side> played <move>. The best move was…\" over the board, with the move played\ndrawn as an arrow. Your first slot of the best line follows that sentence.\n\n### m1 - at 5. d4, Black to move\nIn the game 5... Qf7 was played and it cost 1.26 pawns; the best move was Qxe2+.\nIn the story of the game: 5... Qf7 is the first mistake of the game that gives one side a big advantage: afterwards White is clearly better.\nOn the board: White's pawns hold more of the centre.\n\nSlots, in the order the student meets them:\n- `m1.lead.intro`: the scene, a few moves before the moment: White to move, White is slightly better, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m1.lead.1`: Qe2 by White (queen d1-e2); the moved piece now attacks: queen on e6; played in the game; afterwards about even. In the masters database: 10 master games have reached this position, and 10% of them played Qe2; the other moves played here are Be2 90%\n- `m1.lead.2`: f6 by Black (pawn f7-f6); pinned to their king afterwards: e2; played in the game; afterwards White is slightly better. In the masters database: 1 master game has reached this position and not one of them played f6; the other moves played here are Nc6 100%\n- `m1.lead.3`: d4 by White (pawn d2-d4); played in the game; afterwards White is slightly better; on the board after it: White's pawns hold more of the centre.\n- `m1.answer.1`: Qxe2+ by Black (queen e6-e2); it captures a queen; it gives check; the moved piece now attacks: king on e1, bishop on f1; the best move, which the game did not play\n- `m1.answer.2`: Ngxe2 by White (knight g1-e2); it captures a queen; not played\n- `m1.answer.3`: Na6 by Black (knight b8-a6); not played\n- `m1.answer.4`: Be3 by White (bishop c1-e3); not played\n\n### m2 - at 22. h6, Black to move\nIn the game 22... bxa3 was played and it cost 2.11 pawns; the best move was Qf6.\nThis is the moment the game turned on.\n\nSlots, in the order the student meets them:\n- `m2.lead.intro`: the scene, a few moves before the moment: White to move, White is clearly better, Black is 1 point of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m2.lead.1`: Bxf8 by White (bishop h6-f8); it captures a rook; the moved piece now attacks: queen on e7; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.\n- `m2.lead.2`: Qxf8 by Black (queen e7-f8); it captures a bishop; played in the game; afterwards White is clearly better; on the board after it: The black queen on e7 is no longer hanging. The black queen on e7 is no longer skewered. Black has the bishop pair.\n- `m2.lead.3`: h6 by White (pawn h5-h6); played in the game; afterwards White is clearly better\n- `m2.answer.1`: Qf6 by Black (queen f8-f6); the best move, which the game did not play\n- `m2.answer.2`: Nxb4 by White (knight a2-b4); it captures a pawn; the moved piece now attacks: knight on d5; not played\n- `m2.answer.3`: Nf4 by Black (knight d5-f4); the moved piece now attacks: queen on e2; not played\n- `m2.answer.4`: Qe3 by White (queen e2-e3); the moved piece now attacks: knight on f4; not played\n- `m2.answer.5`: Nxg6 by Black (knight f4-g6); it captures a pawn; not played\n\n### m3 - at 23. Qh5, Black to move\nIn the game 23... axb2+ was played and it cost 2.07 pawns; the best move was Bf4+.\n\nSlots, in the order the student meets them:\n- `m3.lead.intro`: the scene, a few moves before the moment: White to move, White is clearly better, White is 1 point of material up. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m3.lead.1`: h6 by White (pawn h5-h6); played in the game; afterwards White is clearly better\n- `m3.lead.2`: bxa3 by Black (pawn b4-a3); it captures a pawn; played in the game; afterwards White is winning; on the board after it: The black pawns on a3 and a4 are isolated: no pawn on a neighbouring file can defend them. The black pawn on c6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on c6 is no longer backward.\n- `m3.lead.3`: Qh5 by White (queen e2-h5); played in the game; afterwards White is clearly better\n- `m3.answer.1`: Bf4+ by Black (bishop d6-f4); it gives check; the moved piece now attacks: king on c1; the best move, which the game did not play\n- `m3.answer.2`: Kb1 by White (king c1-b1); not played\n- `m3.answer.3`: Nf6 by Black (knight d5-f6); the moved piece now attacks: queen on h5; not played\n- `m3.answer.4`: g7 by White (pawn g6-g7); the moved piece now attacks: queen on f8; not played\n\n### m4 - at 24. Kb1, Black to move\nIn the game 24... Ba6 was played and it allowed a forced mate; the best move was Nf6.\nOn the board: The white king on b1 has lost its pawn shield.\n\nSlots, in the order the student meets them:\n- `m4.lead.intro`: the scene, a few moves before the moment: White to move, White is winning, material is level. Say in one sentence where the fight stands here - who is pressing and what the game is about - so the moves after it are heard as part of the story. Do not describe the board, count material or say what is about to be played.\n- `m4.lead.1`: Qh5 by White (queen e2-h5); played in the game; afterwards White is clearly better\n- `m4.lead.2`: axb2+ by Black (pawn a3-b2); it captures a pawn; it gives check; the moved piece now attacks: king on c1; played in the game; afterwards White is winning; on the board after it: The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.\n- `m4.lead.3`: Kb1 by White (king c1-b1); played in the game; afterwards White is winning; on the board after it: The white king on b1 has lost its pawn shield.\n- `m4.answer.1`: Nf6 by Black (knight d5-f6); the moved piece now attacks: queen on h5; the best move, which the game did not play\n- `m4.answer.2`: Qg5 by White (queen h5-g5); the moved piece now attacks: knight on f6; not played\n- `m4.answer.3`: Ra7 by Black (rook a8-a7); not played\n- `m4.answer.4`: Bc4 by White (bishop f1-c4); pinned to their king afterwards: e6; not played\n",
   "report": {
    "parameters": {
-    "max_correct": 3,
     "max_moments": 8,
     "lead_plies": 3,
     "answer_plies": 4,
@@ -5931,7 +5847,7 @@
     "merged": 1,
     "recap": "m2",
     "left_book_at": 7,
-    "parts": 12
+    "parts": 11
    }
   },
   "tutorial": {
@@ -5970,41 +5886,29 @@
     {
      "title": "Part 5",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
-     "kind": "ask_move",
-     "instruction": "Black is under pressure and has a forcing resource. Find the best move for Black.",
-     "solutionSan": "Bf4+",
-     "acceptedSans": [
-      "Qxh6+",
-      "Nf6"
-     ],
-     "pgn": ""
+     "kind": "show",
+     "pgn": "{ [%cal Ba3b2] In this position Black played axb2+. The best move was… } *"
     },
     {
      "title": "Part 6",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
      "kind": "show",
-     "pgn": "{ [%cal Ba3b2] In this position Black played axb2+. The best move was… } *"
+     "pgn": "23... Bf4+\n{ This check drives the king away and was the best move, though the game did not play it. }\n24. Kb1\n{ The king would step to b1 in this line, but the game never reached it. }\n24... Nf6\n{ The knight comes to f6, attacking the queen, but this line was not played. }\n25. g7\n{ The pawn pushes to g7, hitting the queen on f8, but this was not played. } *"
     },
     {
      "title": "Part 7",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
      "kind": "show",
-     "pgn": "23... Bf4+\n{ This check drives the king away and was the best move, though the game did not play it. }\n24. Kb1\n{ The king would step to b1 in this line, but the game never reached it. }\n24... Nf6\n{ The knight comes to f6, attacking the queen, but this line was not played. }\n25. g7\n{ The pawn pushes to g7, hitting the queen on f8, but this was not played. } *"
-    },
-    {
-     "title": "Part 8",
-     "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
-     "kind": "show",
      "pgn": "23... axb2+\n{ Now back to the game as it was played. The pawn takes on b2 with check, creating passed pawns, but White is now winning. }\n24. Kb1\n{ The king steps to b1, away from the check, but its pawn shield is gone. } *"
     },
     {
-     "title": "Part 9",
+     "title": "Part 8",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
      "kind": "show",
      "pgn": "{ [%cal Bc8a6] In this position Black played Ba6. The best move was… } *"
     },
     {
-     "title": "Part 10",
+     "title": "Part 9",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
      "kind": "show",
      "pgn": "24... Nf6\n{ The knight comes to f6 and attacks the queen; this was the best move, but the game did not play it. }\n25. Qg5\n{ The queen moves to g5 and attacks the knight, but this was not played. }\n25... Ra7 { The rook goes to a7, but this line was not played. } 26. Bc4\n{ The bishop moves to c4 and pins the e6 pawn to the king, but this was not played. White wins by checkmate; the game turned when Black's queenside play gave a chance and White took it. }\n*"
@@ -6047,53 +5951,41 @@
     {
      "title": "Part 5",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
-     "kind": "ask_move",
-     "instruction": "Black is under pressure and has a forcing resource. Find the best move for Black.",
-     "solutionSan": "Bf4+",
-     "acceptedSans": [
-      "Qxh6+",
-      "Nf6"
-     ],
-     "pgn": ""
+     "kind": "show",
+     "pgn": "{ [%cal Ba3b2] In this position Black played axb2+. The best move was… } *"
     },
     {
      "title": "Part 6",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
      "kind": "show",
-     "pgn": "{ [%cal Ba3b2] In this position Black played axb2+. The best move was… } *"
+     "pgn": "23... Bf4+\n{ This check drives the king away and was the best move, though the game did not play it. }\n24. Kb1\n{ The king would step to b1 in this line, but the game never reached it. }\n24... Nf6\n{ The knight comes to f6, attacking the queen, but this line was not played. }\n25. g7\n{ The pawn pushes to g7, hitting the queen on f8, but this was not played. } *"
     },
     {
      "title": "Part 7",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
      "kind": "show",
-     "pgn": "23... Bf4+\n{ This check drives the king away and was the best move, though the game did not play it. }\n24. Kb1\n{ The king would step to b1 in this line, but the game never reached it. }\n24... Nf6\n{ The knight comes to f6, attacking the queen, but this line was not played. }\n25. g7\n{ The pawn pushes to g7, hitting the queen on f8, but this was not played. } *"
-    },
-    {
-     "title": "Part 8",
-     "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/p7/NPP2P2/2K1RB1R b - - 1 23",
-     "kind": "show",
      "pgn": "23... axb2+\n{ Now back to the game as it was played. The pawn takes on b2 with check, creating passed pawns, but White is now winning. }\n24. Kb1\n{ The king steps to b1, away from the check, but its pawn shield is gone. } *"
     },
     {
-     "title": "Part 9",
+     "title": "Part 8",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
      "kind": "show",
      "pgn": "{ [%cal Bc8a6] In this position Black played Ba6. The best move was… } *"
     },
     {
-     "title": "Part 10",
+     "title": "Part 9",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
      "kind": "show",
      "pgn": "24... Nf6\n{ The knight comes to f6 and attacks the queen; this was the best move, but the game did not play it. }\n25. Qg5\n{ The queen moves to g5 and attacks the knight, but this was not played. }\n25... Ra7 { The rook goes to a7, but this line was not played. } 26. Bc4\n{ The bishop moves to c4 and pins the e6 pawn to the king, but this was not played. }\n*"
     },
     {
-     "title": "Part 11",
+     "title": "Part 10",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p1Q/p2P4/8/NpP2P2/1K2RB1R b - - 1 24",
      "kind": "show",
      "pgn": "24... Ba6 { Back in the game, Black played Ba6, and Black is getting mated. }\n25. g7 Bxf1 26. gxf8=Q+ Kxf8 27. h7 Bc4 28. h8=Q+ Ke7 29. Q8e8+ Kf6 30. Qhh8+\nKg5 31. Qeh5+ Kf4 32. Rh4#\n{ Checkmate. White wins by checkmate; the game turned when Black's queenside play gave a chance and White took it. }\n*"
     },
     {
-     "title": "Part 12",
+     "title": "Part 11",
      "fen": "rnb2qk1/8/2pbp1PP/3n1p2/pp1P4/P7/NPP1QP2/2K1RB1R b - - 0 22",
      "kind": "show",
      "pgn": "{ [%cal Bb4a3] Looking back, the game turned on 22... bxa3. This is what was there instead. }\n22... Qf6 { The best move was here, and the game missed it. } 23. Nxb4\n{ White could take the pawn and hit the knight on d5, but this line was not played. }\n23... Nf4\n{ The knight can come to f4, attacking the queen, but the game did not go there. }\n24. Qe3\n{ The queen could step to e3 and attack the knight on f4, but this was not played. }\n24... Nxg6\n{ Taking the pawn on g6 with the knight was possible, but not played. } *"

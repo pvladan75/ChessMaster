@@ -285,19 +285,6 @@ void main() {
       expect(verdict.refused.single, contains('says a move wins'));
     });
 
-    test('the question mode still refuses its answer', () {
-      final claims = claimsFor('q', 'Look at Nf3 here.', {
-        'question': true,
-        'names': ['Nf3', 'f3'],
-      });
-      expect(claims, contains('q names its answer or its square'));
-      final other = claimsFor('q', 'Not Qh5.', {
-        'question': true,
-        'names': ['Nf3', 'f3'],
-      });
-      expect(other, contains('q names Qh5, a move that is not the answer'));
-    });
-
     test(
         'without lines, the check stays the tutorial\'s: a named move is '
         'not judged', () {

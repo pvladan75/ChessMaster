@@ -151,20 +151,11 @@ def answer_cases(answer):
     chosen = real['chosen']
     dropped = dict(real, slots={k: v for k, v in real['slots'].items()
                                 if not k.startswith(chosen[0] + '.lead.')})
-    # The first chosen moment that asks: a slot of a question that was never
-    # offered is a shape the server refuses, and this case is about the words.
-    # (chosen[0] asked on every fixture until phase 1b of
-    # docs/PLAN-ZAGONETKE-IZ-PARTIJE.md; not every moment asks since.)
-    asks = {m['id'] for m in skeleton.moments(ANSWER_GAME) if m['asks']}
-    asking = next(c for c in chosen if c in asks)
-    worded = dict(real, slots=dict(real['slots'], **{
-        '%s.question' % asking: 'Find the fork that wins the knight with Qxe2+.'}))
     cases = [
         ('the answer is not JSON', 'Here are the moments I chose: m1, m3.'),
         ('a moment chosen that was not offered', json.dumps(dict(real, chosen=[chosen[0], 'm99']))),
         ('only one moment chosen', json.dumps(dict(real, chosen=[chosen[0]]))),
         ('a lead-in left without words', json.dumps(dropped)),
-        ('a question that names a move and a fork', json.dumps(worded)),
     ]
     parameters = dict(skeleton.DEFAULTS)
 
@@ -261,51 +252,6 @@ def edge_cases():
         # A variant nobody quotes is a test that cannot fail.
         assert words in quoted, 'the book variant no longer reaches a slot: %s' % words
 
-    # A question whose answer is castling. The rule „a question names its
-    # answer or its square" has two halves, and for every other move the square
-    # half catches what the answer half would - `Qxe2+` contains `e2` - so a
-    # mutation deleting the answer half survived all 43 tests. Castling is the
-    # one move where only that half can decide: `'O-O-O'[-2:]` is `-O`, which a
-    # lowercased sentence never contains. g04's position after 13... Rdg8 has
-    # O-O-O among its four candidates; swapping only the moves and their lines
-    # makes it the best move while every number stays where it was, so the move
-    # is legal and its line is the engine's own.
-    castled = copy.deepcopy(skeleton.facts_of('g04_saragossa-opening'))
-    row = next(r for r in castled['rows'] if r['label'] == '13... Rdg8')
-    cands = row['candidates']
-    k = next(i for i, c in enumerate(cands) if c['move'].startswith('O-O'))
-    for key in ('move', 'line'):
-        cands[0][key], cands[k][key] = cands[k][key], cands[0][key]
-    castled_moments = with_facts(castled, lambda: skeleton.moments('castled', parameters))
-    castle = next(m for m in castled_moments if m['label'] == '13... Rdg8')
-    assert castle['asks'] and castle['best'].startswith('O-O'), castle['best']
-    other = next(m['id'] for m in castled_moments if m['id'] != castle['id'])
-    castled_answer = json.dumps({
-        'title': 'Castling', 'description': 'A question naming its answer.',
-        'tags': ['castling'], 'chosen': [castle['id'], other],
-        'slots': {'%s.question' % castle['id']:
-                  'White to move: find the move, %s, that tucks the king away.'
-                  % castle['best']}})
-
-    def assembled():
-        folder = tempfile.mkdtemp(prefix='fixture-')
-        try:
-            meta = {}
-            skeleton.assemble(folder, 'castled', meta, castled_answer, parameters)
-            made = {}
-            for key, file_name in (('tutorial', 'tutorial.json'),
-                                   ('tutorialGame', 'tutorial-game.json')):
-                path = os.path.join(folder, file_name)
-                made[key] = json.loads(read(path)) if os.path.exists(path) else None
-            made['report'] = meta.get('skeleton')
-            return made
-        finally:
-            shutil.rmtree(folder, ignore_errors=True)
-
-    castled_expected = with_facts(castled, assembled)
-    assert ('%s.question names its answer or its square' % castle['id']
-            in castled_expected['report']['claims']), castled_expected['report']['claims']
-
     # A game that leaves the masters database on its very first move, which no
     # game of D does: all ten leave it between ply 3 and ply 13, so the
     # departure sentence always lands on a move node and the branch that writes
@@ -340,9 +286,6 @@ def edge_cases():
 
     return {
         'about': ABOUT,
-        'castledFacts': castled,
-        'castledAnswer': castled_answer,
-        'castledExpected': castled_expected,
         'shareWords': [[s, skeleton.share_words(s)] for s in shares],
         'bookFacts': booked,
         'bookMoments': book_moments,

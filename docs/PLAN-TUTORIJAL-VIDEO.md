@@ -601,6 +601,41 @@ What differs from the text above, and why:
 and into exactly as many parts as `showOnly` gave on `master` — the ten
 numbers measured on `master` first and written into the test as literals.
 
+**Built 25.9.2026** — gate by the lead, code by the implementer in a
+worktree, graded and copied in by the lead with the server stopped. App
+**3981 → 4019** (+41 in `game_tutorial_asks_nothing_test.dart`; −3: the
+castling question of `game_tutorial_skeleton_edges_test`, „the question mode
+still refuses its answer" in `review_words_test`, and „a question that names a
+move and a fork", a case generated from `answer_cases.json` whose row went —
+the worker's report missed that one); backend **1730 → 1743** measured
+without a database (+13 in `tutorial_words_asks_nothing.test.js`), **1886 →
+1899** with one, derived (the new cases are pure). `flutter analyze` the same
+22 infos. `export_fixtures.py --check` exits 0.
+
+What differs from the text above, and why:
+
+- **„No unused slot" was wrong for two games.** Measured on master, g01 leaves
+  4 slots unused and g03 3, all lead-in moves cut where two moments overlap —
+  nothing to do with questions. The gate holds each game to master's own list.
+- **The gate's literals are a hand-written file**,
+  `test/fixtures/game_tutorial/show_parts_on_master.json` — every part's FEN
+  of both tutorials as `withoutQuestions` handed them over on master — not
+  the harness's fixtures, which this phase regenerates. Parts per game (key
+  moments / whole game): 9/11, 9/11, 11/13, 8/10, 8/10, 11/13, 10/12, 6/8,
+  9/11, 10/12; all ten equal after. Watched red on master: 40 of 41 cases
+  app-side, 12 of 13 on the server.
+- **Three places, not two.** The question part was made by the Python harness
+  (`tools/game_annotate/skeleton.py`, the fixtures' source), the Dart port and
+  the server's prompt; all three changed, and the prompt's premise now says
+  video („the board plays the moves, and every sentence is read aloud")
+  rather than a student walking a board alone.
+- **The recorded answers lost 22 question slots** (1–3 per game), checked by
+  script to be the only change; the local run folders under
+  `tools/game_annotate/out/` (ignored) were edited and re-assembled the same
+  way.
+- **The server takes an old app's `asks` / `correct` and drops them** — a case
+  holds the prompt identical with and without them.
+
 ### Phase 6 — the words [lead]
 
 The manual under `site/` (`for-students.html`, `write-a-tutorial.html`,

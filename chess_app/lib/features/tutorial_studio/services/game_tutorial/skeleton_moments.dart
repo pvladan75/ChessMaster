@@ -529,8 +529,10 @@ List<Map<String, dynamic>> skeletonMoments(
     // An only move the player found: the game played the best move, and every
     // sentence below that says otherwise is said differently.
     final only = judged['mistake'] != true;
+    // Every candidate as good as the best — used below by the alternative
+    // ("other") part to find the next move that is clearly worse. Never asked
+    // of the student: a tutorial is material for a film, and asks nothing.
     final correct = correctCandidates(candidates);
-    final asks = correct.length <= parameters.maxCorrect;
 
     String? boardHere =
         i > 0 ? (rows[i - 1]['motifs_after_played'] as String?) : null;
@@ -603,52 +605,6 @@ List<Map<String, dynamic>> skeletonMoments(
         'intro': intro,
         'moves': moves,
         'lead': true,
-      });
-    }
-
-    // The question.
-    if (asks) {
-      final qid = '$mid.question';
-      final alsoCorrect = [
-        for (var c = 1; c < correct.length; c++) correct[c]['move'] as String,
-      ].join(', ');
-      final boardText = boardHere != null ? ' On the board: $boardHere.' : '';
-      if (only) {
-        // The only move the player found (phase 1b): nothing else holds, and
-        // the game played it — never „played instead".
-        final next = candidates.length > 1 ? candidates[1] : null;
-        final nextText = next == null
-            ? ''
-            : ' The next best, ${next['move']}, leaves ${wordsFor(next['eval'] as String?)}.';
-        slots[qid] =
-            '$mover to move. Only one move holds here: ${best['move']}, and afterwards ${wordsFor(best['eval'] as String?)}. What follows it: ${best['line']}. Every other move is clearly worse.$nextText The game found it.$boardText Ask for the move in one sentence, without naming it or its destination square.';
-      } else {
-        slots[qid] =
-            '$mover to move. The best move is ${best['move']}, and afterwards ${wordsFor(best['eval'] as String?)}. Also counted correct: ${alsoCorrect.isNotEmpty ? alsoCorrect : 'nothing else'}. What follows the best move: ${best['line']}. In the game ${played['move']} was played instead; it ${costText(played)} and afterwards ${wordsFor(played['eval'] as String?)}.$boardText Ask for the move in one sentence, without naming it or its destination square.';
-      }
-
-      final bestMoveStr = best['move'] as String;
-      final cleanMove = bestMoveStr.replaceAll(RegExp(r'[+#]+$'), '');
-      final destSquare = cleanMove.length >= 2
-          ? cleanMove.substring(cleanMove.length - 2)
-          : cleanMove;
-      slotFacts[qid] = {
-        'gain': 0,
-        'mate': false,
-        'fork': false,
-        'pin': false,
-        'motifs': boardHere ?? '',
-        'question': true,
-        'names': [bestMoveStr, destSquare],
-      };
-      parts.add({
-        'kind': 'ask_move',
-        'fen': row['fen'],
-        'instruction': qid,
-        'solution': best['move'],
-        'accepted': [
-          for (var c = 1; c < correct.length; c++) correct[c]['move'] as String,
-        ],
       });
     }
 
@@ -824,8 +780,6 @@ List<Map<String, dynamic>> skeletonMoments(
       'cost_text': only ? 'was the only move that held' : costText(played),
       'left_book': played['left_book'] == true,
       'best': best['move'],
-      'asks': asks,
-      'correct': [for (final c in correct) c['move']],
       'board': boardHere,
       'parts': parts,
       'slots': slots,

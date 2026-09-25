@@ -97,23 +97,6 @@ void main() {
     expect(cases['tiedPairs'], hasLength(3));
   });
 
-  // The rule „a question names its answer or its square" has two halves, and
-  // for every move but castling the square half fires on its own — so deleting
-  // the answer half left every other test green. `O-O-O`'s last two characters
-  // are `-O`, which a lowercased sentence never contains.
-  test('a question that writes its castling answer is reported', () {
-    final expected = cases['castledExpected'] as Map<String, dynamic>;
-    final assembly = assembleSkeleton(
-        cases['castledFacts'] as Map<String, dynamic>,
-        cases['castledAnswer'] as String);
-    expect(
-        _firstDifference(expected['report'], _asJson(assembly.report)), isNull);
-    expect(
-        (assembly.report['claims'] as List)
-            .where((c) => '$c'.endsWith('names its answer or its square')),
-        isNotEmpty);
-  });
-
   // Every one of the ten games leaves the masters database between ply 3 and
   // ply 13, so the departure sentence always lands on a move node and the
   // branch that writes it on a part's own board — the game whose *first* move

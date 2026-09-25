@@ -6,14 +6,12 @@
 /// it, on the owner's word of 25.9.2026.
 class SkeletonParameters {
   const SkeletonParameters({
-    this.maxCorrect = 3,
     this.maxMoments = 8,
     this.leadPlies = 3,
     this.answerPlies = 4,
     this.maxAnswerPlies = 8,
   });
 
-  final int maxCorrect;
   final int maxMoments;
   final int leadPlies;
   final int answerPlies;
@@ -25,7 +23,6 @@ class SkeletonParameters {
   final int maxAnswerPlies;
 
   Map<String, dynamic> toJson() => {
-        'max_correct': maxCorrect,
         'max_moments': maxMoments,
         'lead_plies': leadPlies,
         'answer_plies': answerPlies,

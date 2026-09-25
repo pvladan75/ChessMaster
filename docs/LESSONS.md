@@ -8037,3 +8037,32 @@ preskočenog, pa se tako i porede.
 `int?` polju je greška kompajlera, a izveštaj je izgledao kao dva crvena
 fajla. Ponovljeno kao `(partNumber ?? 0) + 1`, i tada je palo na pravim
 slučajevima.
+
+## 25.9.2026 — Tutorijal služi samo za video: faza 5
+
+Tutorijal iz partije ne pita ništa (`docs/PLAN-TUTORIJAL-VIDEO.md`).
+Aplikacija **3981 → 4019** (+41 / −3); server **1730 → 1743** bez baze
+(izmereno), 1886 → 1899 sa bazom (izvedeno, novi slučajevi su čisti);
+analyze isti 22 info.
+
+**Uslov iz plana se meri na masteru pre nego što se napiše u test.** Plan je
+tražio „nijedan neiskorišćen slot", a na masteru g01 ima 4, g03 3 — skraćeni
+uvodi gde se dva momenta preklapaju, bez veze sa pitanjima. Test napisan po
+planu bio bi crven i posle ispravnog rada, i neko bi ga „popravio".
+
+**Literal koji sudi generatoru ne sme da napiše taj generator.** Fixture-i
+igara se prave iz `skeleton.py`, a ova faza menja `skeleton.py`; poređenje sa
+njima pratilo bi kod. Zato `show_parts_on_master.json` — FEN svakog dela sa
+mastera, napisan jednom rukom — i brojevi delova u samom testu.
+
+**Test izveden iz podataka nestaje sa redom podataka.** Radnik je izbrojao
+dva obrisana testa, a pun prolaz je dao jedan manje od njegovog zbira: treći
+je bio slučaj iz `answer_cases.json` koji `for` pretvara u `test(...)`. Grep
+za `test(` u diffu ga ne vidi. **Kad se briše red iz fixture-a, broji i
+testove koje taj fajl rađa.** Isti izveštaj je i preskočeni test sabrao u
+„prošlo" i rekao 20 izbrisanih odgovora umesto 22 — zbir se računa ponovo,
+ne prepisuje.
+
+**Promenljiva u odredištu komande se proverava pre kopiranja.** `cp -r …
+"$TMP/../"` je deset fascikli spustio u `AppData\Local`; uklonjene su tek
+posle `diff -rq` sa originalom. Odredište kopiranja piše se kao puna putanja.

@@ -1,13 +1,13 @@
 # Write the words for a chess tutorial, as the story of a game
 
-A trainer's game is being turned into a tutorial that a student of 13 or older
-walks through alone, on a board, with every sentence read aloud one after the
-other. The student plays in a club and knows how the pieces move and what a fork
-and a pin are.
+A trainer's game is being turned into a tutorial video for a student of 13 or
+older: the board plays the moves, and every sentence is read aloud one after
+the other. The student plays in a club and knows how the pieces move and what
+a fork and a pin are.
 
 **Everything except the words is already done**, by a program and a chess
-engine: every position, every move, every question and every correct answer.
-None of it can change. You do two things.
+engine: every position, every move and every line. None of it can change. You
+do two things.
 
 1. **Choose** two or three of the moments below - the ones a student learns the
    most from - by their ids. Prefer the moments the story of the game turns on.
@@ -48,10 +48,6 @@ what was taken or missed, and what it cost.
 - **Keep what happened apart from what should have.** A slot marked „not played"
   is a move the game did not contain: say it as a line that was there, never as
   something that happened.
-- **A question never names a move in notation** - not its answer, and not the
-  move played in the game either. Naming the rejected move eliminates a
-  candidate and tells the student what not to look at, which is half the
-  exercise. Say what is on the board, not what was played.
 - One or two short sentences per slot, at most 140 characters.
 - Teach, do not score: say what to notice, not only that a move was bad.
 
@@ -60,7 +56,7 @@ what was taken or missed, and what it cost.
 Return one JSON object and nothing else - no prose, no code fence:
 
 {{"title": "...", "description": "...", "tags": ["..."], "chosen": ["m2", "m5"],
- "slots": {{"story.opening": "...", "m2.lead.intro": "...", "m2.lead.1": "...", "m2.question": "...", "...": "...", "story.ending": "..."}}}}
+ "slots": {{"story.opening": "...", "m2.lead.intro": "...", "m2.lead.1": "...", "...": "...", "story.ending": "..."}}}}
 
 ## The game
 
