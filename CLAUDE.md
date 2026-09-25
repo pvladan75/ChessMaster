@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4024 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4040 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1899 with TEST_DATABASE_URL, 1743 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -822,6 +822,16 @@ walks first children. **A fixture's own test is the first gate it has to
 pass**: the eight-part fixture was red on its first run, `19. Rfe1` where
 only one rook can reach e1, which the reader refuses as `Re1` — every later
 „no part forks" case would have stood on a part missing its last move.
+Then its phase 1 (→ **4040**, a full run; analyze the same 22 infos): a second
+move inside a part opens a part right after it (D1), and, on the owner's word,
+such a move is **held back** while the PGN tab holds unapplied text — the new
+part would rebuild the field and lose it — with a Discard button beside Apply.
+Of the first full run's three reds, two were tests that built a fork by
+playing and were rewritten openly; the third was that lost text. **Before
+rewriting a test to follow a new rule, ask what it was protecting.** And a
+mutation that left the board holding a held-back move survived until the case
+moved the piece on the board's controller first: **a fake input that skips the
+step the code undoes cannot see the undo go missing.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

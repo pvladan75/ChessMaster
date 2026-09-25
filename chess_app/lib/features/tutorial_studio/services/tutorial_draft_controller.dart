@@ -26,6 +26,10 @@ enum MoveOutcome {
   /// opened a part of its own right after the open one — D1 of
   /// `docs/PLAN-MAPA-DELOVA.md`. The cursor stands on it, in the new part.
   branched,
+
+  /// The move would have opened a part, and the caller said it may not.
+  /// Nothing changed; the board must be put back.
+  heldBack,
 }
 
 /// The tutorial being written — phase 6a of `docs/PLAN-REORGANIZACIJA.md`,
@@ -332,7 +336,18 @@ class TutorialDraftController extends ChangeNotifier {
   // ── the line of the open part ────────────────────────────────────────────
 
   /// A move the board reported, dragged or tapped.
-  MoveOutcome playMove(String from, String to, String promotion) {
+  ///
+  /// [mayOpenPart] false holds back a move that would open a part (D1), and
+  /// only such a move: the screen passes it while the PGN tab holds text that
+  /// was not applied, because a new part rebuilds that field for the new part
+  /// and the text would be gone without a word — and carrying it across would
+  /// apply it to a part it was not written for.
+  MoveOutcome playMove(
+    String from,
+    String to,
+    String promotion, {
+    bool mayOpenPart = true,
+  }) {
     final played = playedMove(
       fen: cursor.fen,
       from: from,
@@ -348,6 +363,7 @@ class TutorialDraftController extends ChangeNotifier {
     final goesOn = cursor.children.isNotEmpty;
     final alreadyPlayed = cursor.children.any((c) => c.moveUci == played.uci);
     if (goesOn && !alreadyPlayed) {
+      if (!mayOpenPart) return MoveOutcome.heldBack;
       _openPartFrom(cursor, san: played.san, uci: played.uci, fen: played.fen);
       _lastMove = (from: from, to: to);
       notifyListeners();

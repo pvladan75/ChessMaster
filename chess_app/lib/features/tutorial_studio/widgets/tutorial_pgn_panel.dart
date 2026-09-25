@@ -34,6 +34,7 @@ class TutorialPgnPanel extends StatefulWidget {
     required this.onDrawArrow,
     required this.onMarkSquare,
     required this.onEditComment,
+    required this.onEdited,
   });
 
   /// The part's text, and where each node's move and comment sit inside it.
@@ -59,6 +60,13 @@ class TutorialPgnPanel extends StatefulWidget {
   final void Function(String nodeId) onMarkSquare;
   final void Function(String nodeId) onEditComment;
 
+  /// Whether the field now holds text the trainer has not applied. Called when
+  /// that changes, and once as the panel is built, so the screen can hold back
+  /// a move that would rebuild the field under it (D1 of
+  /// `docs/PLAN-MAPA-DELOVA.md`). It must not rebuild anything: it is called
+  /// during a build.
+  final void Function(bool edited) onEdited;
+
   String get pgn => export.pgn;
 
   @override
@@ -70,6 +78,28 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
       TextEditingController(text: widget.pgn);
 
   bool get _dirty => _controller.text != widget.pgn;
+
+  /// What [TutorialPgnPanel.onEdited] was last told.
+  bool? _reported;
+
+  void _report() {
+    final dirty = _dirty;
+    if (dirty == _reported) return;
+    _reported = dirty;
+    widget.onEdited(dirty);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _report();
+  }
+
+  /// The trainer's text thrown away: the field goes back to the part.
+  void _discard() {
+    setState(() => _controller.text = widget.pgn);
+    _report();
+  }
 
   @override
   void didUpdateWidget(TutorialPgnPanel old) {
@@ -87,6 +117,7 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
     if (!_dirty && widget.currentNodeId != old.currentNodeId) {
       _putCaretOn(widget.currentNodeId);
     }
+    _report();
   }
 
   void _putCaretOn(String? nodeId) {
@@ -108,6 +139,8 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
 
   @override
   void dispose() {
+    // Its text goes with it, so there is nothing left to hold a move back for.
+    if (_reported == true) widget.onEdited(false);
     _controller.dispose();
     super.dispose();
   }
@@ -196,7 +229,10 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
           keyboardType: TextInputType.multiline,
           style: AppText.body.copyWith(fontFamily: 'monospace'),
           decoration: const InputDecoration(border: OutlineInputBorder()),
-          onChanged: (_) => setState(() {}),
+          onChanged: (_) {
+            setState(() {});
+            _report();
+          },
           onTap: _reportCaret,
           contextMenuBuilder: _menu,
         ),
@@ -208,6 +244,17 @@ class _TutorialPgnPanelState extends State<TutorialPgnPanel> {
               onPressed: () => widget.onApply(_controller.text),
               child: const Text('Apply'),
             ),
+            // Only while there is something to throw away, and the only way
+            // to throw it away: a move that would open a part is held back
+            // until the text is applied or discarded.
+            if (_dirty) ...[
+              const SizedBox(width: AppSpacing.sm),
+              TextButton(
+                key: const Key('pgn-discard'),
+                onPressed: _discard,
+                child: const Text('Discard'),
+              ),
+            ],
             const SizedBox(width: AppSpacing.sm),
             Text(
               _dirty ? 'edited' : 'applied',

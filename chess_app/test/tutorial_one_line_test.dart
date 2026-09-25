@@ -198,6 +198,38 @@ void main() {
     });
   });
 
+  // The owner's decision of 25.9.2026: while the PGN tab holds text that was
+  // not applied, a move that would open a part is held back. A new part
+  // rebuilds that field for itself, so the text would be gone without a word;
+  // carried across, it would be applied to a part it was not written for.
+  group('held back while the PGN tab holds unapplied text', () {
+    test('a move that would open a part changes nothing', () {
+      final c = _threeParts();
+      final signature = treeSignature(c.draft.sections[1].root);
+      final rfe1 = _rfe1Of(c.draft.sections[1]);
+      c.jumpTo(rfe1);
+
+      expect(
+          c.playMove('h7', 'h6', '', mayOpenPart: false), MoveOutcome.heldBack);
+      expect(c.draft.sections, hasLength(3));
+      expect(c.draft.selected, 1);
+      expect(treeSignature(c.draft.sections[1].root), signature);
+      expect(identical(c.cursor, rfe1), isTrue);
+    });
+
+    test('a move that opens no part is played as before', () {
+      final c = _threeParts();
+      final rfe1 = _rfe1Of(c.draft.sections[1]);
+      c.jumpTo(rfe1);
+
+      expect(c.playMove('c5', 'd4', '', mayOpenPart: false), MoveOutcome.played,
+          reason: 'walking into the line opens nothing');
+      expect(c.playMove('c3', 'd4', '', mayOpenPart: false), MoveOutcome.played,
+          reason: 'extending the line opens nothing');
+      expect(c.draft.sections, hasLength(3));
+    });
+  });
+
   group('the studio says it', () {
     final session = UserSession(
       token: 't',
@@ -264,6 +296,28 @@ void main() {
       await tester.tap(find.byKey(const Key('phone-tab-parts')));
       await tester.pumpAndSettle();
       expect(find.text('Part 2'), findsOneWidget);
+      await close(tester);
+    });
+
+    testWidgets('a PGN tab that went away holds nothing back', (tester) async {
+      // An Android tablet turned across the breakpoint swaps the desktop
+      // layout, which has the PGN tab, for the phone's, which has none — and
+      // the board stays. The typed text went with the tab, so a move that
+      // opens a part must not be held back for it.
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      await open(tester, const Size(1600, 1000));
+      await tester.tap(find.byKey(const Key('pgn-tab')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('pgn-field')), '1. e4');
+      await tester.pumpAndSettle();
+
+      tester.view.physicalSize = const Size(360, 640);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('pgn-field')), findsNothing,
+          reason: 'the case needs the phone layout, which has no PGN tab');
+
+      await play(tester, 'f4', 'e3');
+      expect(find.textContaining('starts part 2'), findsOneWidget);
       await close(tester);
     });
   });

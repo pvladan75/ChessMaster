@@ -182,6 +182,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   final TextEditingController _labelsController = TextEditingController();
   int _selectedTab = 0;
 
+  /// The PGN tab holds text that was not applied. Kept by the panel through
+  /// `onEdited`; nothing draws from it, so it is a field and not state.
+  bool _pgnEdited = false;
+
   /// Which of Line/Parts is open on the phone layout ([_PhoneLayout]).
   /// The screen's own, like [_selectedTab] — the controller holds none of it.
   int _phoneTab = 0;
@@ -633,10 +637,19 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// how the two quietly part company.
   void _onMove(String from, String to, String promotion) {
     _annotationController.cancelPending();
-    switch (_c.playMove(from, to, promotion)) {
+    switch (_c.playMove(from, to, promotion, mayOpenPart: !_pgnEdited)) {
       case MoveOutcome.illegal:
         // The board has already moved the piece; the part has not.
         _boardController.loadFen(_current.fen);
+      case MoveOutcome.heldBack:
+        // Put back first, then said. The PGN tab keeps its text even while
+        // another tab is showing, so the sentence names the tab.
+        _boardController.loadFen(_current.fen);
+        AppFeedback.info(
+          context,
+          'This move would start a new part. '
+          'Apply or discard the text in the PGN tab first.',
+        );
       case MoveOutcome.played:
         break;
       case MoveOutcome.branched:
@@ -1940,6 +1953,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               onDrawArrow: (id) => _drawFromText(id, AnnotationMode.arrow),
               onMarkSquare: (id) => _drawFromText(id, AnnotationMode.square),
               onEditComment: _editCommentFromText,
+              onEdited: (edited) => _pgnEdited = edited,
             ),
           ],
         ),
