@@ -228,6 +228,33 @@ reach e1, so the move is `Re1` and the reader refused it.
 
 ### Phase 1 — a part is one line on the board [implementer]
 
+**State 25.9.2026, built inline by the lead, on branch `mapa-delova-faza-1`,
+not merged:** `MoveOutcome.branched`, `TutorialDraftController._openPartFrom`,
+the notice in `_onMove`. Gate `T/tutorial_one_line_test.dart` 11/11, red on
+master for the right reason (the film lacked `h6`), seven mutations each red on
+the right case. Full run: **4032 passed, 3 failed, 1 skipped (4035)** — the
+three are open:
+
+1. `tutorial_studio_test` „a second move from the same position is a fork,
+   and the strip asks which line" and
+2. `tutorial_delete_move_test` „a sideline can be made the line the child
+   walks" build their fork **by playing a second move** — the behaviour D1
+   replaces. Rewrite openly (supersession written above each): build the fork
+   from a stored `pgn` with a variation, which the reader still makes, so the
+   strip's question and „promote" stay covered for such a part.
+3. `tutorial_pgn_tab_test` „a move played on the board does not wipe unapplied
+   text" — **a real finding, not a stale test.** The trainer types in the PGN
+   tab without applying, plays `1. d4` where the part already plays `1. e4`;
+   D1 opens part 2, the generation changes, the field is rebuilt for part 2
+   and the typed text is gone without a word. To decide before merging: the
+   lead's first thought is that a move which would open a part while the PGN
+   field holds unapplied text is refused with a sentence („Apply or clear the
+   PGN text first"), because carrying the text into the new part would apply
+   it to a part it was not written for. Not built.
+
+`analyze` not yet run on the branch; `LESSONS.md` / `CLAUDE.md` counts not yet
+written — both after the three are settled.
+
 - `playMove`: when the cursor has children and the move is not one of them, D1.
   The new part: root on the cursor's position, carrying its arrows and squares
   but not its sentence (the board reloads at a return, so the marks are drawn

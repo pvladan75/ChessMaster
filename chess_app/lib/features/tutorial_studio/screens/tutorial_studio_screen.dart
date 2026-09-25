@@ -639,6 +639,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         _boardController.loadFen(_current.fen);
       case MoveOutcome.played:
         break;
+      case MoveOutcome.branched:
+        // Done, then said: the part exists before the sentence about it.
+        final move = _current;
+        final part = _c.draft.selected + 1;
+        AppFeedback.info(
+          context,
+          '${move.moveNumberLabel}${move.moveSan} starts part $part. '
+          'The film shows it after part ${part - 1}.',
+        );
     }
   }
 

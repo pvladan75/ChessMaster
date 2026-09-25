@@ -21,6 +21,11 @@ enum MoveOutcome {
 
   /// The line grew by one move and the cursor stands on it.
   played,
+
+  /// The move was a second line from a position that already went on, so it
+  /// opened a part of its own right after the open one — D1 of
+  /// `docs/PLAN-MAPA-DELOVA.md`. The cursor stands on it, in the new part.
+  branched,
 }
 
 /// The tutorial being written — phase 6a of `docs/PLAN-REORGANIZACIJA.md`,
@@ -336,6 +341,19 @@ class TutorialDraftController extends ChangeNotifier {
     );
     if (played == null) return MoveOutcome.illegal;
 
+    // **A part is one line** — D1 of `docs/PLAN-MAPA-DELOVA.md`. The film
+    // walks first children, so a second child here would be saved, drawn in
+    // „Tree" and never filmed. A move the line already plays walks into it; a
+    // new one where the line goes on opens a part of its own.
+    final goesOn = cursor.children.isNotEmpty;
+    final alreadyPlayed = cursor.children.any((c) => c.moveUci == played.uci);
+    if (goesOn && !alreadyPlayed) {
+      _openPartFrom(cursor, san: played.san, uci: played.uci, fen: played.fen);
+      _lastMove = (from: from, to: to);
+      notifyListeners();
+      return MoveOutcome.branched;
+    }
+
     final child = cursor.addChild(
       childFen: played.fen,
       san: played.san,
@@ -346,6 +364,41 @@ class TutorialDraftController extends ChangeNotifier {
     persist();
     notifyListeners();
     return MoveOutcome.played;
+  }
+
+  /// A part right after the open one, on [fork]'s position, whose line is the
+  /// move just played there. The open part is not touched.
+  ///
+  /// The new part carries [fork]'s arrows and squares and not its sentence:
+  /// the film reaches it by going back („Back to the position after …"), the
+  /// board reloads there and the marks are drawn again, while the sentence has
+  /// been read out where it was written — `splitForLine`'s rule for the part
+  /// that goes back. It faces the way the open part faces.
+  void _openPartFrom(
+    AnalysisNode fork, {
+    required String san,
+    required String uci,
+    required String fen,
+  }) {
+    final root = AnalysisNode(
+      fen: fork.fen,
+      arrows: [...fork.arrows],
+      squares: [...fork.squares],
+    );
+    final move = root.addChild(childFen: fen, san: san, uci: uci);
+    final at = _draft.selected + 1;
+    _draft.sections.insert(
+      at,
+      TutorialSection(
+        root: root,
+        cursor: move,
+        blackOrientation: section.blackOrientation,
+      ),
+    );
+    _draft.selected = at;
+    _renumberGeneratedTitles();
+    _generation++;
+    persist();
   }
 
   void jumpTo(AnalysisNode node) {
