@@ -792,6 +792,16 @@ Redosled (odrađeno):
       upotrebu — nije provereno ni za šta.
 - [ ] **Veća baza pre punog Lichess seta.** 50k zagonetki je zanemarljivo, ali
       punih 6,1M sa GIN indeksom po temama neće udobno stati u 1 GB RAM-a.
+- [ ] **Granica PDF-a za skener nazad ispod 100 MB.** `MAX_DOCUMENT_BYTES`
+      (`services/scanIntake.js`) je 22.9.2026 podignut sa 25 na 100 MB dok je
+      vlasnik jedini korisnik: knjiga sa dijagramima-slikama je velika po
+      prirodi (Silman, na kome je čitanje slika mereno, ima preko 25 MB). Na
+      javnom servisu to je do 100 MB koje multer upiše na disk droplet-a za
+      svaki zahtev — a svaka ruta skenera (`/scans/kind`, `/scans`,
+      `/scans/images`) prima ceo fajl iznova. Broj bira vlasnik. Menja se
+      samo konstanta: poruka o prekoračenju i njen test čitaju broj iz nje, a
+      nginx pušta do 120 MB (`deploy/app-setup.sh`). Posle promene ispraviti
+      broj u TODO-provera, stavka 107.3.
 
 Nije uzrok brige: Stockfish radi na klijentu, a glas nosi Agora — server ne
 analizira pozicije niti prenosi zvuk uživo, pa je 1 vCPU sasvim dovoljan za

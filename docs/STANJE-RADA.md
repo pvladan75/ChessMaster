@@ -8633,10 +8633,14 @@ fajlu nema. Pogrešno imenovan uzrok je gori od neimenovanog.
 
 **Druga popravka — 43 MB više ne izgleda kao pad servera.** `uploadRejection`
 (`services/scanIntake.js`) i rukovalac greškom na kraju `routes/scans.js`:
-`LIMIT_FILE_SIZE` daje **413** i rečenicu koja imenuje granicu (25 MB) i kaže
-šta da se radi, sve ostalo 400 sa multerovom porukom. Ranije je multer prekidao
-otpremanje pre nego što ruta uopšte krene, greška je odlazila Expressu, a klijent
-je štampao samo broj statusa. Isti oblik je od 20.8.2026 na ruti za arhivu.
+`LIMIT_FILE_SIZE` daje **413** i rečenicu koja imenuje granicu i kaže šta da se
+radi, sve ostalo 400 sa multerovom porukom. Granica je tada bila 25 MB; od
+22.9.2026 je 100 MB dok je vlasnik jedini korisnik (knjige sa
+dijagramima-slikama su velike), a vraćanje pre otvaranja servisa je otvorena
+stavka u [TODO-objavljivanje.md](TODO-objavljivanje.md), „Infrastruktura".
+Ranije je multer prekidao otpremanje pre nego što ruta uopšte krene, greška
+je odlazila Expressu, a klijent je štampao samo broj statusa. Isti oblik je od
+20.8.2026 na ruti za arhivu.
 
 Klijent bira rečenicu po kodu (`scanFailureMessage` u
 `scanner_api_service.dart`), a sve što ne prepoznaje pušta serverovu poruku —

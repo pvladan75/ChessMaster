@@ -30,8 +30,8 @@ const UNREADABLE_MESSAGE = {
     'There is no text on those pages — the book was scanned as an image. ' +
     'Its diagrams can only be read as pictures.',
   no_diagram_text:
-    'There is text on those pages, but no line has the shape of a diagram in a chess ' +
-    'font — the diagrams are pictures or drawings.',
+    'There is text on those pages, but no line has the shape of a diagram — ' +
+    'the diagrams are pictures or drawings.',
   unknown_font: 'Diagrams in this book use a font we do not know how to read yet.',
 };
 
