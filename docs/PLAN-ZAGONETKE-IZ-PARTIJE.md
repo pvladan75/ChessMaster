@@ -1271,6 +1271,15 @@ and one of the harness: 15 caught, the harness one refused loudly by
 `export_fixtures.py` itself, one inert and recorded — `<` against `<=` at `A`,
 since whole centipawns never make a loss of exactly 10.
 
+**The deletion, its own commit**: `best_stands_out`, `why` and `margin_pawns`
+out of `finishFacts` and `make_facts.finish`, the builder's `marginPawns`,
+`make_facts.py --margin`, the two harness cases that tested the half-pawn
+margin, and the three keys from the thirteen input files (checked against the
+committed files: nothing else in them changed). `run_arm.py` and
+`check_positions.py` — arm G of the 13.9 trial, retired — read them optionally
+and print no „stands out" line. App 4188 → **4186**, the two cases gone with
+what they tested; server 1737, analyze 23.
+
 ### Phase 1t — five men or fewer from our own tables [lead, then implementer]
 
 The owner, 24.9.2026, after 1.2a brought the tablebase into the review.

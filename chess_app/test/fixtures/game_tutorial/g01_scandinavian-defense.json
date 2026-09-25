@@ -12,7 +12,6 @@
   "game": "g01_scandinavian-defense",
   "depth": 18,
   "multipv": 4,
-  "margin_pawns": 0.5,
   "engine": "stockfish.exe",
   "threads": 1,
   "hash_mb": 128,
@@ -90,9 +89,7 @@
       "value_for_mover": 18,
       "line": "e3 Nf6 d4 e6 Nf3 d5"
      }
-    ],
-    "margin_pawns": 0.07,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "1. e4",
@@ -164,9 +161,7 @@
       "value_for_mover": -48,
       "line": "c5 Nf3 e6 d4 cxd4 Nxd4"
      }
-    ],
-    "margin_pawns": 0.01,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "1... d5",
@@ -238,9 +233,7 @@
       "value_for_mover": -36,
       "line": "Bd3 dxe4 Bxe4 e5 Nc3 g6"
      }
-    ],
-    "margin_pawns": 0.66,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "2. exd5",
@@ -311,9 +304,7 @@
       "value_for_mover": -94,
       "line": "a6 d4 Qxd5 c4 Qd8 Nc3"
      }
-    ],
-    "margin_pawns": 0.02,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "2... Qxd5",
@@ -385,9 +376,7 @@
       "value_for_mover": 31,
       "line": "d4 e5 Nf3 Nc6 Nc3 Bb4"
      }
-    ],
-    "margin_pawns": 0.33,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "3. Nc3",
@@ -458,9 +447,7 @@
       "value_for_mover": -84,
       "line": "Qe5+ Be2 c6 d4 Qc7 Nf3"
      }
-    ],
-    "margin_pawns": 0.04,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "3... Qe6+",
@@ -521,9 +508,7 @@
       "value_for_mover": 3,
       "line": "Nce2 Nf6 Nf3 g6 g3 Bg7"
      }
-    ],
-    "margin_pawns": 0.34,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "4. Qe2",
@@ -585,9 +570,7 @@
       "value_for_mover": -41,
       "line": "Bd7 d4 Qxe2+ Bxe2 Nc6 Nf3"
      }
-    ],
-    "margin_pawns": 0.03,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "4... f6",
@@ -634,9 +617,7 @@
       "value_for_mover": 38,
       "line": "d3 Qxe2+ Ngxe2 Bf5 Nd5 Na6"
      }
-    ],
-    "margin_pawns": 0.1,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "5. d4",
@@ -683,9 +664,7 @@
       "value_for_mover": -168,
       "line": "Na6 Be3 c6 g3 Qf7 O-O-O"
      }
-    ],
-    "margin_pawns": 0.66,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "5... Qf7",
@@ -731,9 +710,7 @@
       "value_for_mover": 151,
       "line": "a3 e6 Bf4 Ne7 h4 Nf5"
      }
-    ],
-    "margin_pawns": 0.68,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "6. Nf3",
@@ -780,9 +757,7 @@
       "value_for_mover": -224,
       "line": "h5 d5 e5 dxe6 Qxe6 Bf4"
      }
-    ],
-    "margin_pawns": 0.46,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "6... e6",
@@ -828,9 +803,7 @@
       "value_for_mover": 122,
       "line": "Ne4 b6 Qe3 Ne7 Bc4 Nbc6"
      }
-    ],
-    "margin_pawns": 0.13,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "7. Bd2",
@@ -876,9 +849,7 @@
       "value_for_mover": -147,
       "line": "a6 O-O-O Bd6 Qe4 Ne7 Bc4"
      }
-    ],
-    "margin_pawns": 0.01,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "7... Bd6",
@@ -924,9 +895,7 @@
       "value_for_mover": 100,
       "line": "h4 Ne7 O-O-O Nbc6 Ne4 O-O"
      }
-    ],
-    "margin_pawns": 0.11,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "8. O-O-O",
@@ -973,9 +942,7 @@
       "value_for_mover": -192,
       "line": "h5 Qe4 Ne7 Bc4 Nbc6 Rhe1"
      }
-    ],
-    "margin_pawns": 0.52,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "8... Ne7",
@@ -1022,9 +989,7 @@
       "value_for_mover": 108,
       "line": "Qe1 Nbc6 Bc4 a6 d5 e5"
      }
-    ],
-    "margin_pawns": 0.09,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "9. Re1",
@@ -1070,9 +1035,7 @@
       "value_for_mover": -135,
       "line": "a6 Ne4 Nbc6 h4 O-O Kb1"
      }
-    ],
-    "margin_pawns": 0.18,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "9... O-O",
@@ -1118,9 +1081,7 @@
       "value_for_mover": 113,
       "line": "a3 a6 Rg1 Nbc6 g4 Kh8"
      }
-    ],
-    "margin_pawns": 0.08,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "10. h4",
@@ -1166,9 +1127,7 @@
       "value_for_mover": -138,
       "line": "a6 g4 Nbc6 Kb1 Bd7 h5"
      }
-    ],
-    "margin_pawns": 0.05,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "10... a5",
@@ -1214,9 +1173,7 @@
       "value_for_mover": 137,
       "line": "Rg1 Nbc6 g4 Nd5 Ne4 e5"
      }
-    ],
-    "margin_pawns": 0.08,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "11. g4",
@@ -1262,9 +1219,7 @@
       "value_for_mover": -174,
       "line": "a4 a3 Nbc6 g5 Nd5 Nb5"
      }
-    ],
-    "margin_pawns": 0.24,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "11... a4",
@@ -1310,9 +1265,7 @@
       "value_for_mover": 161,
       "line": "Rg1 a3 b3 Nbc6 Nb5 Nd5"
      }
-    ],
-    "margin_pawns": 0.11,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "12. a3",
@@ -1358,9 +1311,7 @@
       "value_for_mover": -185,
       "line": "Bd7 g5 Nbc6 Kb1 Nd5 h5"
      }
-    ],
-    "margin_pawns": 0.01,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "12... c6",
@@ -1406,9 +1357,7 @@
       "value_for_mover": 258,
       "line": "h5 h6 Nh4 b5 Ne4 Bc7"
      }
-    ],
-    "margin_pawns": 0.34,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "13. g5",
@@ -1455,9 +1404,7 @@
       "value_for_mover": -321,
       "line": "Nd5 Ne4 Bf4 gxf6 Nxf6 Neg5"
      }
-    ],
-    "margin_pawns": 0.45,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "13... f5",
@@ -1503,9 +1450,7 @@
       "value_for_mover": 213,
       "line": "Bg2 Qh5 Qd3 b5 Ne5 Bxe5"
      }
-    ],
-    "margin_pawns": 0.05,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "14. h5",
@@ -1551,9 +1496,7 @@
       "value_for_mover": -374,
       "line": "g6 Ne5 Bxe5 Qxe5 b5 Qd6"
      }
-    ],
-    "margin_pawns": 0.72,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "14... Qe8",
@@ -1600,9 +1543,7 @@
       "value_for_mover": 262,
       "line": "g6 h6 Ne5 b5 Nf7 Rxf7"
      }
-    ],
-    "margin_pawns": 0.0,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "15. Ne5",
@@ -1649,9 +1590,7 @@
       "value_for_mover": -303,
       "line": "Na6 g6 h6 Nf7 Rxf7 gxf7+"
      }
-    ],
-    "margin_pawns": 0.22,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "15... b5",
@@ -1697,9 +1636,7 @@
       "value_for_mover": 252,
       "line": "Kb1 Na6 Na2 Nd5 Bg2 Ra7"
      }
-    ],
-    "margin_pawns": 0.01,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "16. Na2",
@@ -1745,9 +1682,7 @@
       "value_for_mover": -260,
       "line": "Nd7 Nxc6 Nb6 Ncb4 Nc4 Bg2"
      }
-    ],
-    "margin_pawns": 0.02,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "16... Nd5",
@@ -1794,9 +1729,7 @@
       "value_for_mover": 240,
       "line": "f4 Nd7 Nd3 N7b6 Bg2 Bd7"
      }
-    ],
-    "margin_pawns": 0.14,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "17. g6",
@@ -1843,9 +1776,7 @@
       "value_for_mover": -365,
       "line": "Ra7 h6 hxg6 Bg2 Rc7 Kb1"
      }
-    ],
-    "margin_pawns": 0.25,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "17... h6",
@@ -1892,9 +1823,7 @@
       "value_for_mover": 232,
       "line": "Rg1 Na6 Bg2 f4 Nf7 Qd7"
      }
-    ],
-    "margin_pawns": 0.01,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "18. Nf7",
@@ -1941,9 +1870,7 @@
       "value_for_mover": -289,
       "line": "Qe7 Bg2 Nf4 Bxf4 Bxf4+ Kb1"
      }
-    ],
-    "margin_pawns": 0.12,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "18... Qe7",
@@ -1990,9 +1917,7 @@
       "value_for_mover": 231,
       "line": "Rg1 Na6 Nxd6 Qxd6 Qe5 Qxe5"
      }
-    ],
-    "margin_pawns": 0.35,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "19. Nxh6+",
@@ -2027,9 +1952,7 @@
       "value_for_mover": -413,
       "line": "Kh8 Nf7+ Rxf7 h6 Nf4 Bxf4"
      }
-    ],
-    "margin_pawns": 2.11,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "19... gxh6",
@@ -2076,9 +1999,7 @@
       "value_for_mover": -163,
       "line": "Kb1 Qg7 c4 bxc4 Qxc4 Ba6"
      }
-    ],
-    "margin_pawns": 0.9,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "20. Bxh6",
@@ -2124,9 +2045,7 @@
       "value_for_mover": -200,
       "line": "Rd8 Bg2 b4 Qd2 f4 Bxd5"
      }
-    ],
-    "margin_pawns": 0.02,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "20... b4",
@@ -2173,9 +2092,7 @@
       "value_for_mover": 143,
       "line": "Kb1 Re8 Qd2 Ba6 Bg5 Qb7"
      }
-    ],
-    "margin_pawns": 0.13,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "21. Bxf8",
@@ -2222,9 +2139,7 @@
       "value_for_mover": -378,
       "line": "Kxf8 h6 Kg8 Nxb4 Qf6 Kb1"
      }
-    ],
-    "margin_pawns": 0.77,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "21... Qxf8",
@@ -2270,9 +2185,7 @@
       "value_for_mover": 162,
       "line": "axb4 Bf4+ Kb1 Bh6 Rg1 Ra7"
      }
-    ],
-    "margin_pawns": 0.06,
-    "best_stands_out": false
+    ]
    },
    {
     "label": "22. h6",
@@ -2319,9 +2232,7 @@
       "value_for_mover": -365,
       "line": "b3 g7 bxa2 gxf8=Q+ Kxf8 Kd2"
      }
-    ],
-    "margin_pawns": 0.64,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "22... bxa3",
@@ -2367,9 +2278,7 @@
       "value_for_mover": 175,
       "line": "Qf3 Bf4+ Kb1 Bxh6 Qh3 Na6"
      }
-    ],
-    "margin_pawns": 1.7,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "23. Qh5",
@@ -2416,9 +2325,7 @@
       "value_for_mover": -474,
       "line": "Qe7 g7 Bf4+ Kb1 Bxh6 Qxh6"
      }
-    ],
-    "margin_pawns": 0.54,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "23... axb2+",
@@ -2465,9 +2372,7 @@
       "value_for_mover": -576,
       "line": "Kd1 b1=Q+ Nc1 Nc3+ Kd2 Bf4+"
      }
-    ],
-    "margin_pawns": 1.01,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "24. Kb1",
@@ -2515,9 +2420,7 @@
       "value_for_mover": -769,
       "line": "Nd7 g7 N7f6 Qg6 Nh7 gxf8=R+"
      }
-    ],
-    "margin_pawns": 0.77,
-    "best_stands_out": true
+    ]
    },
    {
     "label": "24... Ba6",
@@ -2564,9 +2467,7 @@
       "value_for_mover": 564,
       "line": "Rxe6 Nf4 h7+ Kh8 g7+ Qxg7"
      }
-    ],
-    "best_stands_out": true,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "25. g7",
@@ -2613,9 +2514,7 @@
       "value_for_mover": -99992,
       "line": "Be5 h7+ Kxg7 h8=B+ Qxh8 Qxh8+"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "25... Bxf1",
@@ -2662,9 +2561,7 @@
       "value_for_mover": 99986,
       "line": "gxf8=R+ Kxf8 h7 Ke7 h8=Q Kd7"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "26. gxf8=Q+",
@@ -2705,9 +2602,7 @@
       "value_for_mover": -99999,
       "line": "Kh7 Qg7#"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "26... Kxf8",
@@ -2754,9 +2649,7 @@
       "value_for_mover": 705,
       "line": "Rexf1 Ke7 h7 Na6 Rfg1 Kd7"
      }
-    ],
-    "best_stands_out": true,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "27. h7",
@@ -2803,9 +2696,7 @@
       "value_for_mover": -99995,
       "line": "Ne7 h8=Q+ Ng8 Q5h7 Ke8 Q7xg8+"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "27... Bc4",
@@ -2852,9 +2743,7 @@
       "value_for_mover": 99989,
       "line": "Qxf5+ Ke8 Qxe6+ Kd8 Qxd6+ Kc8"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "28. h8=Q+",
@@ -2883,9 +2772,7 @@
       "value_for_mover": -99999,
       "line": "Ke7 Q5h7#"
      }
-    ],
-    "best_stands_out": false,
-    "why": "only one legal move"
+    ]
    },
    {
     "label": "28... Ke7",
@@ -2932,9 +2819,7 @@
       "value_for_mover": 99998,
       "line": "Qg5+ Nf6 Qgg7#"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "29. Q8e8+",
@@ -2963,9 +2848,7 @@
       "value_for_mover": -99999,
       "line": "Kf6 Qh6#"
      }
-    ],
-    "best_stands_out": false,
-    "why": "only one legal move"
+    ]
    },
    {
     "label": "29... Kf6",
@@ -3012,9 +2895,7 @@
       "value_for_mover": 99998,
       "line": "Qxe6+ Kg7 Qef7#"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "30. Qhh8+",
@@ -3043,9 +2924,7 @@
       "value_for_mover": -99999,
       "line": "Kg5 Qh4#"
      }
-    ],
-    "best_stands_out": false,
-    "why": "only one legal move"
+    ]
    },
    {
     "label": "30... Kg5",
@@ -3092,9 +2971,7 @@
       "value_for_mover": 99998,
       "line": "Qh6+ Kg4 Qeh5#"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "31. Qeh5+",
@@ -3122,9 +2999,7 @@
       "value_for_mover": -99999,
       "line": "Kf4 Rh4#"
      }
-    ],
-    "best_stands_out": false,
-    "why": "only one legal move"
+    ]
    },
    {
     "label": "31... Kf4",
@@ -3171,9 +3046,7 @@
       "value_for_mover": 99998,
       "line": "Qe5+ Bxe5 Rh4#"
      }
-    ],
-    "best_stands_out": false,
-    "margin_pawns": "mate"
+    ]
    },
    {
     "label": "32. Rh4#",

@@ -92,9 +92,13 @@ void main() {
         final harness =
             jsonDecode(File('$inputDir/${game}_facts.json').readAsStringSync())
                 as Map<String, dynamic>;
-        final uci = _uciOf(File('$inputDir/${game}_plain.pgn').readAsStringSync());
+        final uci =
+            _uciOf(File('$inputDir/${game}_plain.pgn').readAsStringSync());
         final key = factsKey(
-            startFen: _standardFen, uciMoves: uci, depth: depth, engine: engine);
+            startFen: _standardFen,
+            uciMoves: uci,
+            depth: depth,
+            engine: engine);
         final known = store == null
             ? <String, List<Map<String, dynamic>>>{}
             : await store.load(key);
@@ -235,7 +239,7 @@ Map<String, dynamic> _compare(
   if (a.length != b.length) return report..['verdict'] = 'ROW COUNT DIFFERS';
 
   var fens = 0, motifs = 0, books = 0, moves = 0, evals = 0, lines = 0;
-  var stands = 0, costs = 0;
+  var costs = 0;
   final examples = <String>[];
   String join(List c, String k) => c.map((e) => e[k]).join(' | ');
   for (var i = 0; i < a.length; i++) {
@@ -255,9 +259,10 @@ Map<String, dynamic> _compare(
     }
     if (join(cx, 'eval') != join(cy, 'eval')) evals++;
     if (join(cx, 'line') != join(cy, 'line')) lines++;
-    if (x['best_stands_out'] != y['best_stands_out']) stands++;
     final px = x['played'] as Map?, py = y['played'] as Map?;
-    if (px != null && py != null && '${px['cost_pawns']}' != '${py['cost_pawns']}') {
+    if (px != null &&
+        py != null &&
+        '${px['cost_pawns']}' != '${py['cost_pawns']}') {
       final both = px['cost_pawns'] is num && py['cost_pawns'] is num;
       if (!both || (px['cost_pawns'] as num) != (py['cost_pawns'] as num)) {
         costs++;
@@ -281,7 +286,6 @@ Map<String, dynamic> _compare(
       'candidate_moves_differ': moves,
       'candidate_evals_differ': evals,
       'candidate_lines_differ': lines,
-      'stands_out_differ': stands,
       'costs_differ': costs,
       'moments': my.length,
       'moments_equal': same,
@@ -302,7 +306,7 @@ String _line(Map<String, dynamic> r) =>
     ' (${r['kept_before']} kept before), ${r['moments']} moments, '
     '${r['sleeps']} sleeps; rows differ: moves ${r['candidate_moves_differ']}, '
     'evals ${r['candidate_evals_differ']}, lines ${r['candidate_lines_differ']}, '
-    'stands-out ${r['stands_out_differ']}, costs ${r['costs_differ']}, '
+    'costs ${r['costs_differ']}, '
     'motifs ${r['motifs_differ']}, books ${r['books_differ']}, '
     'fens ${r['fens_differ']}'
     '${(r['examples'] as List).isEmpty ? '' : '\n    ${(r['examples'] as List).join('\n    ')}'}';

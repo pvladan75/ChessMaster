@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4188 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4186 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
 cd chess_backend && npm test          # node --test, 1888 with TEST_DATABASE_URL, 1737 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -778,7 +778,9 @@ depth 20 by default, every move that is not itself a mistake a right answer.
 The verdicts are facts (`played.judged`), so the skeleton stays pure and the
 harness mirrors it; the fixtures' verdicts come from the app's judge on each
 game's own answers (`test/support/facts_engine.dart`, `tool/judge_facts.dart`),
-and the ten model answers were recorded again.
+and the ten model answers were recorded again. Then `best_stands_out` /
+`margin_pawns`, written by both ends and read by neither skeleton, were deleted
+(→ **4186**, two harness cases of the half-pawn margin gone with it).
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

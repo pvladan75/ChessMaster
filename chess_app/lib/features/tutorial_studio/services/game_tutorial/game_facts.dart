@@ -34,7 +34,6 @@ import 'package:chess_app/models/analysis_models.dart';
 /// `make_facts.MATE`: a mate in n is worth `mate - n` to the side giving it.
 const int kFactsMate = 100000;
 const int kFactsMultiPv = 4;
-const double kFactsMarginPawns = 0.5;
 const int kFactsLineLength = 6;
 
 /// How many failed searches may coincide with a sleep before the build stops
@@ -297,37 +296,18 @@ void setCost(Map<String, dynamic> played, Map<String, dynamic> best) {
               : 'cost a forced mate';
 }
 
-/// `make_facts.finish`: stands-out, the margin, and for every move played its
-/// evaluation, rank and cost. [rows] must already carry their candidates.
-List<Map<String, dynamic>> finishFacts(List<Map<String, dynamic>> rows,
-    {double marginPawns = kFactsMarginPawns}) {
-  final margin = (marginPawns * 100).round();
+/// `make_facts.finish`: for every move played its evaluation, rank and cost.
+/// [rows] must already carry their candidates.
+///
+/// `best_stands_out` and `margin_pawns` (half a pawn between the best move
+/// and the second) were written here until phase 1b of
+/// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, and read by nothing in the app;
+/// whether one move stands out is the mistake rule's `B`, in chances, decided
+/// by the review's judge.
+List<Map<String, dynamic>> finishFacts(List<Map<String, dynamic>> rows) {
   for (var index = 0; index < rows.length; index++) {
     final row = rows[index];
     final cands = (row['candidates'] as List).cast<Map<String, dynamic>>();
-    if (cands.isNotEmpty) {
-      final best = cands[0]['value_for_mover'] as int;
-      if (cands.length == 1) {
-        row['best_stands_out'] = false;
-        row['why'] = 'only one legal move';
-      } else {
-        final second = cands[1]['value_for_mover'] as int;
-        final bestMate = best.abs() > kFactsMate / 2;
-        final secondMate = second.abs() > kFactsMate / 2;
-        if (bestMate && best > 0 && !(secondMate && second > 0)) {
-          row['best_stands_out'] = true;
-          row['margin_pawns'] = 'mate';
-        } else if (secondMate) {
-          // `make_facts.py` also asks `best_mate` here, and it can never
-          // decide: the best line being mated means the second is too.
-          row['best_stands_out'] = false;
-          row['margin_pawns'] = 'mate';
-        } else {
-          row['margin_pawns'] = _pawns(best - second);
-          row['best_stands_out'] = (best - second) >= margin;
-        }
-      }
-    }
 
     final played = row['played'] as Map<String, dynamic>?;
     if (played != null && cands.isNotEmpty) {
@@ -362,7 +342,6 @@ class GameFactsBuilder {
     required this.analyzers,
     this.depth = 18,
     this.multiPv = kFactsMultiPv,
-    this.marginPawns = kFactsMarginPawns,
     this.searchTimeout = const Duration(minutes: 15),
     int Function()? sleeps,
   })  : assert(analyzers.isNotEmpty),
@@ -372,7 +351,6 @@ class GameFactsBuilder {
   final List<PositionAnalyzer> analyzers;
   final int depth;
   final int multiPv;
-  final double marginPawns;
   final Duration searchTimeout;
 
   /// How many times the computer has been found asleep so far. A failed
@@ -422,13 +400,12 @@ class GameFactsBuilder {
     }
 
     await Future.wait([for (final a in analyzers) drain(a)]);
-    finishFacts(rows, marginPawns: marginPawns);
+    finishFacts(rows);
 
     return {
       'game': game,
       'depth': depth,
       'multipv': multiPv,
-      'margin_pawns': marginPawns,
       'engine': engine,
       'in_book': inBook,
       'generated': now().toIso8601String().substring(0, 19),

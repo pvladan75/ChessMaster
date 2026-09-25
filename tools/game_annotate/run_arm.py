@@ -319,7 +319,7 @@ def game_note(arm, name):
     if arm == 'G':
         facts, table = facts_text(name)
         return FACTS_TEXT.format(depth=facts['depth'], multipv=facts['multipv'],
-                                 margin=facts['margin_pawns'], table=table)
+                                 margin=facts.get('margin_pawns', 0.5), table=table)
     note = ARMS[arm]['note'] or ARMS['B']['note']
     if arm in POSITION_TABLE_ARMS:
         table = '\n'.join('%s | %s' % row for row in position_rows(name))

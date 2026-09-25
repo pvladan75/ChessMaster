@@ -1,7 +1,6 @@
 {
  "about": "Written by tools/game_annotate/export_fixtures.py from skeleton.py. Do not edit by hand: change the harness, then run the script again.",
  "mate": 100000,
- "marginPawns": 0.5,
  "scores": [
   {
    "kind": "cp",
@@ -244,229 +243,7 @@
  ],
  "finish": [
   {
-   "name": "a margin of exactly half a pawn stands out",
-   "rows": [
-    {
-     "label": "start",
-     "fen": "x",
-     "to_move": "White",
-     "played": {
-      "move": "e4",
-      "label": "1. e4"
-     },
-     "candidates": [
-      {
-       "move": "e4",
-       "eval": "+0.00",
-       "value_for_mover": 80,
-       "line": "e4"
-      },
-      {
-       "move": "d4",
-       "eval": "+0.00",
-       "value_for_mover": 30,
-       "line": "d4"
-      },
-      {
-       "move": "Nf3",
-       "eval": "+0.00",
-       "value_for_mover": 10,
-       "line": "Nf3"
-      },
-      {
-       "move": "c4",
-       "eval": "+0.00",
-       "value_for_mover": 0,
-       "line": "c4"
-      }
-     ]
-    },
-    {
-     "label": "1. e4",
-     "fen": "y",
-     "to_move": "Black",
-     "candidates": [
-      {
-       "move": "e5",
-       "eval": "+0.00",
-       "value_for_mover": -80,
-       "line": "e5"
-      }
-     ]
-    }
-   ],
-   "expected": [
-    {
-     "label": "start",
-     "fen": "x",
-     "to_move": "White",
-     "played": {
-      "move": "e4",
-      "label": "1. e4",
-      "eval": "+0.00",
-      "value_for_mover": 80,
-      "rank": 1,
-      "cost_pawns": 0
-     },
-     "candidates": [
-      {
-       "move": "e4",
-       "eval": "+0.00",
-       "value_for_mover": 80,
-       "line": "e4"
-      },
-      {
-       "move": "d4",
-       "eval": "+0.00",
-       "value_for_mover": 30,
-       "line": "d4"
-      },
-      {
-       "move": "Nf3",
-       "eval": "+0.00",
-       "value_for_mover": 10,
-       "line": "Nf3"
-      },
-      {
-       "move": "c4",
-       "eval": "+0.00",
-       "value_for_mover": 0,
-       "line": "c4"
-      }
-     ],
-     "margin_pawns": 0.5,
-     "best_stands_out": true
-    },
-    {
-     "label": "1. e4",
-     "fen": "y",
-     "to_move": "Black",
-     "candidates": [
-      {
-       "move": "e5",
-       "eval": "+0.00",
-       "value_for_mover": -80,
-       "line": "e5"
-      }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
-    }
-   ]
-  },
-  {
-   "name": "a margin of 49 does not",
-   "rows": [
-    {
-     "label": "start",
-     "fen": "x",
-     "to_move": "White",
-     "played": {
-      "move": "e4",
-      "label": "1. e4"
-     },
-     "candidates": [
-      {
-       "move": "e4",
-       "eval": "+0.00",
-       "value_for_mover": 79,
-       "line": "e4"
-      },
-      {
-       "move": "d4",
-       "eval": "+0.00",
-       "value_for_mover": 30,
-       "line": "d4"
-      },
-      {
-       "move": "Nf3",
-       "eval": "+0.00",
-       "value_for_mover": 10,
-       "line": "Nf3"
-      },
-      {
-       "move": "c4",
-       "eval": "+0.00",
-       "value_for_mover": 0,
-       "line": "c4"
-      }
-     ]
-    },
-    {
-     "label": "1. e4",
-     "fen": "y",
-     "to_move": "Black",
-     "candidates": [
-      {
-       "move": "e5",
-       "eval": "+0.00",
-       "value_for_mover": -79,
-       "line": "e5"
-      }
-     ]
-    }
-   ],
-   "expected": [
-    {
-     "label": "start",
-     "fen": "x",
-     "to_move": "White",
-     "played": {
-      "move": "e4",
-      "label": "1. e4",
-      "eval": "+0.00",
-      "value_for_mover": 79,
-      "rank": 1,
-      "cost_pawns": 0
-     },
-     "candidates": [
-      {
-       "move": "e4",
-       "eval": "+0.00",
-       "value_for_mover": 79,
-       "line": "e4"
-      },
-      {
-       "move": "d4",
-       "eval": "+0.00",
-       "value_for_mover": 30,
-       "line": "d4"
-      },
-      {
-       "move": "Nf3",
-       "eval": "+0.00",
-       "value_for_mover": 10,
-       "line": "Nf3"
-      },
-      {
-       "move": "c4",
-       "eval": "+0.00",
-       "value_for_mover": 0,
-       "line": "c4"
-      }
-     ],
-     "margin_pawns": 0.49,
-     "best_stands_out": false
-    },
-    {
-     "label": "1. e4",
-     "fen": "y",
-     "to_move": "Black",
-     "candidates": [
-      {
-       "move": "e5",
-       "eval": "+0.00",
-       "value_for_mover": -79,
-       "line": "e5"
-      }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
-    }
-   ]
-  },
-  {
-   "name": "a mate the second move lacks stands out",
+   "name": "a mate the second move lacks",
    "rows": [
     {
      "label": "start",
@@ -555,9 +332,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "best_stands_out": true,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. e4",
@@ -570,14 +345,12 @@
        "value_for_mover": -99997,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
   {
-   "name": "two mates: nothing stands out",
+   "name": "two mates",
    "rows": [
     {
      "label": "start",
@@ -666,9 +439,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "best_stands_out": false,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. e4",
@@ -681,14 +452,12 @@
        "value_for_mover": -99998,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
   {
-   "name": "the second move is mated: a mate margin, not standing out",
+   "name": "the second move is mated",
    "rows": [
     {
      "label": "start",
@@ -777,9 +546,7 @@
        "value_for_mover": -99992,
        "line": "c4"
       }
-     ],
-     "best_stands_out": false,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. e4",
@@ -792,14 +559,12 @@
        "value_for_mover": -40,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
   {
-   "name": "the best move being mated does not stand out",
+   "name": "the best move being mated",
    "rows": [
     {
      "label": "start",
@@ -888,9 +653,7 @@
        "value_for_mover": -99998,
        "line": "c4"
       }
-     ],
-     "best_stands_out": false,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. e4",
@@ -903,9 +666,7 @@
        "value_for_mover": 99992,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -963,9 +724,7 @@
        "value_for_mover": -20,
        "line": "Kh1"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     },
     {
      "label": "1. Kh1",
@@ -978,9 +737,7 @@
        "value_for_mover": 20,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1074,9 +831,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "margin_pawns": 0.6,
-     "best_stands_out": true
+     ]
     },
     {
      "label": "1. e4",
@@ -1089,9 +844,7 @@
        "value_for_mover": -100,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1185,9 +938,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "margin_pawns": 0.6,
-     "best_stands_out": true
+     ]
     },
     {
      "label": "1. d4",
@@ -1200,9 +951,7 @@
        "value_for_mover": -130,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1296,9 +1045,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "margin_pawns": 0.6,
-     "best_stands_out": true
+     ]
     },
     {
      "label": "1. d4",
@@ -1311,9 +1058,7 @@
        "value_for_mover": -120,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1407,9 +1152,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "margin_pawns": 0.6,
-     "best_stands_out": true
+     ]
     },
     {
      "label": "1. a3",
@@ -1422,9 +1165,7 @@
        "value_for_mover": 90,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1518,9 +1259,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "best_stands_out": false,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. d4",
@@ -1533,9 +1272,7 @@
        "value_for_mover": -99995,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1629,9 +1366,7 @@
        "value_for_mover": -99998,
        "line": "c4"
       }
-     ],
-     "best_stands_out": false,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. d4",
@@ -1644,9 +1379,7 @@
        "value_for_mover": 99993,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1741,9 +1474,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "best_stands_out": true,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. d4",
@@ -1756,9 +1487,7 @@
        "value_for_mover": -200,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1853,9 +1582,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "margin_pawns": 0.2,
-     "best_stands_out": false
+     ]
     },
     {
      "label": "1. d4",
@@ -1868,9 +1595,7 @@
        "value_for_mover": 99994,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -1965,9 +1690,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "best_stands_out": true,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. c4",
@@ -1980,9 +1703,7 @@
        "value_for_mover": 99994,
        "line": "e5"
       }
-     ],
-     "best_stands_out": false,
-     "why": "only one legal move"
+     ]
     }
    ]
   },
@@ -2070,9 +1791,7 @@
        "value_for_mover": 0,
        "line": "c4"
       }
-     ],
-     "best_stands_out": true,
-     "margin_pawns": "mate"
+     ]
     },
     {
      "label": "1. e4",
@@ -2167,9 +1886,7 @@
        "value_for_mover": -500,
        "line": "c4"
       }
-     ],
-     "margin_pawns": 3.0,
-     "best_stands_out": true
+     ]
     },
     {
      "label": "1. e4",

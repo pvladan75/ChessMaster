@@ -292,7 +292,7 @@ void main() {
       test('finish: ${c['name']}', () {
         final rows = (jsonDecode(jsonEncode(c['rows'])) as List)
             .cast<Map<String, dynamic>>();
-        finishFacts(rows, marginPawns: cases['marginPawns'] as double);
+        finishFacts(rows);
         expect(_difference(c['expected'], rows), isNull);
       });
     }

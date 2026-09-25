@@ -7897,3 +7897,11 @@ proveri reči. Sada piše u prvi izabrani moment koji pita.
 razlikuje. Mutacija harness-a (Python) uhvaćena je glasno još pre Dart testa:
 `export_fixtures.py` je odbio da piše, jer snimljeni runovi više ne odgovaraju
 onome što `skeleton.py` pravi.
+
+**Brisanje `best_stands_out` / `margin_pawns`** (isti dan, svoj commit):
+aplikacija 4188 → **4186** — dva slučaja harness-a koji su proveravali pola
+pešaka otišla su sa onim što su proveravala. Plan je rekao „read or deleted";
+u aplikaciji je polje bilo samo pisano, ali u harness-u ga je čitao arm G iz
+13.9 (povučen), pa su `run_arm.py` i `check_positions.py` ostavljeni da rade
+bez njega. Ulazni fajlovi upoređeni sa commitovanim kao JSON: osim tri ključa
+ništa se nije promenilo, u svih trinaest.

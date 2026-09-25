@@ -1,7 +1,7 @@
 """The facts a model is given in arm G, computed once per game.
 
     python make_facts.py pvladan_2026-09-12
-    python make_facts.py french_2026-06-19 --depth 20 --margin 0.5
+    python make_facts.py french_2026-06-19 --depth 20
 
 Written on 13.9.2026, when the owner drew the line this arm is built on: „LLM
 ne sme da procenjuje poteze" — a model must not assess moves. Every error left
@@ -18,10 +18,10 @@ For every position of the game's main line it writes:
    White's side and a short line;
  * the move played, its evaluation, its rank among the four when it is one of
    them, and what it cost the side that played it against the best move;
- * whether the best move **stands out**: at least [margin] pawns ahead of the
-   second from the mover's side, or a mate the second move does not have. This
-   is the one question a model is never trusted to answer, because it decides
-   whether a student can be marked wrong;
+ * (until phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, whether the best move
+   **stood out** by half a pawn; it was read by arm G alone and by nothing in
+   the app, and whether one move stands out is the mistake rule's `B` now,
+   decided by the app's review judge - see `chess_app/tool/judge_facts.dart`);
  * the review's comment on the move played — the app's own motif detector —
    which describes the board rather than judging it.
 
@@ -293,7 +293,7 @@ def add_book(name, rows, gap_s, enabled=True):
     return sum(1 for row in rows if 'book' in row)
 
 
-def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers,
+def build(name, depth, multipv, threads, hash_mb, workers,
           book=True, book_gap_s=None):
     started = time.time()
     rows = walk(name)
@@ -304,13 +304,12 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers,
     for i, cands in zip(todo, answers):
         rows[i]['candidates'] = cands
 
-    finish(rows, margin_pawns)
+    finish(rows)
 
     return {
         'game': name,
         'depth': depth,
         'multipv': multipv,
-        'margin_pawns': margin_pawns,
         'engine': os.path.basename(analyze.engine_path()),
         'threads': threads,
         'hash_mb': hash_mb,
@@ -323,40 +322,21 @@ def build(name, depth, multipv, margin_pawns, threads, hash_mb, workers,
 
 
 # The fields `finish` writes. Everything else in a row is the walk's, the
-# book's or the engine's.
-FINISHED_ROW = ('best_stands_out', 'why', 'margin_pawns')
+# book's or the engine's. (`best_stands_out`, `why` and `margin_pawns` were
+# written onto the row until phase 1b.)
 FINISHED_PLAYED = ('eval', 'value_for_mover', 'rank', 'cost_pawns', 'cost_mate')
 
 
-def finish(rows, margin_pawns):
+def finish(rows):
     """The arithmetic of `build`, over rows whose candidates are already in.
 
     Split out on 14.9.2026 so the app's port can be held to it on cases no game
-    reaches - a mate among the candidates, a margin of exactly half a pawn -
+    reaches - a mate among the candidates, a move played that is not among them -
     through `export_fixtures.py`, which also proves this function gives back the
     ten facts files it was lifted from.
     """
-    margin = int(round(margin_pawns * 100))
     for index, row in enumerate(rows):
         cands = row['candidates']
-        if cands:
-            best = cands[0]['value_for_mover']
-            if len(cands) == 1:
-                row['best_stands_out'] = False
-                row['why'] = 'only one legal move'
-            else:
-                second = cands[1]['value_for_mover']
-                best_mate, second_mate = abs(best) > MATE / 2, abs(second) > MATE / 2
-                if best_mate and best > 0 and not (second_mate and second > 0):
-                    row['best_stands_out'] = True
-                    row['margin_pawns'] = 'mate'
-                elif best_mate or second_mate:
-                    row['best_stands_out'] = False
-                    row['margin_pawns'] = 'mate'
-                else:
-                    row['margin_pawns'] = pawns(best - second)
-                    row['best_stands_out'] = (best - second) >= margin
-
         played = row.get('played')
         if played and cands:
             after = rows[index + 1]
@@ -446,8 +426,6 @@ def main():
     parser.add_argument('name')
     parser.add_argument('--depth', type=int, default=18)
     parser.add_argument('--multipv', type=int, default=4)
-    parser.add_argument('--margin', type=float, default=0.5,
-                        help='pawns the best move must lead the second by')
     parser.add_argument('--threads', type=int, default=1,
                         help='threads PER ENGINE; leave it at one and raise '
                              '--workers instead, which is measured and this is '
@@ -476,15 +454,13 @@ def main():
         recost(cfg.name)
         return
 
-    facts = build(cfg.name, cfg.depth, cfg.multipv, cfg.margin, cfg.threads,
+    facts = build(cfg.name, cfg.depth, cfg.multipv, cfg.threads,
                   cfg.hash, cfg.workers, book=not cfg.no_book)
     path = os.path.join(INPUT_DIR, '%s_facts.json' % cfg.name)
     with open(path, 'w', encoding='utf-8') as fh:
         json.dump(facts, fh, ensure_ascii=False, indent=1)
-    out = sum(1 for r in facts['rows'] if r.get('best_stands_out'))
-    print('%s: %d positions, %d where the best move stands out, %d in the '
-          'masters book, %d s -> %s'
-          % (cfg.name, len(facts['rows']), out, facts['in_book'],
+    print('%s: %d positions, %d in the masters book, %d s -> %s'
+          % (cfg.name, len(facts['rows']), facts['in_book'],
              facts['seconds'], os.path.relpath(path, HERE)))
 
 

@@ -386,11 +386,9 @@ def facts_cases():
         stored = skeleton.facts_of(game)
         stripped = copy.deepcopy(stored)
         for row in stripped['rows']:
-            for key in make_facts.FINISHED_ROW:
-                row.pop(key, None)
             for key in make_facts.FINISHED_PLAYED:
                 (row.get('played') or {}).pop(key, None)
-        make_facts.finish(stripped['rows'], stored['margin_pawns'])
+        make_facts.finish(stripped['rows'])
         found = first_difference(stored, stripped)
         assert found is None, '%s: finish() does not give the facts back - %s' % (game, found)
 
@@ -431,13 +429,11 @@ def facts_cases():
     four = lambda values: [cand(m, v) for m, v in zip(('e4', 'd4', 'Nf3', 'c4'), values)]
     reply = lambda v: [cand('e5', v)]
     cases = [
-        ('a margin of exactly half a pawn stands out', game(four([80, 30, 10, 0]), 'e4', reply(-80))),
-        ('a margin of 49 does not', game(four([79, 30, 10, 0]), 'e4', reply(-79))),
-        ('a mate the second move lacks stands out', game(four([M - 3, 200, 10, 0]), 'e4', reply(-(M - 3)))),
-        ('two mates: nothing stands out', game(four([M - 2, M - 5, 10, 0]), 'e4', reply(-(M - 2)))),
-        ('the second move is mated: a mate margin, not standing out',
+        ('a mate the second move lacks', game(four([M - 3, 200, 10, 0]), 'e4', reply(-(M - 3)))),
+        ('two mates', game(four([M - 2, M - 5, 10, 0]), 'e4', reply(-(M - 2)))),
+        ('the second move is mated',
          game(four([40, -(M - 4), -(M - 6), -(M - 8)]), 'e4', reply(-40))),
-        ('the best move being mated does not stand out',
+        ('the best move being mated',
          game(four([-(M - 9), -(M - 4), -(M - 3), -(M - 2)]), 'e4', reply(M - 8))),
         ('one legal move', game([cand('Kh1', -20)], 'Kh1', reply(20))),
         ('the best move played costs nothing though the next search says less',
@@ -461,7 +457,7 @@ def facts_cases():
     finished = []
     for name, rows in cases:
         given = copy.deepcopy(rows)
-        make_facts.finish(rows, 0.5)
+        make_facts.finish(rows)
         finished.append({'name': name, 'rows': given, 'expected': rows})
 
     # The masters statistics, through `make_facts.add_book` with the walk
@@ -519,7 +515,7 @@ def facts_cases():
     finally:
         make_facts.probe_masters.book_walk = original
 
-    return {'about': ABOUT, 'mate': M, 'marginPawns': 0.5,
+    return {'about': ABOUT, 'mate': M,
             'scores': scores, 'finish': finished, 'book': booked}
 
 
