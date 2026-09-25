@@ -6,9 +6,10 @@
 // found a year late:
 //
 //   * the original is not touched — the route only ever reads it;
-//   * **every copied step gets a fresh id.** `stepByKey` resolves a schedule row
-//     and a recorded answer by that id, so two tutorials carrying one id is an
-//     ambiguity that surfaces as a child's progress appearing in the wrong copy.
+//   * **every copied step gets a fresh id.** A part's id is its identity across
+//     saves, so two tutorials carrying one id would be one identity in two
+//     places — the ambiguity that once put a student's progress in the wrong
+//     copy, when schedule rows still named parts by id.
 //
 // Drives the **mounted route**, not a helper. The helper being right and the
 // route asking it are two different things, and on the last occasion here it

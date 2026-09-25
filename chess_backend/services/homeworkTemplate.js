@@ -10,7 +10,8 @@
 // re-aim anything, and the one thing that could be re-aimed is an item that a
 // sent copy points back at (`assignments.item_key`). This is the lesson
 // `assignment_items.step_key` and `review_items.step_key` were both migrated
-// for; the third time it is designed in rather than repaired.
+// for (both since dropped, with phase 2 of docs/PLAN-TUTORIJAL-VIDEO.md); the
+// third time it is designed in rather than repaired.
 
 const crypto = require('crypto');
 
