@@ -389,18 +389,7 @@ odlazi na kraj spiska u alatu.
    onoga što je već i ranije beleženo — nema nove linije napretka.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-11. [ ] **Učenikovi ekrani (lekcija, domaći, taktika, ponavljanje, greške)
-   stanu položeno.** [172.3]
-   O čemu se radi: Deo prve provere telefona položeno koji vlasnik nije
-   prijavio kao problem (i dalje važi, per stavka 173).
-   Gde: Home → `Set for me` / Practise (telefon položeno).
-   Uradi: Na telefonu položeno otvori redom: tutorijal sa dugom rečenicom,
-   stavku sa pozicijama iz domaćeg, taktiku, ponavljanje i My mistakes.
-   Treba da vidiš: Duga rečenica lekcije ne pomera traku; dugmad za ocenu (npr.
-   Again/Hard/Good/Easy) su vidljiva na svakom od ovih ekrana.
-   Potrebno: telefon; nalog trenera i učenika; telefon položeno.
-
-12. [ ] **Pogrešan potez u Find zadatku pokazuje rešenje i zaključava tablu.**
+11. [ ] **Pogrešan potez u Find zadatku pokazuje rešenje i zaključava tablu.**
    [198.2]
    O čemu se radi: Od 20.9.2026 je „Find the move“ svuda jedan potez — stara
    mašinerija za nizove poteza ([]„Try again“, „Keep going“) je obrisana. Ovo
@@ -523,23 +512,7 @@ odlazi na kraj spiska u alatu.
    trainer set you, and your progress." i nijednu karticu za ponavljanje.
    Potrebno: nalog učenika sa prihvaćenim trenerom.
 
-2. [ ] **Home pokazuje prava podešena za nalog koji je prijavljen.** [177.2]
-   O čemu se radi: Napomena: „Resume analysis“ čip koji je ova stavka izvorno
-   proveravala (posle popravke 18.9.2026, da nov nalog ne nasledi stablo
-   prethodnog) je u međuvremenu, 21.9.2026, sasvim uklonjen sa Home — Analyse
-   je sad jedan dodir dalje i sama otvara stablo na kome je ostavljeno, pa je
-   poseban čip izgubio smisao. Ostatak stavke (šta Home pokazuje za
-   gosta/učenika/trenera) i dalje važi.
-   Gde: `Home`.
-   Uradi: Prijavi se bez trenera i bez učenika, pa proveri Home. Zatim se
-   prijavi kao učenik kome je nešto predato na pregled, pa kao trener.
-   Treba da vidiš: Bez trenera i bez učenika: pozdrav i kartica `Recordings`,
-   bez `Set for me` i bez `Due for review`. Kod učenika sa predatim domaćim:
-   blok „To review“ sa dugmetom. Kod trenera: `Set for me` i `Due for review`.
-   Ako je soba napuštena bez izlaska, na vrhu je čip „Resume session …“.
-   Potrebno: Windows i telefon; nalog trenera i učenika.
-
-3. [ ] **Traka bez veze sa serverom se sama povuče.** [13.b578]
+2. [ ] **Traka bez veze sa serverom se sama povuče.** [13.b578]
    O čemu se radi: Ovo je opšta traka na Početnoj (ne samo za skener): ponavlja
    proveru na 10 sekundi, a povezivanje soketa se odmah računa kao dokaz da je
    veza uspostavljena.
@@ -550,7 +523,7 @@ odlazi na kraj spiska u alatu.
    sekundi (ili odmah po povezivanju soketa).
    Potrebno: Windows i telefon.
 
-4. [ ] **Zvono javlja kad je film gotov, i preuzimanje sa reda radi.** [143.3]
+3. [ ] **Zvono javlja kad je film gotov, i preuzimanje sa reda radi.** [143.3]
    O čemu se radi: Kad se render završi u pozadini, trener mora da bude
    obavešten bez da čeka otvorenu traku.
    Gde: zvono (`Notifications and Invitations`) posle završenog izvoza.
@@ -560,7 +533,7 @@ odlazi na kraj spiska u alatu.
    filma; `Download video` na redu u Biblioteci radi.
    Potrebno: Windows i telefon; server.
 
-5. [ ] **Nema više dvostrukog zaglavlja iznad naslova taba.** [180.9]
+4. [ ] **Nema više dvostrukog zaglavlja iznad naslova taba.** [180.9]
    O čemu se radi: Vlasnik je 18.9.2026 tražio uživo da se ukloni gornja traka
    ljuske („taj gornji deo mi uopšte nije potreban“) — reč „Chess Trainer“ sa
    zupčanikom i zvonom je stajala iznad naslova samog taba, dva zaglavlja koja
@@ -7950,23 +7923,7 @@ odlazi na kraj spiska u alatu.
    suprotno onome što se očekuje da se vidi.
    Potrebno: Windows i telefon; sačuvan tutorijal.
 
-53. [ ] **`Preview tutorial` je reč na širokom prozoru, ikonica na uskom; nove
-   ikonice se vide.** [151.10]
-   O čemu se radi: Provera da se nove ikonice (Redo, Discard changes) zaista
-   vide, ne kao prazan kvadrat (CLAUDE.md, 'stale icon font').
-   Gde: `Teach` → `Tutorials` → `Saved tutorials` → (tutorijal) → studio.
-   Uradi: Otvori studio na širokom prozoru (≥ 840dp), proveri dugme
-   `Preview tutorial`; suzi prozor ispod 840dp i proveri isto dugme kao
-   ikonicu. Proveri ikonice `Undo (Ctrl+Z)`, `Redo (Ctrl+Y)` i
-   `Discard changes`.
-   Treba da vidiš: Na širokom prozoru `Preview tutorial` je dugme sa rečima; na
-   uskom je ikonica kape sa istim imenom (tooltip). Sve tri ikonice (Undo,
-   Redo, Discard) su vidljive kao prave ikonice — ako je neka prazna, obriši
-   chess_app/build/flutter_assets/fonts/MaterialIcons-Regular.otf i builduj
-   ponovo release verziju.
-   Potrebno: Windows i telefon; sačuvan tutorijal; release build.
-
-54. [ ] **Izmena rečenice odmah pokazuje traku o zastarelom snimku.** [140.1]
+53. [ ] **Izmena rečenice odmah pokazuje traku o zastarelom snimku.** [140.1]
    O čemu se radi: Marker imenuje takt po redu; prepravljena rečenica (bez
    promene broja taktova) menja glas na pogrešnom mestu, pa potpis liste
    taktova mora to da uhvati. Pretpostavlja stavke 138 i 139. Snimanje glasa
@@ -7983,7 +7940,7 @@ odlazi na kraj spiska u alatu.
    `Record again` i `Export without your voice`.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-55. [ ] **Strelica i krug na tabli ne obaraju snimak.** [140.6]
+54. [ ] **Strelica i krug na tabli ne obaraju snimak.** [140.6]
    O čemu se radi: Pretpostavlja stavke 138 i 139. Snimanje glasa preko
    tutorijala je pisano kao Windows-only (studio tada nije postojao na
    telefonu); otkad studio ima raspored za uzak ekran, `Record narration` je i
@@ -7995,7 +7952,7 @@ odlazi na kraj spiska u alatu.
    nudi `My recording …`.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-56. [ ] **Snimak napravljen pre potpisa se i dalje sudi po broju taktova.**
+55. [ ] **Snimak napravljen pre potpisa se i dalje sudi po broju taktova.**
    [140.7]
    O čemu se radi: Snimak bez potpisa liste taktova (napravljen pre ove faze)
    ne sme da bude odbijen na pravom tutorijalu — sudi se po starom pravilu
@@ -8008,7 +7965,7 @@ odlazi na kraj spiska u alatu.
    što nema potpis, dok broj taktova odgovara.
    Potrebno: Windows i telefon; sačuvan tutorijal; stariji snimak bez potpisa.
 
-57. [ ] **Preimenovanje ne obara snimak.** [140.5]
+56. [ ] **Preimenovanje ne obara snimak.** [140.5]
    O čemu se radi: Pola faze — sat vremena snimanja ne sme da propadne zbog
    naslova. Pretpostavlja stavke 138 i 139. Snimanje glasa preko tutorijala je
    pisano kao Windows-only (studio tada nije postojao na telefonu); otkad
@@ -8021,7 +7978,7 @@ odlazi na kraj spiska u alatu.
    izmene; `Export video` i dalje nudi `My recording …`.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-58. [ ] **Telefon položeno: tabla levo celom visinom, tabovi desno.** [179.7]
+57. [ ] **Telefon položeno: tabla levo celom visinom, tabovi desno.** [179.7]
    O čemu se radi: Isti raspored kao ostali ekrani u položenom telefonu — tabla
    zauzima levu stranu celom visinom.
    Gde: Teach → kartica `Tutorials` → otvori tutorijal, telefon položeno.
@@ -8030,7 +7987,7 @@ odlazi na kraj spiska u alatu.
    `Line`/`Task`/`Parts` su desno.
    Potrebno: telefon; telefon položeno.
 
-59. [ ] **Tutorijal sačuvan na telefonu se identično otvara na Windows-u.**
+58. [ ] **Tutorijal sačuvan na telefonu se identično otvara na Windows-u.**
    [179.8]
    O čemu se radi: Studio je od faze 6c isti kontroler na oba uređaja; sadržaj
    (delovi, komentari, pitanje) mora da bude potpuno isti bez obzira gde je
@@ -8042,7 +7999,7 @@ odlazi na kraj spiska u alatu.
    uređaja.
    Potrebno: Windows i telefon.
 
-60. [ ] **Meni „More“ u studiju na telefonu sadrži sve radnje editora.**
+59. [ ] **Meni „More“ u studiju na telefonu sadrži sve radnje editora.**
    [179.6]
    O čemu se radi: Posle faze 6a-6c je meni prelivanja dobio i „Details…“
    (naslov/oznake/jezik) i, kasnije, dve radnje za pomeranje delova između
@@ -8055,7 +8012,7 @@ odlazi na kraj spiska u alatu.
    `Position setup`.
    Potrebno: telefon.
 
-61. [ ] **Telefon portret: studio ima red poteza ispod table.** [179.2]
+60. [ ] **Telefon portret: studio ima red poteza ispod table.** [179.2]
    O čemu se radi: Prijavljeno uživo 18.9.2026 da nema trake poteza na telefonu
    (raspored namerno nema Flow/Tree/PGN table). Isto veče je dodat vodoravan
    red odigranih poteza ispod table, sa istim izvorom koji Windows koristi za

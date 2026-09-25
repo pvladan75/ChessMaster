@@ -5456,7 +5456,7 @@ ekranu ne vidi.
     na uskom (ispod 840) ikonica kape sa istim imenom. Ikonice Undo, Redo i
     Discard (`Icons.redo` i `Icons.restore` su nove) se vide — ako je neka
     prazna, obriši `chess_app/build/flutter_assets/fonts/MaterialIcons-Regular.otf`
-    i builduj ponovo (CLAUDE.md, „stale icon font"). — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 64.*
+    i builduj ponovo (CLAUDE.md, „stale icon font"). — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 64.* — **prevaziđeno (25.9.2026):** pola stavke je dugme `Preview tutorial`, koje je uklonjeno (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3); provera ikonica Undo/Redo/Discard ostaje bez svoje stavke. Arhivirano na vlasnikovu reč 25.9.2026.
 11. [x] **Prečice su zapisane.** F1 → „Keyboard Shortcuts" ima grupu „Tutorial
     Studio" sa Ctrl+Z, Ctrl+Y i Ctrl+Shift+Z. — ✅ vlasnik, u alatu za proveru, 12.9.2026.
 12. [x] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljci 2, 5
@@ -8045,7 +8045,7 @@ aplikaciju kakva jeste; sajt sme na droplet.
    **zadržava** svoj rad (isti čovek), a snimci koji nisu stigli na server i
    imenovani skupovi zagonetki se namerno ne brišu — vide se i dalje.
    Provera: nalog A analizira, odjava, nalog B → Home bez čipa; pa gost
-   analizira, prijava → čip ostaje. — *prepisano 25.9.2026 u novi spisak: Home — Home i obaveštenja, stavka 1.*
+   analizira, prijava → čip ostaje. — *prepisano 25.9.2026 u novi spisak: Home — Home i obaveštenja, stavka 1.* — **prevaziđeno (25.9.2026):** stavka očekuje karticu `Due for review` na Home-u, koje od faze 3 više nema (`docs/PLAN-TUTORIJAL-VIDEO.md`, D9); ostatak (šta Home pokazuje gostu, učeniku i treneru) proverava [246.10] i stavke same kartice `Set for me`. Arhivirano na vlasnikovu reč 25.9.2026.
 3. [ ] **Practise** je stari hub, bez trake „Resume" (ona je na Home);
    naslov „Practise". Linije napretka iz stavke 176 i dalje na karticama. — *prepisano 25.9.2026 u novi spisak: Practise — Practise — ostalo, stavka 2.*
 4. [ ] **Analyse**: tabla je odmah tu, sa svojom trakom (Setup, motor, „Use in
@@ -8216,7 +8216,7 @@ i dugmad su pri dnu desne kolone i vide se bez skrolovanja.
 2. [x] **Soba (studio).** Tabla levo, motor i kontrole desno, traka pri dnu;
    lekcije se otvaraju iz Drawera (hamburger), ne stoje pored table. — ✅ vlasnik, u alatu za proveru, 16.9.2026.
 3. [ ] **Učenik:** lekcija (duga rečenica ne pomera traku), pozicije iz
-   domaćeg, taktika, ponavljanje, moje greške — dugmad za ocenu su na ekranu. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 31.*
+   domaćeg, taktika, ponavljanje, moje greške — dugmad za ocenu su na ekranu. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 31.* — **prevaziđeno (25.9.2026):** među ekranima koji moraju da stanu položeno su lekcija (učenikov pregledač tutorijala) i ponavljanje, kojih više nema (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); domaći, taktika i My mistakes ostaju pokriveni stavkama svojih ekrana. Arhivirano na vlasnikovu reč 25.9.2026.
 4. [ ] **Repertoar:** novi (kucaj ime — tastatura ostaje otvorena), gradnja
    (stablo desno ispod pitanja), dril (odigraj potez na tabli), obilazak. — *prepisano 25.9.2026 u novi spisak: Practise — Repertoar — izgradnja, stavka 8.*
 5. [ ] **Endšpil i greške iz partija:** „Tablebase findings" u drilu se otvara

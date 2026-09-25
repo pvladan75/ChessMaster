@@ -696,7 +696,9 @@ unchanged (app 4019, backend 1743 / 1899).
   for the owner to decide** because their text cannot be edited: [177.2]
   (expects `Due for review` on a trainer's Home), [172.3] (the lesson and
   review screens among those that must fit sideways) and [151.10]
-  (`Preview tutorial` beside the icon check that still holds).
+  (`Preview tutorial` beside the icon check that still holds). **The owner
+  had all three archived the same day** (807 → 804); the icon check of
+  [151.10] has no item of its own since.
 - **Not docs, noticed**: `chess_backend/services/lessonSteps.js` still says in
   a comment that two parts with one id make „a schedule row" ambiguous; no
   schedule row exists since phase 2.
