@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:chess_app/constants.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/session_service.dart';
 
 /// WDL category as reported by the Lichess Syzygy tablebase API, always
 /// expressed from the perspective of the side to move in the position it
@@ -143,9 +145,17 @@ class SyzygyResult {
   }
 }
 
-/// Looks up exact endgame results (win/draw/loss + distance-to-zero) from the
-/// public Lichess Syzygy tablebase API. Only meaningful for positions with 7
-/// or fewer pieces on the board.
+/// Looks up exact endgame results (win/draw/loss + distance-to-zero). Only
+/// meaningful for positions with 7 or fewer pieces on the board.
+///
+/// **The server is asked first** (`GET /api/tablebase`,
+/// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1t): it answers five men or
+/// fewer from the owner's own tables and the rest from Lichess, paced and
+/// cached for everybody, in the explorer's own shape. Lichess is asked
+/// directly only when the server cannot be reached — no sign-in, no network,
+/// or a server without the route (401, 404). A server that was reached and
+/// could not answer (a 503: the tablebase is unavailable) is an answer too:
+/// null, and Lichess is not asked behind its back.
 ///
 /// **Paced and rate-limited** (measured 30.8.2026): a run of requests without
 /// a gap draws a 429 from `tablebase.lichess.ovh` after 84–98 of them at
@@ -161,7 +171,9 @@ class SyzygyTablebaseService {
   SyzygyTablebaseService._()
       : _client = null,
         _now = DateTime.now,
-        _sleep = _defaultSleep;
+        _sleep = _defaultSleep,
+        _serverUrl = backendUrl,
+        _token = (() => SessionService.instance.current.token);
 
   static final SyzygyTablebaseService instance = SyzygyTablebaseService._();
 
@@ -172,9 +184,13 @@ class SyzygyTablebaseService {
     required http.Client client,
     DateTime Function() now = DateTime.now,
     Future<void> Function(Duration duration)? sleep,
+    String serverUrl = 'http://server.test',
+    String token = '',
   })  : _client = client,
         _now = now,
-        _sleep = sleep ?? _defaultSleep;
+        _sleep = sleep ?? _defaultSleep,
+        _serverUrl = serverUrl,
+        _token = (() => token);
 
   static Future<void> _defaultSleep(Duration d) => Future<void>.delayed(d);
 
@@ -192,6 +208,9 @@ class SyzygyTablebaseService {
   final Future<void> Function(Duration duration) _sleep;
 
   final Map<String, SyzygyResult?> _cache = {};
+
+  final String _serverUrl;
+  final String Function() _token;
 
   /// The earliest moment the next request may go out.
   ///
@@ -211,6 +230,51 @@ class SyzygyTablebaseService {
 
   Future<SyzygyResult?> lookup(String fen) async {
     if (_cache.containsKey(fen)) return _cache[fen];
+
+    final fromServer = await _askServer(fen);
+    if (fromServer != null) {
+      final (:reached, :result) = fromServer;
+      if (result != null) _cache[fen] = result;
+      if (reached) return result;
+    }
+    return _askLichess(fen);
+  }
+
+  Future<http.Response> _get(Uri uri, {Map<String, String>? headers}) {
+    final client = _client;
+    return client == null
+        ? http.get(uri, headers: headers)
+        : client.get(uri, headers: headers);
+  }
+
+  /// The server's answer: null when it was never asked (no sign-in), else
+  /// whether it was reached and what it said.
+  Future<({bool reached, SyzygyResult? result})?> _askServer(String fen) async {
+    final token = _token();
+    if (token.isEmpty) return null;
+    try {
+      final uri = Uri.parse(
+          '$_serverUrl/api/tablebase?fen=${Uri.encodeQueryComponent(fen)}');
+      final res = await _get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        return (reached: true, result: SyzygyResult.fromJson(fen, data));
+      }
+      if (res.statusCode == 401 || res.statusCode == 404) {
+        AppLogger.log(
+            '[Syzygy] ⚠️ server ${res.statusCode} — asking Lichess directly');
+        return (reached: false, result: null);
+      }
+      AppLogger.log('[Syzygy] ⚠️ server tablebase ${res.statusCode}: $fen');
+      return (reached: true, result: null);
+    } catch (e) {
+      AppLogger.log('[Syzygy] ⚠️ server not reached ($e) — asking Lichess');
+      return (reached: false, result: null);
+    }
+  }
+
+  Future<SyzygyResult?> _askLichess(String fen) async {
     if (_blocked()) return null;
 
     final now = _now();
@@ -225,10 +289,8 @@ class SyzygyTablebaseService {
 
     try {
       final url = '$_baseUrl?fen=${Uri.encodeComponent(fen)}';
-      final client = _client;
-      final uri = Uri.parse(url);
-      final res = await (client == null ? http.get(uri) : client.get(uri))
-          .timeout(const Duration(seconds: 6));
+      final res =
+          await _get(Uri.parse(url)).timeout(const Duration(seconds: 6));
 
       if (res.statusCode == 429) {
         _blockedUntil = _now().add(_blockDuration);

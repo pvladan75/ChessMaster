@@ -5878,6 +5878,25 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 244. Tablebase za 5 figura i manje iz naših tabela — 25.9.2026, nije viđeno uživo
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1t. Treba restart backenda (nova ruta
+`/api/tablebase`, nova promenljiva `LOCAL_TABLEBASE_URL` — već upisana u `.env`).
+
+1. [ ] **Pokretanje.** `pokreni.ps1` → `[5] Tablebase`: otvori se tab i u njemu
+   `added … tables from D:\syzygy\3-4-5`, bez greške.
+2. [ ] **Pregled sa dugom završnicom.** U Analysis otvori svoju partiju koja
+   ide do završnice sa malo figura, „Review entire game" sa Blunder Alert. U
+   logu backenda pozicije sa 6–7 figura idu na Lichess (sporo, jedna u
+   sekundi), a sa 5 i manje ne ostavljaju trag Lichess-a; pregled je u tom
+   delu primetno brži nego ranije.
+3. [ ] **Kad naše tabele ne rade.** Zatvori tab sa tablebase-om i ponovi
+   pregled: pregled se završi normalno, a u logu backenda za svaku poziciju
+   sa 5 i manje stoji `[TABLEBASE] Lokalne tabele nisu odgovorile …; pitam
+   Lichess`.
+4. [ ] **Telefon.** Isto na telefonu, prijavljen, sa backendom na mreži:
+   pregled pita server (u logu backenda se vide pozicije), ne Lichess.
+
 ## 243. Pregled partije piše komentare (AI) — 25.9.2026, nije viđeno uživo
 
 Nova verzija aplikacije **i servera** (server mora biti restartovan: nova ruta

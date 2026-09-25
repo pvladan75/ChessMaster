@@ -1,0 +1,133 @@
+From 2f52052146988534e667d11a26e298f4679dba6c Mon Sep 17 00:00:00 2001
+From: Admin <local@localhost>
+Date: Fri, 25 Sep 2026 06:22:27 +0200
+Subject: [PATCH] windows build: jemalloc, antichess and prophet probers, and
+ the unix socket are Linux only
+
+---
+ Cargo.toml          |  9 +++++++--
+ src/antichess_tb.rs | 15 +++++++++++++++
+ src/main.rs         | 11 +++++++++--
+ src/prophet.rs      | 15 +++++++++++++++
+ 4 files changed, 46 insertions(+), 4 deletions(-)
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 6343d91..7191762 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -24,10 +24,15 @@ listenfd = "1"
+ tower-http = { version = "0.7", features = ["trace"] }
+ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+ tracing = "0.1"
+-antichess-tb-sys = "0.2"
+-tikv-jemallocator = { version = "0.7", features = ["unprefixed_malloc_on_supported_platforms"] }
+ tower = "0.5"
+ reqwest = { version = "0.13", features = ["json", "query"] }
++
++# Linux only: jemalloc does not build with MSVC, and the two probers below
++# need libclang and a POSIX toolchain. On Windows they are stubbed (no DTM,
++# no antichess DTW); standard Syzygy WDL/DTZ is unaffected.
++[target.'cfg(not(windows))'.dependencies]
++antichess-tb-sys = "0.2"
++tikv-jemallocator = { version = "0.7", features = ["unprefixed_malloc_on_supported_platforms"] }
+ prophet-sys = "0.1"
+ 
+ [profile.release]
+diff --git a/src/antichess_tb.rs b/src/antichess_tb.rs
+index f5a9641..482bc14 100644
+--- a/src/antichess_tb.rs
++++ b/src/antichess_tb.rs
+@@ -1,3 +1,14 @@
++// Windows: the C prober is Linux only (see Cargo.toml); nothing is probed.
++#[cfg(windows)]
++pub unsafe fn init(_directories: &[std::path::PathBuf]) {}
++
++#[cfg(windows)]
++pub unsafe fn probe_dtw(_pos: &shakmaty::variant::VariantPosition) -> Option<crate::metric::Dtw> {
++    None
++}
++
++#[cfg(not(windows))]
++mod imp {
+ use std::{
+     ffi::{c_char, c_int},
+     path::PathBuf,
+@@ -72,3 +83,7 @@ pub unsafe fn probe_dtw(pos: &VariantPosition) -> Option<Dtw> {
+         }
+     }))
+ }
++}
++
++#[cfg(not(windows))]
++pub use imp::*;
+diff --git a/src/main.rs b/src/main.rs
+index ac3e589..39cab73 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -27,8 +27,11 @@ use listenfd::ListenFd;
+ use moka::future::Cache;
+ use op1::Op1Client;
+ use shakmaty_syzygy::filesystem::{MmapFilesystem, OsFilesystem};
++#[cfg(not(windows))]
+ use tikv_jemallocator::Jemalloc;
+-use tokio::net::{TcpListener, UnixListener};
++use tokio::net::TcpListener;
++#[cfg(unix)]
++use tokio::net::UnixListener;
+ use tower::ServiceBuilder;
+ use tower_http::trace::TraceLayer;
+ use tracing::{Instrument as _, info, info_span, trace};
+@@ -41,6 +44,7 @@ use crate::{
+     tablebases::Tablebases,
+ };
+ 
++#[cfg(not(windows))]
+ #[global_allocator]
+ static GLOBAL: Jemalloc = Jemalloc;
+ 
+@@ -265,11 +269,14 @@ async fn main() {
+         );
+ 
+     let mut fds = ListenFd::from_env();
++    #[cfg(unix)]
+     if let Ok(Some(uds)) = fds.take_unix_listener(0) {
+         uds.set_nonblocking(true).expect("set nonblocking");
+         let listener = UnixListener::from_std(uds).expect("listener");
+         axum::serve(listener, app).await.expect("serve");
+-    } else if let Ok(Some(tcp)) = fds.take_tcp_listener(0) {
++        return;
++    }
++    if let Ok(Some(tcp)) = fds.take_tcp_listener(0) {
+         tcp.set_nonblocking(true).expect("set nonblocking");
+         let listener = TcpListener::from_std(tcp).expect("listener");
+         axum::serve(listener, app).await.expect("serve");
+diff --git a/src/prophet.rs b/src/prophet.rs
+index 39e3657..a7a4a20 100644
+--- a/src/prophet.rs
++++ b/src/prophet.rs
+@@ -1,3 +1,14 @@
++// Windows: the C prober is Linux only (see Cargo.toml); nothing is probed.
++#[cfg(windows)]
++pub unsafe fn init(_directories: &[std::path::PathBuf]) {}
++
++#[cfg(windows)]
++pub unsafe fn probe_dtm(_pos: &shakmaty::variant::VariantPosition) -> Option<crate::metric::Dtw> {
++    None
++}
++
++#[cfg(not(windows))]
++mod imp {
+ use std::{ffi::CString, iter::zip, os::raw::c_int, path::PathBuf};
+ 
+ use prophet_sys::{prophet_tb_add_path, prophet_tb_init, prophet_tb_probe_dtm};
+@@ -50,3 +61,7 @@ pub unsafe fn probe_dtm(pos: &VariantPosition) -> Option<Dtw> {
+         dtm => Some(Dtw(dtm)),
+     }
+ }
++}
++
++#[cfg(not(windows))]
++pub use imp::*;
+-- 
+2.49.0.windows.1
+

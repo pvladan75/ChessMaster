@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4171 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4177 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
-cd chess_backend && npm test          # node --test, 1874 with TEST_DATABASE_URL, 1723 without
+cd chess_backend && npm test          # node --test, 1888 with TEST_DATABASE_URL, 1737 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -764,6 +764,14 @@ the clock of a move, and „Comment key moments with AI" — every sentence thro
 `claimsFor`'s third mode, where a move named must be in its moment's lines.
 The shared fixture is now the app builder's own output. **A mutant that
 changes nothing is not a survivor** (`null ?? x` is `x`).
+Then its phase 1t (→ **4177**; backend → **1737** measured both with and
+without `.env`, 1888 with a database derived): five men or fewer from our own
+Syzygy tables through `lila-tablebase` (`LOCAL_TABLEBASE_URL`, built on
+Windows with `tools/lila-tablebase/windows-build.patch`), six and seven from
+Lichess, a local miss logged and sent to Lichess; the app asks the server
+(`GET /api/tablebase`). Compared with Lichess, 37 of 71 answers differed byte
+for byte and none in what the review reads — **compare two answers on what
+their reader reads**, not on their bytes.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

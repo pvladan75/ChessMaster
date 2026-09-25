@@ -19,7 +19,9 @@
 // letting one through here would move the goalposts mid-drill.
 
 const { Chess } = require('chess.js');
-const { bestReply, wdlOf, TablebaseUnavailable } = require('./tablebaseService');
+const {
+  bestReply, wdlOf, pieceCount, TablebaseUnavailable,
+} = require('./tablebaseService');
 
 class DrillError extends Error {
   constructor(message, status = 400) {
@@ -46,10 +48,6 @@ function flip(outcome) {
   if (outcome === 'win') return 'loss';
   if (outcome === 'loss') return 'win';
   return 'draw';
-}
-
-function pieceCount(fen) {
-  return (String(fen).split(' ')[0].match(/[a-zA-Z]/g) || []).length;
 }
 
 function uciOf(move) {

@@ -1225,6 +1225,47 @@ on the client seam, and to Lichess only when the server cannot be reached.
 Every rule by mutation. Then a TODO-provera item: one of the owner's games with
 a long ending reviewed, the log showing which positions went where.
 
+**Built, 25.9.2026** (the owner's go-ahead the same day; the droplet half is
+still open):
+
+- **Measured first.** Of phase 0's positions with seven men or fewer, five or
+  fewer: **55 of 106** in the owner's games, 3 of 44 in the club set, 13 of 61
+  in the grandmasters' — 71 of 211, and half of the owner's.
+- **lila-tablebase on Windows**: Rust installed (rustup, stable MSVC — the
+  Build Tools were already there). Upstream does not build with MSVC —
+  jemalloc, and the antichess and Prophet probers, which need libclang — so a
+  46-line patch makes those and the Unix socket `cfg(not(windows))`
+  (`tools/lila-tablebase/windows-build.patch`, with its README); Linux builds
+  upstream as it is. It runs in about 17 MB without `--mmap`. Against
+  `tablebase.lichess.ovh`, on all 71 positions: **the same category and the
+  same category for every move, 71 of 71**; the order among equal moves and a
+  few DTZ values rounded one apart differ (Lichess also sorts by DTM, which
+  Prophet gives it). Local answers took 2.2 ms on average.
+- **The server** (`services/tablebaseService.js`, still the one home):
+  `LOCAL_TABLEBASE_URL` for `LOCAL_MAX_MEN` = 5 or fewer, unpaced; a local
+  server that refuses, cannot be reached, or answers without a category is
+  logged (`[TABLEBASE] Lokalne tabele nisu odgovorile …`, with the position)
+  and the question goes to Lichess, paced; Lichess's 429 block holds for the
+  Lichess half only. `pieceCount` moved here from `endgameDrill.js` (which
+  imports it now). `GET /api/tablebase` (`routes/tablebase.js`): signed in,
+  rate-limited, the explorer's shape, 400 for an invalid position or more than
+  seven men, 503 with the reason when no tablebase answers. The header of the
+  service says why the sidecar of 31.8 is back, and how this one differs.
+- **The app** (`SyzygyTablebaseService`): the server first, with the account;
+  Lichess directly only with no sign-in, no network, or a 401 / 404 (a
+  server without the route); a 503 is an answer — null, and Lichess is not
+  asked.
+- `D:\Projekti\pokreni.ps1` item 5 starts it on `127.0.0.1:9000` over
+  `D:\syzygy\3-4-5`; the owner's `.env` has `LOCAL_TABLEBASE_URL`.
+
+Gate: `test/tablebase_local.test.js` (14 cases) and
+`test/syzygy_tablebase_server_test.dart` (6), both asserting the URLs asked;
+15 mutations, all caught. End to end on the real prober (no backend started):
+a five-man position answered locally, a six-man one by Lichess. **Open**: the
+droplet — the 3-4-5 set and lila-tablebase through `deploy/` [lead] when the
+switch to the droplet happens (a Linux build of upstream, no patch); and the
+owner's live check, TODO-provera 244.
+
 ### Phase 2 — the stored review [lead]
 
 Schema is the lead's: `custom_puzzles.review JSONB`, the writer

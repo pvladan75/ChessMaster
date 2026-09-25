@@ -14,10 +14,20 @@
 // reaches to seven pieces, which is further than any set we could hold.
 //
 // A local sidecar was tried on 31.8.2026 and removed the same week, with the
-// scan it was built for. Two halves — local tables and a donated service —
-// answering one question is a system with two ways to be down, and it was slow
-// and it fell over. What is left is what worked for this service's whole life:
-// one request per position, paced, and nothing else.
+// scan it was built for: two halves answering one question is a system with
+// two ways to be down, and that one was slow and fell over.
+//
+// **Five men or fewer come back from our own tables since 25.9.2026**
+// (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 1t — the owner's decision of
+// 24.9.2026, reversing the above on purpose). The whole-game review asks about
+// every position with seven men or fewer, and Lichess throttles after about 90
+// requests; the common endings of club play are mostly five men or fewer. What
+// is different from 31.8: the prober is Lichess's own server
+// (`lila-tablebase`, the same API over the 3-4-5 set, measured 71 of 71
+// positions answering alike), the split is by the number of men and nothing
+// else, and **a local server that does not answer is never silent** — the
+// question goes to Lichess, paced as always, and the log says so. Unset
+// `LOCAL_TABLEBASE_URL` and everything goes to Lichess, as before.
 //
 // One request answers a whole position — the response carries a category for
 // every legal move — so a drill costs one request per move played, and repeated
@@ -34,6 +44,19 @@ const DEFAULT_URL = process.env.LICHESS_TABLEBASE_URL
   || 'https://tablebase.lichess.ovh/standard';
 
 const logger = require('./logger');
+
+/// Our own `lila-tablebase` over the 3-4-5 set, or null for Lichess only.
+const LOCAL_URL = process.env.LOCAL_TABLEBASE_URL || null;
+
+/// The most men our own tables answer for: the 3-4-5 set, the one the
+/// droplet can hold (940 MB; the 6-man set is 150 GB), so the owner's machine
+/// and the droplet judge a game alike.
+const LOCAL_MAX_MEN = 5;
+
+/// Men on the board — kings included — from a FEN's placement field.
+function pieceCount(fen) {
+  return (String(fen).split(' ')[0].match(/[a-zA-Z]/g) || []).length;
+}
 
 /// Lichess's five words for an outcome, from the point of view of the side to
 /// move. Anything outside this map is a position the service will not commit
@@ -158,6 +181,11 @@ function createTablebase({
   cooldownMs = RATE_LIMIT_COOLDOWN_MS,
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  // Our own tables (phase 1t): asked first for LOCAL_MAX_MEN or fewer, never
+  // paced — they are ours — and never the end of the road.
+  localUrl = LOCAL_URL,
+  localTimeoutMs = 3000,
+  log = logger,
 } = {}) {
   const cache = new Map();
   // Two children on the same position, or one child whose client retried, must
@@ -170,6 +198,8 @@ function createTablebase({
   // only holds while nothing stresses it is not a rule.
   const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
   let requests = 0;
+  let localRequests = 0;
+  let localMisses = 0;
 
   function remember(fen, value) {
     cache.set(fen, value);
@@ -218,7 +248,34 @@ function createTablebase({
     }
   }
 
+  /// Our own tables' answer, or null when they did not give one — which is
+  /// logged, and then Lichess is asked.
+  async function fetchLocal(fen) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), localTimeoutMs);
+    try {
+      const res = await fetchImpl(`${localUrl}?fen=${encodeURIComponent(fen)}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      const data = await res.json();
+      if (!data || typeof data.category !== 'string') throw new Error('no category');
+      localRequests += 1;
+      return data;
+    } catch (err) {
+      localMisses += 1;
+      log.warn(`[TABLEBASE] Lokalne tabele nisu odgovorile (${err.message}); pitam Lichess: ${fen}`);
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   async function load(fen) {
+    if (localUrl && pieceCount(fen) <= LOCAL_MAX_MEN) {
+      const local = await fetchLocal(fen);
+      if (local) return local;
+    }
     let last;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
@@ -257,6 +314,8 @@ function createTablebase({
           category: m.category,
           dtz: m.dtz ?? null,
           zeroing: Boolean(m.zeroing),
+          checkmate: Boolean(m.checkmate),
+          stalemate: Boolean(m.stalemate),
         })),
       };
       remember(fen, value);
@@ -280,16 +339,22 @@ function createTablebase({
     stats: () => ({
       cached: cache.size,
       requests,
+      localRequests,
+      localMisses,
     }),
     clear: () => {
       cache.clear();
       requests = 0;
+      localRequests = 0;
+      localMisses = 0;
     },
   };
 }
 
 module.exports = {
   createTablebase,
+  pieceCount,
+  LOCAL_MAX_MEN,
   TABLEBASE_GAP_MS,
   bestReply,
   wdlOf,

@@ -7835,3 +7835,29 @@ treći režim ne radi. Sada krši samo jednu stvar.
 `game_review_honest_test` je držao „It writes no comment under a move"; to
 više nije istina kad je kućica štiklirana. Slučaj prepisan otvoreno, sa
 napomenom iznad, i sada tvrdi i da bez kućice komentar ne nastaje.
+
+## 25.9.2026 — Zagonetke iz partije, faza 1t: naše tablebase tabele
+
+Aplikacija 4171 → **4177** (+6 `syzygy_tablebase_server_test`), pun prolaz;
+analyze isti 23. Backend 1723 → **1737** (+14 `tablebase_local.test.js`),
+izmereno i sa `.env` i bez njega — sa njim je `LOCAL_TABLEBASE_URL` sada
+postavljen, pa je to i druga sredina. 15 mutacija, sve uhvaćene.
+
+**Poređenje po onome što čitalac čita.** Prvo poređenje našeg
+`lila-tablebase`-a sa Lichess-om reklo je „37 od 71 različito" — po bajtovima:
+redosled jednako dobrih poteza (Lichess sortira i po DTM-u, koji mu daje
+Prophet) i DTZ zaokružen jedan dalje. Po onome što pregled čita — ishod
+pozicije i ishod svakog poteza — 71 od 71 isto. Broj koji izgleda kao
+katastrofa je prvo pitanje o instrumentu.
+
+**Nameštaljka „šest figura" je imala pet.** Top, pešak i top uz dva kralja.
+Uhvatio ju je sopstveni slučaj koji broji figure, pre nego što je išta drugo
+moglo da prođe zbog nje — zato slučaj koji tvrdi osobinu nameštaljke ide prvi.
+
+**Windows putanje kroz Python heredoc.** `D:\syzygy\3-4-5` i
+`lila-tablebase\target\release` prošli su kroz dva sloja izbegavanja i
+postali tab, CR i kontrolni znak 0x03 — u `pokreni.ps1`, u planu, u
+STANJE-RADA, pa i u ovom unosu. Parser PowerShell-a nije video grešku
+(putanja je samo pogrešan string). Nađeno pregledom izlaza; sada se posle
+takve izmene fajl skenira na kontrolne znake, a putanja se gradi sa
+`chr(92)`.
