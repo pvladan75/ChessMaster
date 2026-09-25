@@ -7919,3 +7919,54 @@ uređaja, jer imena fajlova u njemu kažu koje partije je prethodni nalog
 analizirao. Dva crvena rezultata u proveri bila su nepostojeći fajlovi koje
 sam pogodio po imenu — `flutter test` na fajl koji ne postoji je „[E]", ne
 „nema testova".
+
+## 25.9.2026 — Trijaža spiska za proveru uživo
+
+Vlasnik je tražio trijažu starih provera, redosled, i u svakoj stavci putanju
+„gde i šta" — „često ne znam na šta se odnosi".
+
+**Odgovori koji nisu stigli nazad.** Od 1825 otvorenih stavki, 789 je vlasnik
+u alatu za proveru već bio označio „u redu" — neke pre tri nedelje. Alat je
+van repozitorijuma i čita dokument, ali u njega ne piše, a korak „prenesi
+odgovore u dokument" nije bio ničiji. Brojka „206 od 246 odeljaka otvoreno",
+koju sam istog jutra dao vlasniku, bila je tačna o dokumentu i netačna o
+stanju: **kad dva mesta drže isti podatak, a samo jedno se čita, broj se
+izvodi iz onog u koje se piše.** Pre nego što se kaže koliko je provereno,
+čita se `stanje.json`, ne samo `TODO-provera.md`.
+
+**Komentar uz „u redu" nije uvek „u redu".** Od 39 takvih, 24 su govorila „ne
+znam na šta se misli", „vidi na šta misliš" ili su prijavljivala nalaz — isti
+problem koji je vlasnik opisao, samo zapisan kao prolaz. Radnik je dva takva
+štiklirao; kapija je posle toga dobila pravilo da se štiklira samo odgovor
+„u redu", a komentar sam pročitao za svaki štiklirani.
+
+**Mapa pre radnika.** Deset čitalaca je prvo napravilo mapu ekrana iz koda
+(sve dveri, sa natpisima), pa je osam radnika pisalo putanje iz iste mape;
+kapija je svaki natpis u backtick-u tražila u string literalima `lib/`.
+Izmišljen natpis pada, pomešan (`Revue the whole thing`) takođe — provereno
+pre predaje. Ono što kapija nije mogla da vidi, video se tek u sklopljenom
+dokumentu: 209 „ekrana" od kojih 135 sa po jednom stavkom, jer je svaki
+radnik isti ekran nazvao drugačije. **Ime koje piše osam ruku mora da ima
+jedan rečnik, ili se svodi posle** — svedeno je pravilima na 44 grupe.
+
+**Heredoc u Bash alatu gubi kosu crtu.** Skripta za proveru natpisa, pisana
+kroz heredoc, dobila je `[^'\\n]` umesto `[^'\\\n]` i javila 820 od 1213
+natpisa kao nepostojeće; ista skripta napisana alatom Write — 102, uglavnom
+natpisi sastavljeni u toku rada. **Broj koji izgleda kao katastrofa je prvo
+pitanje o instrumentu** (isto kao skener 22.9) — i skripte sa `\` se pišu
+alatom za fajlove, ne heredoc-om.
+
+**Tri „poznata problema", proverena.** Od tri stavke koje su radnici ostavili
+kao otvoren kvar, jedna je stvarna (`Save tutorial` nikad sivo), jedna je
+prestala da bude moguća posle plana sesije (učenik ne može da pozove trenera,
+jer se zovu samo sopstveni prihvaćeni učenici — provereno u
+`invite_students_dialog.dart`), a jedna traži novu proveru, jer su se tekst i
+govor od prijave promenili.
+
+**Skripta koja čita odakle piše radi tačno jednom.** Sklapanje je arhivu
+pravilo iz `docs/TODO-provera.md`, a prva instalacija je baš taj fajl
+zamenila novim spiskom; druga je zato „arhivirala" novi spisak sa oznakama na
+starim brojevima redova. Uhvaćeno po veličini (717 → 778 KB za iste oznake).
+Sada se stari spisak čita iz kopije iz git-a, uz proveru da su njegove
+stavke tačno one koje su trijažirane, a arhiva je proverena stavku po stavku:
+svih 2008 počinje starim tekstom.

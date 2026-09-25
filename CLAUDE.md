@@ -1096,7 +1096,20 @@ it, so the same build can be right on the phone and wrong on Windows.
   was split — other docs cite them by number ("stavka 27"), so gaps in the
   numbering are expected, not a mistake.
 - `docs/TODO-provera.md` — features that pass tests but have never been watched
-  running. Ticked off only after the user confirms live.
+  running. Ticked off only after the user confirms live. **Rebuilt 25.9.2026**
+  from a triage of every open item: it is grouped by where the check is done
+  (`##` area — the four tabs, the room, the account, settings, server — then
+  `###` screen), and every item has the same five lines: *O čemu se radi*,
+  *Gde* (a path from app start, labels in backticks exactly as the app has
+  them), *Uradi*, *Treba da vidiš*, *Potrebno*. The old number stays on each
+  item as `[243.2]`, which is what code comments and other docs cite. A new
+  item goes under its area and screen in that form, numbered from `[246.1]`.
+  The owner answers in the QA tool outside the repo (`mislisha-test\qa`),
+  which matches items **by text**: never reword an item that has an answer —
+  the edit becomes a new item and the answer moves to the tool's archive
+  section. The old list, whole and with every item's fate (confirmed in the
+  tool, superseded and why, or rewritten and where), is
+  `docs/arhiva/TODO-provera-26.8-do-25.9.2026.md`.
 - `docs/TODO-objavljivanje.md` — publishing steps, in dependency order.
 
 Keep these current as part of the work, not afterwards. When something is
@@ -1104,12 +1117,12 @@ verified live, say who verified it and when. New entries go in
 `docs/STANJE-RADA.md`; move one to `docs/arhiva/` once it is done, verified, and
 nothing upcoming depends on reading it.
 
-**These docs are big, and reading one whole is a real cost.** `TODO-provera.md`
-is 75 KB and `TODO-objavljivanje.md` 45 KB — roughly 22k and 14k tokens, more
-than that in Serbian. `grep` for the item you need and read around the hit;
-slurping all three costs more context than the code they describe. The handoff
-doc was 242 KB and `TODO-provera.md` 101 KB until they were split, which is why
-every session used to open above 150k tokens before doing any work.
+**These docs are big, and reading one whole is a real cost.** Measured
+25.9.2026: `STANJE-RADA.md` 594 KB, `TODO-provera.md` 582 KB (847 items),
+`TODO-objavljivanje.md` 48 KB — well over 150k tokens each for the first two.
+`grep` for the item you need and read around the hit; never read one whole.
+The handoff doc was 242 KB and `TODO-provera.md` 101 KB when they were first
+split on 27.8.2026, and both have grown back past that.
 
 ## Server
 
