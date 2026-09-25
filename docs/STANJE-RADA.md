@@ -76,6 +76,10 @@ dobio `DIGITALOCEAN_TOKEN` i `LICHESS_API_TOKEN`, a `DASHSCOPE_API_KEY` i
 
 **Ostaje:** provera uživo. Detalji u planu, faza 1t, „Built".
 
+**Faza 6 istog dana:** stare zagonetke iz pregleda („… just played …") —
+tačno 5, sve iz jedne partije, nijedna u domaćem — obrisane na vlasnikovo da.
+U planu ostaju faza 1b (tutorijal na istom pravilu) i provere uživo.
+
 ## Zagonetke iz partije, faza 3: pregled piše komentare — 25.9.2026, u kodu, ostaje provera uživo (stavka 243)
 
 `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 3, u tri koraka, svaki svoj commit:

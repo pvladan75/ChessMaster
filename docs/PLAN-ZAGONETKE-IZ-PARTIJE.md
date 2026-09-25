@@ -1493,6 +1493,17 @@ review puzzles are the ones whose instruction says „… just played …"
 (`keep_puzzles_panel.dart` before 1.3); count by that, and show the owner the
 split before anything is deleted.
 
+**Done, 25.9.2026.** Counted on the managed database: `origin = 'mistakes'`
+held exactly **5** rows, all old („… just played …"), all the owner's, from
+one game („pvladan – axel_buchmueller", 23.9); none from the archive path,
+none new (the `review` column did not exist yet — the owner's backend had not
+started since phase 2); none held by a homework, sent, unfinished or saved.
+Deleted on the owner's yes, in one transaction by their ids with
+`positionDeletion.js`'s homework guard, run by the owner (the lead's own run
+was refused by the permission guard, and a second run found nothing and
+rolled back). `origin = 'mistakes'` left: 0. The 4 attempt-log rows that named
+them stay, as for any exercise deleted from the Library.
+
 ### Phase 7 — the owner's live pass
 
 A TODO-provera item: review one of the owner's games, keep two puzzles, solve one
