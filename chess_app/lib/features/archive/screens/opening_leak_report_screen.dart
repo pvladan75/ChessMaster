@@ -4,8 +4,7 @@ import 'package:chess_app/features/analysis_studio/services/opening_judge_servic
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/features/archive/services/opening_tree_judge.dart';
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart'
-    show engineIdentity;
+import 'package:chess_app/core/services/engine_identity.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart'
     show localEnginePath;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/uci_engine.dart'

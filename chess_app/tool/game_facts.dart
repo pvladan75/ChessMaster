@@ -5,20 +5,19 @@
 ///     set FACTS_DEPTH=18                                           (default 18)
 ///     set FACTS_WORKERS=8                                          (default: defaultFactsWorkers)
 ///     set FACTS_OUT=<a folder>                                     (default build/game_facts)
-///     set FACTS_STORE=<a folder>                                   (optional: keep and reuse answers)
 ///     flutter test tool/game_facts.dart
 ///
 /// Phase 0 wrote this file with the builder's arithmetic and its engine copied
 /// inside it, and measured that copy identical to the harness on all ten games.
 /// **Phase 2 moved both into `lib/`, and this file is now only the entry
 /// point**: `UciEnginePool` starts the downloaded binary, `GameFactsBuilder`
-/// builds the rows, `SleepWatch` and `GameFactsStore` do what they do in the
-/// app. So the same comparison is now a comparison of the app's own code with
+/// builds the rows, `SleepWatch` does what it does in the app. So the same comparison is now a comparison of the app's own code with
 /// the harness, on the real engine — which is the one thing the unit tests
 /// cannot ask.
 ///
-/// **With `FACTS_STORE` set, run it twice.** The second run of a game must
-/// search nothing and give the same rows: that is rule 4 proved end to end.
+/// (`FACTS_STORE` kept and reused the answers through `GameFactsStore` until
+/// 25.9.2026; the app keeps them in `EvalCache` now, and this tool searches
+/// every position, which is what a comparison with the harness wants.)
 ///
 /// The masters statistics are rebuilt from the harness's own facts, which came
 /// from the Lichess masters explorer. That is deliberate: this compares the
@@ -35,7 +34,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
+import 'package:chess_app/core/services/engine_identity.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/game_facts.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/sleep_watch.dart';
@@ -71,7 +70,6 @@ void main() {
   final workers =
       int.tryParse(env['FACTS_WORKERS'] ?? '') ?? defaultFactsWorkers();
   final outDir = env['FACTS_OUT'] ?? 'build/game_facts';
-  final storeDir = env['FACTS_STORE'];
   final inputDir = _harnessInput();
 
   test('builds facts for ${games.length} games at depth $depth', () async {
@@ -80,29 +78,16 @@ void main() {
     final engine = await engineIdentity(enginePath);
     final pool = await UciEnginePool.start(enginePath, workers: workers);
     final sleeps = SleepWatch()..start();
-    final store = storeDir == null
-        ? null
-        : GameFactsStore(() async => Directory(storeDir));
     final summary = <Map<String, dynamic>>[];
     try {
       stdout.writeln('engine: $enginePath ($engine), $workers workers, '
-          'depth $depth, ${Platform.numberOfProcessors} logical processors'
-          '${store == null ? '' : ', store $storeDir'}');
+          'depth $depth, ${Platform.numberOfProcessors} logical processors');
       for (final game in games) {
         final harness =
             jsonDecode(File('$inputDir/${game}_facts.json').readAsStringSync())
                 as Map<String, dynamic>;
         final uci =
             _uciOf(File('$inputDir/${game}_plain.pgn').readAsStringSync());
-        final key = factsKey(
-            startFen: _standardFen,
-            uciMoves: uci,
-            depth: depth,
-            engine: engine);
-        final known = store == null
-            ? <String, List<Map<String, dynamic>>>{}
-            : await store.load(key);
-        final recorder = store?.recorder(key, initial: known);
         var searched = 0;
 
         final watch = Stopwatch()..start();
@@ -115,19 +100,14 @@ void main() {
           startFen: _standardFen,
           uciMoves: uci,
           masters: await _mastersFrom(harness, uci),
-          known: known,
           engine: engine,
-          onAnswer: (fen, candidates) {
-            searched++;
-            recorder?.add(fen, candidates);
-          },
+          onAnswer: (fen, candidates) => searched++,
           onProgress: (done, total) {
             if (done % 20 == 0 || done == total) {
               stdout.writeln('  $game  $done / $total');
             }
           },
         );
-        await recorder?.flush();
         final seconds = watch.elapsedMilliseconds / 1000.0;
         File('$outDir/${game}_d${depth}_facts.json').writeAsStringSync(
             const JsonEncoder.withIndent(' ').convert(facts));
@@ -139,7 +119,6 @@ void main() {
           ..['depth'] = depth
           ..['seconds'] = seconds
           ..['searched'] = searched
-          ..['kept_before'] = known.length
           ..['sleeps'] = sleeps.sleeps;
         summary.add(report);
         stdout.writeln(_line(report));
@@ -303,7 +282,7 @@ Map<String, dynamic> _compare(
 String _line(Map<String, dynamic> r) =>
     '${r['game']} d${r['depth']}: ${r['verdict']} — '
     '${(r['seconds'] as double).toStringAsFixed(1)} s, searched ${r['searched']}'
-    ' (${r['kept_before']} kept before), ${r['moments']} moments, '
+    ', ${r['moments']} moments, '
     '${r['sleeps']} sleeps; rows differ: moves ${r['candidate_moves_differ']}, '
     'evals ${r['candidate_evals_differ']}, lines ${r['candidate_lines_differ']}, '
     'costs ${r['costs_differ']}, '

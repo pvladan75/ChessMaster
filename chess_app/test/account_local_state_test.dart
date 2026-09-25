@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -116,9 +115,14 @@ void main() {
     expect(prefs.getString('active_room_code'), isNull);
   });
 
-  test('the engine answers kept for tutorials go with the account', () async {
-    // The device store lives under the support directory, which the test
-    // points at a folder of its own through the plugin's channel.
+  // The tutorials kept their own engine answers, one file a game, until
+  // 25.9.2026 (`GameFactsStore`, deleted in phase 1b of
+  // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md). Nothing writes there now, but a device
+  // that ran an older version still has the folder, and its file names say
+  // which games were analysed.
+  test("the tutorials' old answers folder goes with the account", () async {
+    // It lives under the support directory, which the test points at a
+    // folder of its own through the plugin's channel.
     final support = Directory.systemTemp.createTempSync('support_');
     const channel = MethodChannel('plugins.flutter.io/path_provider');
     final messenger =
@@ -130,17 +134,14 @@ void main() {
     });
 
     await SessionService.instance.signIn(user(11), rememberMe: true);
-    final recorder = deviceFactsStore().recorder('game-1');
-    recorder.add('fen a', [
-      {'move': 'e4', 'eval': '+0.20', 'value_for_mover': 20, 'line': 'e4'},
-    ]);
-    await recorder.flush();
-    expect(await deviceFactsStore().load('game-1'), hasLength(1),
-        reason: 'the answers were never written');
+    final old = Directory('${support.path}${Platform.pathSeparator}game_facts')
+      ..createSync(recursive: true);
+    File('${old.path}${Platform.pathSeparator}0a1b2c.json')
+        .writeAsStringSync('{"version": 1}');
 
     await SessionService.instance.signOut();
     await AccountLocalState.engineAnswersWiped;
-    expect(await deviceFactsStore().load('game-1'), isEmpty,
+    expect(old.existsSync(), isFalse,
         reason: 'the next account would find which games were analysed here');
   });
 

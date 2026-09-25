@@ -357,15 +357,15 @@ class GameFactsBuilder {
   /// search during which this changed is searched again for free.
   final int Function() _sleeps;
 
-  /// [known] holds the answers already built for this game at this depth by
-  /// this engine, by position — a resumed build searches only the rest — and
-  /// [onAnswer] is told every new one, so it can be kept.
+  /// [onAnswer] is told every answer as it is searched. A position searched
+  /// before is answered by the store the analyzers are wrapped in
+  /// (`EvalCache`); the builder's own `known` answers went with the
+  /// tutorial's per-game store on 25.9.2026.
   Future<Map<String, dynamic>> build({
     required String game,
     required String startFen,
     required List<String> uciMoves,
     Map<String, Map<String, dynamic>> masters = const {},
-    Map<String, List<Map<String, dynamic>>> known = const {},
     void Function(String fen, List<Map<String, dynamic>> candidates)? onAnswer,
     void Function(int done, int total)? onProgress,
     bool Function()? cancelled,
@@ -386,15 +386,10 @@ class GameFactsBuilder {
         if (cancelled?.call() ?? false) throw const GameFactsCancelled();
         final row = rows[todo[next++]];
         final fen = row['fen'] as String;
-        final stored = known[fen];
-        if (stored != null) {
-          row['candidates'] = stored;
-        } else {
-          final candidates =
-              await _search(analyzer, row, cancelled ?? () => false);
-          row['candidates'] = candidates;
-          onAnswer?.call(fen, candidates);
-        }
+        final candidates =
+            await _search(analyzer, row, cancelled ?? () => false);
+        row['candidates'] = candidates;
+        onAnswer?.call(fen, candidates);
         onProgress?.call(++done, todo.length);
       }
     }

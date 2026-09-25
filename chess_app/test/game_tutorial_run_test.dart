@@ -20,7 +20,6 @@ import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/core/services/eval_cache.dart';
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
@@ -193,11 +192,8 @@ class _Rig {
     Future<MastersWalk> Function(List<String>)? masters,
     WordsOutcome? words,
     String? enginePath = 'C:/engine/stockfish.exe',
-    Directory? storeDir,
     EvalCache? answers,
-  })  : dir = storeDir ??
-            Directory.systemTemp.createTempSync('game_tutorial_run_'),
-        answers = answers ?? EvalCache() {
+  }) : answers = answers ?? EvalCache() {
     runner = GameTutorialRunner(
       token: 'jwt',
       findEngine: () async => enginePath,
@@ -209,7 +205,6 @@ class _Rig {
           close: () => closed++,
         );
       },
-      store: GameFactsStore(() async => dir),
       walkMasters: (fens) {
         walked++;
         return (masters ?? _fixtureMasters)(fens);
@@ -229,7 +224,6 @@ class _Rig {
     );
   }
 
-  final Directory dir;
   final EvalCache answers;
   late final GameTutorialRunner runner;
   final requests = <Map<String, dynamic>>[];
@@ -261,7 +255,6 @@ void main() {
   test('a game becomes both tutorials, through the harness\'s own request',
       () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     final result = await rig.run();
 
     expect(rig.stages, [
@@ -304,7 +297,6 @@ void main() {
   // same evening, after a tutorial whose first part alone had been turned.
   test('every part of both tutorials says White is at the bottom', () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     final result = await rig.run();
 
     for (final tutorial in [result.keyMoments, result.wholeGame]) {
@@ -321,7 +313,6 @@ void main() {
   // says the stamp happened is that the parts disagree with their own FENs.
   test('the orientation is one answer, not the side to move', () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     final result = await rig.run();
 
     final sides = {
@@ -341,7 +332,6 @@ void main() {
       "the count is the judge's, and the parameters handed back decide "
       'what is taught', () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
 
     GameTutorialSlice? seen;
     final expected = (_fixture['expected']['moments'] as List).length;
@@ -385,7 +375,6 @@ void main() {
       masters: (fens) => factsMasters(facts, fens),
       words: WordsOutcome.written(g08['answer'] as String, tokens: 1),
     );
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
 
     GameTutorialSlice? seen;
     await rig.run(
@@ -403,7 +392,6 @@ void main() {
 
   test('a trainer who stops at the count is charged nothing', () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
 
     await expectLater(
       rig.run(chooseSlice: (slice) async => null),
@@ -416,7 +404,6 @@ void main() {
 
   test('the count is said whole, and the cap is said separately', () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
 
     GameTutorialSlice? seen;
     await rig.run(chooseSlice: (slice) async {
@@ -439,11 +426,10 @@ void main() {
 
   test('the second run of the same game searches nothing', () async {
     final first = _Rig();
-    addTearDown(() => first.dir.deleteSync(recursive: true));
     await first.run();
     // The same store of answers, as on one computer: the judge's own
     // questions are kept there as well as the facts' (phase 1b).
-    final again = _Rig(storeDir: first.dir, answers: first.answers);
+    final again = _Rig(answers: first.answers);
     final result = await again.run();
     expect(again.searches, 0);
     expect(result.searched, 0);
@@ -453,7 +439,6 @@ void main() {
   test('no local engine stops at once, offering the download, and asks nothing',
       () async {
     final rig = _Rig(enginePath: null);
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     await expectLater(
       rig.run(),
       throwsA(isA<GameTutorialStopped>()
@@ -471,7 +456,6 @@ void main() {
               known: const <String, Map<String, dynamic>>{},
               unavailable: 'network'
             ));
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     final result = await rig.run();
     expect(result.mastersNote, contains('network'));
     expect(result.keyMoments.openable, isTrue);
@@ -484,7 +468,6 @@ void main() {
         engine: _flatEngine,
         masters: (fens) async =>
             (known: const <String, Map<String, dynamic>>{}, unavailable: null));
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     await expectLater(
       rig.run(moves: const ['e2e4', 'e7e5', 'g1f3', 'b8c6']),
       throwsA(isA<GameTutorialStopped>()
@@ -501,7 +484,6 @@ void main() {
         engine: _mateInOneEngine,
         masters: (fens) async =>
             (known: const <String, Map<String, dynamic>>{}, unavailable: null));
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     await expectLater(
       rig.run(moves: const ['e2e4', 'e7e5', 'd1h5', 'b8c6', 'f1c4', 'g8f6']),
       throwsA(isA<GameTutorialStopped>()
@@ -516,7 +498,6 @@ void main() {
     final rig = _Rig(
         words: const WordsOutcome.refused(WordsRefusal('upgrade-required',
             'Making a tutorial from a game is part of a Premium account.')));
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     await expectLater(
       rig.run(),
       throwsA(isA<GameTutorialStopped>()
@@ -548,7 +529,6 @@ void main() {
           searchMoves: searchMoves,
           timeout: timeout);
     });
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     await expectLater(
       rig.run(),
       throwsA(isA<GameTutorialStopped>()
@@ -557,19 +537,15 @@ void main() {
     expect(closedAtCancel, 1,
         reason: 'cancel closes the engines at once, not after the search');
     expect(rig.requests, isEmpty);
-    final key = factsKey(
-        startFen: _start,
-        uciMoves: _uci(),
-        depth: 18,
-        engine: 'engine-under-test');
-    expect(await GameFactsStore(() async => rig.dir).load(key), hasLength(2),
+    // Kept in the one store of the engine's answers (`EvalCache`), where the
+    // tutorial's own per-game store kept them until 25.9.2026.
+    expect(rig.answers.size, 2,
         reason: 'the two positions searched before the cancel are kept');
   });
 
   test('a game that cannot be played is said, before the engine starts',
       () async {
     final rig = _Rig();
-    addTearDown(() => rig.dir.deleteSync(recursive: true));
     await expectLater(
       rig.run(moves: const ['e2e4', 'e2e4']),
       throwsA(

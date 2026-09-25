@@ -1245,9 +1245,15 @@ deletion of `best_stands_out` / `margin_pawns` after it:
   counts; the stop says a clean game is clean at its depth and names the
   unsettled and unjudged moves. The depth preference moved to a new key, so
   every trainer starts once at 20 (the old key held 18, the old default).
-- `GameFactsStore` was **not** deleted: the facts builder now also writes to
-  `EvalCache`, so the judge is served, and the per-game store still makes a
-  resumed build free. One store too many — flagged, not removed unasked.
+- `GameFactsStore` was kept at first, beside `EvalCache`, and then deleted
+  the same day on the owner's word: the facts builder asks through
+  `EvalCache`, which answers a position already searched, so the per-game
+  store kept every answer a second time. Gone with it: `facts_store.dart`,
+  the builder's `known`, `FACTS_STORE` in `tool/game_facts.dart`, and the
+  store's ten test cases (one — the engine named by its binary — moved to
+  `engine_identity_test.dart`, since the identity outlived it). A sign-out
+  still deletes the old `game_facts` folder a device may hold. App 4186 →
+  **4177**, measured.
 - **The fixtures**: `test/support/facts_engine.dart` answers the judge from a
   game's own stored candidates (the played move alone from the position
   after it), `tool/judge_facts.dart` writes the ten games' `judged` into the

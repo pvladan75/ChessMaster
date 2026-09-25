@@ -1,9 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
 import 'package:chess_app/core/services/eval_cache.dart';
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -108,11 +110,23 @@ abstract final class AccountLocalState {
     // The review's store forgets its memory here, at once, and its files
     // with the tutorial's.
     engineAnswersWiped = Future.wait([
-      deviceFactsStore().clear(),
+      _forgetOldTutorialAnswers(),
       EvalCache.instance.forgetAccount(),
     ]).then((_) {}).catchError((Object e) {
       AppLogger.log('[AccountLocalState] ❌ engine answers not cleared: $e');
     });
+  }
+
+  /// The folder the tutorials kept their own engine answers in, one file a
+  /// game, until 25.9.2026 (`GameFactsStore`, deleted in phase 1b of
+  /// docs/PLAN-ZAGONETKE-IZ-PARTIJE.md — the answers are `EvalCache`'s now).
+  /// Nothing writes there any more, but a device that ran an older version
+  /// still has it, and its file names say which games were analysed: it goes
+  /// with the account like the rest.
+  static Future<void> _forgetOldTutorialAnswers() async {
+    final support = await getApplicationSupportDirectory();
+    final old = Directory('${support.path}${Platform.pathSeparator}game_facts');
+    if (await old.exists()) await old.delete(recursive: true);
   }
 
   /// The wipe of the tutorials' engine answers that [clear] started last.

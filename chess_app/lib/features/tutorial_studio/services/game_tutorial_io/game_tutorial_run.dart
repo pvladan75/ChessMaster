@@ -33,7 +33,7 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skelet
     show momentCounts, skeletonMoments;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/words_request.dart';
-import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
+import 'package:chess_app/core/services/engine_identity.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/sleep_watch.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/uci_engine.dart';
@@ -232,7 +232,6 @@ class GameTutorialRunner {
     Future<String?> Function()? findEngine,
     Future<String> Function(String path)? identify,
     Future<FactsEngines> Function(String path, int workers)? startEngines,
-    GameFactsStore? store,
     Future<MastersWalk> Function(List<String> fens)? walkMasters,
     Future<WordsOutcome> Function(Map<String, dynamic> request)? askWords,
     EvalCache? answers,
@@ -243,7 +242,6 @@ class GameTutorialRunner {
   })  : _findEngine = findEngine ?? localEnginePath,
         _identify = identify ?? engineIdentity,
         _startEngines = startEngines ?? startFactsEngines,
-        _store = store ?? deviceFactsStore(),
         _walkMasters = walkMasters ??
             ((fens) async => walkMastersBook(fens,
                 sessionToken: token, openingNameOf: await ecoOpeningNames())),
@@ -258,7 +256,6 @@ class GameTutorialRunner {
   final Future<String?> Function() _findEngine;
   final Future<String> Function(String path) _identify;
   final Future<FactsEngines> Function(String path, int workers) _startEngines;
-  final GameFactsStore _store;
   final Future<MastersWalk> Function(List<String> fens) _walkMasters;
   final Future<WordsOutcome> Function(Map<String, dynamic> request) _askWords;
 
@@ -328,18 +325,19 @@ class GameTutorialRunner {
     _checkCancelled();
 
     final identity = await _identify(path);
-    final key = factsKey(
-        startFen: startFen, uciMoves: uciMoves, depth: depth, engine: identity);
-    final known = await _store.load(key);
-    final recorder = _store.recorder(key, initial: known);
 
     final Map<String, dynamic> facts;
     GameReviewResult? reviewed;
-    var searched = 0;
     final started = _now();
-    // Named as the desktop engine names its answers (`answerStoreName`), so
-    // the review and the tutorial on this computer share them.
+    // The one store of the engine's answers (`EvalCache`), named as the
+    // desktop engine names its answers (`answerStoreName`), so the review and
+    // the tutorial on this computer share them and a second build of a game
+    // searches nothing it already has. The tutorial's own per-game store
+    // (`GameFactsStore`) kept the same answers a second time, by game; it was
+    // deleted on 25.9.2026 (phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md).
     final storeName = 'exe:$identity';
+    // Counts the searches the engine actually ran; an answer the store gave
+    // is not one.
     final tally = EngineAnswerTally();
     try {
       _engines = await _startEngines(path, _workers);
@@ -363,16 +361,12 @@ class GameTutorialRunner {
         startFen: startFen,
         uciMoves: uciMoves,
         masters: walk.known,
-        known: known,
         engine: identity,
         cancelled: () => _cancelled,
         now: _now,
-        onAnswer: (fen, candidates) {
-          searched++;
-          recorder.add(fen, candidates);
-        },
         onProgress: (done, total) {
           final seconds = _now().difference(started).inMilliseconds / 1000.0;
+          final searched = tally.searched;
           final left = searched >= 2 && done < total
               ? (seconds / searched * (total - done)).round()
               : null;
@@ -414,7 +408,6 @@ class GameTutorialRunner {
       _sleepWatch.stop();
       _engines?.close();
       _engines = null;
-      await recorder.flush();
     }
 
     // Asked before the words, because the words are what costs. A trainer who
@@ -479,7 +472,7 @@ class GameTutorialRunner {
       report: assembled.report,
       momentsOffered: offered.length,
       mastersNote: mastersNote,
-      searched: searched,
+      searched: tally.searched,
       tokens: outcome.tokens,
     );
   }

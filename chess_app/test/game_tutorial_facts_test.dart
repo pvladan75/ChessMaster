@@ -462,31 +462,23 @@ void main() {
               .having((e) => e.message, 'message', contains('went to sleep'))));
     });
 
-    test('a known answer is not searched again, and a new one is reported',
-        () async {
+    // „A known answer is not searched again" held `known`, the builder's door
+    // for the tutorial's own per-game store; both went on 25.9.2026 (phase 1b
+    // of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md) — `EvalCache` answers a position
+    // already searched, and the run test holds that („the second run of the
+    // same game searches nothing"). What is left of the door is the report.
+    test('every new answer is reported', () async {
       final calls = <String>[];
       final told = <String>[];
       final b = builder(_scripted((fen, _) async => good(fen), calls));
-      final first = await b.build(
+      await b.build(
         game: 'test',
         startFen: _openPosition,
         uciMoves: const ['f1b5'],
         onAnswer: (fen, _) => told.add(fen),
       );
       expect(told, hasLength(2));
-      final rows = (first['rows'] as List).cast<Map<String, dynamic>>();
-      final again = await b.build(
-        game: 'test',
-        startFen: _openPosition,
-        uciMoves: const ['f1b5'],
-        known: {
-          for (final r in rows)
-            r['fen'] as String:
-                (r['candidates'] as List).cast<Map<String, dynamic>>()
-        },
-      );
-      expect(calls, hasLength(2), reason: 'the second build searched nothing');
-      expect(_difference(first['rows'], again['rows']), isNull);
+      expect(told, calls);
     });
 
     test('a search ended by cancelling is a cancel, not an engine failure',

@@ -7905,3 +7905,17 @@ u aplikaciji je polje bilo samo pisano, ali u harness-u ga je čitao arm G iz
 13.9 (povučen), pa su `run_arm.py` i `check_positions.py` ostavljeni da rade
 bez njega. Ulazni fajlovi upoređeni sa commitovanim kao JSON: osim tri ključa
 ništa se nije promenilo, u svih trinaest.
+
+**Brisanje `GameFactsStore`** (isti dan, na vlasnikovu reč): tutorijal je od
+1b pitao engine kroz `EvalCache`, pa je njegov keš po partiji čuvao iste
+odgovore drugi put. Aplikacija 4186 → **4177** — deset slučajeva obrisanog
+keša (jedan, „engine se imenuje po binarnom fajlu", premešten u
+`engine_identity_test`, jer je identitet preživeo). Pre brisanja: `grep` imena
+u `lib`, `test` i `tool` — `engineIdentity` je samo re-eksportovan odatle i
+čitaju ga i ekran „opening leaks" i desktop engine, pa je uvoz premešten, ne
+obrisan; i graditeljev `known` je ostao bez ijednog pozivaoca, pa je otišao sa
+jedinim testom koji ga je držao. Odjava i dalje briše stari folder sa
+uređaja, jer imena fajlova u njemu kažu koje partije je prethodni nalog
+analizirao. Dva crvena rezultata u proveri bila su nepostojeći fajlovi koje
+sam pogodio po imenu — `flutter test` na fajl koji ne postoji je „[E]", ne
+„nema testova".

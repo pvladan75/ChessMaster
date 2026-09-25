@@ -68,7 +68,9 @@ partija ima nove odgovore modela (deset DeepSeek zahteva). Plan: faza 1b,
 „Built".
 
 **U planu ostaje:** provere uživo (240–245); faza 7 je vlasnikova provera.
-`GameFactsStore` je sada suvišan pored `EvalCache` — nije obrisan bez pitanja.
+`GameFactsStore` (drugi keš istih odgovora engine-a, po partiji) obrisan je
+istog dana na vlasnikovu reč — `EvalCache` je jedini; odjava i dalje briše
+stari folder `game_facts` sa uređaja.
 
 ## Zagonetke iz partije, faza 1t: naše tablebase tabele — 25.9.2026, u kodu, ostaje provera uživo (stavka 244)
 
