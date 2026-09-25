@@ -195,13 +195,14 @@ async function listAnalyses(pool, userId, { search }) {
 /// Tutorials — `saved_lessons` rows *with* a step list. A row without one is a
 /// single saved position (`listSavedPositions`), not one of these.
 ///
-/// Same rights clause as `listSavedPositions`, read through
-/// `acceptedTrainersOf` rather than restated: a fourth hand-written copy is
-/// exactly the mistake `CLAUDE.md` already logged twice.
+/// **The account's own only.** A trainer's tutorial reaches their student as
+/// its film, sent to them — never as a tutorial on the student's shelf
+/// (docs/PLAN-TUTORIJAL-VIDEO.md, D6). A trainer's single positions still do
+/// (`listSavedPositions`).
 async function listTutorials(pool, userId, { search }) {
   const params = [userId];
   let where = `position_list IS NOT NULL
-               AND (user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))`;
+               AND (user_id = $1 OR trainer_id = $1)`;
   if (search) {
     params.push(`%${search}%`);
     where += ` AND (title ILIKE $${params.length}

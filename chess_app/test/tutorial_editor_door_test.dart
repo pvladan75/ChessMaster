@@ -6,10 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
-import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
-import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
@@ -58,8 +55,7 @@ void main() {
       {
         'fen': startFen,
         'title': 'Deo 1',
-        'kind': 'ask_move',
-        'instruction': 'Napadni pešaka na e5.',
+        'pgn': '{ Napadni pešaka na e5. } *',
       },
     ],
   };
@@ -103,102 +99,6 @@ void main() {
       await pumpDoor(tester);
 
       expect(find.byType(TutorialStudioScreen), findsOneWidget);
-
-      await close(tester);
-    });
-  });
-
-  group('Pregledaj kao učenik', () {
-    testWidgets('opens the tutorial the way a child meets it', (tester) async {
-      tester.view.physicalSize = const Size(1600, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      final service = api();
-      await tester.pumpWidget(MaterialApp(
-        home: TutorialStudioScreen(
-          session: session,
-          entry: TutorialEntry.saved(lesson),
-          lessonApi: service,
-        ),
-      ));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('preview-tutorial')));
-      await tester.pumpAndSettle();
-
-      expect(find.byType(LessonViewerScreen), findsOneWidget);
-      expect(find.textContaining('Napadni pešaka na e5.'), findsWidgets,
-          reason: 'the preview opened on something other than the tutorial '
-              'being written');
-
-      await close(tester);
-    });
-
-    testWidgets('is said in words where there is room, and named everywhere',
-        (tester) async {
-      // The owner, 11.9.2026: words are clearer for a trainer, and „Preview
-      // tutorial" because whoever writes one may have no students.
-      for (final (size, words) in [
-        (const Size(1600, 1200), true),
-        (const Size(840, 900), true),
-        (const Size(700, 1000), false),
-      ]) {
-        tester.view.physicalSize = size;
-        tester.view.devicePixelRatio = 1.0;
-        await tester.pumpWidget(MaterialApp(
-          home: TutorialStudioScreen(
-            session: session,
-            entry: TutorialEntry.saved(lesson),
-            lessonApi: api(),
-          ),
-        ));
-        await tester.pumpAndSettle();
-
-        expect(tester.takeException(), isNull, reason: '$size');
-        expect(find.widgetWithText(TextButton, 'Preview tutorial'),
-            words ? findsOneWidget : findsNothing,
-            reason: '$size');
-        expect(find.byTooltip('Preview tutorial'),
-            words ? findsNothing : findsOneWidget,
-            reason: 'the icon carries the same name, $size');
-        await close(tester);
-      }
-      tester.view.reset();
-    });
-
-    testWidgets('sends nothing', (tester) async {
-      // A trainer trying their own question must not mark a child's schedule,
-      // and a preview that wrote to the server would be a save nobody asked
-      // for. The viewer is handed `PreviewAssignmentApiService`, which answers
-      // every call locally.
-      tester.view.physicalSize = const Size(1600, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      final service = api();
-      await tester.pumpWidget(MaterialApp(
-        home: TutorialStudioScreen(
-          session: session,
-          entry: TutorialEntry.saved(lesson),
-          lessonApi: service,
-        ),
-      ));
-      await tester.pumpAndSettle();
-      // Opening a saved tutorial reads its saved version (phase 2 of
-      // docs/PLAN-STUDIO-ISTORIJA.md). What is asked here is the preview.
-      sent.clear();
-
-      await tester.tap(find.byKey(const Key('preview-tutorial')));
-      await tester.pumpAndSettle();
-
-      final viewer =
-          tester.widget<LessonViewerScreen>(find.byType(LessonViewerScreen));
-      expect(viewer.api, isA<PreviewAssignmentApiService>(),
-          reason: 'the viewer was handed a service that talks to the backend, '
-              'so trying your own question marks a child as having attempted '
-              'it');
-      expect(sent, isEmpty, reason: 'the preview reached the network: $sent');
 
       await close(tester);
     });

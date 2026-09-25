@@ -64,9 +64,7 @@ void main() {
     {
       "title": "Deo 2",
       "fen": "$fen",
-      "kind": "ask_move",
-      "instruction": "Find the best move.",
-      "solutionSan": "Ra8+"
+      "pgn": "{ Find the best move. }\\n1. Ra8+ *"
     }
   ]
 }
@@ -87,9 +85,8 @@ void main() {
     test('keeps the parts in order, with their own fields', () {
       expect(read.partCount, 2);
       expect(read.positionList[0]['title'], 'Deo 1');
-      expect(read.positionList[1]['kind'], 'ask_move');
-      expect(read.positionList[1]['solutionSan'], 'Ra8+');
-      expect(read.positionList[1]['instruction'], 'Find the best move.');
+      expect(read.positionList[1]['title'], 'Deo 2');
+      expect(read.positionList[1]['pgn'], contains('Ra8+'));
     });
 
     test('opens as a draft that has never been saved', () {
@@ -159,54 +156,41 @@ void main() {
       expect(read.problems.length, 1);
     });
 
-    test('a move question with no solution', () {
+    test('a part that asks for a move, named by its number', () {
+      // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, D11): a file written
+      // for the questions tutorials used to have is refused, not turned into
+      // something its author did not write. Third of three, so a refusal that
+      // named the wrong part, or none, is seen.
       final read = readTutorialJson('''
 {
-  "title": "No solution",
+  "title": "Asks",
   "positionList": [
-    {"fen": "$fen", "kind": "ask_move", "instruction": "Find it."}
+    {"fen": "$start", "kind": "show", "pgn": "1. e4 *"},
+    {"fen": "$fen"},
+    {"fen": "$fen", "kind": "ask_move", "instruction": "Find it.",
+     "solutionSan": "Ra8+"}
   ]
 }
 ''');
       expect(read.storable, isFalse);
-      expect(read.problems.single.sentence, contains('gives no solution'));
+      expect(read.problems.single.partNumber, 3);
+      expect(read.problems.single.sentence, startsWith('Part 3:'));
+      expect(read.problems.single.sentence, contains('a tutorial only shows'));
     });
 
-    test('a solution that cannot be played in its own position', () {
+    test('a part that offers answers to choose from, the same way', () {
       final read = readTutorialJson('''
 {
-  "title": "Illegal solution",
-  "positionList": [
-    {"fen": "$fen", "kind": "ask_move", "solutionSan": "Qe5+"}
-  ]
-}
-''');
-      expect(read.storable, isFalse);
-      expect(read.problems.single.sentence, contains('"Qe5+"'));
-    });
-
-    test('a choice question with one answer, and one with no correct answer',
-        () {
-      final one = readTutorialJson('''
-{
-  "title": "One answer",
-  "positionList": [
-    {"fen": "$fen", "kind": "ask_choice", "choices": [{"text": "a", "correct": true}]}
-  ]
-}
-''');
-      expect(one.problems.single.sentence, contains('two and four'));
-
-      final none = readTutorialJson('''
-{
-  "title": "No correct answer",
+  "title": "Chooses",
   "positionList": [
     {"fen": "$fen", "kind": "ask_choice",
-     "choices": [{"text": "a", "correct": false}, {"text": "b"}]}
+     "choices": [{"text": "a", "correct": true}, {"text": "b"}]}
   ]
 }
 ''');
-      expect(none.problems.single.sentence, contains('correct one'));
+      expect(read.storable, isFalse);
+      expect(read.problems.single.sentence, startsWith('Part 1:'));
+      expect(read.problems.single.sentence, contains('a tutorial only shows'));
     });
 
     test('a kind nobody has heard of', () {
@@ -252,23 +236,9 @@ void main() {
       expect(read.problems.single.sentence, contains('1 move that cannot'));
     });
 
-    test('a move question carrying the line that answers it', () {
-      final read = readTutorialJson('''
-{
-  "title": "Leaky",
-  "positionList": [
-    {"fen": "$fen", "kind": "ask_move", "solutionSan": "Ra8+",
-     "pgn": "1. Ra8+ { The only move. } Kh7\\n*"}
-  ]
-}
-''');
-      expect(read.problems.single.fault, ImportFault.damaged);
-      expect(read.problems.single.sentence, contains('shown the answer'));
-    });
-
-    test('a demonstration with a line is not a leak', () {
-      // The negative half. A `show` part is a line, and a report that calls
-      // every line a leak is a report nobody reads.
+    test('a part with a line is not a fault', () {
+      // A part is a line, and a report that finds fault with every line is a
+      // report nobody reads.
       final read = readTutorialJson('''
 {
   "title": "Fine",

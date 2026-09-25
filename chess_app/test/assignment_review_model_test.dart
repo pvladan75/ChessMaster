@@ -59,20 +59,22 @@ void main() {
     expect(review.items.single.solutionHidden, isTrue);
   });
 
-  test('a lesson step has no verdict, rather than a false one', () {
+  test("a tutorial's film has no verdict, only when it was downloaded", () {
     final review = AssignmentReview.fromJson(payload(items: [
       {
         'itemId': 2,
         'position': 0,
-        'kind': 'step',
+        'kind': 'video',
         'attempted': true,
+        'attemptedAt': '2026-09-25T10:00:00Z',
         'solved': null,
-        'title': 'Vezivanje',
+        'title': 'Broken pawns',
       },
     ]));
 
-    expect(review.items.single.kind, ReviewItemKind.step);
+    expect(review.items.single.kind, ReviewItemKind.video);
     expect(review.items.single.solved, isNull);
+    expect(review.items.single.attemptedAt, isNotNull);
   });
 
   test('an item whose puzzle is gone is still an item', () {

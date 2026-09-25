@@ -206,9 +206,14 @@ class CourseSummary {
     required this.id,
     required this.title,
     required this.stepCount,
+    this.hasVideo = false,
   });
 
   final int id;
   final String title;
   final int stepCount;
+
+  /// Whether it has a film — what a student is sent
+  /// (`docs/PLAN-TUTORIJAL-VIDEO.md`).
+  final bool hasVideo;
 }

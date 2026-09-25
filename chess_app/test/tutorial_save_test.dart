@@ -143,9 +143,7 @@ TutorialDraft twoSections() => TutorialDraft(
         TutorialSection.fromStep({
           'fen': openingFen,
           'title': 'Pitanje',
-          'kind': 'ask_move',
-          'instruction': 'Nađi potez.',
-          'solutionSan': 'e4',
+          'pgn': '{ Nađi potez. } *',
         }),
       ],
     );

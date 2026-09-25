@@ -86,15 +86,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
     }
 
     if (assignment.kind == AssignmentKind.lesson) {
-      if (detail.steps.isEmpty) {
-        AppFeedback.show(
-          context,
-          () => const SnackBar(
-              content: Text('This tutorial is no longer available.')),
-        );
-        return;
-      }
-
+      // A tutorial's film (docs/PLAN-TUTORIJAL-VIDEO.md). The screen says so
+      // itself when the film is gone.
+      //
       // The detail is already in hand, so it rides along and the route does not
       // fetch it again. Opened cold - a link, a restored session - the same
       // path fetches by id instead.
@@ -306,9 +300,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
       color: context.colors.surface,
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: InkWell(
-        // A finished lesson stays open: re-reading it is the point. A finished
-        // puzzle set has nothing left to solve, so tapping it now opens the
-        // review — which is where the answers finally are.
+        // A downloaded film stays open: downloading it again is always
+        // allowed. A finished puzzle set has nothing left to solve, so tapping
+        // it now opens the review — which is where the answers finally are.
         onTap: done && !isLesson
             ? () => _openReview(assignment)
             : () => _open(assignment),
@@ -325,7 +319,9 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                         ? Icons.check_circle
                         : (overdue
                             ? Icons.warning_amber
-                            : (isLesson ? Icons.menu_book : Icons.assignment)),
+                            : (isLesson
+                                ? Icons.movie_outlined
+                                : Icons.assignment)),
                     color: done
                         ? context.colors.success
                         : (overdue
@@ -348,14 +344,20 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                 Text(assignment.instructions!, style: AppText.bodyLarge),
               ],
               const SizedBox(height: 10),
-              LinearProgressIndicator(
-                value: assignment.progress,
-                backgroundColor: context.colors.surfaceRaised,
-              ),
-              const SizedBox(height: 6),
+              // A film has one thing to do, so no bar — only whether it
+              // happened.
+              if (!isLesson) ...[
+                LinearProgressIndicator(
+                  value: assignment.progress,
+                  backgroundColor: context.colors.surfaceRaised,
+                ),
+                const SizedBox(height: 6),
+              ],
               Text(
                 isLesson
-                    ? '${assignment.attemptedItems} / ${assignment.totalItems} parts viewed'
+                    ? (done
+                        ? 'Video · downloaded'
+                        : 'Video · not downloaded yet')
                     : '${assignment.attemptedItems} / ${assignment.totalItems} completed'
                         '${assignment.accuracy == null ? '' : ' · accuracy ${assignment.accuracy}%'}',
                 style:

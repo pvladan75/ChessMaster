@@ -174,8 +174,8 @@ void main() {
     expect(tester.takeException(), isNull, reason: 'overflow typing in $key');
   }
 
-  /// A demonstration of two moves with a sentence each, then a question on
-  /// the position they reached — the tutorial `tutorial_authoring_test`
+  /// A demonstration of two moves with a sentence each, then a second one
+  /// from the position they reached — the tutorial `tutorial_authoring_test`
   /// writes on the desktop, here written through the phone's keys.
   Future<void> phoneScript(WidgetTester tester) async {
     await type(tester, 'phone-title', 'Otvaranje u dva primera');
@@ -187,13 +187,10 @@ void main() {
 
     await tapKey(tester, 'phone-tab-parts');
     await tapKey(tester, 'phone-new-part');
-    await tapText(tester, 'New demonstration');
     await tapText(tester, 'From here');
 
-    await tapKey(tester, 'phone-tab-task');
-    await tapKey(tester, 'phone-task-kind');
-    await tapText(tester, 'Ask for move on board');
-    await type(tester, 'phone-task-text', 'Napadni pešaka na e5.');
+    await tapKey(tester, 'phone-tab-line');
+    await type(tester, 'phone-comment', 'Napadni pešaka na e5.');
     await play(tester, 'g1', 'f3');
 
     await tapKey(tester, 'phone-save');
@@ -210,9 +207,7 @@ void main() {
     await tapKey(tester, 'add-show');
     await tapText(tester, 'From here');
 
-    await tapKey(tester, 'example-kind');
-    await tapText(tester, 'Ask for move on board');
-    await type(tester, 'example-instruction', 'Napadni pešaka na e5.');
+    await type(tester, 'example-sentence', 'Napadni pešaka na e5.');
     await play(tester, 'g1', 'f3');
 
     await tapText(tester, 'Save tutorial');
@@ -221,21 +216,20 @@ void main() {
   group('portrait, 360 × 640', () {
     const portrait = Size(360, 640);
 
-    testWidgets('opens as Line | Task | Parts, not Flow | Tree | PGN', (
+    testWidgets('opens as Line | Parts, not Flow | Tree | PGN', (
       tester,
     ) async {
       await openPhone(tester, portrait);
 
-      for (final tab in [
-        'phone-tab-line',
-        'phone-tab-task',
-        'phone-tab-parts',
-      ]) {
+      for (final tab in ['phone-tab-line', 'phone-tab-parts']) {
         expect(find.byKey(Key(tab)), findsOneWidget, reason: tab);
       }
       expect(find.text('Line'), findsOneWidget);
-      expect(find.text('Task'), findsOneWidget);
       expect(find.text('Parts'), findsOneWidget);
+      // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4): the tab that
+      // held a part's task and answers went with them.
+      expect(find.byKey(const Key('phone-tab-task')), findsNothing);
+      expect(find.text('Task'), findsNothing);
       for (final desktop in ['Flow', 'Tree', 'PGN']) {
         expect(
           find.text(desktop),
@@ -341,27 +335,14 @@ void main() {
       );
       expect(controls.onFlipBoard, isNotNull, reason: 'the flip is reachable');
 
-      // Task: the kind, the text, the answers.
-      await tapKey(tester, 'phone-tab-task');
-      await tapKey(tester, 'phone-task-kind');
-      await tapText(tester, 'Ask for answer from list');
-      expect(find.byKey(const Key('phone-task-text')), findsOneWidget);
-      await tapKey(tester, 'phone-add-answer');
-      expect(find.byKey(const Key('phone-choice-0')), findsOneWidget);
-      expect(find.byKey(const Key('phone-choice-delete-0')), findsOneWidget);
-
-      // Parts: the list, a new part of three kinds, up, down, clone, rename,
-      // delete, and tapping a part to select it.
+      // Parts: the list, a new demonstration, up, down, clone, rename,
+      // delete, and tapping a part to select it. A new part is always a
+      // demonstration, so the button makes one: there is no kind to choose.
       await tapKey(tester, 'phone-tab-parts');
+      expect(find.text('New demonstration'), findsOneWidget);
       await tapKey(tester, 'phone-new-part');
-      for (final kind in [
-        'New demonstration',
-        'Find the move',
-        'Choose the answer',
-      ]) {
-        expect(find.text(kind), findsOneWidget, reason: kind);
-      }
-      await tapText(tester, 'New demonstration');
+      expect(find.text('Find the move'), findsNothing);
+      expect(find.text('Choose the answer'), findsNothing);
       await tapText(tester, 'From here');
       expect(find.byKey(const Key('phone-part-0')), findsOneWidget);
       expect(find.byKey(const Key('phone-part-1')), findsOneWidget);
@@ -389,7 +370,8 @@ void main() {
       for (final item in [
         'Undo',
         'Redo',
-        'Preview tutorial',
+        // „Preview tutorial" went with the student's viewer it opened
+        // (docs/PLAN-TUTORIJAL-VIDEO.md, D12); a part turns from its own row.
         'Record narration',
         'Export video',
         'Save as .pgn',
@@ -428,11 +410,7 @@ void main() {
         greaterThan(200),
         reason: 'the board takes the height, not a strip of it',
       );
-      for (final tab in [
-        'phone-tab-line',
-        'phone-tab-task',
-        'phone-tab-parts',
-      ]) {
+      for (final tab in ['phone-tab-line', 'phone-tab-parts']) {
         expect(find.byKey(Key(tab)), findsOneWidget, reason: tab);
       }
 
@@ -442,7 +420,6 @@ void main() {
       await type(tester, 'phone-comment', 'Centar.');
       await tapKey(tester, 'phone-tab-parts');
       await tapKey(tester, 'phone-new-part');
-      await tapText(tester, 'New demonstration');
       await tapText(tester, 'New board');
       expect(find.byKey(const Key('phone-part-1')), findsOneWidget);
 

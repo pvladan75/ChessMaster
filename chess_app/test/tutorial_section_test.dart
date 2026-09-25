@@ -47,8 +47,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/move_tree.dart' show SquareMark;
@@ -72,11 +70,6 @@ Map<String, dynamic> savedStep({
   String title = 'Pozicija',
   String fen = openingFen,
   String? pgn,
-  String kind = 'show',
-  String? instruction,
-  String? solutionSan,
-  List<String>? acceptedSans,
-  List<Map<String, dynamic>>? choices,
   // Part of what the server stores since 7.9.2026, so part of what a round
   // trip has to bring back. It is written here rather than defaulted away
   // because the interesting case is a step that carries it: a step that does
@@ -90,12 +83,7 @@ Map<String, dynamic> savedStep({
       'title': title,
       'fen': fen,
       if (pgn != null) 'pgn': pgn,
-      'kind': kind,
       'blackOrientation': blackOrientation,
-      if (instruction != null) 'instruction': instruction,
-      if (solutionSan != null) 'solutionSan': solutionSan,
-      if (acceptedSans != null) 'acceptedSans': acceptedSans,
-      if (choices != null) 'choices': choices,
     };
 
 AnalysisNode? childBySan(AnalysisNode node, String san) {
@@ -194,33 +182,9 @@ void main() {
         id: 'a1b2c3d4',
         title: 'Otvaranje',
         pgn: richPgn,
-        kind: 'ask_move',
-        instruction: 'Odigraj najbolji potez.',
-        solutionSan: 'Nf3',
-        acceptedSans: ['Bc4', 'Nc3'],
       );
 
       final section = TutorialSection.fromStep(step);
-      expect(section.toJson(), step);
-    });
-
-    test('a question with answers survives the round trip', () {
-      final step = savedStep(
-        id: 'ffff0000',
-        title: 'Zašto centar',
-        kind: 'ask_choice',
-        instruction: 'Zašto je e4 dobar potez?',
-        choices: [
-          {'text': 'Kontrola centra', 'correct': true},
-          {'text': 'Napad na kralja', 'correct': false},
-        ],
-      );
-
-      final section = TutorialSection.fromStep(step);
-      expect(section.kind, LessonStepKind.askChoice);
-      expect(section.choices.map((c) => c.text).toList(),
-          ['Kontrola centra', 'Napad na kralja']);
-      expect(section.choices.map((c) => c.correct).toList(), [true, false]);
       expect(section.toJson(), step);
     });
 
@@ -256,7 +220,8 @@ void main() {
       expect(written.containsKey('id'), isFalse,
           reason: 'the server mints the id; a client-invented one is refused');
       expect(written['fen'], openingFen);
-      expect(written['kind'], 'show');
+      expect(written.containsKey('kind'), isFalse,
+          reason: 'every part shows, and the server reads absence as show');
     });
 
     test('a note about the starting position is not thrown away', () {
@@ -312,9 +277,7 @@ void main() {
             savedStep(
               id: 'step0002',
               title: 'Pitanje',
-              kind: 'ask_move',
-              instruction: 'Nađi potez.',
-              solutionSan: 'Nf3',
+              pgn: '{ Nađi potez. } *',
             ),
           ],
         };
@@ -389,7 +352,7 @@ void main() {
       draft.moveSection(0, 1);
       expect(draft.positionList.map((s) => s['id']).toList(),
           ['step0002', 'step0001']);
-      expect(draft.sections.first.instruction, 'Nađi potez.',
+      expect(draft.sections.first.root.comment, 'Nađi potez.',
           reason: 'the row moved but the work behind it did not');
     });
 

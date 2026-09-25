@@ -2,8 +2,6 @@ import 'dart:convert';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
@@ -11,27 +9,6 @@ import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 // The part-naming rule moved out so the child's viewer can read it too;
 // re-exported so every caller of this file keeps it.
 export 'package:chess_app/features/lessons/models/part_titles.dart';
-
-/// One offered answer of an `ask_choice` section.
-///
-/// This replaces the `List<String> choices` + `int? correctChoice` pair the
-/// model carried until P1. That pair existed because contract C4 of
-/// `docs/PLAN-TUTORIJAL.md` froze the **student's** shape — a list of strings,
-/// because the answer never travels to the child — and the author's half was
-/// added beside it afterwards. `{text, correct}` is the server's own shape, and
-/// holding it directly removes the index arithmetic that had to be redone by
-/// hand every time an answer was deleted.
-class TutorialChoice {
-  const TutorialChoice({required this.text, this.correct = false});
-
-  final String text;
-  final bool correct;
-
-  TutorialChoice copyWith({String? text, bool? correct}) => TutorialChoice(
-        text: text ?? this.text,
-        correct: correct ?? this.correct,
-      );
-}
 
 /// Whether Black is to move in [fen].
 ///
@@ -47,7 +24,12 @@ bool blackToMoveIn(String fen) {
 }
 
 /// One part of a tutorial — „Part" to the trainer, one `position_list` entry to
-/// the server, one `LessonStep` to the child.
+/// the server, one stretch of the film.
+///
+/// **Every part shows** (`docs/PLAN-TUTORIJAL-VIDEO.md`, phase 4): a position,
+/// a line, and what is said and drawn on it. A part that asked something —
+/// a move, a choice — went with the student's screen that answered it; a
+/// question for a student is an exercise.
 ///
 /// **It holds a tree, not a PGN.** That is decision D1 of
 /// `docs/PLAN-STUDIO-REDIZAJN.md` and it is the change the whole redesign
@@ -62,18 +44,11 @@ class TutorialSection {
     required this.root,
     AnalysisNode? cursor,
     this.title = '',
-    this.instruction,
-    this.kind = LessonStepKind.show,
-    List<TutorialChoice>? choices,
-    this.solutionSan,
-    List<String>? acceptedSans,
     this.blackOrientation = false,
     this.storedPgn,
     this.rejectedMoves = 0,
     String? localKey,
-  })  : choices = choices ?? [],
-        acceptedSans = acceptedSans ?? [],
-        localKey = localKey ?? _mintLocalKey() {
+  }) : localKey = localKey ?? _mintLocalKey() {
     cursorNode = cursor ?? root;
     // Recorded against the tree as it arrived. Any edit changes the signature
     // and [storedPgn] stops being used — see [toJson].
@@ -94,28 +69,12 @@ class TutorialSection {
     final read = readStepTree(fen: fen, pgn: pgn);
 
     final rawId = step['id'];
-    final choices = <TutorialChoice>[];
-    for (final raw in (step['choices'] as List?) ?? const []) {
-      if (raw is! Map) continue;
-      choices.add(TutorialChoice(
-        text: raw['text']?.toString() ?? '',
-        correct: raw['correct'] == true,
-      ));
-    }
 
     return TutorialSection(
       stepId: (rawId is String && rawId.isNotEmpty) ? rawId : null,
       root: read.root,
       rejectedMoves: read.rejectedMoves,
       title: step['title']?.toString() ?? '',
-      instruction: step['instruction']?.toString(),
-      kind: _kindOf(step['kind']),
-      choices: choices,
-      solutionSan: step['solutionSan']?.toString(),
-      acceptedSans: [
-        for (final raw in (step['acceptedSans'] as List?) ?? const [])
-          raw.toString(),
-      ],
       storedPgn: (pgn != null && pgn.trim().isNotEmpty) ? pgn : null,
       // A stored step that says nothing is not a stored step that says
       // „White". Every part written before this field existed was drawn for
@@ -169,17 +128,6 @@ class TutorialSection {
   late AnalysisNode cursorNode;
 
   String title;
-  String? instruction;
-  LessonStepKind kind;
-  final List<TutorialChoice> choices;
-
-  /// The move an `ask_move` part expects, in SAN.
-  String? solutionSan;
-
-  /// The other moves that are also right. Carried because the server stores
-  /// them and a round trip that dropped them would delete a trainer's work the
-  /// first time they renamed their tutorial.
-  final List<String> acceptedSans;
 
   /// Which way round this part's board stands, for the trainer and then for
   /// the child.
@@ -220,21 +168,6 @@ class TutorialSection {
   /// back through `LessonStepLine` before it leaves — that check is about the
   /// text, and this one is about the lesson.
   bool get hasLine => root.children.isNotEmpty;
-
-  /// True for a part that would hand the child its own answer.
-  ///
-  /// A step's `pgn` is not redacted on its way to a child — the line *is* the
-  /// lesson — and the viewer draws the move strip for every kind. So a question
-  /// whose line runs on from the very position being asked about shows the
-  /// answer to anyone who presses „Sledeći potez".
-  ///
-  /// **This is the single refusal the app makes on its own**, and it cannot be
-  /// moved to the server: the server stores `pgn` as opaque text and has no PGN
-  /// reader, and giving it one would be a second parser disagreeing with this
-  /// app's. One getter, read by all three places the rule appears — the question
-  /// asked when the kind is chosen, the banner on a tutorial already in that
-  /// state, and the refusal at save.
-  bool get leaksAnswer => kind == LessonStepKind.askMove && hasLine;
 
   /// What a save should send as this part's line.
   ///
@@ -295,11 +228,6 @@ class TutorialSection {
   TutorialSection copy() => TutorialSection(
         root: copyTree(root),
         title: title,
-        instruction: instruction,
-        kind: kind,
-        choices: [for (final c in choices) c],
-        solutionSan: solutionSan,
-        acceptedSans: [...acceptedSans],
         blackOrientation: blackOrientation,
       );
 
@@ -312,7 +240,7 @@ class TutorialSection {
   ///
   ///  1. the name the trainer typed, if they typed one;
   ///  2. the first sentence the part carries — about its starting position,
-  ///     else the first one written along its line, else the task it sets;
+  ///     else the first one written along its line;
   ///  3. „Part N", which is the only place that word is still read.
   ///
   /// A title stored as „Part 2", „Deo 2" or „Primer 2" is **not** the
@@ -338,7 +266,7 @@ class TutorialSection {
       if (said != null) return said;
     }
 
-    return _shorten(instruction ?? '');
+    return null;
   }
 
   /// One sentence of [text], short enough to read in a list.
@@ -381,9 +309,8 @@ class TutorialSection {
       // `''` and absent are the same thing to the server — but only absence
       // round-trips a step that was stored without a line.
       if (pgn.isNotEmpty) 'pgn': pgn,
-      if (instruction != null && instruction!.trim().isNotEmpty)
-        'instruction': instruction!.trim(),
-      'kind': _wire[kind]!,
+      // No `kind`: every part shows, and the server reads an absent kind as
+      // `show` — the one it still accepts.
       // Which way round the child opens this part.
       //
       // Sent even when it is false, unlike everything else here, and that is
@@ -392,14 +319,6 @@ class TutorialSection {
       // instructions. A trainer who deliberately left a black-to-move position
       // the white way round has to be able to say so.
       'blackOrientation': blackOrientation,
-      if (solutionSan != null && solutionSan!.isNotEmpty)
-        'solutionSan': solutionSan,
-      if (acceptedSans.isNotEmpty) 'acceptedSans': [...acceptedSans],
-      if (kind == LessonStepKind.askChoice && choices.isNotEmpty)
-        'choices': [
-          for (final choice in choices)
-            {'text': choice.text, 'correct': choice.correct},
-        ],
     };
   }
 
@@ -417,15 +336,6 @@ class TutorialSection {
         'cursor': _pathTo(root, cursorNode),
         'blackOrientation': blackOrientation,
         if (isPristine) 'storedPgn': storedPgn,
-        if (instruction != null) 'instruction': instruction,
-        'kind': _wire[kind]!,
-        if (choices.isNotEmpty)
-          'choices': [
-            for (final choice in choices)
-              {'text': choice.text, 'correct': choice.correct},
-          ],
-        if (solutionSan != null) 'solutionSan': solutionSan,
-        if (acceptedSans.isNotEmpty) 'acceptedSans': [...acceptedSans],
       };
 
   factory TutorialSection.fromLocalJson(Map<String, dynamic> json) {
@@ -439,21 +349,6 @@ class TutorialSection {
       stepId: (rawId is String && rawId.isNotEmpty) ? rawId : null,
       root: root,
       title: json['title']?.toString() ?? '',
-      instruction: json['instruction']?.toString(),
-      kind: _kindOf(json['kind']),
-      choices: [
-        for (final raw in (json['choices'] as List?) ?? const [])
-          if (raw is Map)
-            TutorialChoice(
-              text: raw['text']?.toString() ?? '',
-              correct: raw['correct'] == true,
-            ),
-      ],
-      solutionSan: json['solutionSan']?.toString(),
-      acceptedSans: [
-        for (final raw in (json['acceptedSans'] as List?) ?? const [])
-          raw.toString(),
-      ],
       blackOrientation: json['blackOrientation'] == true,
       storedPgn: json['storedPgn']?.toString(),
       localKey: json['key'] is String ? json['key'] as String : null,
@@ -462,20 +357,6 @@ class TutorialSection {
         ((json['cursor'] as List?) ?? const []).whereType<int>().toList());
     return section;
   }
-
-  static const Map<LessonStepKind, String> _wire = {
-    LessonStepKind.show: 'show',
-    LessonStepKind.askMove: 'ask_move',
-    LessonStepKind.askChoice: 'ask_choice',
-  };
-
-  /// An unknown kind reads as `show`, which is what every lesson stored before
-  /// kinds existed is. The server refuses an unknown one; this side has nothing
-  /// to gain by refusing to open a tutorial it could show.
-  static LessonStepKind _kindOf(dynamic raw) => _wire.entries
-      .firstWhere((e) => e.value == raw,
-          orElse: () => const MapEntry(LessonStepKind.show, 'show'))
-      .key;
 
   /// Child indices from the root down to [target] — indices rather than ids,
   /// because [AnalysisNode.fromJson] mints fresh ones.
@@ -709,13 +590,6 @@ class TutorialDraft {
           for (var i = 0; i < sections.length; i++)
             {
               'name': sections[i].label(i),
-              'kind': TutorialSection._wire[sections[i].kind],
-              'task': sections[i].instruction,
-              'answers': [
-                for (final c in sections[i].choices) [c.text, c.correct],
-              ],
-              'solution': sections[i].solutionSan,
-              'accepted': sections[i].acceptedSans,
               'black': sections[i].blackOrientation,
               'fen': sections[i].root.fen,
               'tree': treeSignature(sections[i].root),

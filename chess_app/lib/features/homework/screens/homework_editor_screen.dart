@@ -191,8 +191,8 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.auto_stories_outlined),
-              title: const Text('A tutorial'),
+              leading: const Icon(Icons.movie_outlined),
+              title: const Text('A tutorial video'),
               onTap: () => Navigator.pop(sheetContext, _AddChoice.tutorial),
             ),
             ListTile(
@@ -218,6 +218,7 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
           builder: (_) => CoursePickerDialog(
             service: _positionLibrary,
             title: 'Which tutorial for this item?',
+            forSending: true,
           ),
         );
         if (course == null || !mounted) return;
@@ -297,7 +298,7 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
   String _kindLabel(HomeworkItem item) {
     switch (item.kind) {
       case HomeworkItemKind.lesson:
-        return 'Tutorial';
+        return 'Tutorial video';
       case HomeworkItemKind.positions:
         final ids = item.task['puzzleIds'];
         final count = ids is List ? ids.length : 0;
@@ -311,7 +312,7 @@ class _HomeworkEditorScreenState extends State<HomeworkEditorScreen> {
   }
 
   IconData _kindIcon(HomeworkItemKind kind) => switch (kind) {
-        HomeworkItemKind.lesson => Icons.auto_stories_outlined,
+        HomeworkItemKind.lesson => Icons.movie_outlined,
         HomeworkItemKind.positions => Icons.push_pin_outlined,
         HomeworkItemKind.puzzles => Icons.extension_outlined,
         HomeworkItemKind.engineGame => Icons.smart_toy_outlined,

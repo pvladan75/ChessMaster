@@ -268,7 +268,7 @@ void main() {
       // A tutorial.
       await tester.tap(find.byKey(const Key('homework-add')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('A tutorial'));
+      await tester.tap(find.text('A tutorial video'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('My Tutorial'));
       await tester.pumpAndSettle();

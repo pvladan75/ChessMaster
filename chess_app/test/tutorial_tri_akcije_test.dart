@@ -1,17 +1,11 @@
-// Three actions instead of „dodaj deo", and parts that are called by what they
-// say.
+// Parts that are called by what they say, and the one question left when a
+// new one is made: where it starts.
 //
 // The trainer's own words for what was wrong: they had to think about „Delovi"
-// and about when to add one. A part is not something to plan — it is what a
-// tutorial falls into once you ask a question, because a step's `pgn` is not
-// redacted on its way to a child and a question carrying its line hands over
-// the answer. So the panel offers what the next step *is*:
-//
-//   „Novi prikaz"             a demonstration after this one
-//   „Traži potez na tabli"    ask here, `ask_move`
-//   „Traži odgovor iz liste"  ask here, `ask_choice`
-//
-// and the parts that come out of that are named by their first sentence.
+// and about when to add one. This file was written for three actions — a new
+// demonstration, „find the move" and „choose the answer" — and the two that
+// asked went with the questions (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4). The
+// parts are still named by their first sentence.
 //
 // Where it matters, this asserts on the **request**: the panel showing a name
 // is not evidence that the child is sent it, which is batch 57's finding, and
@@ -122,118 +116,6 @@ void main() {
         .map((e) => Map<String, dynamic>.from(e as Map))
         .toList();
   }
-
-  group('the three things a trainer can do next', () {
-    testWidgets('are the three buttons, and none of them says „deo"',
-        (tester) async {
-      await open(tester);
-
-      expect(find.text('New demonstration'), findsOneWidget);
-      expect(find.text('Find the move'), findsOneWidget);
-      expect(find.text('Choose the answer'), findsOneWidget);
-      expect(find.text('+ Dodaj deo'), findsNothing);
-      expect(find.text('Delovi tutorijala'), findsNothing);
-
-      await close(tester);
-    });
-
-    testWidgets('asking cuts the demonstration and keeps what followed',
-        (tester) async {
-      final api = await open(tester);
-      await type(tester, 'tutorial-title', 'Italijanka');
-      await play(tester, 'e2', 'e4');
-      await play(tester, 'e7', 'e5');
-      await play(tester, 'g1', 'f3');
-
-      // Standing after 2. Nf3 and asking what Black plays. The move that
-      // followed does not exist yet — this is the end of the line — so the
-      // trainer would play it; here the point is the shape.
-      await press(tester, 'ask-move');
-
-      final parts = await save(tester, api);
-
-      expect(parts, hasLength(2));
-      expect(parts.first['kind'], 'show');
-      expect(parts.first['pgn'].toString(), contains('Nf3'));
-      expect(parts.last['kind'], 'ask_move');
-      expect(parts.last.containsKey('pgn'), isFalse,
-          reason: 'a question that carries its line shows the answer on the '
-              'move strip');
-
-      await close(tester);
-    });
-
-    testWidgets('and the answer that was already played becomes the solution',
-        (tester) async {
-      final api = await open(tester);
-      await play(tester, 'e2', 'e4');
-      await play(tester, 'e7', 'e5');
-      await play(tester, 'g1', 'f3');
-      await play(tester, 'b8', 'c6');
-
-      // Back to the position after 2. Nf3 and ask there.
-      await tester.tap(find.byTooltip('Previous move'));
-      await tester.pumpAndSettle();
-      await press(tester, 'ask-move');
-
-      final parts = await save(tester, api);
-
-      expect(parts, hasLength(3));
-      expect(parts[1]['kind'], 'ask_move');
-      expect(parts[1]['solutionSan'], 'Nc6');
-      expect(parts[2]['kind'], 'show');
-      expect(parts[2]['pgn'].toString(), contains('Nc6'),
-          reason: 'the continuation was thrown away with the split');
-
-      await close(tester);
-    });
-
-    testWidgets('„Traži odgovor iz liste" asks the same question differently',
-        (tester) async {
-      // Not asserted on the request, and deliberately: a question with offered
-      // answers and no answers on it is refused before anything is sent, which
-      // is a different rule and has its own test. What is being asked here is
-      // that the same split happens and the kind is the other one.
-      await open(tester);
-      await play(tester, 'e2', 'e4');
-      await press(tester, 'ask-choice');
-
-      expect(find.text('Choice'), findsOneWidget,
-          reason: 'the chip on the row says what the part is');
-      expect(find.text('Show'), findsOneWidget,
-          reason: 'and the demonstration in front of it is still a prikaz');
-
-      await close(tester);
-    });
-
-    testWidgets('a part with nothing on it just becomes the question',
-        (tester) async {
-      final api = await open(tester);
-      await type(tester, 'tutorial-title', 'Otvaranje');
-      await press(tester, 'ask-move');
-
-      final parts = await save(tester, api);
-
-      expect(parts, hasLength(1),
-          reason: 'there was no demonstration to cut off');
-      expect(parts.single['kind'], 'ask_move');
-
-      await close(tester);
-    });
-
-    testWidgets('the trainer is left standing on the question they asked',
-        (tester) async {
-      await open(tester);
-      await play(tester, 'e2', 'e4');
-      await press(tester, 'ask-move');
-
-      // The editor shows the question's own fields, on the position it asks
-      // about — not the demonstration in front of it.
-      expect(find.byKey(const Key('example-instruction')), findsOneWidget);
-
-      await close(tester);
-    });
-  });
 
   group('a part is called by what it says', () {
     testWidgets('the list reads the sentences, not the numbering',

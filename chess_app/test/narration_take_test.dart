@@ -19,8 +19,6 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
@@ -105,15 +103,11 @@ class MemorySink implements NarrationSink {
 TutorialSection partFrom({
   String fen = _start,
   String? pgn,
-  LessonStepKind kind = LessonStepKind.show,
-  String? instruction,
 }) {
   final read = readStepTree(fen: fen, pgn: pgn);
   return TutorialSection(
     root: read.root,
     title: 'Deo',
-    kind: kind,
-    instruction: instruction,
   );
 }
 
@@ -353,9 +347,7 @@ void main() {
         partFrom(pgn: '{ Otvaranje. } 1. e4 e5 2. Nf3'),
         partFrom(
           fen: '4k3/8/5K2/4P3/8/8/8/8 w - - 0 12',
-          pgn: '1. e6',
-          kind: LessonStepKind.askMove,
-          instruction: 'Nađi potez.',
+          pgn: '{ Nađi potez. } 1. e6',
         ),
       ]);
       final stops = filmBeatsOf(draft);

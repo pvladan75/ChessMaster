@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:chess_app/core/services/speech_text.dart';
-import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/services/app_logger.dart';
 
 /// Everything the app needs from a synthesiser, and nothing else.
@@ -123,19 +122,8 @@ class SpeechService extends ChangeNotifier {
   /// forgets it. A slider moved from 0.5 to 0.9 leaves every sample describing
   /// a voice that no longer exists.
   ///
-  /// This is the Settings voice's rate. A tutorial in its own language is read
-  /// by another voice, which reads at its own speed - see [charsPerSecondFor].
+  /// This is the Settings voice's rate.
   double get charsPerSecond => _rateOf(_language);
-
-  /// How fast the voice that reads a tutorial in [language] actually reads.
-  ///
-  /// **Kept per voice** (`docs/PLAN-JEZIK-GLASA.md`). One number for two voices
-  /// would apply the Serbian voice's measurement to the English one, and the
-  /// writing that follows the voice would quietly stop following either. A
-  /// tutorial that has not said its language asks [charsPerSecond] itself, so
-  /// anything that watches that getter still sees the question.
-  double charsPerSecondFor(TutorialLanguage? language) =>
-      language == null ? charsPerSecond : _rateOf(_voiceFor(language));
 
   double _rateOf(String? voice) =>
       (voice == null ? null : _rates[voice]) ?? seedCharsPerSecond;
@@ -195,43 +183,13 @@ class SpeechService extends ChangeNotifier {
   /// switches it and the next one in the same language does not.
   String? _engineVoice;
 
-  /// Voices this session found listed and could not use.
+  /// Whether a sentence would be spoken if asked for now.
   ///
-  /// Windows answers `getLanguages` from the languages the system knows about,
-  /// not the voices installed (see [_apply]), so a Serbian tutorial can be
-  /// offered a Croatian voice that throws on the first sentence. That voice is
-  /// set aside for the session and the next in the language's order is tried -
-  /// never the Settings voice, which is a different language. [refresh] forgets
-  /// the list, because installing the voice is how a reader answers it.
-  final Set<String> _unusable = {};
-
-  /// The installed voice that should read [language], leaving out the ones
-  /// that failed. Null when there is none - see [voiceFor].
-  String? _voiceFor(TutorialLanguage language) => voiceFor(language, [
-        for (final voice in _available)
-          if (!_unusable.contains(voice)) voice,
-      ]);
-
-  /// Whether a tutorial in [language] can be read aloud on this machine at
-  /// all, whether or not speech is switched on right now. Decides whether the
-  /// play button is drawn.
-  ///
-  /// A tutorial that has not said its language asks the old question: is
-  /// there a voice for the app's own text. One that has asks only about its
-  /// own language - an English voice on the machine is no answer to a Serbian
-  /// tutorial, and no English voice is no obstacle to one.
-  bool canRead(TutorialLanguage? language) {
-    if (_state == SpeechState.failed) return false;
-    if (language == null) return _state != SpeechState.noVoice;
-    return _voiceFor(language) != null;
-  }
-
-  /// Whether a sentence in [language] would be spoken if asked for now.
-  bool canSpeakNow(TutorialLanguage? language) {
-    if (!_enabled) return false;
-    if (language == null) return _state == SpeechState.ready;
-    return _state != SpeechState.failed && _voiceFor(language) != null;
-  }
+  /// It once took a tutorial's language, read on the student's device by a
+  /// voice for it (`docs/PLAN-JEZIK-GLASA.md`). A tutorial is a film now
+  /// (`docs/PLAN-TUTORIJAL-VIDEO.md`), read by the server's voice when it is
+  /// drawn, so everything spoken here is the Settings voice's.
+  bool canSpeakNow() => _enabled && _state == SpeechState.ready;
 
   bool _enabled = false;
   bool get enabled => _enabled;
@@ -308,12 +266,9 @@ class SpeechService extends ChangeNotifier {
   ///
   /// **This is the app's language, not the user's material.** A trainer may
   /// write a tutorial, a repertoire comment or a task in any language they
-  /// like, and text like that must not be read by an English voice. A
-  /// tutorial says its language since 11.9.2026 and is read by a voice for it
-  /// or not at all - `speak(language:)`, `canRead`, and
-  /// `core/services/tutorial_language.dart`, per `docs/PLAN-JEZIK-GLASA.md`.
-  /// Everything else a user writes, and a tutorial that has not said, is still
-  /// read by the voice picked in Settings.
+  /// like, and text like that must not be read by an English voice. What a
+  /// user writes is read by the voice picked in Settings; a tutorial is read
+  /// only in its film, by the server's voice for its language.
   static const preferredLanguages = ['en'];
 
   /// Whether a voice reads the app's own text as it is written.
@@ -357,7 +312,6 @@ class SpeechService extends ChangeNotifier {
     _enabled = enabled;
     _rate = rate;
     _forgetRate();
-    _unusable.clear();
     _engineVoice = null;
 
     try {
@@ -483,23 +437,14 @@ class SpeechService extends ChangeNotifier {
   ///
   /// [force] is for the settings screen's test button, which has to speak even
   /// though it is saying the same thing every time.
-  ///
-  /// [language] is a tutorial's own (`docs/PLAN-JEZIK-GLASA.md`): the sentence
-  /// is read by a voice for that language, with its moves said in that
-  /// language's words, or **not at all** - never by the Settings voice, which
-  /// would read it in the wrong phonetics and sound as if it worked. Without
-  /// one, this is exactly what it always was.
   Future<void> speak(
     String? text, {
     bool force = false,
-    TutorialLanguage? language,
   }) async {
-    if (!canSpeakNow(language)) return;
-    final voice = language == null ? _language : _voiceFor(language);
+    if (!canSpeakNow()) return;
+    final voice = _language;
     if (voice == null) return;
-    final spoken = language == null
-        ? speakable(text)
-        : speakable(text, vocabulary: language.vocabulary);
+    final spoken = speakable(text);
     if (spoken.isEmpty) return;
     if (!force && spoken == _lastSpoken) return;
 
@@ -530,11 +475,7 @@ class SpeechService extends ChangeNotifier {
     } catch (e) {
       AppLogger.log('[Speech] Voice "$voice" is not usable: $e');
       _engineVoice = null;
-      if (voice == _language) {
-        _state = SpeechState.noVoice;
-      } else {
-        _unusable.add(voice);
-      }
+      _state = SpeechState.noVoice;
       scheduleMicrotask(notifyListeners);
       return false;
     }

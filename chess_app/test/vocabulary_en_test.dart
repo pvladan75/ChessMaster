@@ -221,12 +221,13 @@ void main() {
             'in this file');
   });
 
-  test('the three kinds of part keep their wire names', () {
-    // The interface is translated; the contract is not. `show`, `ask_move` and
-    // `ask_choice` are what the server stores and what a saved tutorial on a
-    // child's device already carries.
+  test('the kind of part keeps its wire name', () {
+    // The interface is translated; the contract is not. `show` is what the
+    // server stores. (`ask_move` and `ask_choice` were the other two until
+    // every part came to show, docs/PLAN-TUTORIJAL-VIDEO.md phase 4; the app
+    // names them only to refuse a file that still carries one.)
     final text = sources.values.map((l) => l.join('\n')).join('\n');
-    for (final wire in ["'show'", "'ask_move'", "'ask_choice'"]) {
+    for (final wire in ["'show'"]) {
       expect(text, contains(wire),
           reason: 'a wire value was translated. Every tutorial already saved '
               'would stop being readable');

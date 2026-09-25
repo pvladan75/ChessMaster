@@ -200,9 +200,10 @@ class NarrationUploadResult {
 /// Two rules it keeps, both of them paid for elsewhere in this codebase:
 ///
 /// * **A refusal is passed on in the server's own words.** `buildLessonStep`
-///   refuses a bad step with a reason a trainer can act on — „ask_move nema
-///   rešenje", „potez nije legalan u toj poziciji" — and a client that replaces
-///   those with „Čuvanje nije uspelo" throws away the only part that helps.
+///   refuses a bad step with a reason a trainer can act on — „A part only
+///   shows a position and a line; a question is an exercise." — and a client
+///   that replaces those with „Čuvanje nije uspelo" throws away the only part
+///   that helps.
 ///   Every method here answers `null` for success and the server's sentence for
 ///   failure, which is the shape [appendStep] already had.
 /// * **It never judges and never validates a step.** The server is the one
@@ -524,9 +525,8 @@ class LessonApiService {
   /// two trainers editing one lesson that way lose an edit, and the loser is
   /// never told.
   ///
-  /// [step] goes to the server as written, including `kind`, `solutionSan`,
-  /// `acceptedSans` and `choices`. Nothing here inspects it — see the class
-  /// comment.
+  /// [step] goes to the server as written. Nothing here inspects it — see the
+  /// class comment.
   Future<String?> appendStep({
     required int lessonId,
     required Map<String, dynamic> step,

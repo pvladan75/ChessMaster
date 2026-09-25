@@ -1,5 +1,5 @@
-/// The languages a tutorial may say it is written in, and which voice on this
-/// device may read one.
+/// The languages a tutorial may say it is written in — the language its film is
+/// narrated in, by the server's voice for it.
 ///
 /// Phase 2 of `docs/PLAN-JEZIK-GLASA.md`. **Seven, and only seven** — the ones
 /// whose moves can be said properly, which is the owner's rule of 11.9.2026: a
@@ -19,7 +19,6 @@ class TutorialLanguage {
   const TutorialLanguage._(
     this.code,
     this.label,
-    this.deviceVoices,
     this.vocabulary,
   );
 
@@ -29,32 +28,18 @@ class TutorialLanguage {
   /// What a trainer picks from: „Serbian (Latin)".
   final String label;
 
-  /// The device languages that may read this one, best first.
-  ///
-  /// Serbian in Latin script is the old `SpeechService.preferredLanguages`
-  /// verbatim, and the reason it is a list still holds: Windows ships no
-  /// Serbian voice, and Croatian reads the same alphabet with the same sounds.
-  /// Cyrillic gets Serbian alone, because a Croatian voice cannot read it.
-  /// Nothing ever falls back to English — see [voiceFor].
-  final List<String> deviceVoices;
-
   /// The words a move in this language is said with.
   final SpeechVocabulary vocabulary;
 
-  static const english =
-      TutorialLanguage._('en', 'English', ['en'], englishSpeech);
-  static const serbianLatin = TutorialLanguage._('sr-Latn', 'Serbian (Latin)',
-      ['sr', 'hr', 'bs', 'sh', 'me'], serbianLatinSpeech);
+  static const english = TutorialLanguage._('en', 'English', englishSpeech);
+  static const serbianLatin =
+      TutorialLanguage._('sr-Latn', 'Serbian (Latin)', serbianLatinSpeech);
   static const serbianCyrillic = TutorialLanguage._(
-      'sr-Cyrl', 'Serbian (Cyrillic)', ['sr'], serbianCyrillicSpeech);
-  static const german =
-      TutorialLanguage._('de', 'German', ['de'], germanSpeech);
-  static const spanish =
-      TutorialLanguage._('es', 'Spanish', ['es'], spanishSpeech);
-  static const italian =
-      TutorialLanguage._('it', 'Italian', ['it'], italianSpeech);
-  static const french =
-      TutorialLanguage._('fr', 'French', ['fr'], frenchSpeech);
+      'sr-Cyrl', 'Serbian (Cyrillic)', serbianCyrillicSpeech);
+  static const german = TutorialLanguage._('de', 'German', germanSpeech);
+  static const spanish = TutorialLanguage._('es', 'Spanish', spanishSpeech);
+  static const italian = TutorialLanguage._('it', 'Italian', italianSpeech);
+  static const french = TutorialLanguage._('fr', 'French', frenchSpeech);
 
   /// In the order a trainer is offered them.
   static const all = [
@@ -79,43 +64,4 @@ class TutorialLanguage {
 
   @override
   String toString() => code;
-}
-
-/// What the tutorial screen says in place of its play button when this device
-/// has no voice for [language] — why, and what to install.
-///
-/// The owner's rule of 11.9.2026 is „no reading rather than the wrong voice",
-/// and a button that silently disappeared would read as a bug. So the reason is
-/// said, with the one install that actually answers it: Windows ships no
-/// Serbian voice, and Croatian reads Serbian in Latin script correctly — but
-/// not Cyrillic, which needs a Serbian voice itself.
-String noVoiceSentence(TutorialLanguage language) {
-  final install = identical(language, TutorialLanguage.serbianLatin)
-      ? 'On Windows, add the Croatian voice, which reads Serbian in Latin '
-          'script: Settings → Time & language → Speech → Add voices.'
-      : 'Add a ${language.label} voice in the device\'s speech settings.';
-  return 'This tutorial is in ${language.label}, and this device has no voice '
-      'for it. $install The tutorial works without it — use the buttons.';
-}
-
-/// The installed device language that should read [language], or null when
-/// this device has none.
-///
-/// **Never an unrelated language.** A voice handed text in a language it does
-/// not speak does not fail — it reads it in its own phonetics, which is worse
-/// than silence because it sounds like the feature works. So a null here is the
-/// answer the screen must show („this device has no voice for it"), not a cue
-/// to try the Settings voice. The owner's decision of 11.9.2026.
-///
-/// [installed] is what the engine lists (`sr-RS`, `hr_HR`, `en-US`); matched
-/// the way `SpeechService.pickLanguage` matches, in the language's own order of
-/// preference rather than the list's.
-String? voiceFor(TutorialLanguage language, List<String> installed) {
-  for (final wanted in language.deviceVoices) {
-    for (final candidate in installed) {
-      final tag = candidate.toLowerCase().replaceAll('_', '-');
-      if (tag == wanted || tag.startsWith('$wanted-')) return candidate;
-    }
-  }
-  return null;
 }

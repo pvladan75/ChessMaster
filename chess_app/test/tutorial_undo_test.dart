@@ -265,67 +265,6 @@ void main() {
         reason: 'the part keeps the id its first save gave it');
   });
 
-  testWidgets('an undo restores the part\'s own fields', (tester) async {
-    // Every field of the open part is read back from the part on a restore.
-    // A kind left at the screen's value would be written back over it.
-    final server = await open(tester, TutorialEntry.saved(twoParts()));
-
-    await tester.tap(find.byKey(const Key('example-kind')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Ask for answer from list').last);
-    await tester.pumpAndSettle();
-
-    await tap(tester, undoButton);
-    expect(partsOf(await save(tester, server)).first['kind'], 'show');
-  });
-
-  testWidgets('the task and an answer are each a step of their own',
-      (tester) async {
-    // Neither field used to record its change, so an edit to either was taken
-    // back together with whatever the trainer did next.
-    await open(
-      tester,
-      TutorialEntry.saved({
-        'id': nextLessonId++,
-        'title': 'Opozicija',
-        'language': null,
-        'position_list': [
-          {
-            'id': 'aaa',
-            'fen': _start,
-            'title': 'Pitanje',
-            'kind': 'ask_choice',
-            'instruction': 'What does White gain?',
-            'choices': [
-              {'text': 'The centre.', 'correct': true},
-              {'text': 'A pawn.', 'correct': false},
-            ],
-          },
-        ],
-      }),
-    );
-    String text(String key) =>
-        tester.widget<TextField>(find.byKey(Key(key))).controller!.text;
-
-    await tester.enterText(
-        find.byKey(const Key('example-instruction')), 'What now?');
-    await tester.enterText(find.byKey(const Key('example-choice-0')), 'Space.');
-    await tester.enterText(find.byKey(const Key('tutorial-title')), 'Renamed');
-    await tester.pumpAndSettle();
-
-    await tap(tester, undoButton);
-    expect(text('tutorial-title'), 'Opozicija');
-    expect(text('example-choice-0'), 'Space.');
-    expect(text('example-instruction'), 'What now?');
-
-    await tap(tester, undoButton);
-    expect(text('example-choice-0'), 'The centre.');
-    expect(text('example-instruction'), 'What now?');
-
-    await tap(tester, undoButton);
-    expect(text('example-instruction'), 'What does White gain?');
-  });
-
   testWidgets('a draft taken from this device is where undo stops',
       (tester) async {
     // The studio adopts the kept draft of the same tutorial a frame after it

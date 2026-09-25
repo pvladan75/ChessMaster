@@ -54,7 +54,8 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
   }
 
   /// A sent homework as phase 4 will write it: a parent, and one child per
-  /// item. Each child is a puzzle set of `puzzles` items or a lesson of `steps`.
+  /// item. Each child is a puzzle set of `puzzles` items, or a tutorial's film
+  /// (`video`) — one item, done when it is downloaded.
   async function sent({ trainerId, studentId, tag }, items) {
     const parent = await pool.query(
       `INSERT INTO assignments (trainer_id, student_id, title, kind)
@@ -64,7 +65,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     const parentId = parent.rows[0].id;
     const children = [];
     for (const [index, item] of items.entries()) {
-      const kind = item.steps ? 'lesson' : 'puzzles';
+      const kind = item.video ? 'lesson' : 'puzzles';
       const child = await pool.query(
         `INSERT INTO assignments
            (trainer_id, student_id, title, kind, parent_id, position, item_key, gate)
@@ -74,13 +75,11 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
       );
       const id = child.rows[0].id;
       const puzzleIds = [];
-      if (item.steps) {
-        for (let step = 0; step < item.steps; step++) {
-          await pool.query(
-            `INSERT INTO assignment_items (assignment_id, position, step_key) VALUES ($1, $2, $3)`,
-            [id, step, `s${step}`]
-          );
-        }
+      if (item.video) {
+        await pool.query(
+          'INSERT INTO assignment_items (assignment_id, position) VALUES ($1, 0)',
+          [id]
+        );
       } else {
         for (let p = 0; p < (item.puzzles || 1); p++) {
           const puzzleId = `hw${tag}_${index}_${p}`;
@@ -282,7 +281,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.deepEqual(await states(parentId), ['passed', 'open']);
   });
 
-  test('done is attempted and nothing else: a wrong answer and a revealed step both pass', async () => {
+  test('done is attempted and nothing else: a wrong answer and a downloaded film both pass', async () => {
     // There was a „must be solved" switch. The owner removed it on 18.9.2026
     // (`docs/PLAN-EXERCISE.md` §8.3): it was the one thing in a homework that
     // could hold a student on a board for good, and the review already shows
@@ -295,14 +294,11 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.deepEqual(await states(wrong.parentId), ['passed', 'open']);
 
     const other = await people();
-    const shown = await sent(other, [{ steps: 2 }, { gate: true }]);
-    await assignments.markLessonStepDone(pool, {
-      studentId: other.studentId, assignmentId: shown.children[0].id, position: 0,
+    const film = await sent(other, [{ video: true }, { gate: true }]);
+    await assignments.recordVideoDownload(pool, {
+      studentId: other.studentId, assignmentId: film.children[0].id,
     });
-    await assignments.revealLessonStep(pool, {
-      studentId: other.studentId, assignmentId: shown.children[0].id, position: 1,
-    });
-    assert.deepEqual(await states(shown.parentId), ['passed', 'open']);
+    assert.deepEqual(await states(film.parentId), ['passed', 'open']);
   });
 
   test('the column that narrowed „done" to „solved" is gone from both tables', async () => {
@@ -372,18 +368,16 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal(item.rows[0].attempted_at, null);
   });
 
-  test('a locked lesson step cannot be marked, answered or revealed', async () => {
+  test('a locked film cannot be recorded as downloaded', async () => {
     const who = await people();
-    const { children } = await sent(who, [{}, { steps: 1, gate: true }]);
-    const args = { studentId: who.studentId, assignmentId: children[1].id, position: 0 };
-    assert.equal(await assignments.markLessonStepDone(pool, args), false);
-    assert.equal(await assignments.recordLessonStepAnswer(pool, { ...args, correct: true }), false);
-    assert.equal(await assignments.revealLessonStep(pool, args), false);
+    const { children } = await sent(who, [{}, { video: true, gate: true }]);
+    const args = { studentId: who.studentId, assignmentId: children[1].id };
+    assert.equal(await assignments.recordVideoDownload(pool, args), false);
     const item = await pool.query(
-      'SELECT attempted_at, revealed_at, solved FROM assignment_items WHERE assignment_id = $1',
+      'SELECT attempted_at, solved FROM assignment_items WHERE assignment_id = $1',
       [children[1].id]
     );
-    assert.deepEqual(item.rows[0], { attempted_at: null, revealed_at: null, solved: null });
+    assert.deepEqual(item.rows[0], { attempted_at: null, solved: null });
   });
 
   test('the student is refused a locked item; the trainer reads it', async () => {
@@ -760,15 +754,10 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
     assert.equal((await item()).attempted_at, null);
   });
 
-  test('a locked lesson step is refused on every student route', async () => {
+  test('a locked film is refused on every student route, its link included', async () => {
     const who = await people();
-    const { children } = await sent(who, [{}, { steps: 1, gate: true }]);
-    const params = { id: String(children[1].id), position: '0' };
-    for (const path of ['/:id/step/:position', '/:id/step/:position/answer', '/:id/step/:position/reveal']) {
-      const r = await route('post', path, { userId: who.studentId, params, body: { moveSan: 'e4' } });
-      assert.equal(r.status, 423, path);
-    }
-    for (const path of ['/:id', '/:id/review']) {
+    const { children } = await sent(who, [{}, { video: true, gate: true }]);
+    for (const path of ['/:id', '/:id/review', '/:id/video']) {
       const r = await route('get', path, { userId: who.studentId, params: { id: String(children[1].id) } });
       assert.equal(r.status, 423, path);
     }
@@ -820,7 +809,7 @@ describe('homework on a real database', { skip: skip ? skip.skip : false }, () =
       const id = child.rows[0].id;
       ids.push(id);
       await pool.query(
-        `INSERT INTO assignment_items (assignment_id, position, step_key) VALUES ($1, 0, 'game')`,
+        'INSERT INTO assignment_items (assignment_id, position) VALUES ($1, 0)',
         [id]
       );
     }

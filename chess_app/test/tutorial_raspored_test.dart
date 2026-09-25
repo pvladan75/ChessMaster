@@ -123,17 +123,17 @@ void main() {
   /// question a trainer really writes, and it needs no tap to arrive.
   Map<String, dynamic> tallLesson() => {
         'id': 13,
-        'title': 'Pitanje sa mnogo odgovora',
+        'title': 'Duga linija',
+        // Tall by its line: sixteen beats, each a card in the lower half.
+        // (Six offered answers made it tall until a part stopped asking,
+        // docs/PLAN-TUTORIJAL-VIDEO.md phase 4.)
         'position_list': [
           {
             'fen': openingFen,
             'title': 'Deo 1',
-            'kind': 'ask_choice',
-            'instruction': 'Šta beli postiže ovim potezom?',
-            'choices': [
-              for (var i = 0; i < 6; i++)
-                {'text': 'Ponuđeni odgovor broj ${i + 1}', 'correct': i == 0},
-            ],
+            'pgn': '{ Šta beli postiže ovim potezom? } 1. e4 e5 2. Nf3 Nc6 '
+                '3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6 '
+                '8. c3 O-O *',
           },
         ],
       };

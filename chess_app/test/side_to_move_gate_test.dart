@@ -74,6 +74,7 @@ class _Server {
                 'id': 'k1',
                 'title': 'Side known',
                 'fen': _known,
+                'instruction': 'White to play and win.',
                 'sourceTitle': 'Silman',
                 'sourcePage': 13,
               },
@@ -256,6 +257,27 @@ void main() {
           (r) => r.method == 'POST' && r.url.path == '/lessons/7/steps');
       expect(step.body, contains(_settledBlack));
       expect(step.body, isNot(contains(_unset)));
+    });
+
+    testWidgets('„Add to tutorial" makes the task the part\'s first sentence',
+        (tester) async {
+      // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4), and a film
+      // reads the sentences on the board, not a task beside it — so the task
+      // arrives as the comment on the part's starting position, where the
+      // video says it.
+      final server = await _openLibrary(tester);
+      await tester.tap(_button('k1', 'Add to tutorial'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rook endings'));
+      await tester.pumpAndSettle();
+      final sent = server.sent.lastWhere(
+          (r) => r.method == 'POST' && r.url.path == '/lessons/7/steps');
+      final step = (jsonDecode(sent.body) as Map)['step'] as Map;
+      expect(step['fen'], _known);
+      expect(step['pgn'], contains('{ White to play and win. }'));
+      for (final field in ['instruction', 'kind', 'solutionSan']) {
+        expect(step.containsKey(field), isFalse, reason: field);
+      }
     });
   });
 }

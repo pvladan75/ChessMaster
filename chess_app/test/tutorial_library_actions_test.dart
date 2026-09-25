@@ -61,6 +61,8 @@ class _LibraryApi extends LessonApiService {
             {
               'id': 12,
               'title': 'Opozicija',
+              // A film, so it can be sent: docs/PLAN-TUTORIJAL-VIDEO.md.
+              'has_video': true,
               'position_list': [
                 {'id': 's1', 'fen': _fen, 'title': 'Uvod', 'kind': 'show'},
               ],
@@ -68,6 +70,8 @@ class _LibraryApi extends LessonApiService {
             {
               'id': 14,
               'title': 'Vezani top',
+              // A film, so it can be sent: docs/PLAN-TUTORIJAL-VIDEO.md.
+              'has_video': true,
               'position_list': [
                 {'id': 's2', 'fen': _fen, 'title': 'Prvi deo', 'kind': 'show'},
               ],
@@ -237,7 +241,8 @@ void main() {
       await tester.tap(actionOn('Opozicija', 'Send to student'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Send to student'), findsWidgets);
+      // The dialog says what goes: the video (docs/PLAN-TUTORIJAL-VIDEO.md).
+      expect(find.text('Send the video to a student'), findsOneWidget);
       expect(find.text('Mila'), findsOneWidget);
       expect(find.text('Nepotvrđeni'), findsNothing,
           reason: 'a relationship nobody has accepted grants nothing, and the '

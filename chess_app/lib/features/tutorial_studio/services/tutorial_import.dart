@@ -23,8 +23,6 @@ library;
 
 import 'dart:convert';
 
-import 'package:chess/chess.dart' as chess;
-
 import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
@@ -296,9 +294,17 @@ List<ImportProblem> problemsWithStep(
     return problems;
   }
 
+  // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, D11): a tutorial is
+  // material for a film, and a question for a student is an exercise. A file
+  // written for the questions tutorials used to have is refused here, naming
+  // the part, rather than turned into something its author did not write.
   final kindName = step['kind']?.toString() ?? 'show';
-  const known = {'show', 'ask_move', 'ask_choice'};
-  if (!known.contains(kindName)) {
+  if (kindName == 'ask_move' || kindName == 'ask_choice') {
+    refuse('it asks a question, and a tutorial only shows. Remove the part, '
+        'or make the question an exercise.');
+    return problems;
+  }
+  if (kindName != 'show') {
     refuse('"$kindName" is not a kind of step.');
     return problems;
   }
@@ -312,49 +318,5 @@ List<ImportProblem> problemsWithStep(
     );
   }
 
-  final hasLine = read.root.children.isNotEmpty;
-
-  if (kindName == 'ask_move') {
-    final solution = step['solutionSan']?.toString().trim() ?? '';
-    if (solution.isEmpty) {
-      refuse('it asks for a move and gives no solution.');
-    } else if (!playsIn(fen, solution)) {
-      refuse('the solution "$solution" cannot be played in this position.');
-    }
-    if (hasLine) {
-      // The studio refuses to save this, and it is right to: the viewer draws
-      // the move strip for every kind, so a question carrying a line hands the
-      // child the answer under a "Next move" button.
-      damaged('it asks for a move and carries the line that answers it — '
-          'the student would be shown the answer.');
-    }
-  }
-
-  if (kindName == 'ask_choice') {
-    final rawChoices = step['choices'];
-    final choices = rawChoices is List ? rawChoices : const [];
-    if (choices.length < 2 || choices.length > 4) {
-      refuse('a multiple-choice question needs between two and four answers, '
-          'and this one has ${choices.length}.');
-    } else if (!choices.any((c) => c is Map && c['correct'] == true)) {
-      refuse('none of the offered answers is marked as the correct one.');
-    }
-  }
-
   return problems;
-}
-
-/// Whether [san] is a legal move in [fen].
-///
-/// A pre-flight reading of the rule `services/lessonSteps.js` enforces, and
-/// deliberately the same question rather than a second opinion: the server
-/// still decides, so a disagreement shows up as a refusal at save rather than
-/// as a step stored on a rule only the app knows.
-bool playsIn(String fen, String san) {
-  try {
-    final game = chess.Chess.fromFEN(fen);
-    return game.move(san) == true;
-  } catch (_) {
-    return false;
-  }
 }

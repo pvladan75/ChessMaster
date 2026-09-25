@@ -54,7 +54,6 @@ Future<List<dynamic>> _home(
         onOpenStudent: (_, __) {},
         hasTrainer: true,
         onOpenAssignments: () {},
-        onOpenReviews: () {},
         onJoinSession: (_) {},
         onRefreshRecordings: () {},
         onOpenReplay: (_) {},

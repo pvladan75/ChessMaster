@@ -559,14 +559,18 @@ void main() {
 
   group('the homework, to its trainer', () {
     testWidgets(
-        'each row says how it went, in words: met, not met, N of M correct — '
-        'and nothing for a lesson or an item not started', (tester) async {
+        'each row says how it went, in words: met, not met, N of M correct, '
+        'a video downloaded — and nothing for an item not started',
+        (tester) async {
       await _pumpHomework(tester, _trainerId);
 
       expect(_verdictOf(tester, 603), 'Goal not met');
       expect(_verdictOf(tester, 604), 'Goal met');
       expect(_verdictOf(tester, 602), '2 of 3 correct');
-      expect(_verdictOf(tester, 601), isNull, reason: 'a lesson is read');
+      // A tutorial is its film since docs/PLAN-TUTORIJAL-VIDEO.md, and a film
+      // done is a film downloaded; this row said nothing while a lesson was
+      // only read.
+      expect(_verdictOf(tester, 601), 'Video downloaded');
       expect(_verdictOf(tester, 606), isNull, reason: 'not played yet');
 
       // Played and not judged keeps its own words, and is never a failure.

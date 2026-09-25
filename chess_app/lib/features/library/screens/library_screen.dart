@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/core/models/engine_game_task.dart';
 import 'package:chess_app/features/assignments/models/assignment.dart';
@@ -486,14 +488,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
     if (course == null || !mounted) return;
 
+    // A part only shows (docs/PLAN-TUTORIJAL-VIDEO.md): the position's task
+    // becomes the part's opening sentence — something the film reads out —
+    // written by the app's one PGN writer. The solution stays with the
+    // exercise; no film ever showed it.
+    final task = entry.instruction?.trim() ?? '';
     final error = await _lessons.appendStep(
       lessonId: course.id,
-      step: {
-        'title': entry.title,
-        'fen': fen,
-        if (entry.instruction != null) 'instruction': entry.instruction,
-        if (entry.solutionSan != null) 'solutionSan': entry.solutionSan,
-      },
+      step: task.isEmpty
+          ? {'title': entry.title, 'fen': fen}
+          : StudioLessonStep.from(AnalysisNode(fen: fen, comment: task))
+              .toJson(title: entry.title),
     );
     if (!mounted) return;
     if (error != null) {

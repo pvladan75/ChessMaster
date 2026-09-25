@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
+import 'package:chess_app/features/lessons/services/lesson_api_service.dart'
+    show LessonVideoLink, LessonVideoStatus;
 import 'package:chess_app/services/app_logger.dart';
 import '../models/assignment.dart';
 import '../models/assignment_review.dart';
@@ -96,7 +98,8 @@ class AssignmentApiService {
     }
   }
 
-  /// Assigns one of the trainer's own lessons.
+  /// Sends one of the trainer's own tutorials — its film — to a student.
+  /// A tutorial with no film is refused, with the server's sentence.
   Future<CreateAssignmentResult> createLessonAssignment({
     required int studentId,
     required int lessonId,
@@ -137,24 +140,6 @@ class AssignmentApiService {
     }
   }
 
-  /// Records that the student has been through one step of an assigned lesson.
-  ///
-  /// Fire-and-forget by design: a failure here must not interrupt the student's
-  /// reading, and the step will be marked again on the next pass.
-  Future<void> markLessonStep(
-      {required int assignmentId, required int position}) async {
-    try {
-      await _client
-          .post(
-            Uri.parse('$backendUrl/assignments/$assignmentId/step/$position'),
-            headers: _headers,
-          )
-          .timeout(const Duration(seconds: 10));
-    } catch (e) {
-      AppLogger.log('[Assignments] Step not recorded: $e');
-    }
-  }
-
   /// Sends the student's move for one of the trainer's own positions.
   ///
   /// The verdict comes from the server because the solution never left it;
@@ -186,51 +171,45 @@ class AssignmentApiService {
     }
   }
 
-  Future<StepAnswerResult?> answerLessonStep({
-    required int assignmentId,
-    required int position,
-    String? moveSan,
-    int? choiceIndex,
-  }) async {
+  /// A fresh link to the tutorial film sent to the student in
+  /// [assignmentId] — `docs/PLAN-TUTORIJAL-VIDEO.md`, phase 2.
+  ///
+  /// **Minted by this call**: the link's token dies in thirty minutes and names
+  /// this student, this assignment and this file, so the download it opens is
+  /// what the server records as done. `ready` with a link, `none` when the
+  /// tutorial or its film is gone, `failed` otherwise — each with the server's
+  /// own sentence.
+  Future<LessonVideoLink> fetchVideoLink(int assignmentId) async {
     try {
       final res = await _client
-          .post(
-            Uri.parse(
-                '$backendUrl/assignments/$assignmentId/step/$position/answer'),
-            headers: _headers,
-            body: jsonEncode({
-              if (moveSan != null) 'moveSan': moveSan,
-              if (choiceIndex != null) 'choiceIndex': choiceIndex,
-            }),
-          )
+          .get(Uri.parse('$backendUrl/assignments/$assignmentId/video'),
+              headers: _headers)
           .timeout(const Duration(seconds: 20));
-      if (res.statusCode != 200) return null;
-      return StepAnswerResult.fromJson(
-          jsonDecode(res.body) as Map<String, dynamic>);
+      Map<String, dynamic> map = const {};
+      try {
+        final body = jsonDecode(res.body);
+        if (body is Map<String, dynamic>) map = body;
+      } catch (_) {}
+      if (res.statusCode == 200 && map['downloadUrl'] != null) {
+        return LessonVideoLink(
+          status: LessonVideoStatus.ready,
+          downloadUrl: map['downloadUrl'].toString(),
+          renderedAt: DateTime.tryParse(map['renderedAt']?.toString() ?? ''),
+          resolution: map['resolution']?.toString(),
+          narrated: map['narrated'] == true,
+        );
+      }
+      return LessonVideoLink(
+        status: map['status'] == 'none'
+            ? LessonVideoStatus.none
+            : LessonVideoStatus.failed,
+        error: map['error']?.toString() ??
+            'Could not fetch the video (${res.statusCode}).',
+      );
     } catch (e) {
-      AppLogger.log('[Assignments] Answer not sent: $e');
-      return null;
-    }
-  }
-
-  Future<StepRevealResult?> revealLessonStep({
-    required int assignmentId,
-    required int position,
-  }) async {
-    try {
-      final res = await _client
-          .post(
-            Uri.parse(
-                '$backendUrl/assignments/$assignmentId/step/$position/reveal'),
-            headers: _headers,
-          )
-          .timeout(const Duration(seconds: 20));
-      if (res.statusCode != 200) return null;
-      return StepRevealResult.fromJson(
-          jsonDecode(res.body) as Map<String, dynamic>);
-    } catch (e) {
-      AppLogger.log('[Assignments] Solution not revealed: $e');
-      return null;
+      AppLogger.log('[Assignments] Video link failed: $e');
+      return const LessonVideoLink(
+          status: LessonVideoStatus.failed, error: 'Cannot connect to server.');
     }
   }
 

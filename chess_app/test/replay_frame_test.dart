@@ -59,7 +59,8 @@ void main() {
     expect(room.arrows.single['colorCode'], 'B');
   });
 
-  test('a change of position after the arrows clears them — by order, not by '
+  test(
+      'a change of position after the arrows clears them — by order, not by '
       'the clock', () {
     // Two events in one millisecond are one audio chunk apart at most; their
     // order is what the trainer did.
@@ -87,7 +88,9 @@ void main() {
   });
 
   test('before anything happened there is nothing to show', () {
-    final frame = replayFrameAt([_e(100, 'init', {'fen': 'A'})], 50);
+    final frame = replayFrameAt([
+      _e(100, 'init', {'fen': 'A'})
+    ], 50);
     expect(frame.fen, isNull);
     expect(frame.arrows, isEmpty);
   });

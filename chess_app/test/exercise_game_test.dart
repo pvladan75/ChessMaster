@@ -136,8 +136,7 @@ void main() {
     for (final c in rejected) {
       test('refused: ${c['name']}', () {
         expect(
-          EngineGameTask.fromJson(
-              Map<String, dynamic>.from(c['task'] as Map)),
+          EngineGameTask.fromJson(Map<String, dynamic>.from(c['task'] as Map)),
           isNull,
         );
       });
@@ -160,16 +159,20 @@ void main() {
   });
 
   group('the screen says only what it can know', () {
-    final needsTb = judged.firstWhere(
-        (c) => (c['expect'] as Map)['needsTablebase'] == true);
+    final needsTb = judged
+        .firstWhere((c) => (c['expect'] as Map)['needsTablebase'] == true);
     final local = _verdictOf(needsTb);
-    final byRules = _verdictOf(judged.firstWhere(
-        (c) => (c['expect'] as Map)['ending'] == 'checkmate'));
+    final byRules = _verdictOf(judged
+        .firstWhere((c) => (c['expect'] as Map)['ending'] == 'checkmate'));
 
     test('the server\'s answer is read, and an unreadable one is not guessed',
         () {
-      final met = EngineGameServerVerdict.fromJson(
-          {'ok': true, 'goalMet': true, 'judgedBy': 'tablebase', 'pending': false});
+      final met = EngineGameServerVerdict.fromJson({
+        'ok': true,
+        'goalMet': true,
+        'judgedBy': 'tablebase',
+        'pending': false
+      });
       expect(met!.goalMet, isTrue);
       expect(met.judgedBy, 'tablebase');
       expect(met.pending, isFalse);
@@ -180,7 +183,8 @@ void main() {
       expect(waiting.pending, isTrue);
 
       // A server from before phase 3a: no `pending`, no `judgedBy`.
-      final old = EngineGameServerVerdict.fromJson({'ok': true, 'goalMet': false});
+      final old =
+          EngineGameServerVerdict.fromJson({'ok': true, 'goalMet': false});
       expect(old!.goalMet, isFalse);
       expect(old.pending, isFalse);
 
@@ -188,7 +192,8 @@ void main() {
       expect(EngineGameServerVerdict.fromJson(null), isNull);
     });
 
-    test('at a move target the tablebase judges, the server\'s word is the word',
+    test(
+        'at a move target the tablebase judges, the server\'s word is the word',
         () {
       EngineGameServerVerdict server(bool? met, {bool pending = false}) =>
           EngineGameServerVerdict.fromJson({
@@ -210,11 +215,13 @@ void main() {
       expect(engineGameSaid(byRules, null), EngineGameSaid.met);
     });
 
-    test('three states, three different sentences, and „not judged" is not a '
+    test(
+        'three states, three different sentences, and „not judged" is not a '
         'failure', () {
       final words = EngineGameSaid.values.map(engineGameSaidWords).toList();
       expect(words.toSet().length, 3);
-      final waiting = engineGameSaidWords(EngineGameSaid.notJudged).toLowerCase();
+      final waiting =
+          engineGameSaidWords(EngineGameSaid.notJudged).toLowerCase();
       expect(waiting, isNot(contains('not met')));
       expect(waiting, isNot(contains('fail')));
       expect(waiting, isNot(contains('wrong')));
@@ -253,8 +260,8 @@ void main() {
     });
 
     test('what it sends reads back as the words the trainer chose', () {
-      final task = exerciseGameTask(
-          side: 'b', ask: ExerciseAsk.hold, forMoves: 4);
+      final task =
+          exerciseGameTask(side: 'b', ask: ExerciseAsk.hold, forMoves: 4);
       expect(exerciseTaskWords(task), 'Draw or better as Black, for 4 moves');
       expect(exerciseAskOf(task), ExerciseAsk.hold);
       expect(exerciseForMoves(task), 4);

@@ -6,10 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart';
-import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
-import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
@@ -107,107 +104,4 @@ void main() {
           'thing it had to say was dropped on the way out',
     );
   });
-
-  testWidgets('the preview is read in the language the tutorial says it is in',
-      (tester) async {
-    // docs/PLAN-JEZIK-GLASA.md, phase 4. The trainer hears what the child will
-    // hear — so the viewer the studio opens has to be told the language, or a
-    // Serbian tutorial is previewed in the Settings voice and sounds fine to
-    // the one person who could have caught it.
-    tester.view.physicalSize = const Size(1600, 1400);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-    // Closed even when an expectation below fails: a studio left mounted
-    // flushes its draft into the one slot the next test reads.
-    addTearDown(() => close(tester));
-    await tester.pumpWidget(
-      MaterialApp(
-        home: TutorialStudioScreen(
-          session: trainer,
-          // A fresh id: the studio adopts a stored draft whose id matches.
-          entry: TutorialEntry.saved({
-            'id': 9101,
-            'title': 'Opozicija',
-            'language': 'sr-Latn',
-            'position_list': [
-              {
-                'id': 's1',
-                'fen': startFen,
-                'title': 'Uvod',
-                'kind': 'show',
-                'pgn': '{ $sentence } *'
-              },
-            ],
-          }),
-          lessonApi: recordingApi(),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('preview-tutorial')));
-    await tester.pumpAndSettle();
-
-    final viewer =
-        tester.widget<LessonViewerScreen>(find.byType(LessonViewerScreen));
-    expect(viewer.detail.lessonLanguage, 'sr-Latn');
-  });
-
-  testWidgets('and „Pregledaj kao učenik" reads it back on the board', (
-    tester,
-  ) async {
-    await openStudio(tester);
-
-    await tester.enterText(find.byKey(const Key('example-sentence')), sentence);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('preview-tutorial')));
-    await tester.pumpAndSettle();
-
-    expect(find.byType(LessonViewerScreen), findsOneWidget);
-    expect(
-      find.textContaining('opoziciji'),
-      findsWidgets,
-      reason: 'the child opens on a board with nothing said about it',
-    );
-
-    await close(tester);
-  });
-
-  testWidgets(
-    'a stored tutorial whose first part is only a sentence shows it',
-    (tester) async {
-      // The child's own path, with the step coming from the server rather than
-      // from the screen that wrote it.
-      tester.view.physicalSize = const Size(1200, 1600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.reset);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: LessonViewerScreen(
-            session: trainer,
-            detail: AssignmentDetail(
-              assignment: Assignment(id: 1, title: 'Uvod'),
-              items: [AssignmentItem(puzzleId: null, position: 0)],
-              steps: [
-                LessonStep.fromJson({
-                  'fen': startFen,
-                  'pgn': '[Event "x"]\n\n{ $sentence } *',
-                  'title': 'Deo 1',
-                  'kind': 'show',
-                }),
-              ],
-            ),
-            api: PreviewAssignmentApiService(),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('opoziciji'), findsWidgets);
-
-      await close(tester);
-    },
-  );
 }

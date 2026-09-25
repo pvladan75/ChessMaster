@@ -18,6 +18,7 @@ class CoursePickerDialog extends StatefulWidget {
     required this.service,
     this.count = 1,
     this.title,
+    this.forSending = false,
     this.loader,
   });
 
@@ -33,6 +34,12 @@ class CoursePickerDialog extends StatefulWidget {
   /// something is on its way in and the wrong one when a trainer is choosing a
   /// lesson to *edit*. One optional line beats a second picker.
   final String? title;
+
+  /// The tutorial is picked to be **sent** — a homework item — so each row
+  /// says whether it has a film yet. Marked, not disabled: a homework may hold
+  /// a tutorial whose film comes later, and only sending needs it
+  /// (`docs/PLAN-TUTORIJAL-VIDEO.md`, D5).
+  final bool forSending;
 
   /// Test seam; see [PositionPickerDialog].
   final Future<List<CourseSummary>?> Function()? loader;
@@ -137,7 +144,8 @@ class _CoursePickerDialogState extends State<CoursePickerDialog> {
           leading: Icon(Icons.menu_book, size: 18, color: colors.accent),
           title: Text(course.title, style: AppText.bodyLarge),
           subtitle: Text(
-              '${course.stepCount} ${course.stepCount == 1 ? 'step' : 'steps'}',
+              '${course.stepCount} ${course.stepCount == 1 ? 'step' : 'steps'}'
+              '${!widget.forSending ? '' : course.hasVideo ? ' · video ready' : ' · no video yet — export it before sending'}',
               style: AppText.caption.copyWith(color: colors.textSecondary)),
           onTap: () => Navigator.pop(context, course),
         );

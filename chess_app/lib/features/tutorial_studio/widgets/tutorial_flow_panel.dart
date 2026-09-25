@@ -10,10 +10,8 @@ import 'package:chess_app/theme/app_typography.dart';
 ///
 /// It decides nothing: it projects [root] and [current] through [beatsOf],
 /// draws one card per beat, reports every selection through [onSelect] and
-/// every edited sentence through [onCommentChanged], and draws the [question]
-/// the screen hands it under the last beat. The screen owns the cursor, the
-/// board, and everything the question card shows — a part's kind, task and
-/// answers are per *part*, and a panel that held them would have a model.
+/// every edited sentence through [onCommentChanged]. The screen owns the
+/// cursor and the board.
 ///
 /// The one piece of state here is a card's own [TextEditingController] and
 /// [FocusNode], keyed by `beat.node.id` so that a card built for one node is
@@ -25,7 +23,6 @@ class TutorialFlowPanel extends StatelessWidget {
     required this.current,
     required this.onSelect,
     required this.onCommentChanged,
-    required this.question,
     this.onDelete,
     this.onInsertLine,
   });
@@ -34,7 +31,6 @@ class TutorialFlowPanel extends StatelessWidget {
   final AnalysisNode current;
   final void Function(AnalysisNode) onSelect;
   final void Function(AnalysisNode, String) onCommentChanged;
-  final Widget question;
 
   /// Takes back the move that arrived at a beat, with everything under it.
   ///
@@ -71,8 +67,6 @@ class TutorialFlowPanel extends StatelessWidget {
             onInsertLine: onInsertLine,
           ),
         ],
-        const SizedBox(height: AppSpacing.xs),
-        question,
       ],
     );
   }
@@ -228,11 +222,10 @@ class _BeatCardState extends State<_BeatCard> {
                 // longer than a label.
                 //
                 // It grows with the text rather than starting two lines tall.
-                // An empty field two lines high on every card pushes the
-                // question card and „Dodaj odgovor" under it below the fold of
-                // the scrolling half — a control a trainer cannot press is a
-                // worse problem than the one being fixed, and it is the same
-                // trap batch 58 lost a round to.
+                // An empty field two lines high on every card pushes what
+                // follows below the fold of the scrolling half — a control a
+                // trainer cannot press is a worse problem than the one being
+                // fixed, and it is the same trap batch 58 lost a round to.
                 maxLines: null,
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,

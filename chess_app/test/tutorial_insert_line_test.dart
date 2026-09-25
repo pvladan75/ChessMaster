@@ -14,8 +14,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/lessons/models/lesson_step_line.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
@@ -110,7 +108,6 @@ void main() {
     final [a, b, c] = splitForLine(part, _at(part, 2)).parts;
     expect([a.stepId, b.stepId, c.stepId], ['orig', null, null]);
     expect(a.title, 'The rook behind');
-    expect([b.kind, c.kind], [LessonStepKind.show, LessonStepKind.show]);
   });
 
   test('a sideline already played at the cut becomes the new line', () {
@@ -171,10 +168,33 @@ void main() {
     expect(part.stepId, 'orig');
   });
 
-  test('only a demonstration with a line can be cut', () {
+  // The next two rules were held for the question split, which is gone
+  // (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4); the cut that remains owes them
+  // just the same.
+
+  test('no part is written back as the text of the part it came from', () {
+    // A new part built with the old stored text would look pristine on a tree
+    // that text does not describe, and the save would send the whole original
+    // line as the shortened part's.
+    final part = _part();
+    expect(part.isPristine, isTrue, reason: 'the fixture must start pristine');
+    final parts = splitForLine(part, _at(part, 2)).parts;
+    for (final made in parts) {
+      expect(made.isPristine, isFalse,
+          reason: 'a cut part carries the text of a tree it is not');
+    }
+    expect(parts.first.toJson()['pgn'], isNot(contains('Bb2')));
+  });
+
+  test('every part stands the way the part it came from stood', () {
+    final part = _part()..blackOrientation = true;
+    final parts = splitForLine(part, _at(part, 2)).parts;
+    expect(parts.map((s) => s.blackOrientation), everyElement(isTrue),
+        reason: 'the board turns over in the middle of one demonstration');
+  });
+
+  test('only a part with a line can be cut', () {
     expect(canSplitForLine(_part()), isTrue);
     expect(canSplitForLine(TutorialSection.blank(fen: _fen)), isFalse);
-    final question = _part()..kind = LessonStepKind.askMove;
-    expect(canSplitForLine(question), isFalse);
   });
 }

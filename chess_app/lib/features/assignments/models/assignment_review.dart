@@ -12,7 +12,10 @@ library;
 enum ReviewItemKind {
   custom,
   lichess,
-  step,
+
+  /// A tutorial's film (`docs/PLAN-TUTORIJAL-VIDEO.md`): downloaded or not,
+  /// never solved. [ReviewItem.attemptedAt] is when it was downloaded.
+  video,
 
   /// A „play it out" game against the engine — `docs/PLAN-EXERCISE.md`,
   /// phase 9. The task, the moves, where they led and who judged it travel
@@ -27,7 +30,7 @@ enum ReviewItemKind {
 ReviewItemKind _kindFrom(String? raw) => switch (raw) {
       'custom' => ReviewItemKind.custom,
       'lichess' => ReviewItemKind.lichess,
-      'step' => ReviewItemKind.step,
+      'video' => ReviewItemKind.video,
       'game' => ReviewItemKind.game,
       _ => ReviewItemKind.unknown,
     };

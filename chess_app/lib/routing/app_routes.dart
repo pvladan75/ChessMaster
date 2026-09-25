@@ -66,7 +66,7 @@ abstract final class AppRoutes {
   /// The positions of a custom assignment, as a grid to work through.
   static const String assignmentOverview = '/assignments/:id/positions';
 
-  /// An assignment that is a lesson rather than a set of positions.
+  /// A tutorial sent to a student — as its film (`docs/PLAN-TUTORIJAL-VIDEO.md`).
   static const String assignmentLesson = '/assignments/:id/lesson';
 
   /// A sent homework: its items, in the trainer's order, with what is done,
@@ -79,9 +79,6 @@ abstract final class AppRoutes {
   /// and "what is left of this homework" is a place - the remainder is worked
   /// out from the assignment when it opens.
   static const String assignmentTactics = '/assignments/:id/tactics';
-
-  /// Spaced repetition: whatever is due today, in one sitting.
-  static const String review = '/review';
 
   /// One student's progress, for whoever teaches them. `name` is decoration on
   /// the same terms as the assignment's title.

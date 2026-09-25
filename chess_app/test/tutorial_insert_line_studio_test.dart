@@ -219,35 +219,13 @@ void main() {
         findsOneWidget);
   });
 
-  testWidgets(
-      'a question placed at a part\'s starting position leaves the id on '
-      'the original line', (tester) async {
-    // The sibling cut, „Find the move", on the same part: standing on the
-    // starting position there is no demonstration in front, and the part
-    // carrying the whole line is still the step a child's progress names.
-    final saves = await open(tester, lesson([example]));
-
-    await tap(tester, find.byKey(const Key('ask-move')));
-    final parts = await save(tester, saves);
-
-    expect(parts.map((p) => p['kind']), ['ask_move', 'show']);
-    expect(parts.map((p) => p['id']), [null, 'orig'],
-        reason: 'the server mints a new id for a part sent without one');
-    expect(parts[1]['title'], 'Ra1');
-    expect(read(parts[1]).line.movesSan, hasLength(6));
-  });
-
   testWidgets('a part with no line to cut draws no button', (tester) async {
     await open(
       tester,
       lesson([
-        {'id': 'still', 'fen': _fen, 'title': 'Look at a1', 'kind': 'show'},
-        {'id': 'ask', 'fen': _fen, 'title': 'Your move', 'kind': 'ask_move'},
+        {'id': 'still', 'fen': _fen, 'title': 'Look at a1'},
       ]),
     );
     expect(insert, findsNothing, reason: 'a still position');
-
-    await tap(tester, find.text('Your move'));
-    expect(insert, findsNothing, reason: 'a question carries no line');
   });
 }

@@ -399,8 +399,15 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
           key: Key('homework-child-verdict-${child.id}'),
           style: AppText.body.copyWith(color: context.colors.textMuted),
         );
+      case 'lesson':
+        // A tutorial's film: downloaded is all there is to say, never
+        // whether it was watched (docs/PLAN-TUTORIJAL-VIDEO.md, D3).
+        return Text(
+          'Video downloaded',
+          key: Key('homework-child-verdict-${child.id}'),
+          style: AppText.body.copyWith(color: context.colors.textMuted),
+        );
       default:
-        // A lesson is read, not solved — there is nothing to verdict.
         return null;
     }
   }

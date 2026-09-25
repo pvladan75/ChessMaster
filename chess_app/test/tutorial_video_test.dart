@@ -17,8 +17,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
@@ -31,16 +29,12 @@ TutorialSection partFrom({
   String fen = _start,
   String? pgn,
   String title = 'Deo 1',
-  LessonStepKind kind = LessonStepKind.show,
-  String? instruction,
   bool blackOrientation = false,
 }) {
   final read = readStepTree(fen: fen, pgn: pgn);
   return TutorialSection(
     root: read.root,
     title: title,
-    kind: kind,
-    instruction: instruction,
     blackOrientation: blackOrientation,
   );
 }
@@ -110,48 +104,6 @@ void main() {
         expect(data.containsKey('text'), isFalse,
             reason: 'an empty caption is a band of nothing under the board');
       }
-    });
-
-    test('a part that asks carries its task on the last beat', () {
-      final video = tutorialVideoOf(draftOf([
-        partFrom(
-          pgn: '1. e4 e5',
-          kind: LessonStepKind.askMove,
-          instruction: 'Nađi najbolji potez.',
-        ),
-      ]));
-
-      final texts = [for (final d in dataOf(video)) d['text']];
-      expect(texts.last, 'Nađi najbolji potez.');
-      expect(texts.sublist(0, texts.length - 1), everyElement(isNull),
-          reason: 'the question was asked before the demonstration finished');
-    });
-
-    test('and keeps what was written there above it', () {
-      final video = tutorialVideoOf(draftOf([
-        partFrom(
-          pgn: '1. e4 { Beli je zauzeo centar. }',
-          kind: LessonStepKind.askMove,
-          instruction: 'Šta crni igra?',
-        ),
-      ]));
-
-      expect(
-          dataOf(video).last['text'], 'Beli je zauzeo centar.\nŠta crni igra?');
-    });
-
-    test('a part that only shows never carries its task', () {
-      // `instruction` is not emptied when a trainer changes a part back to
-      // „Samo prikaži" — the field keeps what was typed. A film that read it
-      // anyway would ask a question the child is never asked.
-      final video = tutorialVideoOf(draftOf([
-        partFrom(
-          pgn: '1. e4',
-          instruction: 'Ovo se ne pita.',
-        ),
-      ]));
-
-      expect([for (final d in dataOf(video)) d['text']], everyElement(isNull));
     });
   });
 

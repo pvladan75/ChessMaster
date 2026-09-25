@@ -269,10 +269,13 @@ void main() {
     expect(jsonEncode(rig.requests.single['moments']),
         jsonEncode(expected['wordsRequest']['moments']));
     expect(rig.requests.single['game'], isNot(contains('[')));
-    expect(result.keyMoments.partCount,
-        (expected['tutorial']['positionList'] as List).length);
-    expect(result.wholeGame.partCount,
-        (expected['tutorialGame']['positionList'] as List).length);
+    // Only the parts that show (`withoutQuestions`, docs/PLAN-TUTORIJAL-
+    // VIDEO.md phase 4) — until phase 5 stops the skeleton making the others.
+    int shows(String key) => (expected[key]['positionList'] as List)
+        .where((s) => (s as Map)['kind'] == 'show')
+        .length;
+    expect(result.keyMoments.partCount, shows('tutorial'));
+    expect(result.wholeGame.partCount, shows('tutorialGame'));
     expect(result.keyMoments.title, expected['tutorial']['title']);
     expect(result.momentsOffered, (expected['moments'] as List).length);
     expect(result.searched, greaterThan(0));

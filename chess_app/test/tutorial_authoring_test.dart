@@ -100,7 +100,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -114,6 +113,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
@@ -231,13 +231,6 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pickKind(WidgetTester tester, String label) async {
-    await tester.tap(find.byKey(const Key('example-kind')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(label).last);
-    await tester.pumpAndSettle();
-  }
-
   /// Commits the part being written and opens the next one.
   ///
   /// **This helper is the only thing batch 57 changed in this file, and the
@@ -258,18 +251,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The check the server will make. Written out here rather than trusted to
-  /// the app, because „the answer plays in the position it is asked in" is the
-  /// one thing a wrong `ask_move` example looks fine without.
-  void expectPlaysIn(String fen, String san) {
-    final game = chess.Chess.fromFEN(fen);
-    expect(game.move(san), isTrue,
-        reason: 'rešenje „$san" ne može da se odigra u poziciji koja se šalje');
-  }
-
   group('a whole tutorial reaches the server as one request', () {
-    testWidgets('two examples, in order, with their words and their question',
-        (tester) async {
+    testWidgets('two examples, in order, with their words', (tester) async {
       final api = await open(tester);
 
       await type(tester, 'tutorial-title', 'Otvaranje u dva primera');
@@ -287,13 +270,12 @@ void main() {
               'once, at the end, so a tutorial abandoned halfway leaves '
               'nothing half-written in the library');
 
-      // Primer 2 — the question, standing on the position Primer 1 ended on.
-      final askedFen = board(tester).controller.getFen();
-      await pickKind(tester, 'Ask for move on board');
-      await type(tester, 'example-instruction', 'Napadni pešaka na e5.');
+      // Primer 2 — the next demonstration, standing on the position Primer 1
+      // ended on. Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4):
+      // what used to be the task is the sentence on its first position.
+      final nextFen = board(tester).controller.getFen();
+      await type(tester, 'example-sentence', 'Napadni pešaka na e5.');
       await play(tester, 'g1', 'f3');
-      expect(find.textContaining('Correct move: Nf3'), findsOneWidget,
-          reason: 'the trainer cannot see what the child will be asked');
 
       await tapText(tester, 'Save tutorial');
 
@@ -311,23 +293,25 @@ void main() {
 
       final show = list.first;
       expect(show['fen'], startFen);
-      expect(show['kind'], 'show');
+      expect(show.containsKey('kind'), isFalse,
+          reason: 'the server reads an absent kind as show, the only one');
       expect(show['pgn'], contains('e4'));
       expect(show['pgn'], contains('e5'));
       expect(show['pgn'], contains(firstSentence),
           reason: 'the sentence beside the first move did not travel');
       expect(show['pgn'], contains(secondSentence));
 
-      final ask = list.last;
-      expect(ask['kind'], 'ask_move');
-      expect(ask['instruction'], 'Napadni pešaka na e5.');
-      expect(ask['solutionSan'], 'Nf3');
-      expect(ask['fen'].toString().split(' ').take(2).join(' '),
-          askedFen.split(' ').take(2).join(' '),
-          reason: 'the question is asked in a different position than the one '
-              'the demonstration left the board on, so the child gets a reset '
-              'where the plan promised one unbroken flow');
-      expectPlaysIn(ask['fen'] as String, 'Nf3');
+      final next = list.last;
+      expect(next['fen'].toString().split(' ').take(2).join(' '),
+          nextFen.split(' ').take(2).join(' '),
+          reason: 'the second example starts somewhere other than where the '
+              'first left the board, so the video reloads it');
+      expect(next['pgn'], contains('Napadni pešaka na e5.'));
+      expect(next['pgn'], contains('Nf3'),
+          reason: 'a move played on a part is its line, never an answer');
+      for (final field in ['kind', 'instruction', 'solutionSan', 'choices']) {
+        expect(next.containsKey(field), isFalse, reason: field);
+      }
 
       await close(tester);
     });
@@ -439,6 +423,33 @@ void main() {
     });
   });
 
+  group('the part editor asks nothing', () {
+    // Phase 4 of docs/PLAN-TUTORIJAL-VIDEO.md: a tutorial is material for a
+    // film, and a question for a student is an exercise. Scoped to the part
+    // editor, where `master` drew „Task type" under every part.
+    testWidgets('no task type, no task and no answers under the beats',
+        (tester) async {
+      await open(tester);
+      await play(tester, 'e2', 'e4');
+
+      final editor = find.byType(TutorialFlowPanel);
+      expect(editor, findsOneWidget, reason: 'the scope must exist');
+      for (final label in [
+        'Task type',
+        'Task for student',
+        'Add answer',
+        'Ask for move on board',
+      ]) {
+        expect(find.descendant(of: editor, matching: find.text(label)),
+            findsNothing,
+            reason: label);
+      }
+      expect(find.text('Find the move'), findsNothing);
+      expect(find.text('Choose the answer'), findsNothing);
+      await close(tester);
+    });
+  });
+
   group('what is refused here, before anything is sent', () {
     testWidgets('a tutorial with no name', (tester) async {
       final api = await open(tester);
@@ -449,85 +460,6 @@ void main() {
       expect(api.seen, isEmpty,
           reason: 'the server would answer 400 and the trainer would read it '
               'as „čuvanje nije uspelo" after the work was done');
-      await close(tester);
-    });
-
-    testWidgets('a question about a move, on an example that has a line',
-        (tester) async {
-      // The rule the server forced: `redactStepForStudent` leaves `pgn` alone,
-      // and the viewer reads the line whatever the kind — so an `ask_move`
-      // example carrying a line is a question with its answer printed under it.
-      final api = await open(tester);
-      await type(tester, 'tutorial-title', 'Pitanje sa linijom');
-
-      await play(tester, 'e2', 'e4');
-      await play(tester, 'e7', 'e5');
-      await pickKind(tester, 'Ask for move on board');
-
-      await tapText(tester, 'Save tutorial');
-
-      expect(api.seen, isEmpty,
-          reason: 'a question was saved with the answer inside its own line');
-      await close(tester);
-    });
-
-    testWidgets('a move played as the answer is not added to the line',
-        (tester) async {
-      final api = await open(tester);
-      await type(tester, 'tutorial-title', 'Samo pitanje');
-      await pickKind(tester, 'Ask for move on board');
-
-      await play(tester, 'e2', 'e4');
-
-      expect(tree(tester).rootNode.children, isEmpty,
-          reason: 'the answer became the first move of the line the child is '
-              'shown');
-      expect(board(tester).controller.getFen().split(' ').first,
-          startFen.split(' ').first,
-          reason: 'the board stayed on the answer instead of going back to '
-              'the position being asked about');
-      expect(find.textContaining('Correct move: e4'), findsOneWidget);
-
-      await tapText(tester, 'Save tutorial');
-      final step = Map<String, dynamic>.from(
-          (api.saves.single['positionList'] as List).single as Map);
-      expect(step['solutionSan'], 'e4');
-      expect(
-          step['pgn'] == null || (step['pgn'] as String).trim().isEmpty, isTrue,
-          reason: 'the question travelled with a line after all');
-      await close(tester);
-    });
-
-    testWidgets('offered answers with none of them marked right',
-        (tester) async {
-      // The server refuses this with „Tačno jedan ponuđeni odgovor mora da bude
-      // tačan", and it is right to. Refusing it here is what keeps that
-      // sentence from arriving after the trainer believed they were finished.
-      final api = await open(tester);
-      await type(tester, 'tutorial-title', 'Pitanje sa ponuđenim odgovorima');
-      await pickKind(tester, 'Ask for answer from list');
-
-      await tapText(tester, 'Add answer');
-      await type(tester, 'example-choice-0', 'Kontrola centra');
-      await tapText(tester, 'Add answer');
-      await type(tester, 'example-choice-1', 'Napad na kralja');
-
-      await tapText(tester, 'Save tutorial');
-      expect(api.seen, isEmpty);
-
-      // Marked, and now it goes — with exactly one `correct: true`, which is
-      // the shape `buildChoices` validates.
-      await tester.tap(find.byType(Radio<int>).first);
-      await tester.pumpAndSettle();
-      await tapText(tester, 'Save tutorial');
-
-      final step = Map<String, dynamic>.from(
-          (api.saves.single['positionList'] as List).single as Map);
-      expect(step['kind'], 'ask_choice');
-      expect(step['choices'], [
-        {'text': 'Kontrola centra', 'correct': true},
-        {'text': 'Napad na kralja', 'correct': false},
-      ]);
       await close(tester);
     });
   });

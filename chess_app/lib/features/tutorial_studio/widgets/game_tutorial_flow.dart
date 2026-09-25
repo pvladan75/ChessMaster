@@ -379,17 +379,14 @@ class _GameTutorialProgressDialogState
 Future<ImportedTutorial?> chooseGameTutorial(
     BuildContext context, GameTutorialResult result) {
   final toCheck = [...result.claims, ...result.missingSlots];
-  // For students unless the trainer says otherwise: that is what every game
-  // tutorial was until the video version existed.
-  var forVideo = false;
+  // One version: a tutorial is made for its film, and asks nothing
+  // (docs/PLAN-TUTORIJAL-VIDEO.md, D10). The choice between „For students"
+  // and „For a video" went with the questions.
   return showDialog<ImportedTutorial>(
     context: context,
     builder: (ctx) => StatefulBuilder(builder: (ctx, setState) {
-      ImportedTutorial version(ImportedTutorial t) =>
-          forVideo ? showOnly(t) : t;
       Widget option(
-          String key, String title, String detail, ImportedTutorial original) {
-        final tutorial = version(original);
+          String key, String title, String detail, ImportedTutorial tutorial) {
         return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
           child: OutlinedButton(
@@ -428,32 +425,6 @@ Future<ImportedTutorial?> chooseGameTutorial(
                 'The same words made two tutorials. Open one to edit it — '
                 'nothing is saved until you save it.',
                 style: AppText.body.copyWith(color: ctx.colors.textSecondary),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              RadioGroup<bool>(
-                groupValue: forVideo,
-                onChanged: (value) =>
-                    setState(() => forVideo = value ?? forVideo),
-                child: const Column(
-                  children: [
-                    RadioListTile<bool>(
-                      key: Key('game-tutorial-for-students'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      value: false,
-                      title: Text('For students'),
-                      subtitle: Text('Asks for the best move at each mistake'),
-                    ),
-                    RadioListTile<bool>(
-                      key: Key('game-tutorial-for-video'),
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      value: true,
-                      title: Text('For a video'),
-                      subtitle: Text('Shows every moment and asks nothing'),
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               option('game-tutorial-key-moments', 'Key moments',

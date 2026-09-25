@@ -37,7 +37,7 @@ test('five shelves, by the names the API uses', () => {
   assert.equal(typeof lib.listRecordings, 'function');
 });
 
-test('a tutorial is a saved lesson with parts, read through acceptedTrainersOf', async () => {
+test("a tutorial is a saved lesson with parts, and only the account's own", async () => {
   const pool = stubPool([[{
     id: 7, title: 'Sicilian: the Najdorf', fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
     parts_count: 6, has_video: true, render_job_id: null, language: 'en',
@@ -49,7 +49,10 @@ test('a tutorial is a saved lesson with parts, read through acceptedTrainersOf',
   assert.match(text, /FROM saved_lessons/);
   assert.match(text, /position_list IS NOT NULL/, 'a saved position (no parts) is not a tutorial');
   assert.match(text, /jsonb_array_length\(position_list\) AS parts_count/);
-  assert.match(text, /status = 'accepted'/, 'read through acceptedTrainersOf, not a fifth copy of the condition');
+  // A trainer's tutorial reaches their student as its film, sent to them —
+  // never on the student's shelf (docs/PLAN-TUTORIJAL-VIDEO.md, D6).
+  assert.match(text, /\(user_id = \$1 OR trainer_id = \$1\)/, "the account's own tutorials");
+  assert.doesNotMatch(text, /trainer_students|status = 'accepted'/, "no trainer of the reader's is asked about");
   assert.deepEqual(params, [5]);
   assert.equal(rows.length, 1);
   const row = rows[0];

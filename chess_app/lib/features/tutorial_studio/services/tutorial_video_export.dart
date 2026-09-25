@@ -334,8 +334,7 @@ bool _hasSomethingToShow(TutorialDraft draft) {
     return root.children.isNotEmpty ||
         root.comment.trim().isNotEmpty ||
         root.arrows.isNotEmpty ||
-        root.squares.isNotEmpty ||
-        (section.instruction?.trim().isNotEmpty ?? false);
+        root.squares.isNotEmpty;
   });
 }
 

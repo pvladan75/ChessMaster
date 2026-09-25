@@ -1,24 +1,22 @@
-// lessonSteps.js — what a lesson step is allowed to be.
+// lessonSteps.js — what a tutorial's part is allowed to be.
 //
 // Kept out of the route so it can be tested without a server or a database:
-// this is the point where a position from somewhere else becomes a step, and
-// two things have to survive that crossing (the task and the solution) while
-// everything else must not sneak in.
+// this is the point where a position from somewhere else becomes a part.
+//
+// **Every part shows** (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4): a position, a
+// line, and what is said and drawn on it. A tutorial is material for a film,
+// and a question for a student is an exercise — so the task, the solution, the
+// accepted moves and the offered answers a part used to carry are neither
+// accepted nor stored.
 
 const crypto = require('crypto');
 const { Chess } = require('chess.js');
 
 const MAX_TITLE = 200;
-const MAX_INSTRUCTION = 500;
-const MAX_SAN = 20;
-const MAX_CHOICE_TEXT = 200;
 const MAX_PGN = 100000;
-const MAX_ACCEPTED = 6;
-const MIN_CHOICES = 2;
-const MAX_CHOICES = 4;
 
-/// What a step may ask. An absent kind means `show`; see [buildLessonStep].
-const KINDS = ['show', 'ask_move', 'ask_choice'];
+/// What a part may be. An absent kind means `show`, and `show` is all there is.
+const KINDS = ['show'];
 
 /// What a step id may look like. Kept narrow because this value becomes a
 /// database key (`step_key VARCHAR(16)`) and travels in a URL.
@@ -83,7 +81,6 @@ function buildLessonStep(step) {
   // (`docs/audit/contract.md`, 9); refusing prose too was the owner's decision
   // the same day, replacing the older rule that a pasted paragraph is cut.
   const tooLong = overLimit(step.title, MAX_TITLE, 'The title')
-    ?? overLimit(step.instruction, MAX_INSTRUCTION, 'The task')
     ?? overLimit(step.pgn, MAX_PGN, 'The line');
   if (tooLong) {
     return { ok: false, status: 400, error: tooLong };
@@ -112,165 +109,21 @@ function buildLessonStep(step) {
     entry.blackOrientation = step.blackOrientation;
   }
 
-  // The task travels with the position. A step without one is a board with no
-  // question on it, which is the oldest complaint about this feature.
-  const instruction = text(step.instruction, MAX_INSTRUCTION);
-  if (instruction) entry.instruction = instruction;
-
-  // What the step asks, if it asks anything.
-  //
-  // An absent kind is `show`, which is what every lesson stored before this
-  // existed is — so the whole back catalogue is already valid and no migration
-  // was needed. An *unknown* kind is refused rather than treated as `show`:
-  // falling back would turn a typo in the editor into a step that silently
-  // stops asking the child anything, and the trainer would watch their question
-  // disappear with no error.
+  // Only `show`. An absent kind is `show`, which is what every part stored
+  // before kinds existed is. A part that asks — `ask_move`, `ask_choice` — is
+  // refused with the reason, not stored as a show part: a trainer whose
+  // question silently turned into a picture would never know it had.
   const kind = step.kind === undefined || step.kind === null ? 'show' : step.kind;
   if (!KINDS.includes(kind)) {
-    return { ok: false, status: 400, error: 'A step can be a display, a move question, or a multiple-choice question.' };
+    return {
+      ok: false,
+      status: 400,
+      error: 'A part only shows a position and a line; a question is an exercise.',
+    };
   }
   entry.kind = kind;
 
-  // The solution travels on **any** step, and is required only where something
-  // is asked. It is a property of the position rather than of the question: a
-  // position scanned out of a book carries the move the author printed, and
-  // every step the course builder makes from the library has had one since
-  // before kinds existed.
-  //
-  // An earlier draft of this contract dropped it from `show` steps, on the
-  // reasoning that an answer nothing judges is also an answer nothing redacts.
-  // The second half is false — [redactStepForStudent] takes it out whatever the
-  // kind — and the first half would have deleted a scanned move the next time a
-  // trainer saved an old lesson. The test that said otherwise was the lead's
-  // and was wrong; `lesson_steps.test.js` had it right since the day it was
-  // written.
-  if (kind === 'ask_move') {
-    const built = buildMoveAnswer(fen, step);
-    if (!built.ok) return built;
-    entry.solutionSan = built.solutionSan;
-    if (built.acceptedSans.length > 0) entry.acceptedSans = built.acceptedSans;
-  } else {
-    const solutionSan = text(step.solutionSan, MAX_SAN);
-    if (solutionSan) entry.solutionSan = solutionSan;
-  }
-
-  // Choices are different, and are gated: they have no meaning at all without a
-  // question, and a step carrying options nobody is ever shown is a step whose
-  // author thinks they asked something.
-  if (kind === 'ask_choice') {
-    const built = buildChoices(step.choices);
-    if (!built.ok) return built;
-    entry.choices = built.choices;
-  }
-
   return { ok: true, entry };
-}
-
-/// The answer to an `ask_move` step: the author's move, and the others that are
-/// also right.
-///
-/// Refuses rather than repairs, like the position does. A step with no solution
-/// is a board on which every answer is wrong — the same refusal `canAssign` in
-/// `customPuzzleJudge.js` already makes, and the scanner can produce exactly
-/// that row, since `solution_san` is null when the printed move did not verify.
-function buildMoveAnswer(fen, step) {
-  const sanTooLong = overLimit(step.solutionSan, MAX_SAN, 'The solution')
-    ?? (Array.isArray(step.acceptedSans)
-      ? step.acceptedSans.map((san) => overLimit(san, MAX_SAN, 'A correct move')).find(Boolean)
-      : null);
-  if (sanTooLong) {
-    return { ok: false, status: 400, error: sanTooLong };
-  }
-  const solutionSan = text(step.solutionSan, MAX_SAN);
-  if (!solutionSan) {
-    return { ok: false, status: 400, error: 'A move question must have a solution.' };
-  }
-  if (!playsIn(fen, solutionSan)) {
-    return { ok: false, status: 422, error: `The solution "${solutionSan}" cannot be played in this position.` };
-  }
-
-  const raw = Array.isArray(step.acceptedSans) ? step.acceptedSans : [];
-  if (raw.length > MAX_ACCEPTED) {
-    return { ok: false, status: 400, error: `At most ${MAX_ACCEPTED} additional correct moves.` };
-  }
-
-  const acceptedSans = [];
-  for (const value of raw) {
-    const san = text(value, MAX_SAN);
-    if (!san) continue;
-    // The same right answer written twice is not a mistake about chess, so it
-    // is dropped rather than refused. A move that cannot be played is a mistake
-    // about chess, and the refusal names it — otherwise a child finds it by
-    // being told „netačno" for a move their trainer believed was accepted.
-    if (bare(san) === bare(solutionSan) || acceptedSans.some((a) => bare(a) === bare(san))) continue;
-    if (!playsIn(fen, san)) {
-      return { ok: false, status: 422, error: `The move "${san}" cannot be played in this position.` };
-    }
-    acceptedSans.push(san);
-  }
-
-  return { ok: true, solutionSan, acceptedSans };
-}
-
-/// The options of an `ask_choice` step.
-///
-/// Two to four, exactly one of them right. Both ways of getting that wrong fail
-/// differently on screen and both are refused: none correct is a question no
-/// child can pass, two correct is a question that calls a right answer wrong.
-/// One correct answer in v1 — a trainer who wants two writes two steps.
-function buildChoices(value) {
-  if (!Array.isArray(value) || value.length < MIN_CHOICES || value.length > MAX_CHOICES) {
-    return { ok: false, status: 400, error: `The question must have between ${MIN_CHOICES} and ${MAX_CHOICES} choices.` };
-  }
-
-  const choices = [];
-  for (const raw of value) {
-    const tooLong = overLimit(raw && raw.text, MAX_CHOICE_TEXT, 'A choice');
-    if (tooLong) {
-      return { ok: false, status: 400, error: tooLong };
-    }
-    const body = text(raw && raw.text, MAX_CHOICE_TEXT);
-    if (!body) {
-      return { ok: false, status: 400, error: 'Each choice must have text.' };
-    }
-    choices.push({ text: body, correct: raw.correct === true });
-  }
-
-  if (choices.filter((c) => c.correct).length !== 1) {
-    return { ok: false, status: 400, error: 'Exactly one choice must be correct.' };
-  }
-
-  return { ok: true, choices };
-}
-
-function playsIn(fen, san) {
-  try {
-    return Boolean(new Chess(fen).move(san));
-  } catch {
-    return false;
-  }
-}
-
-/// Strips the decoration SAN carries, so `Qf1#` and `Qf1` compare equal.
-function bare(san) {
-  return String(san || '').trim().replace(/[+#!?]+$/g, '');
-}
-
-/// The step as the **student** may see it.
-///
-/// `POST /assignments/:id/custom-attempt` already states the rule this keeps:
-/// „the move is judged on the server because the answer lives there: sending
-/// the solution to the client so it could mark its own work would hand the
-/// student the very thing being asked of them."
-///
-/// So the answer is taken out here, once, and every reader that serves a
-/// student goes through it. A `show` step has no answer to take out and comes
-/// back untouched.
-function redactStepForStudent(step) {
-  if (!step || typeof step !== 'object') return step;
-  const { solutionSan, acceptedSans, choices, ...rest } = step;
-  if (!Array.isArray(choices)) return rest;
-  return { ...rest, choices: choices.map(({ text: body }) => ({ text: body })) };
 }
 
 /// The trimmed text, or null when there is none. Every field is measured by
@@ -402,7 +255,6 @@ function safeParse(text) {
 
 module.exports = {
   buildLessonStep,
-  redactStepForStudent,
   KINDS,
   buildLessonSteps,
   stepsOfLesson,
@@ -410,6 +262,4 @@ module.exports = {
   generateStepId,
   STEP_ID_PATTERN,
   MAX_TITLE,
-  MAX_INSTRUCTION,
-  MAX_SAN,
 };

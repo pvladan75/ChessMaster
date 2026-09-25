@@ -17,8 +17,7 @@ const STRONG_THEME_ACCURACY = 70;
 const WEAK_THEME_ACCURACY = 50;
 const { assignableProblem, exerciseColumns } = require('./exercise');
 const { trainableThemes } = require('./puzzleSelectionService');
-const { ensureItem: ensureReviewItem } = require('./spacedRepetitionService');
-const { stepsOfLesson, redactStepForStudent } = require('./lessonSteps');
+const { filmColumns, filmOf, filmFacts, noFilmReason } = require('./tutorialFilm');
 const homework = require('./homeworkService');
 const { judgeEngineGame, goalMetByTablebase } = require('./engineGameTask');
 
@@ -208,13 +207,14 @@ async function createPuzzleAssignment(pool, {
   }
 }
 
-/// Reads a lesson the trainer is allowed to assign, with its steps.
+/// Reads a tutorial the trainer is allowed to send, with its film.
 ///
-/// A lesson saved as a single position has no `position_list`; it is treated as
-/// a one-step lesson so both shapes assign the same way.
+/// `film` is null when there is none to give — never rendered, or its file is
+/// gone. docs/PLAN-TUTORIJAL-VIDEO.md: a tutorial reaches a student only as its
+/// film, so every door that sends one asks this first.
 async function loadAssignableLesson(pool, trainerId, lessonId) {
   const result = await pool.query(
-    `SELECT id, title, fen, pgn, position_list
+    `SELECT id, title, ${filmColumns()}
      FROM saved_lessons
      WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)`,
     [lessonId, trainerId]
@@ -222,22 +222,15 @@ async function loadAssignableLesson(pool, trainerId, lessonId) {
   if (result.rows.length === 0) return null;
 
   const lesson = result.rows[0];
-  const steps = stepsOfLesson({
-    positionList: lesson.position_list,
-    title: lesson.title,
-    fen: lesson.fen,
-    pgn: lesson.pgn,
-  });
-
-  return { ...lesson, steps };
+  return { id: lesson.id, title: lesson.title, film: filmOf(lesson) };
 }
 
-/// Assigns one of the trainer's own lessons as homework.
+/// Sends one of the trainer's own tutorials — its film — to a student.
 ///
-/// The steps are copied into assignment_items at creation time, like puzzles
-/// are: if the trainer later edits the lesson, the assignment still records what
-/// was actually set, and a step count that shifts underneath a half-finished
-/// assignment would make progress meaningless.
+/// **One item, not one per part** (docs/PLAN-TUTORIJAL-VIDEO.md, phase 2): the
+/// student has one thing to do, download the film, and the item's
+/// `attempted_at` is the moment they did. The film is the tutorial's current
+/// one (plan D1); a tutorial without a film is refused (D5).
 async function createLessonAssignment(pool, {
   trainerId, studentId, lessonId, title, instructions, dueAt,
 }) {
@@ -249,8 +242,8 @@ async function createLessonAssignment(pool, {
   if (!lesson) {
     return { ok: false, reason: 'Tutorial not found or is not yours.' };
   }
-  if (lesson.steps.length === 0) {
-    return { ok: false, reason: 'Tutorial has no steps.' };
+  if (!lesson.film) {
+    return { ok: false, status: 422, reason: noFilmReason(lesson.title) };
   }
 
   const client = await pool.connect();
@@ -266,31 +259,17 @@ async function createLessonAssignment(pool, {
     );
     const assignment = assignmentRes.rows[0];
 
-    // `position` orders the items; `step_key` says which step each one *is*.
-    //
-    // Both are written because they answer different questions, and the second
-    // one is what bridges this assignment to the lesson's schedule. Before it,
-    // that bridge was an index into a snapshot used as an index into the live
-    // lesson — so a trainer editing the lesson re-aimed a child's enrolment at
-    // a different board without anything failing.
-    const values = [];
-    const tuples = lesson.steps.map((step, index) => {
-      const base = index * 3;
-      values.push(assignment.id, index, step.id);
-      return `($${base + 1}, $${base + 2}, $${base + 3})`;
-    });
-
     await client.query(
-      `INSERT INTO assignment_items (assignment_id, position, step_key) VALUES ${tuples.join(', ')}`,
-      values
+      'INSERT INTO assignment_items (assignment_id, position) VALUES ($1, 0)',
+      [assignment.id]
     );
 
     await client.query('COMMIT');
     logger.info(
-      { trainerId, studentId, assignmentId: assignment.id, lessonId, steps: lesson.steps.length },
-      'Lesson assignment created'
+      { trainerId, studentId, assignmentId: assignment.id, lessonId },
+      'Tutorial video sent'
     );
-    return { ok: true, assignment: { ...assignment, itemCount: lesson.steps.length } };
+    return { ok: true, assignment: { ...assignment, itemCount: 1 } };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -299,12 +278,33 @@ async function createLessonAssignment(pool, {
   }
 }
 
-/// Marks one step of a lesson assignment as reviewed.
+/// The film of a student's own tutorial assignment, or null when [assignmentId]
+/// is not a tutorial assignment of [studentId]'s. `film` inside is null when
+/// the tutorial is gone or has no film on disk.
 ///
-/// `solved` stays null: stepping through a lesson has no right answer, and
-/// recording it as "solved" would feed a meaningless accuracy figure into the
-/// student's report.
-async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
+/// One query answers both „is this yours" and „which file": the link route and
+/// the download route must never disagree about either.
+async function videoOfAssignment(pool, { assignmentId, studentId }) {
+  const result = await pool.query(
+    `SELECT a.id, a.title, ${filmColumns('l')}
+       FROM assignments a
+       LEFT JOIN saved_lessons l ON l.id = a.lesson_id
+      WHERE a.id = $1 AND a.student_id = $2 AND a.kind = 'lesson'`,
+    [assignmentId, studentId]
+  );
+  if (result.rows.length === 0) return null;
+  const row = result.rows[0];
+  return { assignmentId: row.id, title: row.title, film: filmOf(row) };
+}
+
+/// Records that the student downloaded their tutorial's film — the first time
+/// only (plan D3), which is also the moment the assignment is done.
+///
+/// Called by the download route once the file's last byte has gone out; the
+/// route decides *that*, this writes it. Returns whether anything was written:
+/// a second download, somebody else's assignment and a locked item all write
+/// nothing.
+async function recordVideoDownload(pool, { studentId, assignmentId }) {
   const result = await pool.query(
     `UPDATE assignment_items ai
      SET attempted_at = CURRENT_TIMESTAMP
@@ -313,112 +313,12 @@ async function markLessonStepDone(pool, { studentId, assignmentId, position }) {
        AND a.id = $1
        AND a.student_id = $2
        AND a.kind = 'lesson'
-       AND ai.position = $3
        AND ai.attempted_at IS NULL
        AND ${NOT_LOCKED}
-     RETURNING ai.id, ai.step_key, a.lesson_id`,
-    [assignmentId, studentId, position]
+     RETURNING ai.id`,
+    [assignmentId, studentId]
   );
-
   if (result.rows.length === 0) return false;
-
-  // Reading a step enrols it for review. Without this the schedule would only
-  // ever fill from grading, and nothing would be there to grade — the student
-  // would have to seek out a review session for material it does not yet hold.
-  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
-  if (lessonId && stepKey) {
-    try {
-      // Enrolled by the step's own name, not by where it sat in this
-      // assignment. The item was a snapshot taken when the homework was set;
-      // the schedule belongs to the lesson, which the trainer may have edited
-      // since. Only the key survives both.
-      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
-    } catch (err) {
-      // Enrolment is a bonus on top of marking homework; failing it must not
-      // undo the step the student just completed.
-      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
-    }
-  }
-
-  await markCompleteIfDone(pool, assignmentId);
-  return true;
-}
-
-/// Records what a student answered on one step of a lesson, and how it went.
-///
-/// The verdict is the caller's — the route judges, because the answer lives on
-/// the server and never travels to the client. This writes it down.
-///
-/// `played_san` is the move as the board understood it rather than as the
-/// client spelled it, and is null for a choice step, where there is no move.
-async function recordLessonStepAnswer(pool, {
-  studentId, assignmentId, position, correct, playedSan = null,
-}) {
-  const result = await pool.query(
-    `UPDATE assignment_items ai
-     SET attempted_at = COALESCE(ai.attempted_at, CURRENT_TIMESTAMP),
-         solved = $4,
-         played_san = COALESCE($5, ai.played_san)
-     FROM assignments a
-     WHERE ai.assignment_id = a.id
-       AND a.id = $1
-       AND a.student_id = $2
-       AND a.kind = 'lesson'
-       AND ai.position = $3
-       AND ${NOT_LOCKED}
-     RETURNING ai.id, ai.step_key, a.lesson_id`,
-    [assignmentId, studentId, position, correct === true, playedSan]
-  );
-
-  if (result.rows.length === 0) return false;
-
-  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
-  if (lessonId && stepKey) {
-    try {
-      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
-    } catch (err) {
-      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
-    }
-  }
-
-  await markCompleteIfDone(pool, assignmentId);
-  return true;
-}
-
-/// Marks that the student asked to be shown the answer.
-///
-/// Not recorded as a wrong answer: „rešenje otkriveno" and „netačno" are
-/// different facts about a child, and the trainer reading the review needs to
-/// tell them apart. The step still counts as done — the escape exists so a
-/// stuck child can finish — and it still enrols for review, arguably more than
-/// a solved one would.
-async function revealLessonStep(pool, { studentId, assignmentId, position }) {
-  const result = await pool.query(
-    `UPDATE assignment_items ai
-     SET revealed_at = COALESCE(ai.revealed_at, CURRENT_TIMESTAMP),
-         attempted_at = COALESCE(ai.attempted_at, CURRENT_TIMESTAMP)
-     FROM assignments a
-     WHERE ai.assignment_id = a.id
-       AND a.id = $1
-       AND a.student_id = $2
-       AND a.kind = 'lesson'
-       AND ai.position = $3
-       AND ${NOT_LOCKED}
-     RETURNING ai.id, ai.step_key, a.lesson_id`,
-    [assignmentId, studentId, position]
-  );
-
-  if (result.rows.length === 0) return false;
-
-  const { lesson_id: lessonId, step_key: stepKey } = result.rows[0];
-  if (lessonId && stepKey) {
-    try {
-      await ensureReviewItem(pool, { userId: studentId, lessonId, stepKey, position });
-    } catch (err) {
-      logger.error({ studentId, lessonId, stepKey }, `Review enrolment failed: ${err.message}`);
-    }
-  }
-
   await markCompleteIfDone(pool, assignmentId);
   return true;
 }
@@ -443,9 +343,9 @@ async function markCompleteIfDone(pool, assignmentId) {
             SELECT 1 FROM assignment_items
             WHERE assignment_id = $1 AND attempted_at IS NULL
           )
-       RETURNING id, trainer_id, student_id, title, parent_id
+       RETURNING id, trainer_id, student_id, title, parent_id, kind
      )
-     SELECT f.id, f.trainer_id, f.title, f.parent_id, u.name AS student_name
+     SELECT f.id, f.trainer_id, f.title, f.parent_id, f.kind, u.name AS student_name
        FROM finished f LEFT JOIN users u ON u.id = f.student_id`,
     [assignmentId]
   );
@@ -459,11 +359,16 @@ async function markCompleteIfDone(pool, assignmentId) {
     await homework.markHomeworkCompleteIfDone(pool, row.parent_id);
     return row;
   }
+  // A tutorial is done when its film is downloaded, and that is all the
+  // trainer can be told — never that it was watched (plan D3).
+  const video = row.kind === 'lesson';
   await notify(pool, {
     recipientId: row.trainer_id,
     senderId: row.student_id,
-    title: 'Assignment completed',
-    message: `${row.student_name || 'Student'} completed the assignment: ${row.title}`,
+    title: video ? 'Video downloaded' : 'Assignment completed',
+    message: video
+      ? `${row.student_name || 'Student'} downloaded the video: ${row.title}`
+      : `${row.student_name || 'Student'} completed the assignment: ${row.title}`,
     kind: 'assignment_done',
     refId: row.id,
   });
@@ -888,46 +793,23 @@ async function getAssignmentDetail(pool, assignmentId, userId, { tablebase } = {
     [assignmentId]
   );
 
-  // A lesson assignment carries its board positions inline, so the student's
-  // viewer needs one request rather than a second lookup against a lesson they
-  // may not otherwise be allowed to read.
-  let steps = null;
-  // The language the tutorial is written in, so the student's screen reads it
-  // with a voice for that language (docs/PLAN-JEZIK-GLASA.md). **This is the
-  // route that decides whether that feature reaches the reader it is for** —
-  // the trainer's own list carrying the column proves nothing about it. Null
-  // when the tutorial has not said, and for anything that is not a tutorial.
-  let lessonLanguage = null;
-  if (assignment.kind === 'lesson' && assignment.lesson_id) {
-    const lessonRes = await pool.query(
-      'SELECT title, fen, pgn, position_list, language FROM saved_lessons WHERE id = $1',
-      [assignment.lesson_id]
-    );
-    const lesson = lessonRes.rows[0];
-    if (lesson) {
-      lessonLanguage = lesson.language ?? null;
-      steps = stepsOfLesson({
-        positionList: lesson.position_list,
-        title: lesson.title,
-        fen: lesson.fen,
-        pgn: lesson.pgn,
-      });
-
-      // The student gets the question; the trainer who set it gets the answer.
-      //
-      // The same rule the custom-position block below already keeps, and it has
-      // to be applied here too now that a step can *ask* something: sending the
-      // solution so the client could mark its own work would hand the student
-      // the very thing being asked of them.
-      if (assignment.student_id === userId && assignment.trainer_id !== userId) {
-        steps = steps.map(redactStepForStudent);
-      }
-    }
+  // A tutorial assignment carries what its film is — never a part, a line or
+  // a file name (docs/PLAN-TUTORIJAL-VIDEO.md). The link is its own request,
+  // signed for the student (`GET /assignments/:id/video`).
+  let video = null;
+  if (assignment.kind === 'lesson') {
+    const found = assignment.lesson_id
+      ? await pool.query(
+        `SELECT ${filmColumns()} FROM saved_lessons WHERE id = $1`,
+        [assignment.lesson_id]
+      )
+      : { rows: [] };
+    video = filmFacts(filmOf(found.rows[0]));
   }
 
   const customPositions = await loadCustomPositions(pool, items.rows);
 
-  return { ...assignment, items: items.rows, steps, customPositions, lessonLanguage };
+  return { ...assignment, items: items.rows, video, customPositions };
 }
 
 /// The trainer's own positions among an assignment's items, or null when there
@@ -1082,9 +964,8 @@ module.exports = {
   createCustomAssignment,
   loadAssignableLesson,
   createLessonAssignment,
-  markLessonStepDone,
-  recordLessonStepAnswer,
-  revealLessonStep,
+  videoOfAssignment,
+  recordVideoDownload,
   markCompleteIfDone,
   recordPuzzleResult,
   recordEngineGameResult,

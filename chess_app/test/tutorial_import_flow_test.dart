@@ -50,18 +50,26 @@ String cleanFile({String title = 'The opposition', String? tags}) =>
         {
           'title': 'Deo 2',
           'fen': _rook,
-          'kind': 'ask_move',
-          'instruction': 'Find the best move.',
-          'solutionSan': 'Ra8+',
+          'kind': 'show',
+          'pgn': '{ The rook takes the back rank. }\n1. Ra8+ *',
         },
       ],
     });
 
-/// One the server would refuse: the solution cannot be played.
+/// One the server would refuse: its third part asks a question, and a tutorial
+/// only shows (docs/PLAN-TUTORIJAL-VIDEO.md, D11). The two before it are
+/// fine, so the refusal has to say which part it means.
 String refusedFile() => jsonEncode({
-      'title': 'Broken question',
+      'title': 'Asks a question',
       'positionList': [
-        {'fen': _rook, 'kind': 'ask_move', 'solutionSan': 'Qe5+'},
+        {'fen': _start, 'kind': 'show', 'pgn': '1. e4 *'},
+        {'fen': _rook, 'kind': 'show'},
+        {
+          'fen': _rook,
+          'kind': 'ask_move',
+          'instruction': 'Find the best move.',
+          'solutionSan': 'Ra8+',
+        },
       ],
     });
 
@@ -299,6 +307,9 @@ void main() {
       );
 
       expect(find.text('Save 1 to the library'), findsOneWidget);
+      expect(find.textContaining('Part 3:'), findsOneWidget,
+          reason: 'the part that asks is named');
+      expect(find.textContaining('a tutorial only shows'), findsOneWidget);
       await tester.tap(find.byKey(const Key('import-save')));
       await tester.pumpAndSettle();
 
@@ -370,7 +381,7 @@ void main() {
       expect(api.posted.length, 1);
       expect(api.posted.single['title'], 'Good');
       expect(outcomes.first.saved, isFalse);
-      expect(outcomes.first.error, contains('cannot be played'));
+      expect(outcomes.first.error, contains('a tutorial only shows'));
       expect(outcomes.last.saved, isTrue);
       expect(outcomes.last.lessonId, 31);
     });

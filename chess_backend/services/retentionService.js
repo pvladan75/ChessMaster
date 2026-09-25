@@ -9,8 +9,29 @@ const DEFAULT_MAX_AGE_DAYS = 14;
 /// underlying recording and can always be regenerated on demand — unlike the
 /// audio in uploads/, which is the only copy of a lesson's voice — so only the
 /// exports directory is subject to automatic cleanup. uploads/ is left alone.
+///
+/// **Except a tutorial's current film** (docs/PLAN-TUTORIJAL-VIDEO.md, D2).
+/// A tutorial is sent to a student *as* its film, so a film aged out after a
+/// fortnight is a video a student was sent and can no longer download. It
+/// goes when its tutorial is deleted or a new export replaces it, never on a
+/// timer. Recording exports and files no row names still age out.
 async function cleanupOldExports(pool, { dir = EXPORTS_DIR, maxAgeDays = DEFAULT_MAX_AGE_DAYS } = {}) {
   if (!fs.existsSync(dir)) return { deleted: 0, freedBytes: 0 };
+
+  // Asked first, and a failure stops the sweep: deleting while not knowing
+  // which films are kept would delete exactly the ones this rule protects.
+  let kept = new Set();
+  if (pool) {
+    try {
+      const named = await pool.query(
+        'SELECT video_filename FROM saved_lessons WHERE video_filename IS NOT NULL'
+      );
+      kept = new Set(named.rows.map((row) => path.basename(String(row.video_filename))));
+    } catch (err) {
+      logger.error(`[RETENTION] Could not read which tutorial films are kept; nothing deleted: ${err.message}`);
+      return { deleted: 0, freedBytes: 0 };
+    }
+  }
 
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
   let deleted = 0;
@@ -26,6 +47,7 @@ async function cleanupOldExports(pool, { dir = EXPORTS_DIR, maxAgeDays = DEFAULT
       continue; // deleted between readdir and stat — nothing to do
     }
     if (!stats.isFile() || stats.mtimeMs > cutoff) continue;
+    if (kept.has(filename)) continue;
 
     try {
       fs.unlinkSync(filePath);

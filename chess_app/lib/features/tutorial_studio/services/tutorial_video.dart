@@ -29,8 +29,6 @@ import 'dart:math' as math;
 import 'package:crypto/crypto.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_beat.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/move_tree.dart';
@@ -83,8 +81,7 @@ List<FilmBeat> filmBeatsOf(TutorialDraft draft) {
       stops.add((
         section: section,
         beat: beats[i],
-        caption:
-            _captionOf(section, beats[i], isLastBeat: i == beats.length - 1),
+        caption: beats[i].node.comment.trim(),
       ));
     }
   }
@@ -299,25 +296,6 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
   }
 
   return (events: events, seconds: atMs ~/ 1000);
-}
-
-/// What is written under the board on this beat.
-///
-/// Two things can be there and they are not the same thing: what the trainer
-/// wrote *about this position*, and — on the last beat of a part that asks —
-/// the task itself. Both, in that order, when both exist.
-String _captionOf(
-  TutorialSection section,
-  TutorialBeat beat, {
-  required bool isLastBeat,
-}) {
-  final written = beat.node.comment.trim();
-  final asks = section.kind != LessonStepKind.show;
-  final task = section.instruction?.trim() ?? '';
-
-  if (!isLastBeat || !asks || task.isEmpty) return written;
-  if (written.isEmpty) return task;
-  return '$written\n$task';
 }
 
 /// The squares a move came from and went to, for the highlight the renderer

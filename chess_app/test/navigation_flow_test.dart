@@ -13,7 +13,6 @@ import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/features/assignments/screens/my_assignments_screen.dart';
 import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
 import 'package:chess_app/features/assignments/screens/student_progress_screen.dart';
-import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/screens/settings_screen.dart';
@@ -77,7 +76,6 @@ void main() {
       AppRoutes.training: TrainingHubScreen,
       // The assignment branch, which had no paths at all until now.
       AppRoutes.assignments: MyAssignmentsScreen,
-      AppRoutes.review: ReviewSessionScreen,
       AppRoutes.studentProgressPath(7, name: 'Marko'): StudentProgressScreen,
       // All three of the ones that used to be a field on one screen's state.
       // `basic_mate` was left out while its preset loader waited on a pair of

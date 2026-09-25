@@ -10,7 +10,6 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/pgn_game_import.dart';
-import 'package:chess_app/features/tutorial_studio/services/pgn_question_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import_save.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_import_dialog.dart';
@@ -196,21 +195,10 @@ class TutorialLibraryCard extends StatelessWidget {
     // Which reader a file gets is decided by what is in it, not by this screen:
     // a tutorial written outside the app is JSON, a game is PGN, and one PGN
     // file can hold many games and therefore many tutorials.
-    var read = [
+    final read = [
       for (final file in picked)
         ...tutorialsFromFile(name: file.name, text: file.text),
     ];
-
-    // Only where „Review entire game" left something to ask about, so an
-    // ordinary import never meets this question.
-    final questions = read.fold(0, (sum, t) => sum + questionsAvailableIn(t));
-    if (questions > 0) {
-      final make = await showBlunderQuestionsDialog(context, questions);
-      if (!context.mounted) return;
-      if (make) {
-        read = [for (final t in read) withQuestionsFromBlunders(t)];
-      }
-    }
 
     final choice = await showTutorialImportDialog(context, read);
     if (!context.mounted || choice == null) return;

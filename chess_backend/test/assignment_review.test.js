@@ -9,7 +9,6 @@ const {
   buildReview,
   mayRevealSolution,
   shapeItem,
-  stepsByPosition,
   lineToSan,
 } = require('../services/assignmentReview');
 const { addNote, deleteNote } = require('../services/assignmentNotes');
@@ -127,24 +126,29 @@ test('a move nobody recorded stays unknown rather than becoming empty', () => {
   assert.equal(item.playedSan, null);
 });
 
-test('a lesson step is read, not solved, and never reports as wrong', () => {
-  const item = shapeItem(
-    {
-      id: 3,
-      position: 1,
-      puzzle_id: null,
-      solved: null,
-      ms_taken: null,
-      played_san: null,
-      attempted_at: '2026-08-20T09:00:00Z',
-    },
-    { isTrainer: true, step: { title: 'Vezivanje', fen: 'fen', instruction: 'Pogledaj' } }
-  );
+test("a tutorial's film is downloaded, never solved, and says when", () => {
+  // docs/PLAN-TUTORIJAL-VIDEO.md, D3: the download is all anybody can know.
+  const row = {
+    id: 3,
+    position: 0,
+    puzzle_id: null,
+    solved: null,
+    ms_taken: null,
+    played_san: null,
+    attempted_at: '2026-09-25T09:00:00Z',
+  };
+  const downloaded = shapeItem(row, { isTrainer: true, video: { title: 'Broken pawns' } });
 
-  assert.equal(item.kind, 'step');
-  assert.equal(item.solved, null, 'a step that was read is not a wrong answer');
-  assert.equal(item.title, 'Vezivanje');
-  assert.equal(item.instruction, 'Pogledaj');
+  assert.equal(downloaded.kind, 'video');
+  assert.equal(downloaded.solved, null, 'a film downloaded is not an answer');
+  assert.equal(downloaded.title, 'Broken pawns');
+  assert.equal(downloaded.downloadedAt, '2026-09-25T09:00:00Z');
+  assert.equal(downloaded.fen, null);
+
+  const waiting = shapeItem({ ...row, attempted_at: null }, { isTrainer: true, video: { title: 'Broken pawns' } });
+  assert.equal(waiting.kind, 'video');
+  assert.equal(waiting.downloadedAt, null);
+  assert.equal(waiting.attempted, false);
 });
 
 test('a Lichess item carries its line, once it may be shown', () => {
@@ -190,16 +194,6 @@ test('an item whose puzzle is gone still shows the attempt', () => {
   assert.equal(item.kind, 'unknown');
   assert.equal(item.solved, true);
   assert.equal(item.fen, null);
-});
-
-test('steps survive being stored as text as well as as a list', () => {
-  const asList = stepsByPosition([{ title: 'A' }, { title: 'B' }]);
-  const asText = stepsByPosition('[{"title":"A"},{"title":"B"}]');
-
-  assert.equal(asList.get(1).title, 'B');
-  assert.equal(asText.get(1).title, 'B');
-  assert.equal(stepsByPosition('not json').size, 0);
-  assert.equal(stepsByPosition(null).size, 0);
 });
 
 test('someone who is neither side gets nothing back', async () => {
@@ -348,50 +342,24 @@ test('a note names the other side, so they can be told about it', async () => {
 });
 
 
-test('a lesson saved as a single position still shows its board', async () => {
-  // Seen live on 20.8.2026: the trainer opened "Pregled i komentari" on a
-  // one-position lesson and got "Pozicija 1" over an empty square reading
-  // "tabla nije dostupna". Nothing had failed — this screen was the one of four
-  // readers that looked only at `position_list`, which such a lesson does not
-  // have.
-  const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
+test('a tutorial assignment is reviewed as its film, and no part of the tutorial is read', async () => {
+  // The review used to read the tutorial's parts to put a board beside each
+  // item. A tutorial is sent as its film now (docs/PLAN-TUTORIJAL-VIDEO.md):
+  // one item, titled as it was sent, and nothing asked of `saved_lessons`.
   const pool = stubPool([
-    [{ id: 7, trainer_id: 5, student_id: 9, kind: 'lesson', lesson_id: 3, title: 'poyicija 1' }],
-    [{ id: 11, position: 0, puzzle_id: null, attempted_at: null, solved: null }],
-    [{ title: 'pozicija 1', fen: FEN, pgn: null, position_list: null }],
+    [{ id: 7, trainer_id: 5, student_id: 9, kind: 'lesson', lesson_id: 3, title: 'Broken pawns' }],
+    [{ id: 11, position: 0, puzzle_id: null, attempted_at: '2026-09-25T10:00:00Z', solved: null }],
     [],
   ]);
 
   const review = await buildReview(pool, 7, 5);
 
   assert.equal(review.items.length, 1);
-  assert.equal(review.items[0].kind, 'step');
-  assert.equal(review.items[0].fen, FEN, 'the board the child was shown');
-  assert.equal(review.items[0].title, 'pozicija 1');
-
-  // And the lesson is read with the columns that carry it.
-  assert.match(pool.calls[2].text, /SELECT title, fen, pgn, position_list/);
-});
-
-test('a lesson with real steps still reads them, not its own board', async () => {
-  const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
-  const STEP_FEN = '8/8/8/8/8/5k2/6q1/7K b - - 0 1';
-  const pool = stubPool([
-    [{ id: 7, trainer_id: 5, student_id: 9, kind: 'lesson', lesson_id: 3, title: 'lekcija' }],
-    [{ id: 11, position: 1, puzzle_id: null, attempted_at: null, solved: null }],
-    [{
-      title: 'lekcija',
-      fen: FEN,
-      pgn: null,
-      position_list: [{ title: 'prvi', fen: FEN }, { title: 'drugi', fen: STEP_FEN }],
-    }],
-    [],
-  ]);
-
-  const review = await buildReview(pool, 7, 5);
-
-  assert.equal(review.items[0].fen, STEP_FEN, 'the step at that position');
-  assert.equal(review.items[0].title, 'drugi');
+  assert.equal(review.items[0].kind, 'video');
+  assert.equal(review.items[0].title, 'Broken pawns');
+  assert.equal(review.items[0].downloadedAt, '2026-09-25T10:00:00Z');
+  assert.ok(pool.calls.every((call) => !/saved_lessons/.test(call.text)),
+    'no part of the tutorial is read');
 });
 
 // ---- a played game (docs/PLAN-EXERCISE.md, phase 9) ------------------------
@@ -468,10 +436,11 @@ test('moves that do not replay are shown as they are, without an invented board'
   assert.equal(item.finalFen, null);
 });
 
-test('a lesson step is still a lesson step: no task, no game', () => {
+test("a tutorial's film is still a film: no task, no game", () => {
   const item = shapeItem(gameRow({ game_moves: null, game_ending: null, judged_by: null }), {
-    isTrainer: true, step: { title: 'Step', fen: gameTask.fen },
+    isTrainer: true, video: { title: 'Film' },
   });
-  assert.equal(item.kind, 'step');
+  assert.equal(item.kind, 'video');
   assert.equal(item.solved, null);
+  assert.equal(item.task, undefined);
 });

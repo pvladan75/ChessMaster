@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart'
     show endOfMainLine;
@@ -18,23 +16,22 @@ import 'package:chess_app/theme/app_typography.dart';
 /// **What a trainer reads here is not „Part 1, Part 2, Part 3".** A tutorial is
 /// written by playing moves and saying things about them, and the parts it
 /// falls into are the *consequence* of asking a question — not a thing to plan.
-/// So a row is called by what it says ([TutorialSection.label]) and the three
-/// buttons name what the next step will be rather than that a section is being
-/// added. Two of them do not add anything at all: they cut the part being
-/// written at the beat the trainer is standing on and put the question there.
+/// So a row is called by what it says ([TutorialSection.label]). Every part
+/// shows (`docs/PLAN-TUTORIJAL-VIDEO.md`, phase 4); a question for a student is
+/// an exercise.
 class TutorialSectionsPanel extends StatelessWidget {
   const TutorialSectionsPanel({
     super.key,
     required this.draft,
     required this.onSelect,
     required this.onAddShow,
-    required this.onAsk,
     required this.onMove,
     required this.onClone,
     required this.onRename,
     required this.onRemove,
     this.onAddPartsFrom,
     this.onExtractParts,
+    this.onTurn,
   });
 
   final TutorialDraft draft;
@@ -42,9 +39,6 @@ class TutorialSectionsPanel extends StatelessWidget {
 
   /// „Novi prikaz" — a new demonstration after this one.
   final VoidCallback onAddShow;
-
-  /// „Traži potez na tabli" / „Traži odgovor iz liste" — ask, here.
-  final void Function(LessonStepKind kind) onAsk;
 
   final void Function(int from, int to) onMove;
   final void Function(int index) onClone;
@@ -59,6 +53,11 @@ class TutorialSectionsPanel extends StatelessWidget {
   /// tutorial of their own. This one keeps them.
   final VoidCallback? onExtractParts;
 
+  /// „Turn this part" — that row's part, drawn from the other side. On each
+  /// row rather than among the actions above, which have no pixel to spare at
+  /// 840 dp, and so it names the part it acts on. Null draws nothing.
+  final void Function(int index)? onTurn;
+
   static bool _isJoined(TutorialSection prev, TutorialSection curr) {
     final endFen = endOfMainLine(prev.root).fen;
     final startFen = curr.root.fen;
@@ -67,16 +66,6 @@ class TutorialSectionsPanel extends StatelessWidget {
 
   static String _fenKey(String fen) =>
       fen.trim().split(RegExp(r'\s+')).take(4).join(' ');
-
-  /// The chip that says what a part is.
-  ///
-  /// An icon as well as a word, and never colour alone: the one reader whose
-  /// live sign-off this project runs on cannot tell these apart by hue.
-  static (String, IconData) _chipOf(LessonStepKind kind) => switch (kind) {
-        LessonStepKind.show => ('Show', Icons.visibility_outlined),
-        LessonStepKind.askMove => ('Move', Icons.touch_app_outlined),
-        LessonStepKind.askChoice => ('Choice', Icons.list_alt_outlined),
-      };
 
   Future<void> _handleDelete(BuildContext context) async {
     if (draft.sections.length <= 1) {
@@ -135,10 +124,8 @@ class TutorialSectionsPanel extends StatelessWidget {
                 // Every other action here lives in the Wrap below, and that is
                 // where this went first: the Wrap has **two pixels** of room at
                 // 840 dp (`tutorial_raspored_test`) and one more item in it
-                // costs a whole run. The studio's bar was tried next — it has
-                // 15 px and an icon costs 48, and paying for it by shortening
-                // „Preview tutorial" would overwrite the owner's own rule from
-                // 11.9.2026, which `tutorial_editor_door_test` holds at 840.
+                // costs a whole run. The studio's bar was tried next — it had
+                // 15 px and an icon costs 48.
                 //
                 // So: this row, which is as tall as a 16 px title and had
                 // nothing on its right. 20 × 20 is a small target, and it is
@@ -196,18 +183,6 @@ class TutorialSectionsPanel extends StatelessWidget {
                   icon: const Icon(Icons.visibility_outlined, size: 18),
                   label: const Text('New demonstration'),
                 ),
-                OutlinedButton.icon(
-                  key: const Key('ask-move'),
-                  onPressed: () => onAsk(LessonStepKind.askMove),
-                  icon: const Icon(Icons.touch_app_outlined, size: 18),
-                  label: const Text('Find the move'),
-                ),
-                OutlinedButton.icon(
-                  key: const Key('ask-choice'),
-                  onPressed: () => onAsk(LessonStepKind.askChoice),
-                  icon: const Icon(Icons.list_alt_outlined, size: 18),
-                  label: const Text('Choose the answer'),
-                ),
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   tooltip: 'Move up',
@@ -260,7 +235,6 @@ class TutorialSectionsPanel extends StatelessWidget {
                   // finding, and computing the name once is the version of
                   // that fix which cannot come apart.
                   final label = section.label(i);
-                  final (chip, icon) = _chipOf(section.kind);
                   final hasJoin = i > 0 &&
                       _isJoined(draft.sections[i - 1], draft.sections[i]);
 
@@ -271,15 +245,12 @@ class TutorialSectionsPanel extends StatelessWidget {
                     shape: const RoundedRectangleBorder(
                       borderRadius: AppRadii.roundedSm,
                     ),
-                    leading: Tooltip(
-                      message: chip,
-                      child: Icon(
-                        icon,
-                        size: 18,
-                        color: isSelected
-                            ? context.colors.accent
-                            : context.colors.textSecondary,
-                      ),
+                    leading: Icon(
+                      Icons.visibility_outlined,
+                      size: 18,
+                      color: isSelected
+                          ? context.colors.accent
+                          : context.colors.textSecondary,
                     ),
                     title: Text(
                       label,
@@ -292,19 +263,31 @@ class TutorialSectionsPanel extends StatelessWidget {
                             : context.colors.textSecondary,
                       ),
                     ),
-                    subtitle: Text(
-                      chip,
-                      style: AppText.caption
-                          .copyWith(color: context.colors.textSecondary),
-                    ),
-                    trailing: hasJoin
-                        ? Tooltip(
-                            message: 'Continues from previous part',
-                            child: Icon(
-                              Icons.link,
-                              color: context.colors.accent,
-                              size: 20,
-                            ),
+                    trailing: (hasJoin || onTurn != null)
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (hasJoin)
+                                Tooltip(
+                                  message: 'Continues from previous part',
+                                  child: Icon(
+                                    Icons.link,
+                                    color: context.colors.accent,
+                                    size: 20,
+                                  ),
+                                ),
+                              if (onTurn != null)
+                                IconButton(
+                                  key: Key('turn-part-$i'),
+                                  visualDensity: VisualDensity.compact,
+                                  iconSize: 18,
+                                  tooltip: section.blackOrientation
+                                      ? 'Turn this part (Black at the bottom now)'
+                                      : 'Turn this part (White at the bottom now)',
+                                  icon: const Icon(Icons.screen_rotation_alt),
+                                  onPressed: () => onTurn!(i),
+                                ),
+                            ],
                           )
                         : null,
                     onTap: () => onSelect(i),

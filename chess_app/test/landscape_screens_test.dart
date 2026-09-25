@@ -24,7 +24,6 @@ import 'package:chess_app/features/assignments/screens/custom_puzzle_solver_scre
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_new_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
-import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
@@ -167,45 +166,6 @@ void main() {
       });
 
   const mateInOne = '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1';
-
-  group('Review', () {
-    final server = {
-      '/reviews/due': {
-        'items': [
-          {
-            'id': 1,
-            'lessonId': 2,
-            'stepKey': 'k',
-            'lessonTitle': 'Back rank',
-            'step': {
-              'title': 'Mate',
-              'fen': mateInOne,
-              'pgn': '1. Ra8#',
-              'kind': 'ask_move',
-            },
-          },
-        ],
-        'stats': {'total': 1, 'due': 1},
-      },
-      '/reviews/stats': {'total': 1, 'due': 1},
-    };
-
-    for (final size in phones) {
-      testWidgets('at ${size.width.toInt()}×${size.height.toInt()}',
-          (tester) async {
-        await http.runWithClient(() async {
-          await pumpAt(tester, size, ReviewSessionScreen(session: _session));
-          expectBoardBeside(tester, size);
-          final reveal = find.byType(ElevatedButton);
-          expectOnScreen(tester, size, reveal);
-
-          await tester.tap(reveal.first);
-          await tester.pumpAndSettle();
-          expectBoardBeside(tester, size);
-        }, () => serve(server));
-      });
-    }
-  });
 
   group('Tactics', () {
     final server = {

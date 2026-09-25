@@ -86,6 +86,11 @@ async function awaitingReview(pool, trainerId, { limit = SECTION_LIMIT } = {}) {
         AND a.parent_id IS NULL
         AND a.completed_at IS NOT NULL
         AND a.reviewed_at IS NULL
+        -- A tutorial's film on its own is done when it is downloaded, and
+        -- there is nothing in it to review: the notice already said it
+        -- (docs/PLAN-TUTORIJAL-VIDEO.md, D4). Inside a homework it waits as
+        -- the homework does.
+        AND a.kind <> 'lesson'
       GROUP BY a.id, u.id, u.name
       ORDER BY a.completed_at ASC
       LIMIT $2`,

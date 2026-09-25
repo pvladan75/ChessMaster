@@ -173,6 +173,52 @@ function authenticateDownloadToken(req, res, next) {
   });
 }
 
+/// Mints a link token for one student's tutorial film
+/// (docs/PLAN-TUTORIJAL-VIDEO.md, phase 2).
+///
+/// **A purpose of its own**, not `download`: the download this token opens is
+/// recorded as the student's work, so a trainer's ordinary download link must
+/// never be able to open it — and the assignment is inside the token, so the
+/// route records *that* assignment and no other.
+function signAssignmentVideoToken(userId, assignmentId, filename) {
+  return jwt.sign(
+    { purpose: 'assignment-video', id: userId, assignment: assignmentId, file: filename },
+    JWT_SECRET,
+    { expiresIn: '30m' }
+  );
+}
+
+/// Verifies an assignment film token (`?token=`), that it names the file
+/// asked for, and that its account is still there — three answers, like every
+/// gate (`accountGuard.js`): a slip outliving its account must not record a
+/// download for whoever inherits the id.
+function authenticateAssignmentVideoToken(req, res, next) {
+  const token = req.query.token;
+  if (!token) {
+    return res.status(401).json({ error: 'Download token is required' });
+  }
+  let payload;
+  try {
+    payload = jwt.verify(token, JWT_SECRET);
+  } catch {
+    return res.status(403).json({ error: 'Invalid or expired download token' });
+  }
+  if (payload.purpose !== 'assignment-video' || !Number.isInteger(payload.assignment)) {
+    return res.status(403).json({ error: 'Invalid or expired download token' });
+  }
+  if (payload.file !== req.params.filename) {
+    return res.status(403).json({ error: 'Download token does not match the requested file' });
+  }
+  return tokenHolderStanding(pool, payload.id).then((standing) => {
+    if (!standing.ok) {
+      if (standing.cause) logger.error('[AUTH] Nalog nije mogao da se proveri:', standing.cause);
+      return res.status(standing.status).json({ error: standing.error, reason: standing.reason });
+    }
+    req.downloadUser = payload;
+    return next();
+  });
+}
+
 /// Verifies a Socket.IO handshake token. Returns the decoded user, or null for guests.
 /// Throws only when a token was supplied but is invalid, so bad tokens are rejected
 /// rather than silently downgraded to guest access.
@@ -222,6 +268,8 @@ module.exports = {
   requireRole,
   signDownloadToken,
   authenticateDownloadToken,
+  signAssignmentVideoToken,
+  authenticateAssignmentVideoToken,
   signReportToken,
   authenticateReportToken,
   verifySocketToken,

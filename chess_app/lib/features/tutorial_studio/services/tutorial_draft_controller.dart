@@ -4,8 +4,6 @@ import 'package:flutter/foundation.dart';
 
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/lessons/models/lesson_labels.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
@@ -20,10 +18,6 @@ import 'package:chess_app/services/account_local_state.dart';
 enum MoveOutcome {
   /// The position does not allow it. The board must be put back.
   illegal,
-
-  /// The part asks for a move, so the move is its answer and the line does not
-  /// grow. The board must be put back on the position it asks about.
-  solutionRecorded,
 
   /// The line grew by one move and the cursor stands on it.
   played,
@@ -40,11 +34,10 @@ enum MoveOutcome {
 /// the phone layout (6b) is another, and neither keeps a copy of any of this.
 ///
 /// **The draft is the single source of truth.** Until 6a the screen kept the
-/// open part's kind, task, answers, recorded move and orientation in fields of
-/// its own and wrote them back in `_syncSelectedSection` before anything was
-/// persisted — the shape that let a field left at its default overwrite the
-/// part (7.9.2026). Here a field writes through: [setInstruction] writes the
-/// part's instruction and there is no second place it lives.
+/// open part's fields of its own and wrote them back in `_syncSelectedSection`
+/// before anything was persisted — the shape that let a field left at its
+/// default overwrite the part (7.9.2026). Here a field writes through, and
+/// there is no second place it lives.
 ///
 /// **Two signals.** [notifyListeners] says „redraw"; [generation] says „the
 /// open part or the whole draft was replaced — rebuild your fields from the
@@ -53,8 +46,8 @@ enum MoveOutcome {
 /// [persist], which keeps the draft on this device and records it for undo.
 ///
 /// Most of the gate for this class runs with no widget tree at all: build a
-/// two-part tutorial with a question, assert the `positionList`, never pump a
-/// frame — `test/tutorial_draft_controller_test.dart`.
+/// two-part tutorial, assert the `positionList`, never pump a frame —
+/// `test/tutorial_draft_controller_test.dart`.
 class TutorialDraftController extends ChangeNotifier {
   TutorialDraftController({
     required TutorialDraft draft,
@@ -63,7 +56,6 @@ class TutorialDraftController extends ChangeNotifier {
   })  : _draft = draft,
         _slot = slot ?? TutorialDraftService.instance,
         _history = history ?? DraftHistory() {
-    _normaliseChoices(_draft);
     _startHistory();
   }
 
@@ -141,7 +133,6 @@ class TutorialDraftController extends ChangeNotifier {
 
   /// Makes [draft] the one being written, and the place undo stops.
   void adopt(TutorialDraft draft) {
-    _normaliseChoices(draft);
     _draft = draft;
     _lastMove = null;
     _generation++;
@@ -322,35 +313,6 @@ class TutorialDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The question goes on the beat the trainer is standing on: the
-  /// demonstration in the part in front, the question on a bare position, and
-  /// what followed carried on after it. [splitForQuestion] decides all of that.
-  ///
-  /// Returns whether the part was split. A part with no line has nothing to
-  /// cut, so it simply becomes the question — the same act with the first and
-  /// third parts empty, and false here.
-  bool askHere(LessonStepKind kind) {
-    final part = section;
-    if (!canSplitForQuestion(part)) {
-      part.kind = kind;
-      persist();
-      notifyListeners();
-      return false;
-    }
-    final parts = splitForQuestion(part, cursor, kind: kind);
-    _draft.replaceSelected(parts);
-    // The question is the one the trainer just asked for, so it is the one
-    // they are left standing on — with the board on the position it asks
-    // about.
-    _draft.selected = _draft.sections.indexOf(parts.firstWhere(
-      (p) => p.kind != LessonStepKind.show,
-      orElse: () => parts.first,
-    ));
-    _renumberGeneratedTitles();
-    _partChanged();
-    return true;
-  }
-
   /// The part is cut at the beat the trainer is standing on, and they are left
   /// on the new line's first position, to play it. No renumbering:
   /// [TutorialSection.label] names a part with no name of its own by where it
@@ -373,13 +335,6 @@ class TutorialDraftController extends ChangeNotifier {
       promotion: promotion,
     );
     if (played == null) return MoveOutcome.illegal;
-
-    if (section.kind == LessonStepKind.askMove) {
-      section.solutionSan = played.san;
-      persist();
-      notifyListeners();
-      return MoveOutcome.solutionRecorded;
-    }
 
     final child = cursor.addChild(
       childFen: played.fen,
@@ -459,67 +414,6 @@ class TutorialDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── the open part's question ─────────────────────────────────────────────
-
-  /// The kind the trainer picked. [dropLine] takes the moves off the part
-  /// first, keeping the position it asks about and everything written on
-  /// it — the screen asks before passing true, because a line deleted over a
-  /// dropdown is a loss the trainer did not agree to.
-  void setKind(LessonStepKind kind, {bool dropLine = false}) {
-    if (dropLine) {
-      section.root.children.clear();
-      section.cursorNode = section.root;
-      _lastMove = null;
-    }
-    section.kind = kind;
-    persist();
-    notifyListeners();
-  }
-
-  void setInstruction(String text) {
-    final trimmed = text.trim();
-    section.instruction = trimmed.isEmpty ? null : trimmed;
-    persist(typingIn: 'instruction');
-  }
-
-  void setChoiceText(int index, String text) {
-    if (index < 0 || index >= section.choices.length) return;
-    section.choices[index] =
-        TutorialChoice(text: text, correct: section.choices[index].correct);
-    persist(typingIn: 'choice:$index');
-  }
-
-  /// Which answer is the right one; null for none yet.
-  void setCorrectChoice(int? index) {
-    for (var i = 0; i < section.choices.length; i++) {
-      section.choices[i] =
-          TutorialChoice(text: section.choices[i].text, correct: i == index);
-    }
-    persist();
-    notifyListeners();
-  }
-
-  int? get correctChoice {
-    final i = section.choices.indexWhere((c) => c.correct);
-    return i == -1 ? null : i;
-  }
-
-  void addChoice() {
-    section.choices.add(const TutorialChoice(text: '', correct: false));
-    persist();
-    notifyListeners();
-  }
-
-  /// The flag travels with the answer, so removing one above the right one
-  /// needs no index arithmetic — the reason §4 chose `{text, correct}` over a
-  /// list and an index.
-  void removeChoice(int index) {
-    if (index < 0 || index >= section.choices.length) return;
-    section.choices.removeAt(index);
-    persist();
-    notifyListeners();
-  }
-
   /// Turns **every** part over, each from the way it stands now, so a
   /// deliberate mix survives and a tutorial does not end up facing two ways
   /// after one press (14.9.2026).
@@ -531,7 +425,7 @@ class TutorialDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// One part turned on its own — from „Preview tutorial".
+  /// One part turned on its own — from its row („Turn this part").
   void setPartOrientation(int index, bool black) {
     if (index < 0 || index >= _draft.sections.length) return;
     _draft.sections[index].blackOrientation = black;
@@ -572,23 +466,6 @@ class TutorialDraftController extends ChangeNotifier {
   /// somebody with fourteen has told them they are wrong and not where.
   String? validate() {
     if (_draft.title.trim().isEmpty) return 'Tutorial must have a title.';
-
-    final leaking = _draft.sections.where((s) => s.leaksAnswer).toList();
-    if (leaking.isNotEmpty) {
-      return 'Not saved. ${namesOf(leaking)} has a line with the answer '
-          '— remove the line or change the task type.';
-    }
-
-    for (final part in _draft.sections) {
-      if (part.kind != LessonStepKind.askChoice) continue;
-      final answers = part.choices.where((c) => c.text.trim().isNotEmpty);
-      if (answers.length < 2 || answers.length > 4) {
-        return 'Multiple choice question requires two to four answers.';
-      }
-      if (answers.where((c) => c.correct).length != 1) {
-        return 'Exactly one answer must be correct.';
-      }
-    }
     return null;
   }
 
@@ -680,22 +557,6 @@ class TutorialDraftController extends ChangeNotifier {
       if (identical(n, node)) return true;
     }
     return false;
-  }
-
-  /// A question with two right answers has no representation in the editor
-  /// — the answers are a radio group — so a stored one keeps the first, the
-  /// one the list already showed as chosen. Done where a draft comes in,
-  /// never in silence at a save: `tutorial_studio_refusals_test`.
-  static void _normaliseChoices(TutorialDraft draft) {
-    for (final part in draft.sections) {
-      final first = part.choices.indexWhere((c) => c.correct);
-      for (var i = 0; i < part.choices.length; i++) {
-        final choice = part.choices[i];
-        if (choice.correct && i != first) {
-          part.choices[i] = TutorialChoice(text: choice.text, correct: false);
-        }
-      }
-    }
   }
 
   void _startHistory() {

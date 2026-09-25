@@ -17,7 +17,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
@@ -225,21 +224,6 @@ void main() {
     expect(shown(tester), 'fr');
     await save(tester);
     expect(api.saves.single['language'], 'fr');
-  });
-
-  testWidgets('the preview is read in the language just picked',
-      (tester) async {
-    // The trainer picks a language to hear it — so the preview has to take
-    // the draft's language as it is now, not as it was saved.
-    await open(tester, row(language: null));
-
-    await pick(tester, 'Italian');
-    await tester.tap(find.byKey(const Key('preview-tutorial')));
-    await tester.pumpAndSettle();
-
-    final viewer =
-        tester.widget<LessonViewerScreen>(find.byType(LessonViewerScreen));
-    expect(viewer.detail.lessonLanguage, 'it');
   });
 
   testWidgets('a narrow window has it too', (tester) async {

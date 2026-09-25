@@ -1,147 +1,6 @@
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
-
-/// „Postavi pitanje odavde": one part becomes a demonstration, a question and
-/// a continuation.
-///
-/// The arrangement was already the studio's advice — „Demonstracija ide u deo
-/// ispred pitanja — pitanje ostaje samo pozicija" — and until now a trainer had
-/// to build it by hand. The only automatic route was the kind dropdown, which
-/// offers to *delete* the line, because a step's `pgn` is not redacted on its
-/// way to a child and the viewer draws the move strip for every kind: a
-/// question carrying its own line hands the answer to anyone who presses
-/// „Sledeći potez".
-///
-/// Nothing is thrown away. The parts come back in the order they belong in:
-///
-///  * **A**, the demonstration — the tree as it was, cut at [cursor]. Omitted
-///    when the cursor is the part's own starting position, where it would be an
-///    empty diagram in front of a question about the same board.
-///  * **B**, the question — a bare position on [cursor], `ask_move`, with the
-///    move that already followed taken as the answer.
-///  * **C**, the continuation — the same position again, carrying that answer
-///    and everything after it, sidelines included. Omitted when the cursor is
-///    the end of the line and there is nothing to continue with.
-///
-/// **The step id stays with the original line.** A step id is what a child's
-/// schedule and recorded answers name a step by, and a part sent without one
-/// is given a new id by the server. So A keeps it; with no A, C *is* the
-/// original part and keeps it, with the part's name; with neither, B is the
-/// whole part. Until 11.9.2026 a question placed at the part's own starting
-/// position left no part holding the id.
-///
-/// Every part stands on a position that joins the one before it, which is what
-/// makes this one board on the child's screen rather than three: the viewer
-/// crosses a join without reloading the pieces.
-///
-/// The original is not modified. The caller replaces it with what comes back.
-List<TutorialSection> splitForQuestion(
-  TutorialSection part,
-  AnalysisNode cursor, {
-  LessonStepKind kind = LessonStepKind.askMove,
-}) {
-  final path = _pathTo(part.root, cursor);
-
-  // A copy, so the caller's tree survives a split it may still cancel — and
-  // because `copyTree` mints fresh node ids, which is what keeps two parts from
-  // sharing node identity.
-  final beforeRoot = copyTree(part.root);
-  final beforeCursor = _resolve(beforeRoot, path);
-
-  // The demonstration has to end where the question begins, so the line that
-  // leads there is made the main one. A trainer standing on a sideline is
-  // asking about that sideline; a demonstration that walked the main line
-  // instead would never reach the position it is asking about.
-  _promotePath(beforeCursor);
-
-  final tail = [...beforeCursor.children];
-  beforeCursor.children.clear();
-
-  final hasBefore = path.isNotEmpty;
-  final hasAfter = tail.isNotEmpty;
-
-  // With nothing in front and nothing after, the question is the whole part.
-  final wholePart = !hasBefore && !hasAfter;
-  final question = TutorialSection(
-    stepId: wholePart ? part.stepId : null,
-    title: wholePart ? part.title : '',
-    root: AnalysisNode(
-      fen: cursor.fen,
-      // The marks travel because the board does not reload across a join: a
-      // circle that vanishes the moment the question starts is a flicker in
-      // the middle of one continuous board. The sentence does not, because the
-      // part in front has just read it out — unless there is no part in front,
-      // and then this is the only place it can live.
-      comment: hasBefore ? '' : beforeCursor.comment,
-      arrows: [...cursor.arrows],
-      squares: [...cursor.squares],
-    ),
-    kind: kind,
-    // The move the trainer had already played is the move they are asking
-    // about. Null at the end of a line, where they play it on the board and
-    // `_onMove` records it — which is what an `ask_move` part does with a move.
-    //
-    // Kept for a question with offered answers too. It is a property of the
-    // position rather than of the question — the server has said so since
-    // before kinds existed — and a trainer who changes their mind about how to
-    // ask should not have to find the move again.
-    solutionSan: hasAfter ? tail.first.moveSan : null,
-    blackOrientation: part.blackOrientation,
-  );
-
-  final out = <TutorialSection>[];
-
-  if (hasBefore) {
-    out.add(TutorialSection(
-      stepId: part.stepId,
-      root: beforeRoot,
-      title: part.title,
-      instruction: part.instruction,
-      solutionSan: part.solutionSan,
-      acceptedSans: [...part.acceptedSans],
-      blackOrientation: part.blackOrientation,
-      // **Not** `part.storedPgn`. A section decides „untouched" by comparing
-      // `treeSignature` against the tree it is holding, and it takes that
-      // reading in its constructor — so a shortened part carrying the old text
-      // would look pristine, and the save would send the whole original line
-      // as this part's. The tree is different now; the text has to be written
-      // again from it.
-      storedPgn: null,
-    ));
-  }
-
-  out.add(question);
-
-  if (hasAfter) {
-    final afterRoot = AnalysisNode(fen: cursor.fen);
-    for (final child in tail) {
-      child.parent = afterRoot;
-      afterRoot.children.add(child);
-    }
-    out.add(TutorialSection(
-      // With no demonstration in front, this is the original line: the step a
-      // child's progress names.
-      stepId: hasBefore ? null : part.stepId,
-      title: hasBefore ? '' : part.title,
-      root: afterRoot,
-      blackOrientation: part.blackOrientation,
-    ));
-  }
-
-  return out;
-}
-
-/// Whether [part] can be split at [cursor] into anything worth having.
-///
-/// A question is one part's whole job, so a part that already asks something
-/// has nothing to split; and a part with no moves at all is already the bare
-/// position a question wants — the kind dropdown is the way to turn that one
-/// into a question.
-bool canSplitForQuestion(TutorialSection part) =>
-    part.kind == LessonStepKind.show && part.root.children.isNotEmpty;
 
 /// „Insert a line here" — phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`: one part
 /// becomes a demonstration up to [cursor], a new line from it, and the original
@@ -211,12 +70,9 @@ bool canSplitForQuestion(TutorialSection part) =>
       stepId: part.stepId,
       root: beforeRoot,
       title: part.title,
-      instruction: part.instruction,
-      solutionSan: part.solutionSan,
-      acceptedSans: [...part.acceptedSans],
       blackOrientation: part.blackOrientation,
-      // Not `part.storedPgn`, for the reason [splitForQuestion] gives: the
-      // tree is shorter now, and a part holding the old text would send it.
+      // Not `part.storedPgn`: the tree is shorter now, and a part holding the
+      // old text would send it.
       storedPgn: null,
     ));
   }
@@ -232,12 +88,10 @@ bool canSplitForQuestion(TutorialSection part) =>
   return (parts: out, line: line);
 }
 
-/// Whether „Insert a line here" has a line to cut: a demonstration with at
-/// least one move. A question carries no line — that is the rule
-/// [TutorialSection.leaksAnswer] enforces — and a part with no moves is
-/// already where a new demonstration would start.
-bool canSplitForLine(TutorialSection part) =>
-    part.kind == LessonStepKind.show && part.root.children.isNotEmpty;
+/// Whether „Insert a line here" has a line to cut: a part with at least one
+/// move. A part with no moves is already where a new demonstration would
+/// start.
+bool canSplitForLine(TutorialSection part) => part.root.children.isNotEmpty;
 
 /// Makes the line from the root down to [node] the main line of its tree.
 void _promotePath(AnalysisNode node) {

@@ -7970,3 +7970,70 @@ starim brojevima redova. Uhvaćeno po veličini (717 → 778 KB za iste oznake).
 Sada se stari spisak čita iz kopije iz git-a, uz proveru da su njegove
 stavke tačno one koje su trijažirane, a arhiva je proverena stavku po stavku:
 svih 2008 počinje starim tekstom.
+
+## 25.9.2026 — Tutorijal služi samo za video: faze 2 i 3
+
+Učeniku ide video tutorijala, ne tutorijal (`docs/PLAN-TUTORIJAL-VIDEO.md`).
+Aplikacija **4177 → 4076** (−115 / +14); server 1737 → 1735 bez baze (−18 testova obrisanog koda,
++16), 1888 → 1891 sa bazom (+5 u delu sa pravom bazom); `flutter analyze` 23 →
+22 info (jedan je živeo u obrisanom `review_api_service.dart`).
+
+**„Skinuto" je činjenica o poslednjem bajtu, i proverava se preko pravog
+HTTP-a.** Prekid, `HEAD`, opseg koji ne stiže do kraja i nastavak koji
+stiže — nijedno od toga ne postoji na lažnom `res`. Test diže pravi server na
+portu 0, a fajl je 12 MB da bi prekid posle prvog paketa zaista ostavio većinu
+neposlatu. Mutacija „prekid se računa" pala je baš na tom slučaju.
+
+**`dart format` pre `pub get` u novom worktree-u — ponovo.** Pravilo je već
+zapisano (faza 1.3 zagonetki), i ponovljeno: formater bez konfiguracije
+paketa preformatirao je 210 fajlova u novom stilu, a zareze koje je dodao
+stari stil posle čuva. Vraćeno tako što su svi tuđi fajlovi uzeti iz git-a, a
+sopstvene izmene ponovo primenjene skriptama na čiste fajlove. **U novom
+worktree-u prvo `flutter pub get`, pa tek onda bilo šta što formatira.**
+
+**Heredoc u Bash alatu — ponovo.** Tri puta istog dana Python skripta kroz
+heredoc nije prošla (navodnici „ i `\'` u tekstu) — zapisano još 25.9 ujutru.
+Skripta sa ne-ASCII tekstom ili kosom crtom piše se alatom Write, uvek.
+
+**„Jednokratni" backfill koji radi pri svakom startu važi za sve redove koje
+njegov WHERE pušta.** `step_key = 'p' || position` za stavke bez zagonetke
+pisalo je i stavkama „Play it out" (16 redova), a `homeworkSend.js` im je i
+sam upisivao `'game'`. Niko to nije čitao — ali pravilo napisano za jednu
+vrstu reda je pravilo nad svim redovima koje uslov obuhvata.
+
+**Test koji je uhvatio pravu grešku u tekstu.** „Downloaded on 25.9.2026.."
+— format datuma u aplikaciji već završava tačkom. Tekst koji se proverava u
+testu doslovno, a ne `textContaining`, vidi i ovakvu sitnicu.
+
+**Brisanje ekrana briše i vrata koja je jedino on imao.** „Preview tutorial"
+je bio đakov pregled, ali i jedino mesto za okretanje jednog dela. Pre
+brisanja ekrana: grep za sve povratne pozive koje mu ekran-roditelj predaje
+(`onPartOrientationChanged`), ne samo za ime ekrana.
+
+## 25.9.2026 — Tutorijal služi samo za video: faza 4
+
+Studio pravi samo delove koji pokazuju (`docs/PLAN-TUTORIJAL-VIDEO.md`).
+Aplikacija **4076 → 3981**; server 1735 → 1730 bez baze, 1891 → 1886 sa bazom;
+analyze isti 22 info.
+
+**Test obrisane funkcije koji ostane zelen nije dokaz da je u redu — to je
+test koji više ne može da padne.** Od 55 crvenih posle brisanja pitanja
+nisu bili svi koji su pitanja pominjali; nekoliko je i dalje prolazilo: „a question with a whole
+comment on its root is saved", „two answers with exactly one correct is sent",
+„a tutorial that already asks something is not offered questions", test
+rečnika koji traži `'ask_move'` u izvoru (nalazio ga je u poruci odbijanja
+uvoza). Proveravali su samo da je čuvanje otišlo ili da nečega nema —
+a posle brisanja i jedno i drugo važi samo od sebe. **Posle brisanja
+funkcije grep za njen rečnik u testovima (`ask_move`, `askMove`), ne samo
+spisak palih** — zeleni koji je pominju su ili test pravila koje preživljava,
+ili pravilo koje više ne postoji i test koji ga ne vidi.
+
+**Zbir celog testa se čita kao prošli + pali.** Prvi pun prolaz posle izmena
+pisao je `+3961 ~1 -55`; 4017 umesto 4016 u prvoj računici bio je preskočeni
+test sabran dvaput. Prethodni brojevi u ovom fajlu su „prošlo" bez
+preskočenog, pa se tako i porede.
+
+**Mutacija koja se ne kompajlira nije ulov — ponovo.** `partNumber - 1` na
+`int?` polju je greška kompajlera, a izveštaj je izgledao kao dva crvena
+fajla. Ponovljeno kao `(partNumber ?? 0) + 1`, i tada je palo na pravim
+slučajevima.

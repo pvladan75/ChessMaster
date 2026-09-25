@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4177 tests, 1 skipped, rest green
-cd chess_app && flutter analyze       # exits 1 on 23 known infos — read the list
-cd chess_backend && npm test          # node --test, 1888 with TEST_DATABASE_URL, 1737 without
+cd chess_app && flutter test          # 3981 tests, 1 skipped, rest green
+cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
+cd chess_backend && npm test          # node --test, 1886 with TEST_DATABASE_URL, 1730 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -784,6 +784,23 @@ and the ten model answers were recorded again. Then `best_stands_out` /
 `GameFactsStore`, the tutorial's second copy of the engine's answers beside
 `EvalCache` (→ **4177**, its ten cases gone, one moved to
 `engine_identity_test`).
+Then `docs/PLAN-TUTORIJAL-VIDEO.md`, on the owner's word of 25.9.2026 — a
+tutorial is material for a film, and **a student is sent the film**: phases 2
+and 3 (→ **4076**; backend → **1735 / 1891**, both measured; analyze → **22**
+infos). One item per sent tutorial, done when the server has sent that student
+the file's last byte (a real-HTTP gate: an abort, a `HEAD` and a short range
+record nothing); the student's viewer, „Preview tutorial", the step routes,
+„Due for review" with `review_items`, and the per-language device voice are
+deleted; a tutorial's film is no longer aged out; „Turn this part" moved to
+each part's row. **In a new worktree, `pub get` before anything formats** —
+repeated today at the cost of 210 reformatted files. Then its phase 4
+(→ **3981**; backend → **1730 / 1886**, both measured): every part shows — the
+studio has no task, answers or „Find the move", the server refuses a part
+that asks on all four doors, a JSON import with one is refused by part
+number, and „Add to tutorial" makes a position's task the part's first
+sentence. **After deleting a feature, grep its vocabulary in the tests, not
+only the list of reds** — several tests of the questions stayed green because
+what they checked became true by itself.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
@@ -817,16 +834,17 @@ tests and the skip still skips them, so the run exits 0 saying "All tests
 skipped". Run them with `flutter test --tags golden --run-skipped`.
 
 **`flutter analyze` does not exit clean, and has not for a long time.** It
-reports 23 issues, every one of them `info` level and every one of them
+reports 22 issues, every one of them `info` level and every one of them
 `curly_braces_in_flow_control_structures`, spread over
-`positional_evaluator_service.dart`, `review_api_service.dart`,
-`ai_studio_screen.dart` and `matrix_filter_panel.dart`. (29 until 13.9.2026,
+`positional_evaluator_service.dart`, `ai_studio_screen.dart` and
+`matrix_filter_panel.dart` (23 until 25.9.2026, when one went with the deleted
+`review_api_service.dart`). (29 until 13.9.2026,
 when the motif detector's rewrite put braces on its three; 26 until
 24.9.2026, when three went with the deleted `tagBlunders`.) This file used to say
 "must be clean", which is worse than saying nothing: it makes a red exit code
 look like the normal state, so a real error added tomorrow reads as the same
 failure as today's. **What must hold is zero errors, zero warnings, and no new
-infos — compare the list, not the exit code.** Clearing the 23 is a fine
+infos — compare the list, not the exit code.** Clearing the 22 is a fine
 standalone chore and would restore the simpler rule.
 
 Run `dart format` on any Dart file you edit — CI does not enforce it, but the

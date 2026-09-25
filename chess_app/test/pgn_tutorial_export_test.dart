@@ -9,12 +9,9 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/analysis_studio/services/pgn_file_saver.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/pgn_game_import.dart';
-import 'package:chess_app/features/tutorial_studio/services/pgn_question_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/pgn_tutorial_export.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
@@ -28,18 +25,12 @@ const String endingFen = '6k1/5pp1/7p/8/8/8/5PPP/R5K1 w - - 0 1';
 TutorialSection part({
   required String fen,
   String? pgn,
-  String kind = 'show',
   String title = '',
-  String? instruction,
-  String? solutionSan,
 }) =>
     TutorialSection.fromStep({
       'fen': fen,
       if (pgn != null) 'pgn': pgn,
-      'kind': kind,
       'title': title,
-      if (instruction != null) 'instruction': instruction,
-      if (solutionSan != null) 'solutionSan': solutionSan,
     });
 
 TutorialDraft draftOf(List<TutorialSection> sections,
@@ -117,83 +108,6 @@ void main() {
   });
 
   group('what a game carries', () {
-    test('a question cut by phase 2 comes back out as one game', () {
-      // The shape `splitForQuestion` makes: demonstration, a bare position that
-      // asks, and the continuation. All three stand on positions that join, so
-      // the game the trainer imported is the game that leaves.
-      final imported = tutorialsFromPgn(
-        '[Event "Game"]\n[White "A"]\n[Black "B"]\n\n'
-        '1. e4 e5 2. Nf3 Nc6 3. Bc4 Nd4?? (3... Bc5! { Better } 4. O-O) '
-        '4. Nxe5 *',
-        fileName: 'game.pgn',
-      ).single;
-      final withQuestions = withQuestionsFromBlunders(imported);
-      expect(withQuestions.positionList.length, greaterThan(1),
-          reason: 'the fixture must actually have been cut');
-
-      final draft = draftOf([
-        for (final step in withQuestions.positionList)
-          TutorialSection.fromStep(step),
-      ]);
-      final games = pgnGamesOfTutorial(draft);
-
-      expect(games, hasLength(1));
-
-      // Read back rather than matched as a string: the question's sentence
-      // stands between `Bc4` and `Nd4`, which is where it belongs and which no
-      // substring of the move text can confirm.
-      final read = readStepTree(fen: startFen, pgn: games.single);
-      final mainLine = <String>[];
-      var node = read.root;
-      while (node.children.isNotEmpty) {
-        node = node.children.first;
-        mainLine.add(node.moveSan ?? '');
-      }
-      expect(mainLine, ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nd4', 'Nxe5'],
-          reason: 'the game that was imported is the game that leaves');
-
-      final bc4 = read.root.children.first.children.first.children.first
-          .children.first.children.first;
-      expect(bc4.moveSan, 'Bc4');
-      expect(bc4.comment, contains('What should Black have played instead?'));
-      // The engine's line is still a sideline under the blunder's position, as
-      // it was in the game.
-      expect(bc4.children.map((c) => c.moveSan), containsAll(['Nd4', 'Bc5']));
-    });
-
-    test('the task travels as the sentence it is', () {
-      final a = part(fen: startFen, pgn: '1. e4 e5 *');
-      final b = part(
-        fen: endOfMainLine(a.root).fen,
-        kind: 'ask_move',
-        instruction: 'What should White play here?',
-        solutionSan: 'Nf3',
-      );
-
-      final text = pgnGamesOfTutorial(draftOf([a, b])).single;
-
-      expect(text, contains('What should White play here?'));
-      // What it asks, and the answer it would accept, have no home in a PGN —
-      // and must not be invented one. A move nobody played written into the
-      // game is a different game.
-      expect(text, isNot(contains('ask_move')));
-      expect(text, isNot(contains('Nf3')));
-    });
-
-    test('a task is written beside a note about the position, not over it', () {
-      final text = pgnGamesOfTutorial(draftOf([
-        part(
-          fen: endingFen,
-          pgn: '{ The rook is the strongest piece here. } *',
-          kind: 'ask_move',
-          instruction: 'Find the check.',
-        ),
-      ])).single;
-
-      expect(text, contains('The rook is the strongest piece here.'));
-      expect(text, contains('Find the check.'));
-    });
-
     test("a joined part's own sentence lands on the position it describes", () {
       final a = part(fen: startFen, pgn: '1. e4 e5 *');
       final b = part(
@@ -214,22 +128,23 @@ void main() {
     });
 
     test('a drawing that both parts carry is drawn once', () {
-      // `splitForQuestion` copies the cursor's arrows onto the question it
+      // „Insert a line here" copies the cursor's arrows onto the line it
       // makes, because the board does not reload across the join and a circle
-      // that vanished there would be a flicker. So the two parts either side of
-      // a join hold the same arrow, and writing both would put it in the file
-      // twice — on every question this app has ever cut.
+      // that vanished there would be a flicker. So the parts either side of a
+      // join hold the same arrow, and writing both would put it in the file
+      // twice. (Written against the question split until it was deleted,
+      // docs/PLAN-TUTORIJAL-VIDEO.md; the cut that remains copies the same.)
       final whole =
           part(fen: startFen, pgn: '1. e4 { [%cal Ge2e4][%csl Rd5] } e5 *');
       final cursor = whole.root.children.first;
-      final parts = splitForQuestion(whole, cursor);
+      final parts = splitForLine(whole, cursor).parts;
       expect(parts.length, greaterThan(1));
 
       final text = pgnGamesOfTutorial(draftOf(parts)).single;
 
       expect(RegExp(r'\[%cal Ge2e4\]').allMatches(text), hasLength(1));
       // Written as the arrow's twin: a coloured square is copied across the
-      // join by the same line of `splitForQuestion`, and a pair fixed by halves
+      // join by the same line of the cut, and a pair fixed by halves
       // is how the rank numbers spent two days invisible after the file letters
       // were put right.
       expect(RegExp(r'\[%csl Rd5\]').allMatches(text), hasLength(1));
@@ -320,8 +235,7 @@ void main() {
       final a = part(fen: startFen, pgn: '1. e4 e5 *');
       final b = part(
         fen: endOfMainLine(a.root).fen,
-        kind: 'ask_move',
-        instruction: 'What now?',
+        pgn: '{ What now? } *',
       );
       final draft = draftOf([a, b]);
       final before = [for (final s in draft.sections) treeSignature(s.root)];
@@ -333,10 +247,9 @@ void main() {
           reason: 'grafting one part onto another must happen on copies');
       expect(a.root.id, idBefore);
       expect(a.root.children.single.moveSan, 'e4');
-      // The task was written onto a copy's root, not onto the part the trainer
-      // is still editing.
-      expect(b.root.comment, isEmpty);
-      expect(b.kind, LessonStepKind.askMove);
+      // The joined part's sentence was written onto a copy, not onto the part
+      // the trainer is still editing.
+      expect(b.root.comment, 'What now?');
     });
   });
 

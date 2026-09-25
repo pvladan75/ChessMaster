@@ -11,7 +11,11 @@ const express = require('express');
 const router = express.Router();
 const logger = require('../services/logger');
 const { pool } = require('../db');
-const { authenticateToken, signReportToken } = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
+const {
+  authenticateToken, signReportToken, signAssignmentVideoToken, authenticateAssignmentVideoToken,
+} = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
 const { ENT } = require('../services/entitlementService');
 const assignments = require('../services/assignmentService');
@@ -20,7 +24,7 @@ const { notify } = require('../services/notifications');
 const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
 const { exerciseColumns, firstMoveOf, reviewOf } = require('../services/exercise');
-const { stepsOfLesson } = require('../services/lessonSteps');
+const { filmFacts, deliveredLastByte, EXPORTS_DIR } = require('../services/tutorialFilm');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
 const { markReviewed } = require('../services/trainerPanelService');
@@ -363,7 +367,7 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
 
     if (!result.ok) {
       await refundQuota(req);
-      return res.status(400).json({ error: result.reason });
+      return res.status(result.status || 400).json({ error: result.reason });
     }
 
     await tellStudent(req, result.assignment);
@@ -375,164 +379,87 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
   }
 });
 
-// POST /assignments/:id/step/:position — the student marks a lesson step reviewed.
-router.post('/:id/step/:position', authenticateToken, async (req, res) => {
-  const id = Number.parseInt(req.params.id, 10);
-  const position = Number.parseInt(req.params.position, 10);
-
-  if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'Invalid assignment or step.' });
-  }
-
-  try {
-    if (await refuseIfLocked(req, res, id)) return;
-    const marked = await assignments.markLessonStepDone(pool, {
-      studentId: req.user.id,
-      assignmentId: id,
-      position,
-    });
-    // Already-marked steps answer 200 too: re-opening a lesson and stepping
-    // back through it is normal and must not read as an error.
-    res.json({ success: true, marked });
-  } catch (err) {
-    logger.error('Error marking lesson step:', err);
-    res.status(500).json({ error: 'Error recording step.' });
-  }
-});
-
-// POST /assignments/:id/step/:position/answer — the student answers a step.
+// GET /assignments/:id/video — the student's link to their tutorial's film.
 //
-// Judged here, never on the client. `getAssignmentDetail` redacts the answer
-// out of what the student is served, so the client could not mark its own work
-// even if it wanted to — which is the point.
-router.post('/:id/step/:position/answer', authenticateToken, async (req, res) => {
+// docs/PLAN-TUTORIJAL-VIDEO.md, phase 2. Asked for fresh every time: the link
+// dies in thirty minutes, and its token names this student, this assignment
+// and this file, so the download it opens can be recorded as this
+// assignment's and nothing else's. Only the student it was sent to gets one —
+// the trainer downloads their own film from the tutorial.
+router.get('/:id/video', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
-  const position = Number.parseInt(req.params.position, 10);
-  if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'Invalid assignment or step.' });
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid assignment ID.' });
   }
 
   try {
     if (await refuseIfLocked(req, res, id)) return;
-    const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
-    if (!step) {
-      return res.status(404).json({ error: 'That step is not part of your assignment.' });
+    const found = await assignments.videoOfAssignment(pool, { assignmentId: id, studentId: req.user.id });
+    if (!found) {
+      return res.status(404).json({ error: 'Assignment not found.' });
     }
-
-    let verdict;
-    if (step.kind === 'ask_move') {
-      verdict = judgeAttempt({
-        fen: step.fen,
-        solutionSan: step.solutionSan,
-        acceptedSans: step.acceptedSans || [],
-        moveSan: String(req.body?.moveSan || ''),
+    if (!found.film) {
+      return res.status(404).json({
+        status: 'none',
+        error: 'This video is no longer available. Ask your trainer to send it again.',
       });
-      // The client and this server disagreeing about the position is not a
-      // wrong answer, and must not pass in silence — nothing else would ever
-      // show it.
-      if (verdict.playedSan === null) {
-        logger.warn({ assignmentId: id, position, moveSan: req.body?.moveSan },
-          'Lesson step attempt could not be resolved to a move');
-      }
-    } else if (step.kind === 'ask_choice') {
-      const picked = Number.parseInt(req.body?.choiceIndex, 10);
-      const choices = Array.isArray(step.choices) ? step.choices : [];
-      if (!Number.isInteger(picked) || picked < 0 || picked >= choices.length) {
-        return res.status(400).json({ error: 'No choice was selected.' });
-      }
-      verdict = {
-        correct: choices[picked].correct === true,
-        reason: choices[picked].correct === true ? 'correct answer' : 'incorrect answer',
-        playedSan: null,
-      };
-    } else {
-      return res.status(409).json({ error: 'This step is for reading, not solving.' });
     }
-
-    await assignments.recordLessonStepAnswer(pool, {
-      studentId: req.user.id,
-      assignmentId: id,
-      position,
-      correct: verdict.correct,
-      playedSan: verdict.playedSan,
-    });
-
-    // The solution is released only now, once the question has been answered.
+    const { filename } = found.film;
     res.json({
-      correct: verdict.correct,
-      reason: verdict.reason,
-      playedSan: verdict.playedSan,
-      solutionSan: step.solutionSan ?? null,
-      correctIndex: step.kind === 'ask_choice'
-        ? step.choices.findIndex((c) => c.correct === true)
-        : null,
+      ...filmFacts(found.film),
+      downloadUrl: `/assignments/video-download/${encodeURIComponent(filename)}`
+        + `?token=${encodeURIComponent(signAssignmentVideoToken(req.user.id, id, filename))}`,
     });
   } catch (err) {
-    logger.error('Error judging lesson step:', err);
-    res.status(500).json({ error: 'Error checking answer.' });
+    logger.error('Error fetching an assignment video link:', err);
+    res.status(500).json({ error: 'Error fetching the video.' });
   }
 });
 
-// POST /assignments/:id/step/:position/reveal — „Pokaži mi".
+// GET /assignments/video-download/:filename?token=… — the film itself.
 //
-// The escape that keeps a stuck child from being unable to finish. Recorded as
-// its own thing rather than as a wrong answer: „rešenje otkriveno" and
-// „netačno" are different facts about a child.
-router.post('/:id/step/:position/reveal', authenticateToken, async (req, res) => {
-  const id = Number.parseInt(req.params.id, 10);
-  const position = Number.parseInt(req.params.position, 10);
-  if (!Number.isInteger(id) || !Number.isInteger(position) || position < 0) {
-    return res.status(400).json({ error: 'Invalid assignment or step.' });
-  }
-
+// Opened by the platform's browser, which sends no Authorization header, so
+// the token is the credential. **The download is what a student does with a
+// tutorial** (plan D3): once the file's last byte has gone out — a whole
+// download, or the tail of a resumed one — the item is stamped, the first time
+// only, and the assignment is done. A `HEAD`, a range that stops short of the
+// end and a transfer cut off halfway record nothing. The file is sent first and
+// the record written after: a record that failed must not take the film away.
+router.get('/video-download/:filename', authenticateAssignmentVideoToken, async (req, res) => {
+  const { id: studentId, assignment: assignmentId } = req.downloadUser;
   try {
-    if (await refuseIfLocked(req, res, id)) return;
-    const step = await lessonStepOfAssignment(pool, id, req.user.id, position);
-    if (!step) {
-      return res.status(404).json({ error: 'That step is not part of your assignment.' });
+    const found = await assignments.videoOfAssignment(pool, { assignmentId, studentId });
+    if (!found || !found.film) {
+      return res.status(404).json({ error: 'This video is no longer available.' });
+    }
+    if (found.film.filename !== req.params.filename) {
+      // A new export replaced the film after this link was issued.
+      return res.status(410).json({
+        error: 'A newer video replaced this one — open the assignment again.',
+      });
     }
 
-    await assignments.revealLessonStep(pool, {
-      studentId: req.user.id, assignmentId: id, position,
-    });
-
-    res.json({
-      solutionSan: step.solutionSan ?? null,
-      acceptedSans: step.acceptedSans ?? [],
-      correctIndex: step.kind === 'ask_choice'
-        ? step.choices.findIndex((c) => c.correct === true)
-        : null,
+    const filePath = path.join(EXPORTS_DIR, found.film.filename);
+    const size = fs.statSync(filePath).size;
+    res.setHeader('Content-Type', 'video/mp4');
+    res.download(filePath, found.film.filename, async (err) => {
+      if (err) {
+        // The student closed the connection, most often. Nothing to answer.
+        logger.info({ assignmentId, code: err.code }, 'Tutorial video download did not finish');
+        return;
+      }
+      if (req.method !== 'GET' || !deliveredLastByte(res, size)) return;
+      try {
+        await assignments.recordVideoDownload(pool, { studentId, assignmentId });
+      } catch (recordErr) {
+        logger.error({ assignmentId }, `Could not record a video download: ${recordErr.message}`);
+      }
     });
   } catch (err) {
-    logger.error('Error revealing lesson step:', err);
-    res.status(500).json({ error: 'Error displaying solution.' });
+    logger.error('Error serving an assignment video:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'Error fetching the video.' });
   }
 });
-
-/// The step, **with** its answer, for the caller's own lesson assignment.
-///
-/// One query establishes both that this is the student's own homework and which
-/// lesson it came from. Returns null for "not yours" and for "no such step", so
-/// a guessed id cannot be used to find out which assignments exist.
-async function lessonStepOfAssignment(pool, assignmentId, studentId, position) {
-  const found = await pool.query(
-    `SELECT l.title, l.fen, l.pgn, l.position_list
-       FROM assignments a
-       JOIN saved_lessons l ON l.id = a.lesson_id
-      WHERE a.id = $1 AND a.student_id = $2 AND a.kind = 'lesson'`,
-    [assignmentId, studentId]
-  );
-  if (found.rowCount === 0) return null;
-
-  const lesson = found.rows[0];
-  const steps = stepsOfLesson({
-    positionList: lesson.position_list,
-    title: lesson.title,
-    fen: lesson.fen,
-    pgn: lesson.pgn,
-  });
-  return steps[position] || null;
-}
 
 // GET /assignments/mine — what the caller has been set.
 router.get('/mine', authenticateToken, async (req, res) => {

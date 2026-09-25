@@ -16,8 +16,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_controller.dart';
@@ -66,7 +64,7 @@ void main() {
     await TutorialDraftService.instance.clear();
   });
 
-  test('a two-part tutorial with a question, built without a frame', () {
+  test('a two-part tutorial, built without a frame', () {
     final c = _blank(title: 'Opozicija');
     var redraws = 0;
     c.addListener(() => redraws++);
@@ -86,39 +84,21 @@ void main() {
         reason: 'a new open part is a structural change');
     expect(c.lastMove, isNull);
 
-    // A part with no line has nothing to cut: it simply becomes the question.
-    expect(c.askHere(LessonStepKind.askMove), isFalse);
-    c.setInstruction('  Find the best move.  ');
-    expect(c.playMove('e7', 'e5', ''), MoveOutcome.solutionRecorded);
-    expect(c.section.root.children, isEmpty,
-        reason: 'the move is the answer, not a line the student could browse');
+    // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4): a move played
+    // in the second part is its line, never an answer kept aside.
+    expect(c.playMove('e7', 'e5', ''), MoveOutcome.played);
+    expect(c.section.root.children.single.moveSan, 'e5');
 
     final list = c.draft.positionList;
     expect(list, hasLength(2));
-    expect(list[0]['kind'], 'show');
     expect(list[0]['fen'], _start);
-    expect(list[1]['kind'], 'ask_move');
     expect(list[1]['fen'], _afterE4);
-    expect(list[1]['instruction'], 'Find the best move.');
-    expect(list[1]['solutionSan'], 'e5');
+    for (final part in list) {
+      for (final field in ['kind', 'instruction', 'solutionSan', 'choices']) {
+        expect(part.containsKey(field), isFalse, reason: field);
+      }
+    }
     expect(redraws, greaterThan(0));
-  });
-
-  test('a question placed on a beat splits the part around it', () {
-    final c = _blank(title: 'Split');
-    c.playMove('e2', 'e4', '');
-    c.playMove('e7', 'e5', '');
-    c.playMove('g1', 'f3', '');
-    // Standing on 1...e5: the demonstration before it, the question on its
-    // position, what followed after it.
-    c.jumpTo(c.root.children.single.children.single);
-
-    expect(c.askHere(LessonStepKind.askMove), isTrue);
-    expect(c.draft.sections.map((s) => s.kind).toList(),
-        [LessonStepKind.show, LessonStepKind.askMove, LessonStepKind.show]);
-    expect(c.draft.selected, 1, reason: 'left standing on the question');
-    expect(c.section.hasLine, isFalse);
-    expect(c.validate(), isNull);
   });
 
   test('undo takes one change back, redo brings it forward', () {
@@ -199,89 +179,14 @@ void main() {
     expect(c.hasUnsavedChanges, isFalse);
   });
 
-  test('the refusals name what is wrong, and the part it is in', () {
+  test('the one refusal left is a missing title', () {
     final c = _blank();
     expect(c.validate(), 'Tutorial must have a title.');
 
-    c.setTitle('Leak');
+    c.setTitle('Titled');
     c.playMove('e2', 'e4', '');
-    c.setKind(LessonStepKind.askMove);
-    expect(c.validate(), contains('has a line with the answer'));
-    expect(c.validate(), contains('"'), reason: 'named, not counted');
-
-    // The screen asks first; the controller takes the line off on request.
-    c.setKind(LessonStepKind.askMove, dropLine: true);
-    expect(c.root.children, isEmpty);
-    expect(c.cursor, same(c.root));
-    expect(c.validate(), isNull);
-  });
-
-  // Re-homed from `test/lesson_answer_stays_hidden_test.dart` ("what is not
-  // restricted"), which pinned this rule against `LessonStepEditorPanel`, now
-  // retired (phase 6c of `docs/PLAN-REORGANIZACIJA.md`). The refusal is
-  // `leaksAnswer`, `kind == askMove && hasLine` — a list of answers is text,
-  // its `correct` flags are redacted, and a line under a plan question is
-  // usually the whole point.
-  test('a question from a list may keep its line', () {
-    final c = _blank(title: 'Choices with a line');
-    c.playMove('e2', 'e4', '');
-    c.setKind(LessonStepKind.askChoice);
-    c.addChoice();
-    c.addChoice();
-    c.setChoiceText(0, 'Wrong');
-    c.setChoiceText(1, 'Right');
-    c.setCorrectChoice(1);
-
-    expect(c.section.hasLine, isTrue, reason: 'the line was not touched');
     expect(c.validate(), isNull,
-        reason: 'only askMove leaks its line — a chosen answer is redacted '
-            'before a child ever sees it');
-  });
-
-  test('the right answer travels with its text when another is removed', () {
-    final c = _blank(title: 'Choices');
-    c.setKind(LessonStepKind.askChoice);
-    expect(
-        c.validate(), 'Multiple choice question requires two to four answers.');
-
-    c.addChoice();
-    c.addChoice();
-    c.addChoice();
-    c.setChoiceText(0, 'Wrong');
-    c.setChoiceText(1, 'Right');
-    c.setChoiceText(2, 'Also wrong');
-    expect(c.validate(), 'Exactly one answer must be correct.');
-
-    c.setCorrectChoice(1);
-    expect(c.correctChoice, 1);
-    expect(c.validate(), isNull);
-
-    c.removeChoice(0);
-    expect(c.correctChoice, 0);
-    expect(c.section.choices[0].text, 'Right',
-        reason: 'no index arithmetic — the flag is on the answer');
-    expect(c.validate(), isNull);
-  });
-
-  test('a stored question with two right answers keeps the first', () {
-    final c = TutorialDraftController(
-      draft: TutorialDraft(
-        title: 'Two',
-        sections: [
-          TutorialSection(
-            root: TutorialSection.blank(fen: _start).root,
-            kind: LessonStepKind.askChoice,
-            // Growable, as a row read from the server is.
-            choices: [
-              const TutorialChoice(text: 'Prvi', correct: true),
-              const TutorialChoice(text: 'Drugi', correct: true),
-            ],
-          ),
-        ],
-      ),
-    );
-    expect(c.section.choices.map((x) => x.correct).toList(), [true, false]);
-    expect(c.validate(), isNull);
+        reason: 'a part with a line is what a part is, not a leaked answer');
   });
 
   test('selecting a part stands on its root; the last move is forgotten', () {

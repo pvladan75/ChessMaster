@@ -8,11 +8,12 @@ import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import '../services/assignment_api_service.dart';
 
-/// Lets a trainer send one of their own saved lessons as homework.
+/// Lets a trainer send one of their own tutorials — **as its video** — to a
+/// student (`docs/PLAN-TUTORIJAL-VIDEO.md`).
 ///
-/// Lessons already exist and are the strongest thing a trainer builds in the
-/// app, but until now they could only be shown live in a session. This is the
-/// path that lets a student go through one alone.
+/// Every tutorial is listed, and one without a film is greyed with the reason:
+/// hiding it would leave a trainer wondering where their tutorial went, and
+/// the server refuses it anyway (D5).
 class AssignLessonDialog extends StatefulWidget {
   const AssignLessonDialog({
     super.key,
@@ -63,9 +64,11 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       if (fetched.isNotEmpty) {
         final list = fetched
             .map((e) => Map<String, dynamic>.from(e as Map))
-            // Only lessons the trainer owns can be assigned; the list also
-            // carries lessons shared with them by someone else.
-            .where((lesson) => lesson['is_trainer_lesson'] != true)
+            // Only the trainer's own tutorials, and only tutorials — a single
+            // saved position has no film, and is sent as an exercise.
+            .where((lesson) =>
+                lesson['is_trainer_lesson'] != true &&
+                lesson['position_list'] is List)
             .toList();
         setState(() {
           _lessons = list;
@@ -143,7 +146,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
     final width = (MediaQuery.of(context).size.width - 128).clamp(180.0, 420.0);
 
     return AlertDialog(
-      title: Text('Assign tutorial — ${widget.studentName}'),
+      title: Text('Send a video — ${widget.studentName}'),
       content: SizedBox(
         width: width,
         child: _loading
@@ -163,7 +166,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2))
-              : const Text('Assign'),
+              : const Text('Send'),
         ),
       ],
     );
@@ -176,8 +179,8 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
         children: [
           Text(
             _error ??
-                'You have no saved tutorials. Create one via '
-                    '"Create tutorial", then assign it from here.',
+                'You have no saved tutorials. Write one and export its '
+                    'video, then send it from here.',
             style:
                 AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
@@ -189,7 +192,7 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Tutorial', style: Theme.of(context).textTheme.labelLarge),
+        Text('Tutorial video', style: Theme.of(context).textTheme.labelLarge),
         const SizedBox(height: 6),
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 220),
@@ -201,9 +204,11 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
                 children: [
                   for (final lesson in _lessons)
                     RadioListTile<int>(
+                      key: ValueKey('send-video-${lesson['id']}'),
                       dense: true,
                       contentPadding: EdgeInsets.zero,
                       value: (lesson['id'] as num).toInt(),
+                      enabled: lesson['has_video'] == true,
                       title: Text(
                         lesson['title']?.toString() ?? 'Tutorial',
                         style: const TextStyle(fontSize: 14),
@@ -213,7 +218,9 @@ class _AssignLessonDialogState extends State<AssignLessonDialog> {
                         builder: (context) {
                           final count = _stepCount(lesson);
                           return Text(
-                            '$count ${count == 1 ? 'part' : 'parts'}',
+                            lesson['has_video'] == true
+                                ? '$count ${count == 1 ? 'part' : 'parts'} · video ready'
+                                : 'No video yet — export it first',
                             style: const TextStyle(fontSize: 11.5),
                           );
                         },

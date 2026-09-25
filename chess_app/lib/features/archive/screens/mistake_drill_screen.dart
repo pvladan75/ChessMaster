@@ -6,8 +6,7 @@ import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
 import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
-import 'package:chess_app/features/reviews/services/review_api_service.dart'
-    show ReviewGrade;
+import 'package:chess_app/core/models/review_grade.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';

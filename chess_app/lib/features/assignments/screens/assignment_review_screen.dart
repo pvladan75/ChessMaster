@@ -202,34 +202,47 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
               style: TextStyle(color: colors.textSecondary))
         else
           ...review.items.asMap().entries.map(
-                (entry) => entry.value.kind == ReviewItemKind.game
-                    ? _GameItemCard(
+                (entry) => entry.value.kind == ReviewItemKind.video
+                    ? _VideoItemCard(
                         item: entry.value,
-                        notes: review.notesFor(entry.value.itemId),
                         isTrainer: review.isTrainer,
+                        notes: review.notesFor(entry.value.itemId),
                         onComment: () => _writeNote(
                           itemId: entry.value.itemId,
                           prompt: review.isTrainer
-                              ? 'Comment on this position'
-                              : 'Question about this position',
+                              ? 'Comment on this video'
+                              : 'Question about this video',
                         ),
                         onDeleteNote: _deleteNote,
-                        onJudge: _judgeGame,
                       )
-                    : _ItemCard(
-                        item: entry.value,
-                        index: entry.key,
-                        isTrainer: review.isTrainer,
-                        isLesson: review.isLesson,
-                        notes: review.notesFor(entry.value.itemId),
-                        onComment: () => _writeNote(
-                          itemId: entry.value.itemId,
-                          prompt: review.isTrainer
-                              ? 'Comment on this position'
-                              : 'Question about this position',
-                        ),
-                        onDeleteNote: _deleteNote,
-                      ),
+                    : entry.value.kind == ReviewItemKind.game
+                        ? _GameItemCard(
+                            item: entry.value,
+                            notes: review.notesFor(entry.value.itemId),
+                            isTrainer: review.isTrainer,
+                            onComment: () => _writeNote(
+                              itemId: entry.value.itemId,
+                              prompt: review.isTrainer
+                                  ? 'Comment on this position'
+                                  : 'Question about this position',
+                            ),
+                            onDeleteNote: _deleteNote,
+                            onJudge: _judgeGame,
+                          )
+                        : _ItemCard(
+                            item: entry.value,
+                            index: entry.key,
+                            isTrainer: review.isTrainer,
+                            isLesson: review.isLesson,
+                            notes: review.notesFor(entry.value.itemId),
+                            onComment: () => _writeNote(
+                              itemId: entry.value.itemId,
+                              prompt: review.isTrainer
+                                  ? 'Comment on this position'
+                                  : 'Question about this position',
+                            ),
+                            onDeleteNote: _deleteNote,
+                          ),
               ),
       ],
     );
@@ -246,7 +259,7 @@ class _AssignmentReviewScreenState extends State<AssignmentReviewScreen> {
     final summaryText = isGameReview
         ? (review.attemptedCount > 0 ? 'Played' : 'Not played yet')
         : (review.isLesson
-            ? '${review.attemptedCount} of $total parts viewed'
+            ? (review.attemptedCount > 0 ? 'Downloaded' : 'Not downloaded yet')
             : '${review.attemptedCount} of $total completed'
                 '${review.attemptedCount == 0 ? '' : ' · correct ${review.solvedCount}'}');
 
@@ -438,7 +451,7 @@ class _ItemCard extends StatelessWidget {
     // student try again, so what is kept is the first wrong idea.
     final isPuzzle = item.kind == ReviewItemKind.lichess;
 
-    if (item.kind != ReviewItemKind.step) {
+    {
       // A puzzle solved without a single wrong move has nothing to report here,
       // and "nije zabeležen" would suggest something went missing.
       final silent = isPuzzle && played == null && item.solved == true;
@@ -520,9 +533,9 @@ class _ItemCard extends StatelessWidget {
   Widget _verdict(BuildContext context) {
     final colors = context.colors;
 
-    // A lesson step was read, not answered. Calling it "netačno" would be an
-    // answer to a question nobody asked.
-    if (item.kind == ReviewItemKind.step || item.solved == null) {
+    // Nothing was judged. Calling it "netačno" would be an answer to a
+    // question nobody asked.
+    if (item.solved == null) {
       final seen = item.attempted;
       return _chip(seen ? 'viewed' : 'not opened',
           seen ? colors.success : colors.textMuted);
@@ -872,6 +885,73 @@ class _NoteRow extends StatelessWidget {
               child: Icon(Icons.close, size: 14, color: colors.textMuted),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A tutorial's film, as the review shows it (`docs/PLAN-TUTORIJAL-VIDEO.md`):
+/// the only fact there is — whether, and when, the student downloaded it —
+/// and the conversation about it. No board, no verdict: a film is not solved.
+class _VideoItemCard extends StatelessWidget {
+  const _VideoItemCard({
+    required this.item,
+    required this.isTrainer,
+    required this.notes,
+    required this.onComment,
+    required this.onDeleteNote,
+  });
+
+  final ReviewItem item;
+  final bool isTrainer;
+  final List<AssignmentNote> notes;
+  final VoidCallback onComment;
+  final void Function(AssignmentNote) onDeleteNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final at = item.attemptedAt;
+    return Card(
+      key: Key('review-video-${item.itemId}'),
+      color: colors.surface,
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.movie_outlined, color: colors.accent),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(item.title ?? 'Tutorial video',
+                      style: AppText.bodyLargeBold),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              at == null
+                  ? 'Not downloaded yet.'
+                  : 'Downloaded on ${at.day}.${at.month}.${at.year}.',
+              key: const Key('review-video-status'),
+              style: AppText.body.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ...notes.map((note) =>
+                _NoteRow(note: note, onDelete: () => onDeleteNote(note))),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onComment,
+                icon: const Icon(Icons.mode_comment_outlined, size: 15),
+                label: Text(isTrainer ? 'Comment' : 'Ask', style: AppText.body),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

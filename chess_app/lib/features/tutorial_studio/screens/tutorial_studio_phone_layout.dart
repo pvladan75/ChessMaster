@@ -95,7 +95,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   }
 
   /// The title, „Save" and everything the bar has no room for, behind
-  /// [Key('phone-more')] — Undo, Redo, Discard changes, Preview tutorial,
+  /// [Key('phone-more')] — Undo, Redo, Discard changes,
   /// Record narration, Export video, Save as .pgn, Position setup. Every
   /// entry calls the same wrapper the desktop's app bar calls; none of it is
   /// written twice.
@@ -133,8 +133,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
                 _redo();
               case 'discard':
                 _discardChanges();
-              case 'preview':
-                _previewAsStudent();
               case 'record':
                 _recordNarration();
               case 'export-video':
@@ -168,10 +166,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
               value: 'discard',
               enabled: _c.hasUnsavedChanges,
               child: const Text('Discard changes'),
-            ),
-            const PopupMenuItem(
-              value: 'preview',
-              child: Text('Preview tutorial'),
             ),
             const PopupMenuItem(
               value: 'record',
@@ -368,18 +362,13 @@ extension _PhoneLayout on _TutorialStudioScreenState {
           onTap: () => _selectPhoneTab(0),
         ),
         const SizedBox(width: AppSpacing.xs),
-        _tabButton(
-          key: const Key('phone-tab-task'),
-          label: 'Task',
-          isSelected: _phoneTab == 1,
-          onTap: () => _selectPhoneTab(1),
-        ),
-        const SizedBox(width: AppSpacing.xs),
+        // „Task" went with the parts that asked something
+        // (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4): every part shows.
         _tabButton(
           key: const Key('phone-tab-parts'),
           label: 'Parts',
-          isSelected: _phoneTab == 2,
-          onTap: () => _selectPhoneTab(2),
+          isSelected: _phoneTab == 1,
+          onTap: () => _selectPhoneTab(1),
         ),
       ],
     );
@@ -388,7 +377,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   Widget _phoneTabContent() {
     return switch (_phoneTab) {
       0 => _phoneLineTab(),
-      1 => _phoneTaskTab(),
       _ => _phonePartsTab(),
     };
   }
@@ -448,93 +436,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
     );
   }
 
-  // ── Task ─────────────────────────────────────────────────────────────
-
-  /// The kind, its text and its answers — the desktop's `_questionCard`,
-  /// mirrored rather than shared: that card carries the keys the desktop's
-  /// own tests reach it by.
-  Widget _phoneTaskTab() {
-    final section = _c.section;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        KeyedSubtree(
-          key: ValueKey('phone-kind-$_fieldsEpoch'),
-          child: DropdownButtonFormField<LessonStepKind>(
-            key: const Key('phone-task-kind'),
-            initialValue: section.kind,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Task type'),
-            items: const [
-              DropdownMenuItem(
-                value: LessonStepKind.show,
-                child: Text('Show only'),
-              ),
-              DropdownMenuItem(
-                value: LessonStepKind.askMove,
-                child: Text('Ask for move on board'),
-              ),
-              DropdownMenuItem(
-                value: LessonStepKind.askChoice,
-                child: Text('Ask for answer from list'),
-              ),
-            ],
-            onChanged: _chooseKind,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        if (section.kind != LessonStepKind.show) ...[
-          TextField(
-            key: const Key('phone-task-text'),
-            controller: _instructionController,
-            decoration: const InputDecoration(labelText: 'Task for student'),
-            onChanged: _c.setInstruction,
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-        if (section.kind == LessonStepKind.askMove &&
-            section.solutionSan != null)
-          Text('Correct move: ${section.solutionSan}'),
-        if (section.kind == LessonStepKind.askChoice) ...[
-          Text('Offered answers', style: AppText.bodyBold),
-          RadioGroup<int>(
-            groupValue: _c.correctChoice,
-            onChanged: _c.setCorrectChoice,
-            child: Column(
-              children: [
-                for (var i = 0; i < _choiceControllers.length; i++)
-                  Row(
-                    children: [
-                      Radio<int>(value: i),
-                      Expanded(
-                        child: TextField(
-                          key: Key('phone-choice-$i'),
-                          controller: _choiceControllers[i],
-                          onChanged: (text) => _c.setChoiceText(i, text),
-                        ),
-                      ),
-                      IconButton(
-                        key: Key('phone-choice-delete-$i'),
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _removeChoiceField(i),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-          ElevatedButton(
-            key: const Key('phone-add-answer'),
-            onPressed: _addChoiceField,
-            child: const Text('Add answer'),
-          ),
-        ],
-      ],
-    );
-  }
-
   // ── Parts ────────────────────────────────────────────────────────────
 
   Widget _phonePartsTab() {
@@ -554,51 +455,19 @@ extension _PhoneLayout on _TutorialStudioScreenState {
     );
   }
 
-  /// The next part, of one of three kinds — the same three doors the
-  /// desktop's sections panel draws as buttons, behind one menu because
-  /// three buttons do not fit a 360 dp row.
+  /// The next part — a new demonstration, the same door the desktop's
+  /// sections panel draws.
   Widget _phoneNewPartButton() {
-    return PopupMenuButton<String>(
+    return OutlinedButton.icon(
       key: const Key('phone-new-part'),
-      tooltip: 'New part',
-      onSelected: (value) {
-        switch (value) {
-          case 'show':
-            _addShowSection();
-          case 'move':
-            _askHere(LessonStepKind.askMove);
-          case 'choice':
-            _askHere(LessonStepKind.askChoice);
-        }
-      },
-      itemBuilder: (context) => const [
-        PopupMenuItem(value: 'show', child: Text('New demonstration')),
-        PopupMenuItem(value: 'move', child: Text('Find the move')),
-        PopupMenuItem(value: 'choice', child: Text('Choose the answer')),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: AppRadii.roundedSm,
-          border: Border.all(color: context.colors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 18, color: context.colors.accent),
-            const SizedBox(width: AppSpacing.xs),
-            const Text('New part'),
-          ],
-        ),
-      ),
+      onPressed: _addShowSection,
+      icon: const Icon(Icons.add, size: 18),
+      label: const Text('New demonstration'),
     );
   }
 
-  /// One row of the list — kind icon, title, moves count, and the five
-  /// actions in a [Wrap] under it: a row of five 48 dp buttons beside the
+  /// One row of the list — icon, title, moves count, and the six
+  /// actions in a [Wrap] under it: a row of six 48 dp buttons beside the
   /// title does not fit a 360 dp screen, which is why they are here rather
   /// than as `ListTile.trailing`.
   ///
@@ -618,7 +487,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
       children: [
         ListTile(
           key: Key('phone-part-$i'),
-          leading: Icon(_phoneKindIcon(section.kind)),
+          leading: const Icon(Icons.visibility_outlined),
           title: Text(section.label(i)),
           subtitle: Text('$count ${count == 1 ? 'move' : 'moves'}'),
           selected: i == _c.draft.selected,
@@ -654,6 +523,14 @@ extension _PhoneLayout on _TutorialStudioScreenState {
                 onPressed: () => _renameSection(i),
               ),
               IconButton(
+                key: Key('turn-part-$i'),
+                tooltip: section.blackOrientation
+                    ? 'Turn this part (Black at the bottom now)'
+                    : 'Turn this part (White at the bottom now)',
+                icon: const Icon(Icons.screen_rotation_alt),
+                onPressed: () => _turnPart(i),
+              ),
+              IconButton(
                 tooltip: 'Delete part',
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => _removeSection(i),
@@ -664,12 +541,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
       ],
     );
   }
-
-  IconData _phoneKindIcon(LessonStepKind kind) => switch (kind) {
-        LessonStepKind.show => Icons.visibility_outlined,
-        LessonStepKind.askMove => Icons.help_outline,
-        LessonStepKind.askChoice => Icons.list_alt,
-      };
 
   /// The main line's length, in moves — [endOfMainLine] finds where it ends,
   /// this counts the steps it took to get there.

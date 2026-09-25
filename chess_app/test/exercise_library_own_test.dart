@@ -243,7 +243,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ListTile), findsNWidgets(3));
-      expect(find.text('A tutorial'), findsOneWidget);
+      // „A tutorial video" since docs/PLAN-TUTORIJAL-VIDEO.md: a tutorial is
+      // sent as its film.
+      expect(find.text('A tutorial video'), findsOneWidget);
       expect(find.text('Exercises'), findsOneWidget);
       expect(find.text('A puzzle set'), findsOneWidget);
       expect(find.text('Play it out'), findsNothing);

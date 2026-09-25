@@ -933,54 +933,27 @@ async function initDB(target = pool) {
         ON assignment_items(puzzle_id) WHERE attempted_at IS NULL;
     `);
 
-    // A lesson assignment's items are its steps, which have no puzzle id.
-    // `position` already identifies the item within the assignment, so it serves
-    // as the step index; the partial unique index keeps steps distinct without a
-    // second column that would mean the same thing.
+    // Items with no puzzle — a tutorial's film, a game played out — are told
+    // apart by `position`, which the partial unique index keeps distinct.
     await client.query(`
       ALTER TABLE assignment_items ALTER COLUMN puzzle_id DROP NOT NULL;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_assignment_items_step
         ON assignment_items(assignment_id, position) WHERE puzzle_id IS NULL;
     `);
 
-    // Which *step* a lesson item is, as opposed to where it sits.
-    //
-    // `position` was doing both jobs, and the second one silently: a trainer who
-    // inserted a step at the front renumbered every item after it, so a row
-    // recording an answer now described a different board. Nothing threw and
-    // nothing logged — the failure shape this codebase keeps paying for.
-    //
-    // Backfilled as `p<position>`, which is exactly what the index means for
-    // every row written before ids existed; `stepsOfLesson` names legacy steps
-    // the same way, so the two sides agree by construction rather than by
-    // coincidence. `position` stays, and from here it orders and nothing else.
+    // A tutorial's parts are no longer items (docs/PLAN-TUTORIJAL-VIDEO.md,
+    // phase 2): a tutorial reaches a student as its film, one item, done when
+    // the film is downloaded. `step_key` named which part an item was, and
+    // `revealed_at` when a student asked to be shown a part's answer; nothing
+    // reads either any more — and a column nobody reads is a rule somebody will
+    // believe. Its backfill had been naming every item without a puzzle on
+    // every start, „Play it out" items included. Dropping a column drops its
+    // index with it. A no-op once gone.
     await client.query(`
       ALTER TABLE assignment_items
-        ADD COLUMN IF NOT EXISTS step_key VARCHAR(16);
-      UPDATE assignment_items
-         SET step_key = 'p' || position
-       WHERE step_key IS NULL AND puzzle_id IS NULL;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_assignment_items_step_key
-        ON assignment_items(assignment_id, step_key) WHERE step_key IS NOT NULL;
+        DROP COLUMN IF EXISTS step_key,
+        DROP COLUMN IF EXISTS revealed_at;
     `);
-    logger.info('Verified column & index: assignment_items.step_key');
-
-    // When a student asked to be shown the answer.
-    //
-    // „Pokaži mi" after two wrong tries, so a stuck child can finish the step.
-    // Without an escape they never write `completed_at`, and the trainer's
-    // unreviewed count can then never reach zero — the exact failure
-    // `assignments.reviewed_at` was added to fix.
-    //
-    // Its own column rather than a value squeezed into `played_san`, whose own
-    // comment already warns that NULL means three different things. A fourth
-    // meaning there would make the trainer's review unable to tell „netačno"
-    // from „rešenje otkriveno", which are different facts about a child.
-    await client.query(`
-      ALTER TABLE assignment_items
-        ADD COLUMN IF NOT EXISTS revealed_at TIMESTAMPTZ;
-    `);
-    logger.info('Verified column: assignment_items.revealed_at');
 
     // What the student tried, not only whether it was accepted.
     //
@@ -1048,7 +1021,7 @@ async function initDB(target = pool) {
     // pointing at it. An edit to the template after sending changes nothing a
     // student already has, because what they have are assignments.
     //
-    // `item_key` is minted, never an index — the lesson that `step_key` above
+    // `item_key` is minted, never an index — the lesson that `assignment_items.step_key` (since dropped)
     // paid for: an index used as an identity re-aims a child's answers the day
     // the list is reordered. `position` orders and nothing else.
     //
@@ -1169,52 +1142,12 @@ async function initDB(target = pool) {
     `);
     logger.info('Verified database table & indexes: assignment_notes (per assignment and per position)');
 
-    // Create review_items table — the spaced-repetition schedule.
-    //
-    // Keyed on (user_id, lesson_id, position) rather than on the assignment: a
-    // student's memory of one position is a property of the student, not of the
-    // homework that happened to introduce it. Re-assigning the same lesson must
-    // resume the existing schedule instead of resetting it to day one.
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS review_items (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        lesson_id INTEGER NOT NULL REFERENCES saved_lessons(id) ON DELETE CASCADE,
-        position INTEGER NOT NULL,
-        ease_factor NUMERIC(4, 2) NOT NULL DEFAULT 2.50,
-        interval_days INTEGER NOT NULL DEFAULT 0,
-        repetitions INTEGER NOT NULL DEFAULT 0,
-        lapses INTEGER NOT NULL DEFAULT 0,
-        due_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        last_reviewed_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE (user_id, lesson_id, position)
-      );
-      CREATE INDEX IF NOT EXISTS idx_review_items_due
-        ON review_items(user_id, due_at);
-    `);
-
-    // The schedule follows the step, not its place in the list.
-    //
-    // `UNIQUE (user_id, lesson_id, position)` tied a student's memory to an
-    // index, so editing the lesson re-aimed every row in it at a different
-    // board — quietly, because an index is always valid. `getDue` already
-    // guarded the visible half of this (a row pointing past the end is skipped);
-    // this is the half that could not be seen.
-    //
-    // The old constraint is dropped only after the backfill has run, and the
-    // backfill is `'p' || position` because that is precisely what those rows
-    // have always meant. Same naming as `stepsOfLesson` gives a step with no id.
-    await client.query(`
-      ALTER TABLE review_items
-        ADD COLUMN IF NOT EXISTS step_key VARCHAR(16);
-      UPDATE review_items SET step_key = 'p' || position WHERE step_key IS NULL;
-      ALTER TABLE review_items ALTER COLUMN step_key SET NOT NULL;
-      ALTER TABLE review_items DROP CONSTRAINT IF EXISTS review_items_user_id_lesson_id_position_key;
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_review_items_step
-        ON review_items(user_id, lesson_id, step_key);
-    `);
-    logger.info('Verified column, backfill & index: review_items.step_key');
+    // Spaced repetition over a tutorial's parts is gone with the parts
+    // (docs/PLAN-TUTORIJAL-VIDEO.md, D9): a student stepping through a tutorial
+    // was the only thing that ever enrolled a row here. The owner said on
+    // 25.9.2026 that nothing in the test database has to be kept; the table had
+    // 0 rows. Dropped on every start, a no-op once it is gone.
+    await client.query('DROP TABLE IF EXISTS review_items');
 
     // Create student_reports table.
     //

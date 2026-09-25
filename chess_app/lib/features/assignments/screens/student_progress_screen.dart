@@ -222,8 +222,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             FloatingActionButton.extended(
               heroTag: 'assign-lesson',
               onPressed: _assignLesson,
-              icon: const Icon(Icons.menu_book),
-              label: const Text('Assign tutorial'),
+              icon: const Icon(Icons.movie_outlined),
+              label: const Text('Send a video'),
             ),
             const SizedBox(height: 10),
             FloatingActionButton.extended(

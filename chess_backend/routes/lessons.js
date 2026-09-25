@@ -1299,10 +1299,8 @@ router.get('/labels', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT DISTINCT unnest(tags) AS label 
-       FROM saved_lessons 
-       WHERE user_id = $1 
-          OR trainer_id = $1 
-          OR trainer_id IN (${acceptedTrainersOf('$1')})
+       FROM saved_lessons
+       WHERE ${READABLE_BY_READER}
        ORDER BY label ASC`,
       [req.user.id]
     );
@@ -1330,10 +1328,20 @@ const READER_COLUMNS = `
     WHERE j.lesson_id = saved_lessons.id AND j.user_id = $1
       AND j.status = 'running'
     LIMIT 1) AS render_job_id,
-  (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson`;
+  (trainer_id != $1 AND user_id != $1) AS is_trainer_lesson,
+  -- Students this reader sent the film to who have not downloaded it yet —
+  -- what deleting the tutorial (and its film) would strand
+  -- (docs/PLAN-TUTORIJAL-VIDEO.md, D13).
+  (SELECT COUNT(*)::int FROM assignments a
+     JOIN assignment_items ai ON ai.assignment_id = a.id
+    WHERE a.lesson_id = saved_lessons.id AND a.kind = 'lesson'
+      AND a.trainer_id = $1 AND ai.attempted_at IS NULL) AS waiting_downloads`;
 
-/// Who may read a tutorial, with the reader's id as `$1`: their own, one they
-/// are the trainer of, or one saved by a trainer who teaches them.
+/// Who may read a row, with the reader's id as `$1`: their own, one they are
+/// the trainer of, or a **single position** saved by a trainer who teaches
+/// them. A tutorial — a row with parts — reaches a student only as its film,
+/// sent to them (docs/PLAN-TUTORIJAL-VIDEO.md, D6), so a trainer's tutorial is
+/// no longer theirs to read.
 ///
 /// **One condition for the list and for a single tutorial.** Three hand-written
 /// copies of one access rule is how `status = 'accepted'` was lost before, and
@@ -1341,7 +1349,8 @@ const READER_COLUMNS = `
 /// out by id what the list never shows. `test/lesson_fetch_one.test.js` fails
 /// if the two queries stop sharing it.
 const READABLE_BY_READER =
-  `(user_id = $1 OR trainer_id = $1 OR trainer_id IN (${acceptedTrainersOf('$1')}))`;
+  `(user_id = $1 OR trainer_id = $1
+    OR (position_list IS NULL AND trainer_id IN (${acceptedTrainersOf('$1')})))`;
 
 // GET /lessons
 router.get('/', authenticateToken, async (req, res) => {

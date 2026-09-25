@@ -112,67 +112,45 @@ void main() {
       expect(unknown.kind, AssignmentKind.puzzles);
     });
 
-    test('lesson steps parse alongside their progress items', () {
+    test('a tutorial is its film: what it is, and when it was downloaded', () {
+      // docs/PLAN-TUTORIJAL-VIDEO.md: one item, whose `attempted_at` is the
+      // download; no parts travel.
       final detail = AssignmentDetail.fromJson({
-        ...lessonJson(total: 3, attempted: 1),
+        ...lessonJson(total: 1, attempted: 1),
         'items': [
-          {'position': 0, 'attempted_at': '2026-08-15T10:00:00Z'},
-          {'position': 1},
-          {'position': 2},
+          {'position': 0, 'attempted_at': '2026-09-25T10:00:00Z'},
         ],
-        'steps': [
-          {'title': 'Uvod', 'fen': '8/8/8/8/8/8/8/K6k w - - 0 1', 'pgn': null},
-          {'title': 'Ključna pozicija', 'fen': '8/8/8/8/8/8/8/K6k b - - 0 1'},
-          {'title': 'Zaključak', 'fen': '8/8/8/8/8/8/8/K6k w - - 0 1'},
-        ],
+        'video': {
+          'status': 'ready',
+          'seconds': 194,
+          'resolution': '720p',
+          'renderedAt': '2026-09-25T06:25:17Z',
+        },
       });
 
-      expect(detail.steps.length, 3);
-      expect(detail.steps.first.title, 'Uvod');
-      // Lesson items carry no puzzle id — they are identified by position.
-      expect(detail.items.first.puzzleId, isNull);
+      expect(detail.video?.ready, isTrue);
+      expect(detail.video?.seconds, 194);
+      expect(detail.video?.resolution, '720p');
+      expect(detail.downloadedAt,
+          DateTime.parse('2026-09-25T10:00:00Z').toLocal());
     });
 
-    test('resuming lands on the first unread step', () {
+    test('a film no longer there reads as not ready, and not downloaded', () {
       final detail = AssignmentDetail.fromJson({
-        ...lessonJson(total: 3, attempted: 2),
+        ...lessonJson(total: 1),
         'items': [
-          {'position': 0, 'attempted_at': '2026-08-15T10:00:00Z'},
-          {'position': 1, 'attempted_at': '2026-08-15T10:05:00Z'},
-          {'position': 2},
+          {'position': 0},
         ],
-        'steps': [
-          {'title': 'a', 'fen': 'x'},
-          {'title': 'b', 'fen': 'y'},
-          {'title': 'c', 'fen': 'z'},
-        ],
+        'video': {'status': 'none'},
       });
 
-      expect(detail.resumeStepIndex, 2,
-          reason: 'must not restart a half-read lesson');
+      expect(detail.video?.ready, isFalse);
+      expect(detail.downloadedAt, isNull);
     });
 
-    test('a fully read lesson resumes on its last step, not past the end', () {
-      final detail = AssignmentDetail.fromJson({
-        ...lessonJson(total: 2, attempted: 2),
-        'items': [
-          {'position': 0, 'attempted_at': '2026-08-15T10:00:00Z'},
-          {'position': 1, 'attempted_at': '2026-08-15T10:05:00Z'},
-        ],
-        'steps': [
-          {'title': 'a', 'fen': 'x'},
-          {'title': 'b', 'fen': 'y'},
-        ],
-      });
-
-      // Re-opening a finished lesson is normal; an out-of-range index would crash.
-      expect(detail.resumeStepIndex, 1);
-    });
-
-    test('a lesson with no items resumes at zero', () {
-      final detail = AssignmentDetail.fromJson(
-          {...lessonJson(), 'items': [], 'steps': []});
-      expect(detail.resumeStepIndex, 0);
+    test('anything that is not a tutorial carries no film', () {
+      final detail = AssignmentDetail.fromJson({...assignmentJson()});
+      expect(detail.video, isNull);
     });
   });
 

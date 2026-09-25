@@ -27,7 +27,6 @@ import 'package:chess_app/features/assignments/screens/student_progress_screen.d
 import 'package:chess_app/features/assignments/widgets/assignment_detail_gate.dart';
 import 'package:chess_app/features/assignments/widgets/assignment_item_destination.dart';
 import 'package:chess_app/features/homework/screens/homework_assignment_screen.dart';
-import 'package:chess_app/features/reviews/screens/review_session_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_import_screen.dart';
 import 'package:chess_app/features/archive/screens/archive_home_screen.dart';
 import 'package:chess_app/features/archive/screens/mistake_drill_screen.dart';
@@ -214,11 +213,6 @@ final List<RouteBase> appRouteTable = [
       session: SessionService.instance.current,
       assignmentId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
     ),
-  ),
-  GoRoute(
-    path: AppRoutes.review,
-    builder: (context, state) =>
-        ReviewSessionScreen(session: SessionService.instance.current),
   ),
   GoRoute(
     path: AppRoutes.studentProgress,

@@ -1690,7 +1690,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
       final row = await _rowOf(entry);
       if (row == null || !mounted) return;
       final choice = await confirmTutorialDelete(context,
-          title: entry.title, hasVideo: TutorialRowActions.hasVideo(row));
+          title: entry.title,
+          hasVideo: TutorialRowActions.hasVideo(row),
+          waitingDownloads: TutorialRowActions.waitingDownloadsOf(row));
       if (!mounted) return;
       if (choice == TutorialDeleteChoice.downloadFirst) {
         await downloadTutorialVideo(context, _lessonApi, row);

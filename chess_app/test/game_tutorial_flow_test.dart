@@ -28,8 +28,12 @@ final _fixture = jsonDecode(
 GameTutorialResult _result({String? mastersNote}) {
   final expected = _fixture['expected'] as Map<String, dynamic>;
   return GameTutorialResult(
-    keyMoments: readTutorialJson(jsonEncode(expected['tutorial'])),
-    wholeGame: readTutorialJson(jsonEncode(expected['tutorialGame'])),
+    // As the real run hands them over: without the question parts the
+    // skeleton still makes until phase 5 of docs/PLAN-TUTORIJAL-VIDEO.md.
+    keyMoments: readTutorialJson(jsonEncode(
+        withoutQuestions(expected['tutorial'] as Map<String, dynamic>))),
+    wholeGame: readTutorialJson(jsonEncode(
+        withoutQuestions(expected['tutorialGame'] as Map<String, dynamic>))),
     report: const {
       'claims': ['m1.question names its answer or its square'],
       'missing_slots': <String>[],
@@ -307,13 +311,14 @@ void main() {
     expect(
         opened.single.partCount,
         ((_fixture['expected'] as Map)['tutorialGame']['positionList'] as List)
+            .where((s) => (s as Map)['kind'] == 'show')
             .length);
   });
 
   // The owner, 14.9.2026: a tutorial made for a film asks nothing — a
   // question in a video is a board waiting for an answer nobody can give.
   testWidgets(
-      'a tutorial for a video has no question parts, and says how many '
+      'a tutorial from a game has no question parts, and says how many '
       'parts that leaves', (tester) async {
     final opened = <ImportedTutorial>[];
     await _pump(tester,
@@ -327,12 +332,12 @@ void main() {
     final shows = expected.where((s) => s['kind'] == 'show').length;
     expect(shows, lessThan(expected.length),
         reason: 'the fixture must ask something, or this test cannot tell');
-    expect(find.textContaining('${expected.length} parts —'), findsOneWidget,
-        reason: 'for students unless the trainer says otherwise');
-
-    await tester.tap(find.byKey(const Key('game-tutorial-for-video')));
-    await tester.pumpAndSettle();
+    // Every part shows (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4): there is no
+    // „For students" / „For a video" to choose between any more.
+    expect(find.byKey(const Key('game-tutorial-for-video')), findsNothing);
+    expect(find.byKey(const Key('game-tutorial-for-students')), findsNothing);
     expect(find.textContaining('$shows parts —'), findsOneWidget);
+    expect(find.textContaining('${expected.length} parts —'), findsNothing);
 
     final whole = find.byKey(const Key('game-tutorial-whole-game'));
     await tester.ensureVisible(whole);

@@ -15,8 +15,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
@@ -34,14 +32,10 @@ TutorialSection sectionOf({
   String fen = _start,
   String pgn = '{ White takes the centre. } 1. e4 { Black answers. } e5',
   String title = 'Part',
-  LessonStepKind kind = LessonStepKind.show,
-  String? instruction,
 }) =>
     TutorialSection(
       root: readStepTree(fen: fen, pgn: pgn).root,
       title: title,
-      kind: kind,
-      instruction: instruction,
     );
 
 TutorialDraft draftOf(
@@ -126,17 +120,6 @@ void main() {
       final back = signatureOf(draftOf(parts: [second, first]));
       expect(forward, isNot(back),
           reason: 'the markers would name the other part from the first beat');
-    });
-
-    test('the task of a part that asks is in it: the child hears it read', () {
-      final asks = draftOf(parts: [
-        sectionOf(
-            kind: LessonStepKind.askMove, instruction: 'Find the best move.'),
-      ]);
-      final asksOther = draftOf(parts: [
-        sectionOf(kind: LessonStepKind.askMove, instruction: 'Why not Nf3?'),
-      ]);
-      expect(signatureOf(asks), isNot(signatureOf(asksOther)));
     });
 
     test('renaming the tutorial costs no narration', () {

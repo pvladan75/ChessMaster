@@ -40,7 +40,6 @@ Future<List<String>> _home(
         onOpenStudent: (_, __) {},
         hasTrainer: true,
         onOpenAssignments: () {},
-        onOpenReviews: () {},
         onJoinSession: joined.add,
         onRefreshRecordings: () {},
         onOpenReplay: (_) {},

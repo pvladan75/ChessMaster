@@ -139,7 +139,7 @@ void main() {
     await TutorialDraftService.instance.clear();
   });
 
-  Map<String, dynamic> lessonOf(String pgn, String kind) => {
+  Map<String, dynamic> lessonOf(String pgn) => {
         'id': 31,
         'title': 'Otvaranje',
         'position_list': [
@@ -147,14 +147,12 @@ void main() {
             'fen': startFen,
             'title': 'Deo 1',
             'pgn': pgn,
-            'kind': kind,
-            if (kind == 'ask_choice') 'instruction': 'Šta beli postiže?',
           },
         ],
       };
 
   Future<_RecordingApi> open(WidgetTester tester,
-      {String pgn = '1. e4 e5 2. Nf3', String kind = 'show'}) async {
+      {String pgn = '1. e4 e5 2. Nf3'}) async {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -163,7 +161,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: TutorialStudioScreen(
         session: session,
-        entry: TutorialEntry.saved(lessonOf(pgn, kind)),
+        entry: TutorialEntry.saved(lessonOf(pgn)),
         lessonApi: api,
       ),
     ));
@@ -307,71 +305,14 @@ void main() {
     });
   });
 
-  group('the question is asked where the line runs out', () {
-    testWidgets('the question card is under the last beat, and only there',
-        (tester) async {
-      await open(tester);
-
-      expect(find.byKey(const Key('question-card')), findsOneWidget);
-      expect(find.byKey(const Key('example-kind')), findsOneWidget);
-
-      final lastCard = tester.getRect(find.byKey(const Key('beat-3')));
-      final question = tester.getRect(find.byKey(const Key('question-card')));
-      expect(question.top, greaterThanOrEqualTo(lastCard.top),
-          reason: 'the question is asked when the line has run out, so it '
-              'belongs under the beat where that happens');
-
-      await close(tester);
-    });
-
-    testWidgets('the question still reaches the server', (tester) async {
-      final api = await open(tester, pgn: '1. e4');
-
-      await tester.tap(find.byKey(const Key('example-kind')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Ask for answer from list').last);
-      await tester.pumpAndSettle();
-      await typeIn(tester, 'example-instruction', 'Šta beli postiže?');
-      // Two answers, because P8 made „two to four" a refusal — §7.6 of
-      // `docs/PLAN-STUDIO-REDIZAJN.md`, and a child offered a single answer to
-      // pick from is not being asked anything. The assertion below is the one
-      // this test has always made: that the question reaches the server. Only
-      // the fixture grew.
-      await tester.tap(find.text('Add answer'));
-      await tester.pumpAndSettle();
-      await typeIn(tester, 'example-choice-0', 'Zauzima centar.');
-      await tester.tap(find.text('Add answer'));
-      await tester.pumpAndSettle();
-      await typeIn(tester, 'example-choice-1', 'Napada kralja.');
-      await tester.tap(find.byType(Radio<int>).first);
-      await tester.pumpAndSettle();
-
-      final list = await save(tester, api);
-
-      expect(list.single['kind'], 'ask_choice');
-      expect(list.single['instruction'], 'Šta beli postiže?');
-      expect(list.single['choices'], [
-        {'text': 'Zauzima centar.', 'correct': true},
-        {'text': 'Napada kralja.', 'correct': false},
-      ]);
-
-      await close(tester);
-    });
-  });
-
   group('the fields have left the column', () {
     testWidgets('every field the author types in is inside the timeline',
         (tester) async {
-      // A question step, because „Zadatak za učenika" is drawn only when the
-      // part asks something — demanding it on a `show` part would be demanding
-      // a field that is correctly absent.
-      await open(tester, kind: 'ask_choice');
+      // The sentence is the one field left: a part's kind and task went
+      // with the questions (docs/PLAN-TUTORIJAL-VIDEO.md, phase 4).
+      await open(tester);
 
-      for (final key in const [
-        'example-sentence',
-        'example-kind',
-        'example-instruction',
-      ]) {
+      for (final key in const ['example-sentence']) {
         expect(
             find.descendant(
                 of: find.byType(TutorialFlowPanel),

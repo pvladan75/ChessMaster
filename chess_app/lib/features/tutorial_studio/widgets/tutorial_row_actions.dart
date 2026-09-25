@@ -47,6 +47,14 @@ class TutorialRowActions {
   /// A film already rendered and ready to fetch.
   static bool hasVideo(Map<String, dynamic> row) => row['has_video'] == true;
 
+  /// Students this trainer sent the film to who have not downloaded it yet —
+  /// what deleting the tutorial would strand (`docs/PLAN-TUTORIJAL-VIDEO.md`,
+  /// D13). Zero when the server did not say.
+  static int waitingDownloadsOf(Map<String, dynamic> row) {
+    final raw = row['waiting_downloads'];
+    return raw is num ? raw.toInt() : int.tryParse('$raw') ?? 0;
+  }
+
   /// What a render's end means for its row: a film to download, and no render
   /// running any more. A hidden render is still running and keeps its place.
   static void _settleRender(Map<String, dynamic> row, RenderJobState? state) {
@@ -65,7 +73,9 @@ class TutorialRowActions {
     if (id == null) return false;
 
     final choice = await confirmTutorialDelete(context,
-        title: titleOf(row), hasVideo: hasVideo(row));
+        title: titleOf(row),
+        hasVideo: hasVideo(row),
+        waitingDownloads: waitingDownloadsOf(row));
     if (!context.mounted) return false;
     if (choice == TutorialDeleteChoice.downloadFirst) {
       await downloadTutorialVideo(context, lessonApi, row);
@@ -82,12 +92,40 @@ class TutorialRowActions {
     return true;
   }
 
-  /// Sends [row] to a student chosen from this trainer's **accepted**
-  /// students only — a relationship nobody has answered grants nothing, and
-  /// the server is right to refuse it.
+  /// Sends [row]'s **film** to a student chosen from this trainer's
+  /// **accepted** students only — a relationship nobody has answered grants
+  /// nothing, and the server is right to refuse it.
+  ///
+  /// A tutorial is sent as its video (`docs/PLAN-TUTORIJAL-VIDEO.md`, D5), so
+  /// one without a film is not offered students at all: the trainer is told
+  /// why and offered the export, which is the way forward.
   Future<void> send(BuildContext context, Map<String, dynamic> row) async {
     final id = idOf(row);
     if (id == null) return;
+
+    if (!hasVideo(row)) {
+      final export = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Export the video first'),
+          content: Text('A tutorial is sent to a student as its video, and '
+              '"${titleOf(row)}" has none yet.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const ValueKey('tutorial-send-export-first'),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Export video'),
+            ),
+          ],
+        ),
+      );
+      if (export == true && context.mounted) await exportVideo(context, row);
+      return;
+    }
 
     final students = await groupApi.myStudents();
     if (!context.mounted) return;
@@ -102,7 +140,7 @@ class TutorialRowActions {
     final studentId = await showDialog<int>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Send to student'),
+        title: const Text('Send the video to a student'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 320),
           child: SizedBox(
@@ -143,7 +181,7 @@ class TutorialRowActions {
       AppFeedback.error(context, result.error ?? 'Failed to send.');
       return;
     }
-    AppFeedback.success(context, 'Tutorial sent to student.');
+    AppFeedback.success(context, 'Video sent to the student.');
   }
 
   /// Starts a render and marks [row] as rendering the moment the server
@@ -194,6 +232,10 @@ class TutorialRowActions {
 const _videoGoesToo = '\n\nIts video will be deleted too. Download it first '
     'if you want to keep it.';
 
+String _stranded(int count) => count == 1
+    ? '\n\n1 student has not downloaded its video yet, and will not be able to.'
+    : '\n\n$count students have not downloaded its video yet, and will not be able to.';
+
 /// What the trainer chose when asked to delete a tutorial.
 enum TutorialDeleteChoice { cancel, delete, downloadFirst }
 
@@ -204,17 +246,23 @@ enum TutorialDeleteChoice { cancel, delete, downloadFirst }
 /// 22.9.2026): the film is reached only through the tutorial, so the server
 /// deletes it too. When there is one, the dialog says so and offers to
 /// download it first; that choice deletes nothing.
+///
+/// A film sent to students who have not downloaded it yet is stranded by the
+/// delete, and this is the only moment the trainer can know — so the dialog
+/// says how many ([waitingDownloads], `docs/PLAN-TUTORIJAL-VIDEO.md`, D13).
 Future<TutorialDeleteChoice> confirmTutorialDelete(
   BuildContext context, {
   required String title,
   required bool hasVideo,
+  int waitingDownloads = 0,
 }) async {
   final choice = await showDialog<TutorialDeleteChoice>(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Delete tutorial?'),
       content: Text('"$title" will be permanently deleted, along with all '
-          'parts.${hasVideo ? _videoGoesToo : ''}'),
+          'parts.${hasVideo ? _videoGoesToo : ''}'
+          '${waitingDownloads > 0 ? _stranded(waitingDownloads) : ''}'),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(TutorialDeleteChoice.cancel),

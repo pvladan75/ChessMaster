@@ -22,8 +22,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
@@ -48,7 +46,6 @@ TutorialDraft draftOf({
             pgn: pgn,
           ).root,
           title: 'Part',
-          kind: LessonStepKind.show,
         ),
       ],
     );

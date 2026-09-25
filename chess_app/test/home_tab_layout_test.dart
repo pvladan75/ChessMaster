@@ -79,8 +79,6 @@ Future<void> _pump(WidgetTester tester, double width,
             onOpenStudent: (_, __) {},
             hasTrainer: true,
             onOpenAssignments: () {},
-            onOpenReviews: () {},
-            dueReviewCount: 3,
             onJoinSession: (_) {},
             onRefreshRecordings: () {},
             onOpenReplay: (_) {},
@@ -111,27 +109,26 @@ List<Rect> _playButtons(WidgetTester tester) => [
 
 int _distinct(Iterable<double> xs) => xs.map((x) => x.round()).toSet().length;
 
-const _shortcuts = ['Set for me', 'Due for review', 'In a session now'];
+// Two since docs/PLAN-TUTORIJAL-VIDEO.md (D9): „Due for review" went with the
+// tutorial parts that were its only source. The rules below held three cards
+// and hold two the same way.
+const _shortcuts = ['Set for me', 'In a session now'];
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('the three shortcut cards share one row on a wide screen',
+  testWidgets('the shortcut cards share one row on a wide screen',
       (tester) async {
     await _pump(tester, 1400);
     final s = _card(tester, 'Set for me');
-    final d = _card(tester, 'Due for review');
     final j = _card(tester, 'In a session now');
-    expect(d.top, s.top, reason: '„Due for review" is not beside „Set for me"');
     expect(j.top, s.top, reason: '„In a session now" is not in the same row');
-    expect(d.left, greaterThan(s.right));
-    expect(j.left, greaterThan(d.right));
-    // „In a session now" holds a name and a button, its neighbours one line of
+    expect(j.left, greaterThan(s.right));
+    // „In a session now" holds a name and a button, its neighbour one line of
     // text; the row still ends on one line.
-    expect(d.height, s.height, reason: 'the row ends at two heights');
     expect(j.height, s.height, reason: 'the row ends at two heights');
     // No line of prose wider than a card — the reason the cap existed.
-    for (final r in [s, d, j]) {
+    for (final r in [s, j]) {
       expect(r.width, lessThanOrEqualTo(AdaptiveCardGrid.maxTileWidth));
     }
   });
@@ -182,7 +179,7 @@ void main() {
     // A 1920 window with the tab in a 420 box: one column is all that fits.
     await _pump(tester, 420);
     final s = _card(tester, 'Set for me');
-    final d = _card(tester, 'Due for review');
+    final d = _card(tester, 'In a session now');
     expect(d.top, greaterThanOrEqualTo(s.bottom),
         reason: 'the tab read the window and put two cards in 420 px');
     expect(_distinct(_reviewButtons(tester).map((r) => r.left)), 1);
@@ -222,8 +219,6 @@ void main() {
           onOpenStudent: (_, __) {},
           hasTrainer: true,
           onOpenAssignments: () {},
-          onOpenReviews: () {},
-          dueReviewCount: 0,
           onJoinSession: (_) {},
           onRefreshRecordings: () {},
           onOpenReplay: (_) {},

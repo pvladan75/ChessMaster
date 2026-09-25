@@ -79,6 +79,7 @@ class PositionLibraryService {
           id: (row['id'] as num).toInt(),
           title: row['title']?.toString() ?? 'Untitled',
           stepCount: steps.length,
+          hasVideo: row['has_video'] == true,
         ));
       }
       return courses;

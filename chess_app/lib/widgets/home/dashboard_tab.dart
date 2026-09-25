@@ -27,15 +27,10 @@ class HomeDashboardTab extends StatelessWidget {
   final void Function(PanelAssignment assignment) onOpenPanelAssignment;
   final void Function(int id, String name) onOpenStudent;
 
-  /// Whether anybody teaches this user. The student's blocks — what was set
-  /// for them, what is due for review — are drawn for a student, and for
-  /// anyone with something due; a player with neither sees neither.
+  /// Whether anybody teaches this user. What was set for them is drawn for a
+  /// student only; a player with no trainer does not see it.
   final bool hasTrainer;
   final VoidCallback onOpenAssignments;
-  final VoidCallback onOpenReviews;
-
-  /// Positions waiting to be reviewed; drives the badge.
-  final int dueReviewCount;
   final ValueChanged<String> onJoinSession;
   final VoidCallback onRefreshRecordings;
   final ValueChanged<int> onOpenReplay;
@@ -57,8 +52,6 @@ class HomeDashboardTab extends StatelessWidget {
     required this.onOpenStudent,
     required this.hasTrainer,
     required this.onOpenAssignments,
-    required this.onOpenReviews,
-    this.dueReviewCount = 0,
     required this.onJoinSession,
     required this.onRefreshRecordings,
     required this.onOpenReplay,
@@ -147,14 +140,13 @@ class HomeDashboardTab extends StatelessWidget {
             onOpenAssignment: onOpenPanelAssignment,
             onOpenStudent: onOpenStudent,
           ),
-          // What was set for me, what is due, and a room to join: peers,
-          // in one flow. The student's two are drawn for someone who has
-          // a trainer, and for anyone with a review due — never as two
-          // empty cards.
+          // What was set for me, and a room to join: peers, in one flow.
+          // What was set is drawn for someone who has a trainer — never as
+          // an empty card.
           AdaptiveCardRows(
             key: const Key('home-shortcut-flow'),
             children: [
-              if (hasTrainer || dueReviewCount > 0) ...[
+              if (hasTrainer) ...[
                 // Homework. Sits directly under the session shortcuts because for
                 // a student it is the reason to open the app between lessons.
                 Card(
@@ -183,71 +175,7 @@ class HomeDashboardTab extends StatelessWidget {
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 Text(
-                                  'Drills and tutorials your trainer set you, and your progress.',
-                                  style: AppText.caption
-                                      .copyWith(color: colors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: colors.textMuted),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Spaced repetition. Shown even at zero so the student learns the
-                // feature exists before anything is due; the badge is what pulls
-                // them back on the days it is not.
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppRadii.roundedLg,
-                    side: BorderSide(
-                      color: dueReviewCount > 0
-                          ? colors.warning
-                          : colors.borderStrong,
-                      width: 1.5,
-                    ),
-                  ),
-                  child: InkWell(
-                    onTap: onOpenReviews,
-                    borderRadius: AppRadii.roundedLg,
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      child: Row(
-                        children: [
-                          Badge(
-                            isLabelVisible: dueReviewCount > 0,
-                            label: Text('$dueReviewCount'),
-                            child: Icon(
-                              Icons.repeat,
-                              size: 32,
-                              color: dueReviewCount > 0
-                                  ? colors.warning
-                                  : colors.textMuted,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Due for review',
-                                  style: AppText.title.copyWith(
-                                    color: dueReviewCount > 0
-                                        ? colors.warning
-                                        : colors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  dueReviewCount > 0
-                                      ? (dueReviewCount == 1
-                                          ? '1 position is waiting for review.'
-                                          : '$dueReviewCount positions are waiting for review.')
-                                      : 'Positions from tutorials return for review when their time comes.',
+                                  'Drills and videos your trainer set you, and your progress.',
                                   style: AppText.caption
                                       .copyWith(color: colors.textSecondary),
                                 ),

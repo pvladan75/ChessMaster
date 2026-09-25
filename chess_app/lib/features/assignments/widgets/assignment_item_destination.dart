@@ -17,13 +17,13 @@ import 'package:chess_app/theme/app_colors.dart';
 
 import '../models/assignment.dart';
 import '../screens/custom_assignment_overview_screen.dart';
-import '../screens/lesson_viewer_screen.dart';
+import '../screens/video_assignment_screen.dart';
 import '../services/assignment_api_service.dart';
 import 'package:chess_app/features/tactics_trainer/screens/tactics_trainer_screen.dart';
 
 /// Builds the screen for one assignment item, from its own [detail].
 ///
-/// `lesson` opens the lesson viewer; `puzzles` opens the overview when the
+/// `lesson` opens the tutorial's film to download; `puzzles` opens the overview when the
 /// positions are the trainer's own and the tactics screen otherwise;
 /// `engine_game` opens the assigned game, with its task read through
 /// `EngineGameTask.fromJson` — a task that reader refuses is not opened.
@@ -38,12 +38,9 @@ Widget assignmentItemScreen({
 
   switch (assignment.kind) {
     case AssignmentKind.lesson:
-      if (detail.steps.isEmpty) {
-        return const AssignmentUnavailableScreen(
-          message: 'This tutorial is no longer available.',
-        );
-      }
-      return LessonViewerScreen(session: session, detail: detail, api: api);
+      // A tutorial is sent as its film (docs/PLAN-TUTORIJAL-VIDEO.md); the
+      // screen says so itself when the film is gone.
+      return VideoAssignmentScreen(session: session, detail: detail, api: api);
 
     case AssignmentKind.engineGame:
       final task = EngineGameTask.fromJson(assignment.task ?? const {});

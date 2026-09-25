@@ -7,12 +7,11 @@
 //
 // The three kinds of item are kept apart rather than flattened. A scanned
 // position carries one move and a written task, a Lichess puzzle is a forced
-// line, and a lesson step is read rather than solved; pretending they are the
+// line, and a tutorial's film is downloaded rather than solved; pretending they are the
 // same row would make every reader branch anyway.
 
 const { Chess } = require('chess.js');
 const { assignmentParticipant } = require('./assignmentService');
-const { stepsOfLesson } = require('./lessonSteps');
 const { exerciseColumns, exerciseOf, firstMoveOf, reviewOf } = require('./exercise');
 
 /// Whether the answer may be shown to whoever is asking.
@@ -60,23 +59,6 @@ function lineToSan(fen, uci) {
   }
 }
 
-/// Lesson steps, keyed by position, so an item can find the board it was.
-function stepsByPosition(positionList) {
-  const list = Array.isArray(positionList)
-    ? positionList
-    : (typeof positionList === 'string' ? safeParse(positionList) : null);
-  if (!Array.isArray(list)) return new Map();
-  return new Map(list.map((step, index) => [index, step]));
-}
-
-function safeParse(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
 /// Where a game's moves lead from [fen], or null when they do not replay. The
 /// moves were written by `judgeEngineGame`, which refuses one it cannot play,
 /// so null here means the row and its task disagree — shown as no board rather
@@ -93,8 +75,9 @@ function finalFenOf(fen, moves) {
 }
 
 /// One item, in the shape the review screen reads. [game] is the assignment's
-/// task when the assignment is a game to play out, and nothing otherwise.
-function shapeItem(row, { isTrainer, step, game = null }) {
+/// task when the assignment is a game to play out, and [video] the tutorial's
+/// title when it is a tutorial's film; nothing otherwise.
+function shapeItem(row, { isTrainer, game = null, video = null }) {
   const attempted = row.attempted_at !== null && row.attempted_at !== undefined;
   const reveal = mayRevealSolution({ attempted, isTrainer });
 
@@ -116,7 +99,7 @@ function shapeItem(row, { isTrainer, step, game = null }) {
   if (game) {
     // A game played out (`docs/PLAN-EXERCISE.md`, phase 9). Everything here
     // was already stored when the result was recorded; until 19.9.2026 this
-    // row fell through to „a lesson step with no step" below — no board,
+    // row fell through to the lesson step that used to stand below — no board,
     // `solved: null` — and a trainer could not tell a student who met every
     // goal from one who met none. The moves and the position they reach are
     // also the trainer's own last word where no tablebase answers.
@@ -142,16 +125,18 @@ function shapeItem(row, { isTrainer, step, game = null }) {
     };
   }
 
-  if (row.puzzle_id === null || row.puzzle_id === undefined) {
+  if (video) {
+    // A tutorial's film (docs/PLAN-TUTORIJAL-VIDEO.md): `attemptedAt` is when
+    // the student downloaded it, and that is all anybody can know — never
+    // whether it was watched, so never „solved".
     return {
       ...base,
-      kind: 'step',
-      title: step?.title ?? null,
-      fen: step?.fen ?? null,
-      instruction: step?.instruction ?? null,
-      // A lesson step is marked read, not solved. Saying "netačno" about one
-      // would be answering a question nobody asked.
+      kind: 'video',
+      title: video.title,
+      fen: null,
+      instruction: null,
       solved: null,
+      downloadedAt: row.attempted_at ?? null,
     };
   }
 
@@ -200,7 +185,7 @@ function shapeItem(row, { isTrainer, step, game = null }) {
 /// The whole review: the assignment, its items, and the conversation about it.
 ///
 /// One request rather than three, because it is one screen — the same reason
-/// the student's viewer gets its lesson steps inline.
+/// the student's solver gets its positions inline.
 ///
 /// Returns null when the caller is neither side of this assignment.
 async function buildReview(pool, assignmentId, viewerId) {
@@ -225,31 +210,12 @@ async function buildReview(pool, assignmentId, viewerId) {
     [assignmentId]
   );
 
-  // A lesson assignment's items are its steps, and the boards live on the
-  // lesson rather than on the item.
-  let steps = new Map();
-  if (assignment.kind === 'lesson' && assignment.lesson_id) {
-    const lesson = await pool.query(
-      // `title`, `fen` and `pgn` too: a lesson saved as a single position keeps
-      // its board in those columns and has no `position_list` at all. Reading
-      // only the list is what left this screen with an empty square.
-      'SELECT title, fen, pgn, position_list FROM saved_lessons WHERE id = $1',
-      [assignment.lesson_id]
-    );
-    const row = lesson.rows[0];
-    if (row) {
-      steps = stepsByPosition(stepsOfLesson({
-        positionList: row.position_list,
-        title: row.title,
-        fen: row.fen,
-        pgn: row.pgn,
-      }));
-    }
-  }
-
+  // A tutorial assignment's one item is its film; its title is the tutorial's
+  // as it was sent (the assignment's own title).
+  const video = assignment.kind === 'lesson' ? { title: assignment.title } : null;
   const game = assignment.kind === 'engine_game' ? assignment.task : null;
   const items = itemRows.rows.map((row) =>
-    shapeItem(row, { isTrainer, step: steps.get(row.position), game })
+    shapeItem(row, { isTrainer, game, video })
   );
 
   const notes = await listNotes(pool, assignmentId, viewerId);
@@ -298,4 +264,4 @@ async function listNotes(pool, assignmentId, viewerId) {
   }));
 }
 
-module.exports = { buildReview, listNotes, mayRevealSolution, shapeItem, stepsByPosition, lineToSan };
+module.exports = { buildReview, listNotes, mayRevealSolution, shapeItem, lineToSan };

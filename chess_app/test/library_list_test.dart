@@ -81,8 +81,7 @@ void main() {
       .map((t) => (t.title as Text).data!)
       .toList();
 
-  testWidgets('six chips, in order, and All shows every kind',
-      (tester) async {
+  testWidgets('six chips, in order, and All shows every kind', (tester) async {
     await tester.pumpWidget(host(_shelf));
     await tester.pumpAndSettle();
     final chips = tester

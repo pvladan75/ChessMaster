@@ -25,7 +25,6 @@ import 'package:chess_app/services/server_status_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/room_session_api.dart';
 import 'package:chess_app/services/billing_service.dart';
-import 'package:chess_app/features/reviews/services/review_api_service.dart';
 
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 
@@ -173,7 +172,6 @@ class _HomeScreenState extends State<HomeScreen> {
   late final TrainerPanelApiService _panelApi;
 
   late final BillingService _billing;
-  int _dueReviews = 0;
 
   /// Whether the app is running under the test binding.
   ///
@@ -205,7 +203,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _fetchStudents();
       _fetchRecordings();
       _fetchNotifications();
-      _fetchDueReviews();
       _fetchPanel();
       // A remembered room that has ended is forgotten before „Resume session"
       // can offer it. Home listens to the service, so the banner goes by itself.
@@ -762,20 +759,6 @@ class _HomeScreenState extends State<HomeScreen> {
     context.push(AppRoutes.assignments);
   }
 
-  Future<void> _openReviews() async {
-    await context.push(AppRoutes.review);
-    // The badge is stale the moment a session ends, so it is refetched rather
-    // than decremented locally — a failed grade must not shrink the count.
-    if (mounted) _fetchDueReviews();
-  }
-
-  Future<void> _fetchDueReviews() async {
-    if (widget.session.isGuest) return;
-    final stats =
-        await ReviewApiService(authToken: widget.session.token).fetchStats();
-    if (mounted) setState(() => _dueReviews = stats.due);
-  }
-
   Future<void> _createRoom() async {
     if (!_checkAuthRequired(const PendingSessionIntent.createRoom())) return;
     // No question is asked about a session of one's own that is still open:
@@ -931,8 +914,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 _openStudentProgress({'id': id, 'name': name}),
             hasTrainer: _trainers.any((t) => t['status'] == 'accepted'),
             onOpenAssignments: _openMyAssignments,
-            onOpenReviews: _openReviews,
-            dueReviewCount: _dueReviews,
             onJoinSession: _joinInviteRoom,
             onRefreshRecordings: _fetchRecordings,
             onOpenReplay: (id) => context.push(AppRoutes.replayPath(id)),

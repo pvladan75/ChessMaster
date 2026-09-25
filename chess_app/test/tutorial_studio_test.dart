@@ -265,18 +265,17 @@ void main() {
 
       // The shape `services/lessonSteps.js` already validates. Quoted rather
       // than restated: a second idea of what a step is is how the two PGN
-      // parsers happened.
+      // parsers happened. What a question carried is read by nothing and
+      // sent by nothing since every part shows (docs/PLAN-TUTORIJAL-VIDEO.md,
+      // phase 4); the server reads the absent kind as show.
       expect(example.toJson(), {
         'fen': openingFen,
         'pgn': '1. e4 e5',
         // „Primer 1" was the stored name and is not the trainer's own: a part
-        // is called by what it says, and what this one says is its task. The
-        // part below says nothing at all and falls back to the number of its
-        // place. See `tutorial_section_label_test.dart`.
-        'title': 'Odigraj najbolji potez.',
-        'instruction': 'Odigraj najbolji potez.',
-        'kind': 'ask_move',
-        'solutionSan': 'Nf3',
+        // is called by what it says, and this one says nothing, so it falls
+        // back to the number of its place. See
+        // `tutorial_section_label_test.dart`.
+        'title': 'Part 1',
         // Joined the list on 7.9.2026, on a live report: which way round the
         // board stands used to live only in the studio, so the child's viewer
         // guessed it from whose turn it is and the board turned over between
@@ -284,45 +283,6 @@ void main() {
         // „written before anyone could say" and is resolved on the way in.
         'blackOrientation': false,
       });
-    });
-
-    test('a plain example says nothing about questions', () {
-      final example = TutorialSection.fromStep({
-        'fen': openingFen,
-        'pgn': '1. e4',
-        'title': 'Primer 1',
-      });
-      expect(example.toJson(), {
-        'fen': openingFen,
-        'pgn': '1. e4',
-        'title': 'Part 1',
-        'kind': 'show',
-        'blackOrientation': false,
-      });
-    });
-
-    test('a question with answers says which one is right', () {
-      // The one field C4 did not name, added before batch E rather than
-      // discovered inside it: C4 froze `List<String> choices`, which is the
-      // *student's* model — the answer never travels to the child — and the
-      // server takes `[{text, correct}]` with exactly one `correct: true`.
-      // Without it an `ask_choice` example is unsaveable, and the batch that
-      // found that out would have had to reopen a frozen contract mid-flight.
-      final example = TutorialSection.fromStep({
-        'fen': openingFen,
-        'pgn': '1. e4',
-        'title': 'Primer 1',
-        'kind': 'ask_choice',
-        'choices': [
-          {'text': 'Kontrola centra', 'correct': true},
-          {'text': 'Napad na kralja', 'correct': false},
-        ],
-      });
-
-      expect(example.toJson()['choices'], [
-        {'text': 'Kontrola centra', 'correct': true},
-        {'text': 'Napad na kralja', 'correct': false},
-      ]);
     });
 
     test('the draft is a list of them, in the order they were written', () {

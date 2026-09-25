@@ -149,7 +149,8 @@ class Assignment {
 
 /// One assigned item and how it went.
 ///
-/// [puzzleId] is null for a lesson's steps, which are identified by [position].
+/// [puzzleId] is null for a tutorial's film and a game played out, each the
+/// assignment's one item.
 class AssignmentItem {
   final String? puzzleId;
   final int position;
@@ -188,115 +189,34 @@ class AssignmentItem {
       );
 }
 
-enum LessonStepKind { show, askMove, askChoice }
-
-/// One board position in an assigned lesson.
-class LessonStep {
-  final String title;
-  final String fen;
-  final String? pgn;
-
-  /// What the student is asked to do at this step.
-  ///
-  /// [title] is a name — "Završnica sa skakačem" — and a name is not a task. A
-  /// student opening an assigned lesson used to get a board and no question,
-  /// which is the oldest complaint about this feature. Null for steps written
-  /// before the field existed, and the viewer simply says nothing then rather
-  /// than inventing a task.
-  final String? instruction;
-
-  final LessonStepKind kind;
-  final List<String> choices;
-
-  /// Which way round the trainer left this step's board, or null when the step
-  /// does not say.
-  ///
-  /// Three states rather than two, and the third one is why this is nullable.
-  /// Every step written before the studio could send this has no opinion, and
-  /// the viewer falls back to the side to move for those — while a step that
-  /// says `false` is a trainer stating that a black-to-move position is to be
-  /// shown from White's side, which is not the same thing at all.
-  final bool? blackOrientation;
-
-  const LessonStep({
-    required this.title,
-    required this.fen,
-    this.pgn,
-    this.instruction,
-    this.kind = LessonStepKind.show,
-    this.choices = const [],
-    this.blackOrientation,
+/// What a tutorial assignment's film is, as the student is told it —
+/// `docs/PLAN-TUTORIJAL-VIDEO.md`. A tutorial reaches a student only as its
+/// film, and the file itself is fetched through a link signed for them
+/// (`AssignmentApiService.fetchVideoLink`), never named here.
+class AssignmentVideo {
+  const AssignmentVideo({
+    required this.ready,
+    this.seconds,
+    this.resolution,
+    this.renderedAt,
   });
 
-  factory LessonStep.fromJson(Map<String, dynamic> json) {
-    LessonStepKind parsedKind = LessonStepKind.show;
-    if (json['kind'] == 'ask_move') {
-      parsedKind = LessonStepKind.askMove;
-    } else if (json['kind'] == 'ask_choice') {
-      parsedKind = LessonStepKind.askChoice;
-    }
+  /// False when the tutorial is gone or its film is no longer on the server.
+  final bool ready;
+  final int? seconds;
+  final String? resolution;
+  final DateTime? renderedAt;
 
-    return LessonStep(
-      title: json['title']?.toString() ?? '',
-      fen: json['fen']?.toString() ?? '',
-      pgn: json['pgn']?.toString(),
-      instruction: (json['instruction']?.toString().trim().isEmpty ?? true)
-          ? null
-          : json['instruction'].toString().trim(),
-      kind: parsedKind,
-      choices: (json['choices'] as List?)
-              ?.map((c) => (c as Map)['text'].toString())
-              .toList() ??
-          const [],
-      blackOrientation:
-          json['blackOrientation'] is bool ? json['blackOrientation'] : null,
+  /// Null when the server said nothing — anything that is not a tutorial.
+  static AssignmentVideo? fromJson(Object? json) {
+    if (json is! Map) return null;
+    return AssignmentVideo(
+      ready: json['status'] == 'ready',
+      seconds: (json['seconds'] as num?)?.toInt(),
+      resolution: json['resolution']?.toString(),
+      renderedAt: DateTime.tryParse(json['renderedAt']?.toString() ?? ''),
     );
   }
-}
-
-class StepAnswerResult {
-  const StepAnswerResult({
-    required this.correct,
-    required this.reason,
-    this.playedSan,
-    this.solutionSan,
-    this.correctIndex,
-  });
-
-  final bool correct;
-  final String reason;
-  final String? playedSan;
-  final String? solutionSan;
-  final int? correctIndex;
-
-  factory StepAnswerResult.fromJson(Map<String, dynamic> json) =>
-      StepAnswerResult(
-        correct: json['correct'] == true,
-        reason: json['reason']?.toString() ?? '',
-        playedSan: json['playedSan']?.toString(),
-        solutionSan: json['solutionSan']?.toString(),
-        correctIndex: (json['correctIndex'] as num?)?.toInt(),
-      );
-}
-
-class StepRevealResult {
-  const StepRevealResult({
-    this.solutionSan,
-    this.acceptedSans,
-    this.correctIndex,
-  });
-
-  final String? solutionSan;
-  final List<String>? acceptedSans;
-  final int? correctIndex;
-
-  factory StepRevealResult.fromJson(Map<String, dynamic> json) =>
-      StepRevealResult(
-        solutionSan: json['solutionSan']?.toString(),
-        acceptedSans:
-            (json['acceptedSans'] as List?)?.map((e) => e.toString()).toList(),
-        correctIndex: (json['correctIndex'] as num?)?.toInt(),
-      );
 }
 
 /// One of the trainer's own positions, as the student receives it.
@@ -383,19 +303,12 @@ class AssignmentDetail {
   final Assignment assignment;
   final List<AssignmentItem> items;
 
-  /// Board positions, present only for a lesson assignment.
-  final List<LessonStep> steps;
+  /// The tutorial's film, present only for a tutorial assignment.
+  final AssignmentVideo? video;
 
   /// Positions the trainer scanned or built themselves, present when the
   /// homework was set from their own shelf rather than from the Lichess set.
   final List<CustomPosition> customPositions;
-
-  /// The language the tutorial says it is written in, as the server stores it
-  /// — one of the seven codes of `TutorialLanguage`, or null for not said and
-  /// for anything that is not a tutorial. `GET /assignments/:id` sends it as
-  /// `lessonLanguage`, and the tutorial screen reads the tutorial with a voice
-  /// for it. `docs/PLAN-JEZIK-GLASA.md`.
-  final String? lessonLanguage;
 
   /// The homework's own items, in the trainer's order. Empty for anything
   /// that is not a homework — a parent has no `assignment_items`, so this is
@@ -405,9 +318,8 @@ class AssignmentDetail {
   const AssignmentDetail({
     required this.assignment,
     required this.items,
-    this.steps = const [],
+    this.video,
     this.customPositions = const [],
-    this.lessonLanguage,
     this.children = const [],
   });
 
@@ -426,13 +338,9 @@ class AssignmentDetail {
   List<AssignmentItem> get pending =>
       items.where((item) => !item.isDone).toList();
 
-  /// Where a student resuming a lesson should land: the first step they have not
-  /// yet been through, or the last one if they finished.
-  int get resumeStepIndex {
-    final next = items.indexWhere((item) => !item.isDone);
-    if (next >= 0) return next;
-    return steps.isEmpty ? 0 : steps.length - 1;
-  }
+  /// When the student downloaded a tutorial's film, or null — its one item's
+  /// `attempted_at` (`docs/PLAN-TUTORIJAL-VIDEO.md`, D3).
+  DateTime? get downloadedAt => items.isEmpty ? null : items.first.attemptedAt;
 
   factory AssignmentDetail.fromJson(Map<String, dynamic> json) =>
       AssignmentDetail(
@@ -440,13 +348,10 @@ class AssignmentDetail {
         items: ((json['items'] as List?) ?? const [])
             .map((e) => AssignmentItem.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
-        steps: ((json['steps'] as List?) ?? const [])
-            .map((e) => LessonStep.fromJson(Map<String, dynamic>.from(e)))
-            .toList(),
+        video: AssignmentVideo.fromJson(json['video']),
         customPositions: ((json['customPositions'] as List?) ?? const [])
             .map((e) => CustomPosition.fromJson(Map<String, dynamic>.from(e)))
             .toList(),
-        lessonLanguage: json['lessonLanguage']?.toString(),
         children: ((json['children'] as List?) ?? const [])
             .map((e) => HomeworkChild.fromJson(Map<String, dynamic>.from(e)))
             .whereType<HomeworkChild>()

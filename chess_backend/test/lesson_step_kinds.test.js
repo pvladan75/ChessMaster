@@ -1,11 +1,8 @@
 // lesson_step_kinds.test.js
-// Phase 0 of `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`: the step schema (§4), the
-// three kinds (§2.1), the refusals, and the redaction contract (§2.4).
-//
-// Written before the implementation and expected to fail — that is what phase 0
-// delivers. Two things are deliberately NOT here, because each belongs with the
-// phase that makes it green: step identity (`id`) is phase 1, and the group
-// fan-out is phase 8.
+// What a tutorial's part may be. Written for phase 0 of
+// `docs/PLAN-INTERAKTIVNA-LEKCIJA.md`, when a part could ask a student for a
+// move or a choice; since phase 4 of `docs/PLAN-TUTORIJAL-VIDEO.md` every part
+// shows, a question is an exercise, and a part that asks is refused.
 //
 // Error strings are matched by fragment rather than byte for byte. The wording
 // belongs to whoever writes the refusal — the *meaning* is what is frozen here,
@@ -18,11 +15,12 @@ const assert = require('node:assert/strict');
 const {
   buildLessonStep,
   stepsOfLesson,
-  redactStepForStudent,
 } = require('../services/lessonSteps');
 
 // A quiet rook ending: Ra8 is mate, Ra7 is legal and not mate, Rh8 is legal.
 const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
+
+const REFUSAL = /A part only shows a position and a line; a question is an exercise/;
 
 // ---------------------------------------------------------------------------
 // §2.1 — the kind, and what an absent one means
@@ -39,263 +37,56 @@ test('a step with no kind is a show step', () => {
   assert.equal(built.entry.kind, 'show');
 });
 
-test('an unknown kind is refused rather than treated as show', () => {
-  // Falling back to `show` would turn a typo in the editor into a step that
-  // silently stops asking the child anything — the trainer sees their question
-  // vanish with no error. Loud failure, per CLAUDE.md.
-  const built = buildLessonStep({ fen: FEN, kind: 'ask_anything' });
-
-  assert.equal(built.ok, false);
-  assert.equal(built.status, 400);
-  assert.match(built.error, /step/i);
-});
-
-test('a show step keeps its solution but never its choices', () => {
-  // **This assertion was rewritten by the lead on 5.9.2026, before the batch.**
-  // It first said a `show` step drops the solution too, reasoning that an
-  // answer nothing judges is also an answer nothing redacts. The second half is
-  // false — `redactStepForStudent` takes it out whatever the kind — and the
-  // first half would have deleted data: every step the course builder makes
-  // from the library has carried `solutionSan` since before kinds existed, so a
-  // trainer saving an old lesson would have lost the move scanned out of the
-  // book. `lesson_steps.test.js` said so from the day it was written, and it
-  // was right.
-  //
-  // Choices are gated, and that half stands: options have no meaning without a
-  // question, and a step carrying some is a step whose author thinks they asked
-  // something.
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'show',
-    solutionSan: 'Ra8#',
-    choices: [{ text: 'a', correct: true }, { text: 'b' }],
-  });
-
-  assert.equal(built.ok, true);
-  assert.equal(built.entry.solutionSan, 'Ra8#');
-  assert.equal(built.entry.choices, undefined);
-});
-
 // ---------------------------------------------------------------------------
 // §2.5 — ask_move, and the moves that are also right
 // ---------------------------------------------------------------------------
-
-test('ask_move without a solution is refused', () => {
-  // A board whose every answer is wrong. Same reasoning as `canAssign` in
-  // customPuzzleJudge.js, and the scanner can produce exactly this row: a
-  // claimed solution that did not verify is stored as NULL.
-  const built = buildLessonStep({ fen: FEN, kind: 'ask_move' });
-
-  assert.equal(built.ok, false);
-  assert.equal(built.status, 400);
-  assert.match(built.error, /solution|move/i);
-});
-
-test('a solution that cannot be played in the position is refused', () => {
-  const built = buildLessonStep({ fen: FEN, kind: 'ask_move', solutionSan: 'Qd8#' });
-
-  assert.equal(built.ok, false);
-  assert.equal(built.status, 422);
-});
-
-test('acceptedSans survive, and the author move stays the one the story follows', () => {
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_move',
-    solutionSan: 'Ra8#',
-    acceptedSans: ['Rb1', 'Ra7'],
-  });
-
-  assert.equal(built.ok, true);
-  assert.equal(built.entry.solutionSan, 'Ra8#');
-  assert.deepEqual(built.entry.acceptedSans, ['Rb1', 'Ra7']);
-});
-
-test('an accepted move that is not legal is refused, and the move is named', () => {
-  // Refuses rather than repairs, like the position does. Dropping the bad entry
-  // silently would tell a child "netačno" for a move their trainer believed
-  // they had accepted — the exact failure acceptedSans exists to prevent.
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_move',
-    solutionSan: 'Ra8#',
-    acceptedSans: ['Nf6'],
-  });
-
-  assert.equal(built.ok, false);
-  assert.equal(built.status, 422);
-  assert.match(built.error, /Nf6/);
-});
-
-test('an accepted move repeating the author move is dropped, not refused', () => {
-  // This one is a repair rather than a refusal, and deliberately so: it is not
-  // a trainer's mistake about chess, it is the same right answer written twice.
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_move',
-    solutionSan: 'Ra8#',
-    acceptedSans: ['Ra8#', 'Ra7'],
-  });
-
-  assert.equal(built.ok, true);
-  assert.deepEqual(built.entry.acceptedSans, ['Ra7']);
-});
-
-test('more than six accepted moves is refused', () => {
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_move',
-    solutionSan: 'Ra8#',
-    acceptedSans: ['Ra7', 'Ra6', 'Ra5', 'Ra4', 'Ra3', 'Ra2', 'Rb1'],
-  });
-
-  assert.equal(built.ok, false);
-  assert.equal(built.status, 400);
-});
 
 // ---------------------------------------------------------------------------
 // §4 — ask_choice
 // ---------------------------------------------------------------------------
 
-test('a choice step keeps its options in the order the trainer wrote them', () => {
+test('a part that asks for a move is refused, with the reason', () => {
+  // Refused rather than stored as a picture: a trainer whose question
+  // silently became a show part would never know it had.
   const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_choice',
-    instruction: 'Koji je plan?',
-    choices: [
-      { text: 'Otvoriti liniju', correct: true },
-      { text: 'Zameniti damu' },
-      { text: 'Rokada' },
-    ],
+    fen: FEN, kind: 'ask_move', instruction: 'Find the mate.', solutionSan: 'Ra8#',
   });
-
-  assert.equal(built.ok, true);
-  assert.equal(built.entry.choices.length, 3);
-  assert.equal(built.entry.choices[0].text, 'Otvoriti liniju');
-  assert.equal(built.entry.choices[0].correct, true);
-  assert.equal(built.entry.choices[1].correct, false);
-});
-
-test('fewer than two choices is refused', () => {
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_choice',
-    choices: [{ text: 'Jedina', correct: true }],
-  });
-
   assert.equal(built.ok, false);
   assert.equal(built.status, 400);
+  assert.match(built.error, REFUSAL);
 });
 
-test('more than four choices is refused', () => {
+test('a part that offers answers to choose from is refused too', () => {
   const built = buildLessonStep({
     fen: FEN,
     kind: 'ask_choice',
-    choices: [
-      { text: 'a', correct: true }, { text: 'b' }, { text: 'c' },
-      { text: 'd' }, { text: 'e' },
-    ],
+    choices: [{ text: 'Ra8#', correct: true }, { text: 'Ra7', correct: false }],
   });
-
   assert.equal(built.ok, false);
-  assert.equal(built.status, 400);
+  assert.match(built.error, REFUSAL);
 });
 
-test('a choice step without exactly one correct answer is refused', () => {
-  // Both directions, because they fail differently on screen: none correct is a
-  // question no child can pass, two correct is a question that calls a right
-  // answer wrong. v1 is one correct answer — a trainer who wants two writes two
-  // steps.
-  const none = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_choice',
-    choices: [{ text: 'a' }, { text: 'b' }],
-  });
-  assert.equal(none.ok, false);
-  assert.equal(none.status, 400);
-
-  const two = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_choice',
-    choices: [{ text: 'a', correct: true }, { text: 'b', correct: true }],
-  });
-  assert.equal(two.ok, false);
-  assert.equal(two.status, 400);
+test('a kind nobody knows is refused the same way', () => {
+  const built = buildLessonStep({ fen: FEN, kind: 'ask_anything' });
+  assert.equal(built.ok, false);
+  assert.match(built.error, REFUSAL);
 });
 
-test('an empty option text is refused', () => {
+test('a show part keeps no task, no solution, no accepted moves and no answers', () => {
+  // What a question used to carry, sent on a part that shows: none of it is
+  // read by the film, so none of it is stored.
   const built = buildLessonStep({
     fen: FEN,
-    kind: 'ask_choice',
-    choices: [{ text: '   ', correct: true }, { text: 'b' }],
-  });
-
-  assert.equal(built.ok, false);
-  assert.equal(built.status, 400);
-});
-
-// ---------------------------------------------------------------------------
-// §2.4 — the answer never leaves the server
-// ---------------------------------------------------------------------------
-
-test('the redaction exists at all', () => {
-  // Named on its own so the first failure of this file reads as "it is not
-  // written yet" rather than as a TypeError inside the next test.
-  assert.equal(typeof redactStepForStudent, 'function');
-});
-
-test('a redacted ask_move step carries no solution', () => {
-  const { entry } = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_move',
-    instruction: 'Nađi mat u jednom potezu.',
+    kind: 'show',
+    instruction: 'Find the mate.',
     solutionSan: 'Ra8#',
     acceptedSans: ['Ra7'],
+    choices: [{ text: 'Ra8#', correct: true }],
   });
-
-  const forChild = redactStepForStudent(entry);
-
-  // Sending the solution so the client could mark its own work would hand the
-  // student the very thing being asked of them — the rule already written into
-  // POST /assignments/:id/custom-attempt.
-  assert.equal(forChild.solutionSan, undefined);
-  assert.equal(forChild.acceptedSans, undefined);
-
-  // ...and everything the child does need is still there.
-  assert.equal(forChild.kind, 'ask_move');
-  assert.equal(forChild.fen, FEN);
-  assert.equal(forChild.instruction, 'Nađi mat u jednom potezu.');
-});
-
-test('a redacted ask_choice step keeps the options and loses which one is right', () => {
-  const { entry } = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_choice',
-    choices: [{ text: 'Otvoriti liniju', correct: true }, { text: 'Rokada' }],
-  });
-
-  const forChild = redactStepForStudent(entry);
-
-  assert.equal(forChild.choices.length, 2);
-  assert.equal(forChild.choices[0].text, 'Otvoriti liniju');
-  for (const choice of forChild.choices) {
-    assert.equal(choice.correct, undefined);
+  assert.equal(built.ok, true);
+  for (const field of ['instruction', 'solutionSan', 'acceptedSans', 'choices']) {
+    assert.equal(field in built.entry, false, field);
   }
-
-  // The blunt version of the same assertion: no answer survives anywhere in the
-  // payload, however it was nested. A field added later that happens to carry
-  // the answer fails here without anyone remembering to update this file.
-  assert.equal(/correct|solution/i.test(JSON.stringify(forChild)), false);
-});
-
-test('redaction leaves a show step alone', () => {
-  const { entry } = buildLessonStep({
-    fen: FEN,
-    title: 'Slaba polja',
-    instruction: 'Pogledaj polje d5.',
-  });
-
-  assert.deepEqual(redactStepForStudent(entry), entry);
 });
 
 // ---------------------------------------------------------------------------

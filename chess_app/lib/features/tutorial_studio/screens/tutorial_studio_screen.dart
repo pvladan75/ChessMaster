@@ -14,15 +14,6 @@ import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
 import 'package:chess_app/features/analysis_studio/services/studio_lesson_step.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show
-        Assignment,
-        AssignmentDetail,
-        AssignmentItem,
-        LessonStep,
-        LessonStepKind;
-import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
-import 'package:chess_app/features/lessons/widgets/preview_assignment_api_service.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_beat.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
@@ -189,39 +180,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _labelsController = TextEditingController();
-  final TextEditingController _instructionController = TextEditingController();
-  final List<TextEditingController> _choiceControllers = [];
-
-  /// Bumped whenever the fields are refilled from the model rather than by the
-  /// trainer typing into them.
-  ///
-  /// `DropdownButtonFormField` is a form field: it keeps the value it was given
-  /// in its own state, and a rebuild alone will not move it. Without this a
-  /// restored draft would read „Samo prikaži" over a part that asks for a move
-  /// — the trainer believing they asked something they did not. The same trap
-  /// the old step editor's `_kindEpoch` was written for.
-  int _fieldsEpoch = 0;
   int _selectedTab = 0;
 
-  /// Which of Line/Task/Parts is open on the phone layout ([_PhoneLayout]).
+  /// Which of Line/Parts is open on the phone layout ([_PhoneLayout]).
   /// The screen's own, like [_selectedTab] — the controller holds none of it.
   int _phoneTab = 0;
 
   void _selectPhoneTab(int tab) => setState(() => _phoneTab = tab);
-
-  /// An answer's field and the answer itself arrive and leave together, so
-  /// the two lists stay aligned. Called by both layouts' question cards;
-  /// `setState` is protected, which is why an extension cannot do this
-  /// itself.
-  void _addChoiceField() {
-    setState(() => _choiceControllers.add(TextEditingController()));
-    _c.addChoice();
-  }
-
-  void _removeChoiceField(int index) {
-    setState(() => _choiceControllers.removeAt(index));
-    _c.removeChoice(index);
-  }
 
   /// Set when the trainer backs out of the „unfinished tutorial" question.
   ///
@@ -322,10 +287,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   void dispose() {
     _titleController.dispose();
     _labelsController.dispose();
-    _instructionController.dispose();
-    for (final c in _choiceControllers) {
-      c.dispose();
-    }
     // Flushed rather than left to the debounce: a pending timer dies with the
     // screen, and a draft that is only ever written 600 ms after the last move
     // is a draft that is never written when the trainer closes the window.
@@ -567,27 +528,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     setState(() {});
   }
 
-  /// Fills the fields from the part that is open. Every write in this direction
-  /// bumps [_fieldsEpoch].
+  /// Fills the fields from the part that is open.
   void _refillFields() {
     _seenGeneration = _c.generation;
     _annotationController.cancelPending();
     final section = _c.section;
     _titleController.text = _draft.title;
     _labelsController.text = _draft.tags.join(', ');
-    _instructionController.text = section.instruction ?? '';
-    for (final c in _choiceControllers) {
-      c.dispose();
-    }
-    _choiceControllers
-      ..clear()
-      ..addAll([
-        for (final choice in section.choices)
-          TextEditingController(text: choice.text),
-      ]);
     _boardController.loadFen(_c.cursor.fen);
     _seenCursor = _c.cursor;
-    _fieldsEpoch++;
   }
 
   void _undo() {
@@ -686,7 +635,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _annotationController.cancelPending();
     switch (_c.playMove(from, to, promotion)) {
       case MoveOutcome.illegal:
-      case MoveOutcome.solutionRecorded:
         // The board has already moved the piece; the part has not.
         _boardController.loadFen(_current.fen);
       case MoveOutcome.played:
@@ -708,13 +656,17 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// film. Parts that face different ways keep facing different ways — a
   /// tutorial with parts 1 and 3 from Black and part 2 from White comes out
   /// 1 and 3 from White and 2 from Black — so a deliberate mix survives, and
-  /// one part is set on its own in „Preview tutorial" ([_setPartOrientation]).
+  /// one part is turned on its own from its row ([_turnPart]).
   void _flipBoard() => _c.flipAll();
 
-  /// One part turned from „Preview tutorial", which is where the trainer sees
-  /// a part the way a student will.
-  void _setPartOrientation(int index, bool black) =>
-      _c.setPartOrientation(index, black);
+  /// „Turn this part" — one part, from its own row.
+  ///
+  /// Its door used to be „Preview tutorial", the student's viewer run on the
+  /// draft, and that door went with the viewer (docs/PLAN-TUTORIJAL-VIDEO.md,
+  /// D12): a tutorial is a film now, and this was the one job the preview did
+  /// that nothing else could.
+  void _turnPart(int index) =>
+      _c.setPartOrientation(index, !_c.draft.sections[index].blackOrientation);
 
   /// The second and third of the three ways a start position gets here — a FEN
   /// typed in and the board editor. The first is the handover. It is the
@@ -864,29 +816,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             tooltip: 'Save as .pgn',
             onPressed: _exportPgn,
           ),
-          // Words where there is room — the owner's call, 11.9.2026: clearer
-          // for a trainer. „Preview tutorial" rather than „as student",
-          // because whoever writes a tutorial may have no students at all.
-          //
-          // From [Breakpoints.wide], where the studio splits into two panes,
-          // and an icon with the same name below it. As Windows draws the bar
-          // (Segoe UI) the words fit even at 700 dp; a widget test draws a
-          // button label in squares, and there they overflowed 700 dp by
-          // 77 px. At 840 they fit in both, so the rule holds in the font CI
-          // tests with and in the one a trainer sees.
-          if (Breakpoints.isWide(context))
-            TextButton(
-              key: const Key('preview-tutorial'),
-              onPressed: _previewAsStudent,
-              child: const Text('Preview tutorial'),
-            )
-          else
-            IconButton(
-              key: const Key('preview-tutorial'),
-              icon: const Icon(Icons.school_outlined),
-              tooltip: 'Preview tutorial',
-              onPressed: _previewAsStudent,
-            ),
           FilledButton(
             onPressed: _saveTutorial,
             child: const Text('Save tutorial'),
@@ -1178,22 +1107,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _c.addSection(continueFromEnd: continueFromEnd);
   }
 
-  /// „Traži potez na tabli" / „Traži odgovor iz liste" — the question goes on
-  /// the beat the trainer is standing on.
-  ///
-  /// This is the arrangement the studio has always described and never built:
-  /// the demonstration in the part in front, the question on a bare position,
-  /// and what followed carried on after it. [splitForQuestion] decides all of
-  /// that; the screen only puts the parts where they go.
-  ///
-  /// A part with no line has nothing to cut, so it simply becomes the question
-  /// — which is the same act, with the first and third parts empty.
-  void _askHere(LessonStepKind kind) {
-    if (_c.askHere(kind)) {
-      AppFeedback.success(context, 'Question placed at this position.');
-    }
-  }
-
   /// „Insert a line here" — phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`.
   ///
   /// The part is cut at the beat the trainer is standing on, and they are left
@@ -1452,45 +1365,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // is still owed it. Read rather than assumed: the screen may have kept a
     // take, replaced one, or left the old one exactly where it was.
     await _loadNarrationTake();
-  }
-
-  /// The tutorial as a child will meet it, without saving anything.
-  ///
-  /// It was buried in the old step editor (deleted in phase 6c), and
-  /// it is the fastest answer to „does this feel right" that this screen can
-  /// give — so it comes across rather than being lost with the panel.
-  ///
-  /// **Nothing is sent.** The draft is projected into an `AssignmentDetail` and
-  /// the viewer is handed `PreviewAssignmentApiService`, which answers every
-  /// call locally: a trainer trying their own question does not mark a child's
-  /// schedule, and a preview that wrote to the server would be a save nobody
-  /// asked for.
-  void _previewAsStudent() {
-    final steps = _draft.positionList;
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => LessonViewerScreen(
-          session: widget.session,
-          detail: AssignmentDetail(
-            assignment: Assignment(
-              id: _draft.lessonId ?? 0,
-              title: _draft.title.trim(),
-            ),
-            items: [
-              for (var i = 0; i < steps.length; i++)
-                AssignmentItem(puzzleId: null, position: i, attemptedAt: null),
-            ],
-            steps: steps.map(LessonStep.fromJson).toList(),
-            // The trainer hears what the child will hear, in the voice of the
-            // language the tutorial says it is in.
-            lessonLanguage: _draft.language,
-          ),
-          api: PreviewAssignmentApiService(),
-          onPartOrientationChanged: _setPartOrientation,
-        ),
-      ),
-    );
   }
 
   /// The open part as text, with the map of where each node sits in it.
@@ -1822,13 +1696,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       draft: _draft,
       onSelect: _selectSection,
       onAddShow: _addShowSection,
-      onAsk: _askHere,
       onMove: _moveSection,
       onClone: _cloneSection,
       onRename: _renameSection,
       onRemove: _removeSection,
       onAddPartsFrom: _addPartsFromTutorial,
       onExtractParts: _extractPartsToNewTutorial,
+      onTurn: _turnPart,
     );
   }
 
@@ -1840,7 +1714,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _headerFields(),
-          _leakBanner(),
           _narrationBanner(),
           const SizedBox(height: AppSpacing.sm),
           Expanded(
@@ -1877,55 +1750,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         _titleField(),
         _labelsField(),
         _languageField(),
-        _leakBanner(),
         _narrationBanner(),
         const SizedBox(height: AppSpacing.md),
         _sectionsPanel(),
         const SizedBox(height: AppSpacing.md),
       ],
-    );
-  }
-
-  /// Said on the way in, about parts that were already saved this way.
-  ///
-  /// §7.2 of the plan: a tutorial written before this refusal existed can carry
-  /// the leak, and hydration is the only moment anyone would find out. The quiet
-  /// version of this bug is a child who simply stops getting anything wrong, so
-  /// it is worth a banner rather than a line in a log.
-  Widget _leakBanner() {
-    final leaking = _draft.sections.where((s) => s.leaksAnswer).toList();
-    if (leaking.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      key: const Key('leak-banner'),
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
-      child: Material(
-        color: context.colors.dangerContainer,
-        borderRadius: AppRadii.roundedSm,
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.sm),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.warning_amber,
-                size: 18,
-                color: context.colors.onDangerContainer,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  'The student would see the answer: ${_c.namesOf(leaking)} asks for a move, but '
-                  'has a line the student can browse with the "Next '
-                  'move" button.',
-                  style: AppText.body.copyWith(
-                    color: context.colors.onDangerContainer,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -2024,181 +1853,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// The kind the trainer picked, and the one question worth asking about it.
-  ///
-  /// Asked rather than done: deleting a trainer's line and the words inside it
-  /// because they touched a dropdown is not a repair, it is a loss they did not
-  /// agree to. Refusing outright is no better — it leaves them with a position
-  /// they cannot ask about and no way forward. The demonstration belongs in the
-  /// part *before* the question, which the viewer joins without reloading the
-  /// board. Carried over from the old step editor (deleted in phase 6c).
-  Future<void> _chooseKind(LessonStepKind? value) async {
-    if (value == null) return;
-
-    if (value == LessonStepKind.askMove && _draft.section.hasLine) {
-      final drop = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('The student would see the answer'),
-          content: const Text(
-            'This part has a line, and the student can browse it with the '
-            '"Next move" button before answering. The demonstration goes into the part '
-            'before the question — the question remains just a position.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Remove line and ask question'),
-            ),
-          ],
-        ),
-      );
-
-      if (!mounted) return;
-      if (drop != true) {
-        // The dropdown keeps the value it was given in its own state, so the
-        // subtree is rebuilt to put „Show only" back in front of the
-        // trainer. Same reason [_fieldsEpoch] exists at all.
-        setState(() => _fieldsEpoch++);
-        return;
-      }
-      _annotationController.cancelPending();
-      _c.setKind(value, dropLine: true);
-      // The cursor is the root again, whose position may already be on the
-      // board — so the listener sees no move and the board is loaded here.
-      _boardController.loadFen(_current.fen);
-      return;
-    }
-
-    _c.setKind(value);
-  }
-
-  Widget _questionCard() {
-    return Material(
-      key: const Key('question-card'),
-      color: context.colors.surface,
-      borderRadius: AppRadii.roundedMd,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        decoration: BoxDecoration(
-          borderRadius: AppRadii.roundedMd,
-          border: Border.all(color: context.colors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // The subtree is rebuilt whenever the fields are refilled from the
-            // model — see [_fieldsEpoch]. The field's own key stays put, because it
-            // is the handle the tests reach it by.
-            KeyedSubtree(
-              key: ValueKey('kind-$_fieldsEpoch'),
-              child: DropdownButtonFormField<LessonStepKind>(
-                key: const Key('example-kind'),
-                initialValue: _c.section.kind,
-                decoration: const InputDecoration(labelText: 'Task type'),
-                items: const [
-                  DropdownMenuItem(
-                    value: LessonStepKind.show,
-                    child: Text('Show only'),
-                  ),
-                  DropdownMenuItem(
-                    value: LessonStepKind.askMove,
-                    child: Text('Ask for move on board'),
-                  ),
-                  DropdownMenuItem(
-                    value: LessonStepKind.askChoice,
-                    child: Text('Ask for answer from list'),
-                  ),
-                ],
-                onChanged: _chooseKind,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            if (_c.section.kind != LessonStepKind.show) ...[
-              TextField(
-                key: const Key('example-instruction'),
-                controller: _instructionController,
-                decoration: const InputDecoration(
-                  labelText: 'Task for student',
-                ),
-                onChanged: _c.setInstruction,
-                // Same reason as the sentence on a beat card: a question a
-                // child reads is longer than one line, and a field that scrolls
-                // sideways hides its own beginning. It **grows** with the text
-                // rather than starting two lines tall: this card carries the
-                // answers and „Dodaj odgovor" under it, and two lines of empty
-                // field pushed that button below the fold — which is not a
-                // layout opinion but a control a trainer cannot press.
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-            if (_c.section.kind == LessonStepKind.askMove) ...[
-              if (_c.section.solutionSan != null)
-                Text('Correct move: ${_c.section.solutionSan}'),
-            ],
-            if (_c.section.kind == LessonStepKind.askChoice) ...[
-              Text('Offered answers', style: AppText.bodyBold),
-              // `RadioGroup` rather than a `groupValue` on every button: that pair
-              // of arguments is deprecated, and the batch that wrote them silenced
-              // the analyzer with a file-level `ignore_for_file` instead — which
-              // kept the count at 29 by hiding three infos rather than by not
-              // adding them. This is also the shape the old step editor (deleted in phase 6c) uses,
-              // which the brief named.
-              RadioGroup<int>(
-                groupValue: _c.correctChoice,
-                onChanged: _c.setCorrectChoice,
-                child: Column(
-                  children: [
-                    for (int i = 0; i < _choiceControllers.length; i++)
-                      Row(
-                        children: [
-                          Radio<int>(value: i),
-                          Expanded(
-                            child: TextField(
-                              key: Key('example-choice-$i'),
-                              controller: _choiceControllers[i],
-                              onChanged: (text) => _c.setChoiceText(i, text),
-                            ),
-                          ),
-                          IconButton(
-                            key: Key('example-choice-delete-$i'),
-                            icon: const Icon(Icons.delete),
-                            onPressed: () {
-                              // The field and the answer leave together, so
-                              // the two lists stay aligned.
-                              setState(() => _choiceControllers.removeAt(i));
-                              _c.removeChoice(i);
-                            },
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _choiceControllers.add(TextEditingController());
-                  });
-                  _c.addChoice();
-                },
-                child: const Text('Add answer'),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
   /// „Flow", „Tree", „PGN" — pinned in both layouts, because scrolling the
   /// cards must not hide the strip that says which of them you are looking at.
   Widget _editorTabs() {
@@ -2228,7 +1882,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// What the strip labels: one of the three, and the question card under it.
+  /// What the strip labels: one of the three.
   Widget _editorPanels() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2248,7 +1902,6 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               // sees.
               onCommentChanged: (node, text) =>
                   _c.setComment(node, text, typing: true),
-              question: _questionCard(),
               onDelete: _deleteNode,
               // None when there is no line to cut, so the button is not drawn
               // at all rather than drawn to do nothing.

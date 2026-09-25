@@ -269,7 +269,45 @@ odlazi na kraj spiska u alatu.
 
 ### Home — Domaći i lekcije (My Assignments)
 
-1. [ ] **Poslat tutorijal ostaje u zadacima učenika.** [129.3]
+1. [ ] **Poslat tutorijal je video koji učenik skida.** [246.1]
+   O čemu se radi: Od 25.9.2026 učeniku se ne šalje tutorijal nego njegov
+   video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3). Učenik ga skida, a zadatak
+   je urađen kad ceo fajl stigne. Da li je gledan, ne zna niko.
+   Gde: (kao učenik) `Home` → `Set for me` → red sa videom.
+   Uradi: Kao trener pošalji tutorijal koji ima video (vidi [246.4]). Kao
+   učenik otvori ga i pritisni `Download video`; kad pregledač završi, vrati se
+   u aplikaciju.
+   Treba da vidiš: Na ekranu `Tutorial video` naslov, napomena trenera, dužina
+   i rezolucija (npr. „3 min 14 s · 720p") i `Not downloaded yet.`; dodir
+   otvara pregledač koji skida fajl; po povratku piše „Downloaded on 25.9.2026."
+   (današnji datum) i dugme je `Download again`. U spisku red kaže
+   „Video · downloaded".
+   Potrebno: Windows **i** telefon — pregledač koji skida je drugačiji, a
+   server beleži samo skidanje koje je stiglo do kraja; nalog trenera i
+   učenika; backend pokrenut sa novim kodom.
+
+2. [ ] **Prekinuto skidanje se ne računa.** [246.2]
+   O čemu se radi: Zadatak se beleži kao urađen tek kad server pošalje
+   poslednji bajt fajla; prekinuto skidanje ne beleži ništa.
+   Gde: (kao učenik) `Home` → `Set for me` → red sa videom.
+   Uradi: Pritisni `Download video` i u pregledaču otkaži preuzimanje pre
+   kraja. Vrati se u aplikaciju.
+   Treba da vidiš: I dalje `Not downloaded yet.`, a trener ne dobija
+   obaveštenje. Posle jednog celog skidanja: „Downloaded on …".
+   Potrebno: Windows; video dovoljno dug da se skidanje stigne prekinuti.
+
+3. [ ] **Video u domaćem otvara zaključanu stavku iza sebe.** [246.3]
+   O čemu se radi: Stavka `A tutorial video` u domaćem je urađena kad se video
+   skine, pa se otključava stavka iza nje koja čeka na prethodnu.
+   Gde: (kao trener) domaći → dodaj stavku → `A tutorial video`; (kao učenik)
+   `Home` → `Set for me` → domaći.
+   Uradi: Napravi domaći: prvo video, iza njega bilo koja stavka sa bravom
+   (ne pre nego što je prethodna urađena). Pošalji ga. Kao učenik skini video.
+   Treba da vidiš: Pre skidanja druga stavka je zaključana; posle skidanja je
+   otključana, a kod videa piše `Video downloaded`.
+   Potrebno: nalog trenera i učenika; tutorijal sa videom.
+
+4. [ ] **Poslat tutorijal ostaje u zadacima učenika.** [129.3]
    O čemu se radi: Filtriranje police po vlasništvu ne dira zadatke — tutorijal
    koji je trener eksplicitno poslao (dodelio) učeniku ostaje dostupan kroz
    drugi put (zadaci), bez obzira ko ga je sačuvao.
@@ -281,7 +319,7 @@ odlazi na kraj spiska u alatu.
    sačuvanih tutorijala.
    Potrebno: Windows; nalog trenera i učenika.
 
-2. [ ] **Tačan potez na pitanju o potezu.** [108.2]
+5. [ ] **Tačan potez na pitanju o potezu.** [108.2]
    O čemu se radi: Kad korak pita „Traži potez na tabli” i student odigra baš
    onaj potez koji nastavlja liniju, dobija potvrdu i lekcija ide dalje.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom čiji korak pita potez)
@@ -292,7 +330,7 @@ odlazi na kraj spiska u alatu.
    sledi) ako iza pitanja ima nastavka, ili samo „Correct.” ako nastavka nema.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-3. [ ] **Druga tačna varijanta na pitanju o potezu.** [108.3]
+6. [ ] **Druga tačna varijanta na pitanju o potezu.** [108.3]
    O čemu se radi: Korak može da ima i druge tačne poteze pored glavnog. Kad
    učenik odigra takav potez, figure ostaju tamo gde ih je odigrao — lekcija ne
    pomera tablu sama.
@@ -305,7 +343,7 @@ odlazi na kraj spiska u alatu.
    poziciji koju si ti odigrao, tabla se ne pomera sama.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-4. [ ] **Pogrešan potez javlja dve različite poruke i vraća figure.** [108.4]
+7. [ ] **Pogrešan potez javlja dve različite poruke i vraća figure.** [108.4]
    O čemu se radi: Server razlikuje potez koji uopšte nije moguć u poziciji od
    poteza koji je moguć ali nije traženi, sa dve različite rečenice. Posle
    greške figure se vraćaju na poziciju sa početka koraka.
@@ -321,7 +359,7 @@ odlazi na kraj spiska u alatu.
    na bilo šta.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-5. [ ] **„Show me” se pojavljuje tek posle druge greške.** [108.5]
+8. [ ] **„Show me” se pojavljuje tek posle druge greške.** [108.5]
    O čemu se radi: Dugme za otkrivanje rešenja se namerno ne nudi odmah — dete
    prvo dobija još jednu šansu.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom čiji korak pita potez)
@@ -333,7 +371,7 @@ odlazi na kraj spiska u alatu.
    druge se pojavljuje. Pritiskom se ispiše „Solution: …” sa tačnim potezom.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-6. [ ] **Pitanje sa ponuđenim odgovorima ne pušta tablu da se igra.** [108.6]
+9. [ ] **Pitanje sa ponuđenim odgovorima ne pušta tablu da se igra.** [108.6]
    O čemu se radi: Kod pitanja tipa „Traži odgovor iz liste” tabla je
    zaključana — figure se ne mogu povući — a biranje opcije odmah šalje
    odgovor.
@@ -345,7 +383,7 @@ odlazi na kraj spiska u alatu.
    opcije odmah šalje odgovor i stiže verdikt (`Correct`/pogrešno).
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-7. [ ] **Tačno i netačno se razlikuju i bez boje.** [108.7]
+10. [ ] **Tačno i netačno se razlikuju i bez boje.** [108.7]
    O čemu se radi: Vlasnik je daltonista — svaka poruka o tačnosti nosi i
    drugačiju ikonicu, ne samo drugu boju.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom čiji korak pita) →
@@ -357,7 +395,7 @@ odlazi na kraj spiska u alatu.
    samo po boji pozadine/ivice.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-8. [ ] **Prekid mreže usred odgovora ne gubi poziciju.** [108.9]
+11. [ ] **Prekid mreže usred odgovora ne gubi poziciju.** [108.9]
    O čemu se radi: Ako odgovor ne stigne do servera, ekran to kaže i vraća
    tablu na poziciju pre pokušaja, tako da dete odmah može ponovo.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom čiji korak pita potez)
@@ -369,7 +407,7 @@ odlazi na kraj spiska u alatu.
    probaš ponovo.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-9. [ ] **Nema tajmera, bodova ni niza na ekranu lekcije.** [108.10]
+12. [ ] **Nema tajmera, bodova ni niza na ekranu lekcije.** [108.10]
    O čemu se radi: Ovaj ekran je zamišljen za deljeno gledanje (deca gledaju
    jedno drugom ekrane), pa namerno nema takmičarskih elemenata.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom) → (ekran lekcije).
@@ -378,7 +416,7 @@ odlazi na kraj spiska u alatu.
    odgovora.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-10. [ ] **Obojeno polje se vidi kao prsten, pre prvog poteza.** [108.11]
+13. [ ] **Obojeno polje se vidi kao prsten, pre prvog poteza.** [108.11]
    O čemu se radi: Polje koje je autor obojio (`[%csl]`) se crta kao uokvireni
    prsten (crna pa bela pa autorova boja, sve tri kao ivica, ne popuna),
    vidljiv pre bilo kog poteza na koraku.
@@ -390,7 +428,7 @@ odlazi na kraj spiska u alatu.
    autorove boje — ne kao puna ispuna. Vidljivo je odmah, pre bilo kog poteza.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-11. [ ] **Prsten se ne meša sa oznakom poslednjeg poteza.** [108.12]
+14. [ ] **Prsten se ne meša sa oznakom poslednjeg poteza.** [108.12]
    O čemu se radi: Poslednji odigran potez se sad obeležava punom
    (poluprovidnom) senkom preko celog polja, ne uglovima kao ranije — i dalje
    je oblikom jasno različit od tankog prstena obojenog polja.
@@ -401,7 +439,7 @@ odlazi na kraj spiska u alatu.
    puna senka preko celog polja — razlika je u obliku, ne samo u nijansi.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-12. [ ] **Crtež (strelice/polja) se menja sa svakim potezom.** [108.13]
+15. [ ] **Crtež (strelice/polja) se menja sa svakim potezom.** [108.13]
    O čemu se radi: Strelice i obojena polja su vezani za konkretan potez u
    liniji — koraci napred/nazad menjaju šta se vidi na tabli.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom čija linija ima crtež
@@ -412,7 +450,7 @@ odlazi na kraj spiska u alatu.
    na svim pozicijama.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-13. [ ] **Zvučnik čita tačno ono što piše na koraku.** [108.15]
+16. [ ] **Zvučnik čita tačno ono što piše na koraku.** [108.15]
    O čemu se radi: Govor na koraku čita zadatak i napomenu onako kako su
    napisani — ne izmišlja rečenice koje nisu na ekranu.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom) → (ekran lekcije).
@@ -422,7 +460,7 @@ odlazi na kraj spiska u alatu.
    rečenica nema teksta koji nigde ne piše.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-14. [ ] **Isključen govor ne gubi nijednu rečenicu sa ekrana.** [108.16]
+17. [ ] **Isključen govor ne gubi nijednu rečenicu sa ekrana.** [108.16]
    O čemu se radi: Govor je samo zvučna dopuna — svaki tekst koji bi se čuo i
    dalje stoji ispisan na ekranu i bez govora.
    Gde: `Home` → `My Assignments` → (domaći sa lekcijom) → (ekran lekcije).
@@ -432,7 +470,7 @@ odlazi na kraj spiska u alatu.
    napisana na ekranu.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-15. [ ] **Prelaz sa prikaza na pitanje bez treptaja table.** [108.28]
+18. [ ] **Prelaz sa prikaza na pitanje bez treptaja table.** [108.28]
    O čemu se radi: Kad se deo koji samo pokazuje završi tačno na poziciji na
    kojoj počinje sledeći deo koji traži potez ili izbor odgovora, tabla se ne
    učitava ponovo — menja se samo šta se od učenika traži.
@@ -446,7 +484,7 @@ odlazi na kraj spiska u alatu.
    resetuje niti trepće — nema učitavanja nove table, ni okretanja.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-16. [ ] **Na telefonu ništa nije odsečeno; ponuđeni odgovori su ispod
+19. [ ] **Na telefonu ništa nije odsečeno; ponuđeni odgovori su ispod
    prevoja.** [108.8]
    O čemu se radi: Na uskom telefonu (360 dp) ekran ne sme ništa da odseče —
    merenje u testu je čisto, ali release build ne crta upozorenje pa se gleda
@@ -463,7 +501,7 @@ odlazi na kraj spiska u alatu.
    smeta za dete koje prvi put otvara ovaj ekran.
    Potrebno: telefon; nalog trenera i učenika.
 
-17. [ ] **Brojač koraka je u redu trake, između strelica.** [20.b658]
+20. [ ] **Brojač koraka je u redu trake, između strelica.** [20.b658]
    O čemu se radi: Kad se otvori zadata lekcija sa korakom koji ima liniju
    poteza, brojač koraka („Move … of …") stoji u istom redu kao traka za
    kretanje.
@@ -474,7 +512,7 @@ odlazi na kraj spiska u alatu.
    kao traka za kretanje, između `<` i `>`, u kartici kao na ostalim ekranima.
    Potrebno: Windows i telefon.
 
-18. [ ] **„Play tutorial” čeka da se rečenica dovrši pre sledećeg poteza.**
+21. [ ] **„Play tutorial” čeka da se rečenica dovrši pre sledećeg poteza.**
    [108.27]
    O čemu se radi: Dugme se u međuvremenu preimenovalo iz „Pročitaj mi liniju”
    u `Play tutorial` i sad vozi ceo tutorijal (ne samo jednu liniju) — ali
@@ -490,7 +528,7 @@ odlazi na kraj spiska u alatu.
    potezu stoje dok se čita rečenica o tom potezu i nestaju sa sledećim.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-19. [ ] **Pregled ranije prazne lekcije sad ima tablu i pravi naslov.**
+22. [ ] **Pregled ranije prazne lekcije sad ima tablu i pravi naslov.**
    [21.b742]
    O čemu se radi: Lekcija sačuvana kao jedna pozicija je ranije prikazivala
    prazan kvadrat u pregledu; sad se ispravno čita, a naslov je stvarno ime
@@ -503,7 +541,7 @@ odlazi na kraj spiska u alatu.
    ne generičko „Position …" (to piše samo kad pozicija stvarno nema ime).
    Potrebno: Windows i telefon.
 
-20. [ ] **Lekcija sa više koraka i dalje pokazuje svoj korak.** [21.b744]
+23. [ ] **Lekcija sa više koraka i dalje pokazuje svoj korak.** [21.b744]
    O čemu se radi: Ista popravka mora da važi i za lekciju sa VIŠE koraka —
    pregled mora da pokaže pravi korak, ne samo prvu poziciju lekcije.
    Gde: `Home` → `My Assignments` → `Review and comments` na zadatku od lekcije
@@ -513,7 +551,7 @@ odlazi na kraj spiska u alatu.
    prvu poziciju.
    Potrebno: Windows i telefon.
 
-21. [ ] **Žuto obojeno polje (`[%csl Yd5]`) se vidi sivo.** [108.14]
+24. [ ] **Žuto obojeno polje (`[%csl Yd5]`) se vidi sivo.** [108.14]
    O čemu se radi: Paleta boja za oznake nema žutu (samo crvena, narandžasta,
    zelena, plava, ljubičasta) — kod bilo pravog neprepoznatog koda boje, oznaka
    pada na sivu.
@@ -525,7 +563,7 @@ odlazi na kraj spiska u alatu.
    ograničenje palete, nije kvar.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-22. [ ] **Stari korak bez pitanja i dalje samo prikazuje liniju.** [108.1]
+25. [ ] **Stari korak bez pitanja i dalje samo prikazuje liniju.** [108.1]
    O čemu se radi: Ekran za rešavanje lekcije (u zadacima ili u pregledu
    tutorijala) čita tri vrste koraka: prost prikaz, pitanje o potezu i pitanje
    sa ponuđenim odgovorima. Stariji koraci bez pitanja treba i dalje samo da
@@ -538,7 +576,7 @@ odlazi na kraj spiska u alatu.
    banera sa pitanjem.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-23. [ ] **Desni klik na tabli u domaćem ne kopira FEN.** [193.3]
+26. [ ] **Desni klik na tabli u domaćem ne kopira FEN.** [193.3]
    O čemu se radi: Dok se domaći rešava, ne sme biti puta do motora, Analize ni
    FEN-a (pravilo iz faze 12) — uključujući prečicu za kopiranje FEN-a desnim
    klikom.
@@ -550,7 +588,7 @@ odlazi na kraj spiska u alatu.
    poruka o kopiranju, u clipboard-u ostaje šta je i bilo.
    Potrebno: Windows; nalog trenera i učenika.
 
-24. [ ] **Ctrl+C u domaćem ne kopira FEN.** [193.4]
+27. [ ] **Ctrl+C u domaćem ne kopira FEN.** [193.4]
    O čemu se radi: Ista zabrana kao kod desnog klika (faza 12): dok se stavka
    domaćeg rešava, prečica za kopiranje pozicije je isključena.
    Gde: Home → `Set for me` → My Assignments → bilo koja stavka domaćeg.
@@ -560,7 +598,7 @@ odlazi na kraj spiska u alatu.
    nalepivši ga u editor teksta).
    Potrebno: Windows; nalog trenera i učenika.
 
-25. [ ] **Posle odgovora, desni klik u stavci domaćeg opet kopira FEN.**
+28. [ ] **Posle odgovora, desni klik u stavci domaćeg opet kopira FEN.**
    [193.7]
    O čemu se radi: Zabrana motora/Analize/FEN-a važi samo dok se stavka rešava;
    jednom kad je stavka odgovorena (ili taktički zadatak rešen), kopiranje
@@ -574,7 +612,7 @@ odlazi na kraj spiska u alatu.
    netačna pokušaja na nerešenoj stavci i dalje ne otvaraju ništa.
    Potrebno: Windows; nalog trenera i učenika.
 
-26. [ ] **FEN se u tutorijalu iz domaćeg kopira tek posle tačnog odgovora.**
+29. [ ] **FEN se u tutorijalu iz domaćeg kopira tek posle tačnog odgovora.**
    [193.8]
    O čemu se radi: Isto pravilo primenjeno na tutorijal-stavku domaćeg: dok
    korak samo pokazuje i čeka sledeće pitanje, FEN se ne kopira; tek posle
@@ -590,7 +628,7 @@ odlazi na kraj spiska u alatu.
    tutorijalu kopiranje radi od samog početka.
    Potrebno: Windows; nalog trenera i učenika.
 
-27. [ ] **Učenik vidi istu presudu i isti pregled partije.** [190.6]
+30. [ ] **Učenik vidi istu presudu i isti pregled partije.** [190.6]
    O čemu se radi: Pregled odigrane partije nije samo trenerov — učenik na svom
    domaćem vidi iste presude i isti sadržaj pregleda.
    Gde: Home → `Set for me` → My Assignments → domaći → stavka odigrane
@@ -600,7 +638,7 @@ odlazi na kraj spiska u alatu.
    kao što ih vidi trener.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-28. [ ] **„Win for 2 moves“ čeka server pre nego što kaže presudu.** [186.7]
+31. [ ] **„Win for 2 moves“ čeka server pre nego što kaže presudu.** [186.7]
    O čemu se radi: Kad partija ima ≤7 figura, presudu daje tablebase preko
    servera; posle poslednjeg dozvoljenog poteza tabla staje, a presuda se ne
    ispisuje dok server ne odgovori.
@@ -612,7 +650,7 @@ odlazi na kraj spiska u alatu.
    Potrebno: Windows i telefon; nalog trenera i učenika; tablebase (pokreni.ps1
    [5]).
 
-29. [ ] **Bez veze ka tablebase-u, stavka ostaje „not judged yet“** [186.8]
+32. [ ] **Bez veze ka tablebase-u, stavka ostaje „not judged yet“** [186.8]
    O čemu se radi: Ako server ne može da pita tablebase, to se ne tumači kao
    neuspeh — stavka ostaje otvorena za docniju presudu, a sledeća stavka
    domaćeg se ipak otključava.
@@ -626,7 +664,7 @@ odlazi na kraj spiska u alatu.
    je otključana. Kad se domaći kasnije ponovo otvori, presuda je stigla.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-30. [ ] **Preskakanje u domaćem i dalje ne beleži pokušaj.** [176.6]
+33. [ ] **Preskakanje u domaćem i dalje ne beleži pokušaj.** [176.6]
    O čemu se radi: Novo brojanje pokušaja (stavka 176) namerno ne dira domaći —
    tamo i dalje važi jedan pokušaj po stavci, kao pre.
    Gde: Home → `Set for me` → My Assignments → domaći sa zagonetkom.
@@ -636,7 +674,7 @@ odlazi na kraj spiska u alatu.
    onoga što je već i ranije beleženo — nema nove linije napretka.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-31. [ ] **Učenikovi ekrani (lekcija, domaći, taktika, ponavljanje, greške)
+34. [ ] **Učenikovi ekrani (lekcija, domaći, taktika, ponavljanje, greške)
    stanu položeno.** [172.3]
    O čemu se radi: Deo prve provere telefona položeno koji vlasnik nije
    prijavio kao problem (i dalje važi, per stavka 173).
@@ -647,7 +685,7 @@ odlazi na kraj spiska u alatu.
    Again/Hard/Good/Easy) su vidljiva na svakom od ovih ekrana.
    Potrebno: telefon; nalog trenera i učenika; telefon položeno.
 
-32. [ ] **Pogrešan potez u Find zadatku pokazuje rešenje i zaključava tablu.**
+35. [ ] **Pogrešan potez u Find zadatku pokazuje rešenje i zaključava tablu.**
    [198.2]
    O čemu se radi: Od 20.9.2026 je „Find the move“ svuda jedan potez — stara
    mašinerija za nizove poteza ([]„Try again“, „Keep going“) je obrisana. Ovo
@@ -784,7 +822,16 @@ odlazi na kraj spiska u alatu.
 
 ### Home — Home i obaveštenja
 
-1. [ ] **Home pokazuje prava podešena za nalog koji je prijavljen.** [177.2]
+1. [ ] **Na Home-u više nema ponavljanja iz tutorijala.** [246.10]
+   O čemu se radi: „Due for review" je hranilo isključivo učenikovo prolaženje
+   kroz tutorijal, pa je otišlo s njim (`docs/PLAN-TUTORIJAL-VIDEO.md`, D9).
+   Gde: (kao učenik koji ima trenera) `Home`.
+   Uradi: Otvori `Home`.
+   Treba da vidiš: Karticu `Set for me` sa tekstom „Drills and videos your
+   trainer set you, and your progress." i nijednu karticu za ponavljanje.
+   Potrebno: nalog učenika sa prihvaćenim trenerom.
+
+2. [ ] **Home pokazuje prava podešena za nalog koji je prijavljen.** [177.2]
    O čemu se radi: Napomena: „Resume analysis“ čip koji je ova stavka izvorno
    proveravala (posle popravke 18.9.2026, da nov nalog ne nasledi stablo
    prethodnog) je u međuvremenu, 21.9.2026, sasvim uklonjen sa Home — Analyse
@@ -800,7 +847,7 @@ odlazi na kraj spiska u alatu.
    Ako je soba napuštena bez izlaska, na vrhu je čip „Resume session …“.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-2. [ ] **Traka bez veze sa serverom se sama povuče.** [13.b578]
+3. [ ] **Traka bez veze sa serverom se sama povuče.** [13.b578]
    O čemu se radi: Ovo je opšta traka na Početnoj (ne samo za skener): ponavlja
    proveru na 10 sekundi, a povezivanje soketa se odmah računa kao dokaz da je
    veza uspostavljena.
@@ -811,7 +858,7 @@ odlazi na kraj spiska u alatu.
    sekundi (ili odmah po povezivanju soketa).
    Potrebno: Windows i telefon.
 
-3. [ ] **Zvono javlja kad je film gotov, i preuzimanje sa reda radi.** [143.3]
+4. [ ] **Zvono javlja kad je film gotov, i preuzimanje sa reda radi.** [143.3]
    O čemu se radi: Kad se render završi u pozadini, trener mora da bude
    obavešten bez da čeka otvorenu traku.
    Gde: zvono (`Notifications and Invitations`) posle završenog izvoza.
@@ -821,7 +868,7 @@ odlazi na kraj spiska u alatu.
    filma; `Download video` na redu u Biblioteci radi.
    Potrebno: Windows i telefon; server.
 
-4. [ ] **Nema više dvostrukog zaglavlja iznad naslova taba.** [180.9]
+5. [ ] **Nema više dvostrukog zaglavlja iznad naslova taba.** [180.9]
    O čemu se radi: Vlasnik je 18.9.2026 tražio uživo da se ukloni gornja traka
    ljuske („taj gornji deo mi uopšte nije potreban“) — reč „Chess Trainer“ sa
    zupčanikom i zvonom je stajala iznad naslova samog taba, dva zaglavlja koja
@@ -5902,7 +5949,48 @@ odlazi na kraj spiska u alatu.
 
 ### Teach — Library i zadaci
 
-1. [ ] **Drugi mat se priznaje kao tačan.** [13.b572]
+1. [ ] **Tutorijal bez videa se ne šalje; nudi se izvoz.** [246.4]
+   O čemu se radi: Učeniku ide video tutorijala, pa se tutorijal bez videa ne
+   može poslati (`docs/PLAN-TUTORIJAL-VIDEO.md`, D5).
+   Gde: `Teach` → `Library` → red tutorijala → `Send to student`.
+   Uradi: Pritisni `Send to student` na tutorijalu bez videa, pa na tutorijalu
+   sa videom.
+   Treba da vidiš: Bez videa — prozor `Export the video first` sa dugmetom
+   `Export video`, nijedan učenik se ne nudi. Sa videom — `Send the video to a
+   student`, a posle izbora učenika `Video sent to the student.`
+   Potrebno: jedan tutorijal sa videom i jedan bez; prihvaćen učenik.
+
+2. [ ] **Brisanje tutorijala kaže ko još nije skinuo video.** [246.5]
+   O čemu se radi: Video se briše sa tutorijalom, pa učenik koji ga još nije
+   skinuo ostaje bez njega; ovo je jedini trenutak kad trener to može da zna
+   (D13).
+   Gde: `Teach` → `Library` → red tutorijala → `Delete tutorial`.
+   Uradi: Pošalji video učeniku koji ga još nije skinuo, pa pritisni
+   `Delete tutorial` — i `Cancel`.
+   Treba da vidiš: U prozoru rečenicu „1 student has not downloaded its video
+   yet, and will not be able to." Posle učenikovog skidanja te rečenice nema.
+   Potrebno: poslat video koji učenik još nije skinuo.
+
+3. [ ] **Učenik ne vidi trenerove tutorijale u Biblioteci.** [246.6]
+   O čemu se radi: Tutorijal do učenika stiže samo kao poslat video, pa ga više
+   nema na učenikovoj polici (D6); trenerove pojedinačne pozicije ostaju.
+   Gde: (kao učenik) `Teach` → `Library`.
+   Uradi: Pogledaj tutorijale i pozicije.
+   Treba da vidiš: Nijedan trenerov tutorijal; trenerove sačuvane pozicije i
+   dalje.
+   Potrebno: trener koji ima i tutorijal i sačuvanu poziciju.
+
+4. [ ] **`Add to tutorial` pretvara zadatak pozicije u rečenicu dela.** [246.15]
+   O čemu se radi: Pozicija sa zadatkom (npr. skenirana „Beli vuče i
+   dobija") postaje deo čija je prva rečenica taj zadatak, pa je video
+   izgovara i ispisuje; ranije je išla u polje koje video ne čita.
+   Gde: `Teach` → `Library` → kartica pozicije sa zadatkom → `Add to tutorial`.
+   Uradi: Dodaj je u postojeći tutorijal, otvori tutorijal, izvezi video.
+   Treba da vidiš: Novi deo na kraju, sa zadatkom kao komentarom početne
+   pozicije; u videu taj tekst ispod table.
+   Potrebno: sačuvana pozicija sa zadatkom i jedan tutorijal.
+
+4. [ ] **Drugi mat se priznaje kao tačan.** [13.b572]
    O čemu se radi: Zadatak nađi-potez priznaje svaki potez koji matira, ne samo
    onaj naveden u knjizi; ekran tada objašnjava da je u pitanju drugi mat.
    Gde: `Home` → `My Assignments` (ili `Teach` → `Library` → `Solve`) →
@@ -5913,7 +6001,7 @@ odlazi na kraj spiska u alatu.
    `Different checkmate from the book — but mate is mate.`.
    Potrebno: Windows i telefon; nalog trenera i učenika; PDF knjiga.
 
-2. [ ] **Library ima šest čipova, Exercises odmah posle Tutorials.** [186.4]
+5. [ ] **Library ima šest čipova, Exercises odmah posle Tutorials.** [186.4]
    O čemu se radi: Faza 3a-4 je dodala čip `Exercises`. Od 23.9.2026 je čip za
    skupove zagonetki obrisan (zagonetke se čuvaju kao Find zadaci), pa Library
    danas ima šest čipova, ne sedam kao u originalnom opisu faze.
@@ -5925,7 +6013,7 @@ odlazi na kraj spiska u alatu.
    redova nema.
    Potrebno: Windows i telefon.
 
-3. [ ] **Biblioteka ima šest čipova; pozicija iz sobe i iz knjige su obe pod
+6. [ ] **Biblioteka ima šest čipova; pozicija iz sobe i iz knjige su obe pod
    Positions.** [175.7]
    O čemu se radi: Od faze 5 je Library dobio svoja vrata na tabu Teach.
    Napomena: čip za skupove zagonetki koji je originalno bio deo ovog spiska je
@@ -5941,7 +6029,7 @@ odlazi na kraj spiska u alatu.
    analiza se otvara cela (sa varijantama i komentarima); snimak otvara `Play`.
    Potrebno: Windows i telefon.
 
-4. [ ] **Sačuvan Find zadatak pokazuje rešenje bez rednog broja.** [198.3]
+7. [ ] **Sačuvan Find zadatak pokazuje rešenje bez rednog broja.** [198.3]
    O čemu se radi: Pošto je Find jedan potez, rešenje sačuvanog zadatka se
    ispisuje kao sâm potez i njegove prihvaćene alternative, bez brojanja poteza
    i bez starih „čipova za korake“.
@@ -5953,7 +6041,7 @@ odlazi na kraj spiska u alatu.
    Qf3)“ — bez rednog broja poteza (nema „1.“) i bez ijednog čipa koraka.
    Potrebno: Windows i telefon.
 
-5. [ ] **Potez na tabli u editoru zadatka postaje alternativa.** [198.4]
+8. [ ] **Potez na tabli u editoru zadatka postaje alternativa.** [198.4]
    O čemu se radi: U ekranu za izmenu sačuvanog Find zadatka, svaki novi potez
    odigran na tabli se dodaje kao prihvaćena alternativa; može se ukloniti
    čipom.
@@ -5966,7 +6054,7 @@ odlazi na kraj spiska u alatu.
    pokazuje izmenjeno rešenje.
    Potrebno: Windows i telefon.
 
-6. [ ] **Skeniran zadatak sa odštampanim rešenjem se otvara u istom editoru.**
+9. [ ] **Skeniran zadatak sa odštampanim rešenjem se otvara u istom editoru.**
    [192.7]
    O čemu se radi: Ekran za izmenu zadatka je jedan, bez obzira da li je
    zadatak napravljen u Preparation ili je sken iz knjige sa odštampanim
@@ -5980,7 +6068,7 @@ odlazi na kraj spiska u alatu.
    alternativa.
    Potrebno: Windows i telefon; PDF knjiga.
 
-7. [ ] **Trenerov zadatak i sken bez rešenja i dalje otvaraju Analizu.**
+10. [ ] **Trenerov zadatak i sken bez rešenja i dalje otvaraju Analizu.**
    [192.9]
    O čemu se radi: Editor zadatka se otvara samo za sopstvene zadatke; tuđi
    zadatak (trenerov, kod učenika) i skeniran materijal bez odštampanog rešenja
@@ -5992,7 +6080,7 @@ odlazi na kraj spiska u alatu.
    za izmenu zadatka.
    Potrebno: Windows i telefon; nalog trenera i učenika; PDF knjiga.
 
-8. [ ] **Izlazak iz editora zadatka pita samo kad ima nesačuvane izmene.**
+11. [ ] **Izlazak iz editora zadatka pita samo kad ima nesačuvane izmene.**
    [192.10]
    O čemu se radi: Uobičajeno pravilo za sve editore u aplikaciji — čuva se od
    gubljenja rada, ali ne dosađuje kad ništa nije promenjeno.
@@ -6003,7 +6091,7 @@ odlazi na kraj spiska u alatu.
    drugi put se izlazi bez ikakvog pitanja.
    Potrebno: Windows i telefon.
 
-9. [ ] **Redovi pozicija/zadataka imaju sličicu table, veći pregled na dodir.**
+12. [ ] **Redovi pozicija/zadataka imaju sličicu table, veći pregled na dodir.**
    [186.5]
    O čemu se radi: Svaki red pozicije ili zadatka u Library-ju nosi malu
    sličicu table (okrenutu na stranu na potezu); dodir na sličicu otvara veći
@@ -6016,7 +6104,7 @@ odlazi na kraj spiska u alatu.
    dugmetom `Open`. Lista se skroluje glatko, bez sekanja.
    Potrebno: telefon.
 
-10. [ ] **„Play the move“ na praznoj tabli otvara novi Find zadatak.** [198.5]
+13. [ ] **„Play the move“ na praznoj tabli otvara novi Find zadatak.** [198.5]
    O čemu se radi: Ovo je isti tok koji je vlasnik već potvrdio uživo 20.9.2026
    kao stavku 196 — ovde se ponovo proverava posebno, kao deo brisanja stare
    mašinerije za nizove poteza.
@@ -6029,7 +6117,7 @@ odlazi na kraj spiska u alatu.
    `Exercises`.
    Potrebno: Windows i telefon.
 
-11. [ ] **Provera pri čuvanju predlaže dodatne pobedničke poteze (≤7 figura).**
+14. [ ] **Provera pri čuvanju predlaže dodatne pobedničke poteze (≤7 figura).**
    [187.1]
    O čemu se radi: Pri čuvanju Find zadatka sa najviše 7 figura, pravi
    tablebase proverava da li odigrani potez drži dobitak i, ako ima još poteza
@@ -6043,7 +6131,7 @@ odlazi na kraj spiska u alatu.
    posle dodira se u rešenju vidi „(or …)“.
    Potrebno: Windows; tablebase (pokreni.ps1 [5]).
 
-12. [ ] **Potez koji ispušta dobitak dobija upozorenje bez ponude za
+15. [ ] **Potez koji ispušta dobitak dobija upozorenje bez ponude za
    prihvatanje.** [187.2]
    O čemu se radi: Isti tablebase-proverа, suprotan slučaj: ako odigrani potez
    baca dobitak, provera to kaže bez dugmeta za prihvatanje dodatne
@@ -6055,7 +6143,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Pojavljuje se upozorenje o tome, bez dugmeta `Accept`.
    Potrebno: Windows; tablebase (pokreni.ps1 [5]).
 
-13. [ ] **„Win“ na remi poziciji ne blokira čuvanje.** [187.3]
+16. [ ] **„Win“ na remi poziciji ne blokira čuvanje.** [187.3]
    O čemu se radi: Kad je krajnji ishod nemoguć (remi pozicija, ≤7 figura) za
    cilj „Win“, provera to kaže rečenicom, ali `Save` ostaje dostupan — trener
    ipak odlučuje.
@@ -6067,7 +6155,7 @@ odlazi na kraj spiska u alatu.
    ali `Save` i dalje radi.
    Potrebno: Windows; tablebase (pokreni.ps1 [5]).
 
-14. [ ] **Provera motorom upozorava na slab potez (preko 7 figura).** [187.4]
+17. [ ] **Provera motorom upozorava na slab potez (preko 7 figura).** [187.4]
    O čemu se radi: Sa više od 7 figura tablebase se ne koristi — pravi motor
    procenjuje da li je odigrani potez slabiji od najboljeg za više od pešaka i
    po.
@@ -6079,7 +6167,7 @@ odlazi na kraj spiska u alatu.
    dok motor razmišlja, `Save` ostaje dostupan.
    Potrebno: Windows; debug build.
 
-15. [ ] **Provera bez interneta tiho odustaje, čuvanje ostaje moguće.** [187.5]
+18. [ ] **Provera bez interneta tiho odustaje, čuvanje ostaje moguće.** [187.5]
    O čemu se radi: Kad tablebase ili motor ne mogu da odgovore (nema
    interneta), provera se ne zaglavljuje — „Checking…“ nestaje samo od sebe
    posle desetak sekundi.
@@ -6091,7 +6179,7 @@ odlazi na kraj spiska u alatu.
    se ne prikazuje kao nalaz, a `Save` je bio dostupan sve vreme.
    Potrebno: Windows.
 
-16. [ ] **Promena cilja sa Win na Draw or better skida stari nalaz.** [187.7]
+19. [ ] **Promena cilja sa Win na Draw or better skida stari nalaz.** [187.7]
    O čemu se radi: Nalaz provere važi za konkretan cilj; kad se cilj promeni,
    stari nalaz se ne sme zadržati kao da još važi.
    Gde: Teach → `Preparation` → `Open` → `Make exercise` → `Win`.
@@ -6101,7 +6189,7 @@ odlazi na kraj spiska u alatu.
    cilj promeni.
    Potrebno: Windows.
 
-17. [ ] **Partija-zadatak ne traži odigranu liniju, samo poziciju.** [186.3]
+20. [ ] **Partija-zadatak ne traži odigranu liniju, samo poziciju.** [186.3]
    O čemu se radi: Za razliku od Find (koje traži odigran potez kao rešenje),
    zadatak tipa partija (Win / Draw or better / Play N moves) treba samo
    nameštenu poziciju.
@@ -6113,7 +6201,7 @@ odlazi na kraj spiska u alatu.
    za odigranim potezom.
    Potrebno: Windows.
 
-18. [ ] **Prazna tabla u Make exercise nudi „Play the move“, ne samo crvenu
+21. [ ] **Prazna tabla u Make exercise nudi „Play the move“, ne samo crvenu
    poruku.** [185.1]
    O čemu se radi: Vlasnik je 18.9.2026 primetio da stara crvena poruka ne kaže
    kako da se u istoj radnji postavi pozicija i odigra rešenje. To je rešeno u
@@ -6128,7 +6216,7 @@ odlazi na kraj spiska u alatu.
    ne odigra potez.
    Potrebno: Windows.
 
-19. [ ] **Sačuvan zadatak se pojavljuje u Library pod čipom Exercises.**
+22. [ ] **Sačuvan zadatak se pojavljuje u Library pod čipom Exercises.**
    [185.4]
    O čemu se radi: Vlasnik je 18.9.2026 prijavio da se posle čuvanja nije jasno
    videlo šta je zadatak a šta gola pozicija. Faza 10 (stavka 191, Library
@@ -6142,7 +6230,7 @@ odlazi na kraj spiska u alatu.
    `Positions`.
    Potrebno: Windows.
 
-20. [ ] **Red tutorijala koji se crta ima ikonu filma i vraća na pravu traku.**
+23. [ ] **Red tutorijala koji se crta ima ikonu filma i vraća na pravu traku.**
    [143.2]
    O čemu se radi: Sakriveni render mora da se može ponovo naći sa liste.
    Gde: `Teach` → `Library`, dok se izvoz crta u pozadini.
@@ -6153,7 +6241,7 @@ odlazi na kraj spiska u alatu.
    pravim procentom.
    Potrebno: Windows i telefon; server.
 
-21. [ ] **Zastareo (obrisan) film gubi dugme za preuzimanje.** [136.5]
+24. [ ] **Zastareo (obrisan) film gubi dugme za preuzimanje.** [136.5]
    O čemu se radi: Server pamti ime fajla poslednjeg izvezenog videa za svaki
    tutorijal. Ako je taj MP4 u međuvremenu obrisan sa diska (ručno, ili mu je
    istekao rok), red tog tutorijala mora da prestane da nudi preuzimanje linka
@@ -6167,7 +6255,7 @@ odlazi na kraj spiska u alatu.
    reda, ostaje samo `Export video`.
    Potrebno: Windows i telefon; server.
 
-22. [ ] **Red tutorijala staje na uzak telefon (360 dp).** [136.6]
+25. [ ] **Red tutorijala staje na uzak telefon (360 dp).** [136.6]
    O čemu se radi: Kad je ova stavka pisana (9.9.2026) tutorijali su postojali
    samo na Windowsu, pa vlasnik nije imao odakle da dođe do njih sa telefona.
    Otkad je šilj reorganizovan (Teach tab) i studio dobio raspored za telefon,
@@ -6182,7 +6270,7 @@ odlazi na kraj spiska u alatu.
    ekrana na 360 dp.
    Potrebno: telefon; server; telefon položeno.
 
-23. [ ] **Birač tutorijala javlja da server nije dostupan.** [14.b635]
+26. [ ] **Birač tutorijala javlja da server nije dostupan.** [14.b635]
    O čemu se radi: Stara ruta (dodavanje pozicije u lekciju preko posebnog
    birača „Mojih pozicija") više ne postoji — pojedinačno biranje pozicija je
    sada u uređivaču domaćeg, a birač koji se otvara sa „Add to tutorial" u
@@ -6195,7 +6283,7 @@ odlazi na kraj spiska u alatu.
    ne „No tutorials with steps found...".
    Potrebno: Windows i telefon; server.
 
-24. [ ] **Brisanje tutorijala briše i snimak na serveru.** [139.7]
+27. [ ] **Brisanje tutorijala briše i snimak na serveru.** [139.7]
    O čemu se radi: Naracija poslata na server (faza 3) živi u
    chess_backend/uploads/narration/; brisanje tutorijala treba da povuče i taj
    fajl. Pretpostavlja stavku 138 — snimak već postoji na uređaju. Snimanje
@@ -6209,7 +6297,7 @@ odlazi na kraj spiska u alatu.
    otvoreno: brisanje ne uklanja snimak na samom uređaju, samo na serveru).
    Potrebno: Windows i telefon; sačuvan tutorijal sa poslatim snimkom; server.
 
-25. [ ] **Tri ikonice na redu tutorijala vidljive na telefonu.** [133.1]
+28. [ ] **Tri ikonice na redu tutorijala vidljive na telefonu.** [133.1]
    O čemu se radi: Svaki red sačuvanog tutorijala nosi tri ikonice
    (video/izvoz, pošalji, obriši); na telefonu (ne na Windows prozoru) sve tri
    moraju da se vide i mogu se pogoditi prstom, i kod dugih imena.
@@ -6222,7 +6310,7 @@ odlazi na kraj spiska u alatu.
    teškoća, čak i kod dugog imena.
    Potrebno: telefon.
 
-26. [ ] **Kod učenika polica ne pokazuje trenerove tutorijale kao svoje.**
+29. [ ] **Kod učenika polica ne pokazuje trenerove tutorijale kao svoje.**
    [129.1]
    O čemu se radi: Biblioteka razdvaja tutorijale po vlasništvu — učenik na
    svojoj polici vidi samo svoje, ne i sve što je trener ikad sačuvao.
@@ -6233,7 +6321,7 @@ odlazi na kraj spiska u alatu.
    učenik sam napisao (ili prazna polica ako ništa nije napisao).
    Potrebno: Windows; nalog trenera i učenika.
 
-27. [ ] **Kod trenera su svi tutorijali na mestu.** [129.2]
+30. [ ] **Kod trenera su svi tutorijali na mestu.** [129.2]
    O čemu se radi: Na svom nalogu trener i dalje vidi sve svoje tutorijale i
    ima pristup akcijama nad njima (izvoz videa, slanje, brisanje).
    Gde: `Teach` → (kartica) `Tutorials` → `Saved tutorials`.
@@ -6242,7 +6330,7 @@ odlazi na kraj spiska u alatu.
    za video, slanje i brisanje.
    Potrebno: Windows.
 
-28. [ ] **„Saved tutorials“ otvara Library na čipu Tutorials, bez dijaloga.**
+31. [ ] **„Saved tutorials“ otvara Library na čipu Tutorials, bez dijaloga.**
    [179.11]
    O čemu se radi: Posle vlasnikove prijave 17.9.2026 (dijalog na telefonu bez
    naslova tutorijala, bez liste položeno), dijalog je uklonjen — dugme sada
@@ -7708,7 +7796,64 @@ odlazi na kraj spiska u alatu.
 
 ### Teach — Tutorial studio
 
-1. [ ] **`Record again` iz trake gasi traku posle novog snimka.** [140.3]
+1. [ ] **Jedan deo se okreće iz svog reda; „Preview tutorial" više ne postoji.** [246.9]
+   O čemu se radi: Okretanje jednog dela bilo je samo u „Preview tutorial"
+   (đakov pregled, obrisan); sada je dugme u redu svakog dela (D12).
+   Gde: `Teach` → studio → na Windowsu panel `Tutorial contents`, na telefonu
+   kartica sa delovima → red dela → dugme za okretanje (natpis na dugmetu:
+   „Turn this part (White at the bottom now)").
+   Uradi: U tutorijalu od tri dela okreni samo drugi. Sačuvaj, zatvori, otvori
+   ponovo; izvezi video.
+   Treba da vidiš: Okrenut je samo drugi deo — i posle ponovnog otvaranja, i
+   u videu. Dugme `Flip board` i dalje okreće sve delove. Nigde nema „Preview
+   tutorial".
+   Potrebno: Windows i telefon.
+
+2. [ ] **Studio pravi samo delove koji pokazuju.** [246.11]
+   O čemu se radi: Tutorijal je materijal za video, pa deo više ne postavlja
+   pitanje; zadatak za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`,
+   faza 4).
+   Gde: `Teach` → `New tutorial` (Windows i telefon).
+   Uradi: Odigraj nekoliko poteza, dodaj novi deo, pogledaj panel
+   `Tutorial contents` i polja jednog dela; na telefonu kartice na dnu.
+   Treba da vidiš: Nigde `Task type`, `Task for student`, `Find the move` ni
+   `Choose the answer`. Novi deo se pravi dugmetom `New demonstration`. Na
+   telefonu su samo dve kartice, `Line` i `Parts`. Svaki potez odigran na
+   tabli ide u liniju dela.
+   Potrebno: Windows i telefon.
+
+3. [ ] **Uvoz tutorijala sa pitanjem kaže koji deo smeta.** [246.12]
+   O čemu se radi: Fajl pisan za stara pitanja (`ask_move`, `ask_choice`) se
+   ne uvozi prepravljen, nego odbija, uz broj dela (D11). Uvoz PGN-a više ne
+   nudi da od grešaka napravi pitanja.
+   Gde: `Teach` → `Import from a file`.
+   Uradi: Uvezi JSON tutorijal čiji je treći deo `"kind": "ask_move"`; zatim
+   uvezi jednu PGN partiju.
+   Treba da vidiš: Za JSON rečenicu koja počinje sa „Part 3:" i kaže da
+   tutorijal samo pokazuje; ništa nije sačuvano. Za PGN nijedno pitanje o
+   pravljenju pitanja od grešaka.
+   Potrebno: JSON fajl sa pitanjem u trećem delu.
+
+4. [ ] **Tutorijal iz partije ne pita „za učenike ili za video".** [246.13]
+   O čemu se radi: Izbor je otišao s pitanjima; iz partije se pravi samo
+   tutorijal koji pokazuje.
+   Gde: `Analyse` sa učitanom partijom → meni za podučavanje →
+   `New tutorial from this game`.
+   Uradi: Napravi tutorijal iz jedne partije.
+   Treba da vidiš: Nema izbora `For students` / `For a video`; nijedan deo
+   ne pita.
+   Potrebno: partija u biblioteci.
+
+5. [ ] **Tutorijal kome su obrisana dva pitanja se otvara i pravi video.** [246.14]
+   O čemu se radi: Jedini sačuvani tutorijal sa pitanjima imao je dva dela
+   `ask_move`; obrisana su 25.9.2026 (10 → 8 delova), po vlasnikovoj reči da
+   se test materijal sme brisati.
+   Gde: `Teach` → `Saved tutorials` → tutorijal koji je imao pitanja.
+   Uradi: Otvori ga, pogledaj delove, izvezi video.
+   Treba da vidiš: Osam delova koji pokazuju; video se napravi bez greške.
+   Potrebno: Windows.
+
+2. [ ] **`Record again` iz trake gasi traku posle novog snimka.** [140.3]
    O čemu se radi: Pretpostavlja stavke 138 i 139. Snimanje glasa preko
    tutorijala je pisano kao Windows-only (studio tada nije postojao na
    telefonu); otkad studio ima raspored za uzak ekran, `Record narration` je i
@@ -7719,7 +7864,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Traka o zastarelom snimku je nestala.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-2. [ ] **Traka Flow/Tree/PGN stoji na mestu na širokom prozoru.** [155.4]
+3. [ ] **Traka Flow/Tree/PGN stoji na mestu na širokom prozoru.** [155.4]
    O čemu se radi: Traka sa karticama ne sme da beži pri skrolovanju donje
    polovine studija.
    Gde: `Teach` → studio, prozor preko 840 dp.
@@ -7727,7 +7872,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Traka 'Flow / Tree / PGN' ostaje prikačena na mestu.
    Potrebno: Windows; sačuvan tutorijal sa više delova.
 
-3. [ ] **Traka se prikači tek kad stigne do vrha (uzak prozor).** [155.5]
+4. [ ] **Traka se prikači tek kad stigne do vrha (uzak prozor).** [155.5]
    O čemu se radi: Na uskom prozoru traka ne sme da bude prikačena pre nego što
    stigne do vrha — iznad nje tabla i spisak delova se normalno skroluju.
    Gde: `Teach` → studio, prozor uži od 840 dp.
@@ -7736,7 +7881,7 @@ odlazi na kraj spiska u alatu.
    ispod nje posle toga; iznad nje tabla i spisak delova se skroluju normalno.
    Potrebno: Windows; sačuvan tutorijal sa više delova.
 
-4. [ ] **Kartica ne prosijava kroz prikačenu traku.** [155.6]
+5. [ ] **Kartica ne prosijava kroz prikačenu traku.** [155.6]
    O čemu se radi: Kad kartica prolazi ispod prikačene trake, traka mora da je
    potpuno prekrije.
    Gde: `Teach` → studio, prozor uži od 840 dp, skrolovanje.
@@ -7745,7 +7890,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Nema šava i nema teksta kartice koji se vidi kroz traku.
    Potrebno: Windows; sačuvan tutorijal sa više delova.
 
-5. [ ] **Prevlačenje preko table ne skroluje stranu.** [155.7]
+6. [ ] **Prevlačenje preko table ne skroluje stranu.** [155.7]
    O čemu se radi: Tabla uzima prevlačenje za pomeranje figure, pa strana mora
    da se skroluje kolutićem ili trakom, ne prevlačenjem preko table.
    Gde: `Teach` → studio, prozor uži od 840 dp.
@@ -7756,7 +7901,7 @@ odlazi na kraj spiska u alatu.
    ako smeta.
    Potrebno: Windows; sačuvan tutorijal sa više delova.
 
-6. [ ] **Okretanje table u studiju stiže do učenika.** [121.4]
+7. [ ] **Okretanje table u studiju stiže do učenika.** [121.4]
    O čemu se radi: Kad trener okrene tablu na nekom delu i sačuva, isto
    okrenuta tabla se vidi i kroz „Preview tutorial” i kroz stvarno dodeljen
    zadatak kod učenika.
@@ -7769,7 +7914,7 @@ odlazi na kraj spiska u alatu.
    ostavio u studiju (okrenuta ka istoj strani).
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-7. [ ] **Promena takta dok je crtanje uključeno sad gasi crtanje.** [117.7]
+8. [ ] **Promena takta dok je crtanje uključeno sad gasi crtanje.** [117.7]
    O čemu se radi: Ranije je crtanje ostajalo uključeno kad bi trener promenio
    takt usred povlačenja strelice, pa bi sledeći klik na novoj poziciji
    nastavio da crta umesto da uradi ono što je izgledalo da će uraditi. Na
@@ -7786,7 +7931,7 @@ odlazi na kraj spiska u alatu.
    vlasnikovim zahtevom.
    Potrebno: Windows.
 
-8. [ ] **Pomeranje dela zadržava izabrani deo, redosled se pamti.** [112.1]
+9. [ ] **Pomeranje dela zadržava izabrani deo, redosled se pamti.** [112.1]
    O čemu se radi: Dugmad `Move up`/`Move down` u panelu „Tutorial contents”
    menjaju redosled delova; editor posle pomeranja i dalje prikazuje isti
    (pomereni) deo, ne suseda.
@@ -7799,7 +7944,7 @@ odlazi na kraj spiska u alatu.
    ponovnog otvaranja redosled je zapamćen.
    Potrebno: Windows.
 
-9. [ ] **Dodavanje dela ne briše napredak učenika na ostalim delovima.**
+10. [ ] **Dodavanje dela ne briše napredak učenika na ostalim delovima.**
    [112.3]
    O čemu se radi: Oznake napretka po delu su pisane tako da dodavanje novog
    dela ne pomeša postojeće odgovore učenika na ostalim delovima istog
@@ -7812,7 +7957,7 @@ odlazi na kraj spiska u alatu.
    netaknuti posle dodavanja i čuvanja novog dela.
    Potrebno: Windows; nalog trenera i učenika.
 
-10. [ ] **Strelice za pomeranje su ugašene na krajevima spiska.** [112.6]
+11. [ ] **Strelice za pomeranje su ugašene na krajevima spiska.** [112.6]
    O čemu se radi: `Move up` je onemogućeno na prvom delu, `Move down` na
    poslednjem — nema pokušaja da se izađe iz spiska.
    Gde: `Teach` → (kartica) `Tutorials` → (tutorijal sa bar tri dela) → (studio
@@ -7823,7 +7968,7 @@ odlazi na kraj spiska u alatu.
    `Move down` na poslednjem.
    Potrebno: Windows.
 
-11. [ ] **Pitanje sa ponuđenim odgovorima traži tačno jedan tačan pre slanja.**
+12. [ ] **Pitanje sa ponuđenim odgovorima traži tačno jedan tačan pre slanja.**
    [111.5]
    O čemu se radi: Kod pitanja tipa „Ask for answer from list” čuvanje se
    odbija pre slanja serveru ako nijedan ponuđen odgovor nije označen kao
@@ -7836,7 +7981,7 @@ odlazi na kraj spiska u alatu.
    čuvanje odbija odmah na ekranu, pre slanja na server.
    Potrebno: Windows.
 
-12. [ ] **Promena tipa u pitanje o potezu pita pre brisanja linije.** [110.1]
+13. [ ] **Promena tipa u pitanje o potezu pita pre brisanja linije.** [110.1]
    O čemu se radi: Ako deo već nosi odigranu liniju i trener mu promeni tip
    zadatka na „Ask for move on board”, studio prvo pita da li je trener siguran
    — jer bi dete inače videlo gotov odgovor u liniji.
@@ -7849,7 +7994,7 @@ odlazi na kraj spiska u alatu.
    padajući meni na stari tip (ne ostaje na novom).
    Potrebno: Windows.
 
-13. [ ] **„Remove line and ask question” zaista briše liniju.** [110.2]
+14. [ ] **„Remove line and ask question” zaista briše liniju.** [110.2]
    O čemu se radi: Potvrdom u prethodnom dijalogu linija se briše, deo postaje
    pitanje, a u pregledu za učenika se to i vidi (nema više trake poteza).
    Gde: `Teach` → (kartica) `Tutorials` → (otvori tutorijal čiji deo ima
@@ -7861,7 +8006,7 @@ odlazi na kraj spiska u alatu.
    odigranih poteza — samo pitanje.
    Potrebno: Windows.
 
-14. [ ] **Stari nedosledan korak se prijavi sam pri otvaranju.** [110.3]
+15. [ ] **Stari nedosledan korak se prijavi sam pri otvaranju.** [110.3]
    O čemu se radi: Ako neki već sačuvan deo istovremeno nosi i liniju i tip
    „traži potez na tabli” (stanje koje novo pravilo više ne dozvoljava da se
    napravi), studio to prijavljuje pri otvaranju i odbija čuvanje dok se ne
@@ -7876,7 +8021,7 @@ odlazi na kraj spiska u alatu.
    prolazi, a tačan potez ostaje zapisan kao odgovor.
    Potrebno: Windows.
 
-15. [ ] **Pitanje sa ponuđenim odgovorima sme da nosi liniju.** [110.4]
+16. [ ] **Pitanje sa ponuđenim odgovorima sme da nosi liniju.** [110.4]
    O čemu se radi: Pravilo o brisanju linije važi samo za „Ask for move on
    board”; „Ask for answer from list” nema taj problem (dete ne vidi liniju kao
    gotov odgovor), pa se ne pita ništa.
@@ -7888,7 +8033,7 @@ odlazi na kraj spiska u alatu.
    ostaje netaknuta.
    Potrebno: Windows.
 
-16. [ ] **Strelice na tastaturi šetaju liniju u studiju.** [109.7]
+17. [ ] **Strelice na tastaturi šetaju liniju u studiju.** [109.7]
    O čemu se radi: Kretanje kroz odigrane poteze tastaturom (levo/desno) radi u
    studiju isto kao u Analysis Studiju.
    Gde: `Teach` → (kartica) `Tutorials` → (otvori tutorijal) → (studio za
@@ -7899,7 +8044,7 @@ odlazi na kraj spiska u alatu.
    pritisak, isto kao dugmad ispod table.
    Potrebno: Windows.
 
-17. [ ] **Rečenica, vrsta koraka i odgovor rade nezavisno.** [108.19]
+18. [ ] **Rečenica, vrsta koraka i odgovor rade nezavisno.** [108.19]
    O čemu se radi: Tri polja koraka — komentar/rečenica, tip zadatka (padajući
    meni „Task type”) i tačan odgovor — se popunjavaju odvojeno; tačan potez na
    pitanju o potezu se odigra na tabli, ne kuca u polje.
@@ -7910,7 +8055,7 @@ odlazi na kraj spiska u alatu.
    isključivo igranjem na tabli, ne kucanjem teksta.
    Potrebno: Windows.
 
-18. [ ] **Server odbija čuvanje bez rešenja i imenuje pravilo.** [108.20]
+19. [ ] **Server odbija čuvanje bez rešenja i imenuje pravilo.** [108.20]
    O čemu se radi: Kad korak tipa „Ask for move on board” nema rešenje, ili
    korak tipa „Ask for answer from list” ima dva označena tačna odgovora,
    server odbija čuvanje i imenuje tačno koje je pravilo prekršeno.
@@ -7923,7 +8068,7 @@ odlazi na kraj spiska u alatu.
    „Čuvanje nije uspelo”.
    Potrebno: Windows.
 
-19. [ ] **Izmena i čuvanje ne gube postojeće korake.** [108.21]
+20. [ ] **Izmena i čuvanje ne gube postojeće korake.** [108.21]
    O čemu se radi: Menjanje teksta jednog koraka i čuvanje ne sme da izbriše
    ili pomeša ostale korake; preimenovanje jedne sačuvane pozicije van
    tutorijala (popravka iz 7a) ne sme da dirne tutorijal koji je koristi.
@@ -7936,7 +8081,7 @@ odlazi na kraj spiska u alatu.
    otvaranja. Preimenovanje pozicije u Biblioteci ne menja ništa u tutorijalu.
    Potrebno: Windows.
 
-20. [ ] **Rečenica o početnoj poziciji stiže do đaka na potezu 0.** [108.26]
+21. [ ] **Rečenica o početnoj poziciji stiže do đaka na potezu 0.** [108.26]
    O čemu se radi: Komentar napisan na samoj početnoj poziciji dela (pre
    ijednog poteza) se kod učenika vidi odmah; korak napred ga zameni komentarom
    prvog poteza, korak nazad ga vrati.
@@ -7948,7 +8093,7 @@ odlazi na kraj spiska u alatu.
    komentarom prvog poteza (ako postoji); korak nazad ga vrati.
    Potrebno: Windows.
 
-21. [ ] **Brisanje dela pita i imenuje ga.** [112.4]
+22. [ ] **Brisanje dela pita i imenuje ga.** [112.4]
    O čemu se radi: `Delete part` pita pre brisanja i u pitanju imenuje baš taj
    deo; `Cancel` ga ostavlja netaknutog.
    Gde: `Teach` → (kartica) `Tutorials` → (tutorijal sa bar dva dela) → (studio
@@ -7959,7 +8104,7 @@ odlazi na kraj spiska u alatu.
    ostavlja netaknutog; potvrda ga briše, a ostali delovi ostaju netaknuti.
    Potrebno: Windows.
 
-22. [ ] **Poslednji deo se ne može obrisati.** [112.5]
+23. [ ] **Poslednji deo se ne može obrisati.** [112.5]
    O čemu se radi: Tutorijal mora imati bar jedan deo — na tutorijalu sa samo
    jednim delom `Delete part` odbija brisanje umesto da pita.
    Gde: `Teach` → (kartica) `Tutorials` → (tutorijal sa tačno jednim delom) →
@@ -7969,7 +8114,7 @@ odlazi na kraj spiska u alatu.
    nema pitanja za potvrdu, ništa se ne briše.
    Potrebno: Windows.
 
-23. [ ] **U videu: rečenica, crtež i okrenuta tabla.** [133.5]
+24. [ ] **U videu: rečenica, crtež i okrenuta tabla.** [133.5]
    O čemu se radi: Prvi objavljeni tutorijal (12.9.2026) je dokazao skoro sve
    iz ove stavke osim jednog dela — nije imao deo pisan sa crne strane, pa
    okrenuta tabla u videu nije viđena.
@@ -7983,7 +8128,7 @@ odlazi na kraj spiska u alatu.
    prikazan okrenuto.
    Potrebno: Windows; DeepSeek ključ na serveru.
 
-24. [ ] **Traka napretka ide u koracima od 10%.** [133.11]
+25. [ ] **Traka napretka ide u koracima od 10%.** [133.11]
    O čemu se radi: Procena preostalog vremena pored procenta pada kako render
    odmiče i na kraju kaže da je posao skoro gotov umesto da broji do nule na
    poslednjih par sekundi.
@@ -7995,7 +8140,7 @@ odlazi na kraj spiska u alatu.
    umesto brojanja do nule piše „... almost done”.
    Potrebno: Windows; DeepSeek ključ na serveru.
 
-25. [ ] **Server ostaje odgovoran dok traje izvoz videa.** [133.14]
+26. [ ] **Server ostaje odgovoran dok traje izvoz videa.** [133.14]
    O čemu se radi: Renderovanje videa ne sme da blokira ostatak servera —
    spisak tutorijala, zadaci i ostali pozivi rade normalno dok traje izvoz.
    Gde: `Teach` → (kartica) `Tutorials` → (tutorijal) → `Export video` →
@@ -8006,7 +8151,7 @@ odlazi na kraj spiska u alatu.
    ništa se ne zaglavljuje niti čeka da render završi.
    Potrebno: Windows; DeepSeek ključ na serveru.
 
-26. [ ] **Video bez glasa to i kaže u dijalogu „Video ready!”** [133.15]
+27. [ ] **Video bez glasa to i kaže u dijalogu „Video ready!”** [133.15]
    O čemu se radi: Kad je glas tražen ali nije stigao (npr. glasovni sistem
    nije instaliran na serveru), dijalog o gotovom videu nosi dodatnu rečenicu
    koja to objašnjava.
@@ -8019,7 +8164,7 @@ odlazi na kraj spiska u alatu.
    installed.”), umesto da izgleda kao svaki drugi uspešan izvoz.
    Potrebno: Windows; DeepSeek ključ na serveru.
 
-27. [ ] **Dva istovremena renderovanja dobiju dva fajla.** [133.16]
+28. [ ] **Dva istovremena renderovanja dobiju dva fajla.** [133.16]
    O čemu se radi: Dva izvoza u isto vreme (dva naloga, ili dva puta isti
    tutorijal) više ne dele ime fajla. Onaj koji čeka red vidi poruku o čekanju,
    pa pređe na traku sa procentima kad dođe na red.
@@ -8033,7 +8178,7 @@ odlazi na kraj spiska u alatu.
    kad dođe na red.
    Potrebno: Windows; DeepSeek ključ na serveru.
 
-28. [ ] **Potezi u naraciji se izgovaraju kao reči, ne slovkaju se.** [133.17]
+29. [ ] **Potezi u naraciji se izgovaraju kao reči, ne slovkaju se.** [133.17]
    O čemu se radi: Sintetizovani glas čita algebarsku notaciju kao govor (npr.
    „bishop d five” na engleskom), ne slovo po slovo; natpis na ekranu ostaje
    nepromenjen (npr. „Bd5”) — menja se samo ono što se izgovara.
@@ -8047,7 +8192,7 @@ odlazi na kraj spiska u alatu.
    nepromenjen.
    Potrebno: Windows; DeepSeek ključ na serveru.
 
-29. [ ] **Korak napravljen usred linije nosi svoje poteze i komentare.**
+30. [ ] **Korak napravljen usred linije nosi svoje poteze i komentare.**
    [108.24]
    O čemu se radi: „Find the move”/„Choose the answer” pritisnuto usred
    odigrane linije (sa komentarom uz svaki potez) razdvaja deo na tri: prikaz
@@ -8062,7 +8207,7 @@ odlazi na kraj spiska u alatu.
    nepomična slika.
    Potrebno: Windows.
 
-30. [ ] **`Make questions` seče partiju oko svake greške u pitanje.** [158.6]
+31. [ ] **`Make questions` seče partiju oko svake greške u pitanje.** [158.6]
    O čemu se radi: Rečenica pitanja ne sme da tvrdi da je odgovor jedini mogući
    potez.
    Gde: `Teach` → `Tutorials` → `Import from a file`.
@@ -8072,7 +8217,7 @@ odlazi na kraj spiska u alatu.
    potez.
    Potrebno: Windows; PGN fajl sa oznakama grešaka.
 
-31. [ ] **Odgovor pitanja je engine-ov potez, ne odigrani.** [158.7]
+32. [ ] **Odgovor pitanja je engine-ov potez, ne odigrani.** [158.7]
    O čemu se radi: Iz istog uvoza kao 158.6.
    Gde: `Teach` → `Tutorials` → `Import from a file`.
    Uradi: Proveri odgovor pitanja koje je nastalo od odigrane greške.
@@ -8080,7 +8225,7 @@ odlazi na kraj spiska u alatu.
    je stvarno odigran u partiji.
    Potrebno: Windows; PGN fajl sa oznakama grešaka.
 
-32. [ ] **Ocene poteza (?? i !) prežive prvo čuvanje uvezene partije.** [158.8]
+33. [ ] **Ocene poteza (?? i !) prežive prvo čuvanje uvezene partije.** [158.8]
    O čemu se radi: Do 12.9.2026 su se ocene gubile pri prvom snimanju posle
    uvoza.
    Gde: `Teach` → `Tutorials` → `Import from a file`.
@@ -8089,7 +8234,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Oznake ?? i ! i dalje stoje na istim potezima.
    Potrebno: Windows; PGN fajl; uvezene partije.
 
-33. [ ] **Novi deo se dodaje odmah ispod izabranog, prazan.** [112.2]
+34. [ ] **Novi deo se dodaje odmah ispod izabranog, prazan.** [112.2]
    O čemu se radi: „New demonstration” dodaje nov, prazan deo tačno ispod dela
    na kom trener stoji (bez pitanja i bez rešenja).
    Gde: `Teach` → (kartica) `Tutorials` → (tutorijal) → (studio za tutorijal) →
@@ -8100,7 +8245,7 @@ odlazi na kraj spiska u alatu.
    pitanja/rešenja). Posle ponovnog otvaranja i dalje je tu, pod tim nazivom.
    Potrebno: Windows.
 
-34. [ ] **Prazan tutorijal odbija izvoz videa bez slanja serveru.** [133.2]
+35. [ ] **Prazan tutorijal odbija izvoz videa bez slanja serveru.** [133.2]
    O čemu se radi: Izvoz videa na tutorijalu koji nema šta da pokaže se odbija
    odmah na ekranu, bez ijednog zahteva serveru.
    Gde: `Teach` → (kartica) `Tutorials` → `New tutorial` (bez ijednog dela sa
@@ -8110,7 +8255,7 @@ odlazi na kraj spiska u alatu.
    ništa se ne šalje serveru (nema trake napretka niti zahteva).
    Potrebno: Windows.
 
-35. [ ] **Pisanje dva primera u jednom dahu, bez gubljenja pozicije.** [111.1]
+36. [ ] **Pisanje dva primera u jednom dahu, bez gubljenja pozicije.** [111.1]
    O čemu se radi: Trener može da napiše ceo kratak tutorijal u jednom sedenju:
    ime, linija sa komentarom uz svaki potez za prvi primer, pa novi deo za
    drugi primer sa svojim tipom zadatka.
@@ -8124,7 +8269,7 @@ odlazi na kraj spiska u alatu.
    drugog dela.
    Potrebno: Windows.
 
-36. [ ] **Ništa ne ide na server pre „Save tutorial”** [111.2]
+37. [ ] **Ništa ne ide na server pre „Save tutorial”** [111.2]
    O čemu se radi: Tutorijal se ne pojavljuje u biblioteci dok se eksplicitno
    ne pritisne dugme za čuvanje — rad u nacrtu ostaje lokalan.
    Gde: `Teach` → (kartica) `Tutorials` → `New tutorial`.
@@ -8135,7 +8280,7 @@ odlazi na kraj spiska u alatu.
    `Save tutorial` u studiju.
    Potrebno: Windows.
 
-37. [ ] **Ime tutorijala preživi zatvaranje prozora.** [111.4]
+38. [ ] **Ime tutorijala preživi zatvaranje prozora.** [111.4]
    O čemu se radi: Popravka vođe pri spajanju — ime je bilo jedino polje koje
    se nije vraćalo iz nesačuvanog nacrta; sada se vraća kao i sve ostalo.
    Gde: `Teach` → (kartica) `Tutorials` → `New tutorial`.
@@ -8144,7 +8289,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: I ime tutorijala i primeri su tu, netaknuti.
    Potrebno: Windows.
 
-38. [ ] **Nesačuvan nacrt tutorijala preživi zatvaranje prozora.** [109.6]
+39. [ ] **Nesačuvan nacrt tutorijala preživi zatvaranje prozora.** [109.6]
    O čemu se radi: Studio čuva nesačuvan rad u nacrtu (draft) dok se piše. Ako
    se prozor zatvori pre eksplicitnog čuvanja, sledeće otvaranje studija nudi
    da se taj nacrt nastavi.
@@ -8158,7 +8303,7 @@ odlazi na kraj spiska u alatu.
    potezu na kom si stao i svi odigrani potezi su tu.
    Potrebno: Windows.
 
-39. [ ] **Tekst bez svog [FEN]-a pita kad ima šta da ponudi.** [128.1]
+40. [ ] **Tekst bez svog [FEN]-a pita kad ima šta da ponudi.** [128.1]
    O čemu se radi: Kad nalepljeni tekst nema `[FEN]` zaglavlje i ne igra se sa
    pozicije dela, ali se uredno igra od početne pozicije partije, studio pita
    da li da deo prebaci na početnu poziciju.
@@ -8169,7 +8314,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Pojavi se dijalog „Text does not start from here”.
    Potrebno: Windows.
 
-40. [ ] **„Use starting position” odigra celu liniju.** [128.2]
+41. [ ] **„Use starting position” odigra celu liniju.** [128.2]
    O čemu se radi: Izbor da se koristi početna pozicija menja deo tako da mu
    tabla postane početna pozicija partije, a nalepljena linija se cela odigra.
    Gde: `Teach` → (kartica) `Tutorials` → (deo koji stoji na nekoj završnici) →
@@ -8179,7 +8324,7 @@ odlazi na kraj spiska u alatu.
    linija se odigra u „Flow”/tabli.
    Potrebno: Windows.
 
-41. [ ] **„Keep existing” odbije tekst uz poruku.** [128.3]
+42. [ ] **„Keep existing” odbije tekst uz poruku.** [128.3]
    O čemu se radi: Ako trener zadrži postojeću poziciju dela, tekst se odbija
    uz poruku koja kaže da tekst nema svoju polaznu poziciju (`[FEN]`) —
    rečenica koja je ranije nedostajala.
@@ -8190,7 +8335,7 @@ odlazi na kraj spiska u alatu.
    poziciju (nema `[FEN]`), pored broja poteza koji ne mogu da se odigraju.
    Potrebno: Windows.
 
-42. [ ] **„Cancel” ne menja ništa i ne javlja grešku.** [128.4]
+43. [ ] **„Cancel” ne menja ništa i ne javlja grešku.** [128.4]
    O čemu se radi: Otkazivanje dijaloga ostavlja tekst u polju netaknut, bez
    ikakve poruke o grešci.
    Gde: `Teach` → (kartica) `Tutorials` → (deo koji stoji na nekoj završnici) →
@@ -8200,7 +8345,7 @@ odlazi na kraj spiska u alatu.
    tekst je i dalje u polju, i ne pojavljuje se nikakva poruka o grešci.
    Potrebno: Windows.
 
-43. [ ] **Tekst koji ne ide nigde i dalje kaže isto.** [128.5]
+44. [ ] **Tekst koji ne ide nigde i dalje kaže isto.** [128.5]
    O čemu se radi: Kad nalepljen tekst bez `[FEN]`-a ne igra se ni sa pozicije
    dela ni sa početne pozicije partije, nema pitanja (nema šta da se ponudi),
    ali poruka o odbijanju i dalje kaže da tekst nema svoju polaznu poziciju.
@@ -8212,7 +8357,7 @@ odlazi na kraj spiska u alatu.
    odbijanju, koja i dalje kaže da tekst nema svoju polaznu poziciju.
    Potrebno: Windows.
 
-44. [ ] **Fragment koji se uredno igra odavde se primenjuje bez pitanja.**
+45. [ ] **Fragment koji se uredno igra odavde se primenjuje bez pitanja.**
    [128.6]
    O čemu se radi: Kad nalepljen tekst bez `[FEN]`-a jednostavno nastavlja
    liniju sa pozicije na kojoj deo već stoji (npr. dopisan potez na kraj), ne
@@ -8225,7 +8370,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Tekst se primeni odmah, bez ijednog pitanja.
    Potrebno: Windows.
 
-45. [ ] **Primena PGN teksta drži fokus na poslednjem unetom potezu.** [121.1]
+46. [ ] **Primena PGN teksta drži fokus na poslednjem unetom potezu.** [121.1]
    O čemu se radi: Dve popravke u jednom: zvezdica zalepljena za poslednji
    potez (bez razmaka, npr. „...Nxb4*”) više ne kvari čitanje inače legalne
    linije, i posle `Apply` fokus (tekući takt u „Flow”/tabla) ostaje na
@@ -8239,7 +8384,7 @@ odlazi na kraj spiska u alatu.
    vraća se na početak linije.
    Potrebno: Windows.
 
-46. [ ] **Odbijanje nemoguće linije imenuje broj poteza.** [120.5]
+47. [ ] **Odbijanje nemoguće linije imenuje broj poteza.** [120.5]
    O čemu se radi: Kad tekst u tabu „PGN” sadrži potez koji se stvarno ne može
    odigrati sa te pozicije, „Apply” odbija tekst i kaže koliko poteza ne može
    da se odigra, a deo ostaje nepromenjen. Vlasnikova prijava da se ovo
@@ -8255,7 +8400,7 @@ odlazi na kraj spiska u alatu.
    nepromenjeni.
    Potrebno: Windows.
 
-47. [ ] **Prava anotirana partija (komentari, strelice, varijante) preživi
+48. [ ] **Prava anotirana partija (komentari, strelice, varijante) preživi
    nalepljivanje.** [120.6]
    O čemu se radi: Ova provera nije rađena jer vlasnik nije imao pri ruci
    anotiranu partiju sa `[%cal]`/`[%csl]` oznakama — sad je potrebno naći jednu
@@ -8270,7 +8415,7 @@ odlazi na kraj spiska u alatu.
    vide i u „Flow”/tabli i u pregledu za učenika — ništa od toga se ne gubi.
    Potrebno: Windows; PGN fajl.
 
-48. [ ] **Nalepljena partija iz druge pozicije pita šta uraditi.** [120.14]
+49. [ ] **Nalepljena partija iz druge pozicije pita šta uraditi.** [120.14]
    O čemu se radi: Kad nalepljeni PGN nosi svoj `[FEN]` različit od pozicije na
    kojoj deo stoji, studio pita pre nego što bilo šta primeni, sa tri izbora.
    Gde: `Teach` → (kartica) `Tutorials` → (tutorijal) → (studio za tutorijal) →
@@ -8284,7 +8429,7 @@ odlazi na kraj spiska u alatu.
    odigraju; `Cancel` ne menja ništa i ne javlja grešku.
    Potrebno: Windows.
 
-49. [ ] **Isti položaj sa drugim brojačima ne pokreće pitanje.** [120.15]
+50. [ ] **Isti položaj sa drugim brojačima ne pokreće pitanje.** [120.15]
    O čemu se radi: Poređenje pozicije pri lepljenju PGN-a namerno izostavlja
    brojače poteza/poluportova (satove) — deo na koji si stigao igranjem i deo
    napisan iz iste pozicije se smatraju istom tablom.
@@ -8296,7 +8441,7 @@ odlazi na kraj spiska u alatu.
    po sadržaju poteza), pošto se brojači ne računaju kao razlika u poziciji.
    Potrebno: Windows.
 
-50. [ ] **Studio za tutorijal ima samo dve kartice za postavljanje pozicije.**
+51. [ ] **Studio za tutorijal ima samo dve kartice za postavljanje pozicije.**
    [130.2]
    O čemu se radi: Studio namerno ne prosleđuje uvoz PGN-a u ovaj dijalog (uvoz
    linije je posao Analysis Studija), pa se tu vide samo kartice `FEN` i
@@ -8308,7 +8453,7 @@ odlazi na kraj spiska u alatu.
    kartica `PGN`, `Openings` ni `Online`.
    Potrebno: Windows.
 
-51. [ ] **„Preview tutorial” pokazuje đački ekran i ništa ne šalje.** [108.22]
+52. [ ] **„Preview tutorial” pokazuje đački ekran i ništa ne šalje.** [108.22]
    O čemu se radi: Pregled radi lokalno — odgovor se ne šalje serveru, ne
    upisuje pokušaj i ne pokazuje pravu ocenu, nego samo poruku da je ovo
    pregled.
@@ -8321,7 +8466,7 @@ odlazi na kraj spiska u alatu.
    your connection.” ni prava ocena „Correct.”
    Potrebno: Windows.
 
-52. [ ] **Izvoz u PGN kaže na koliko se partija tutorijal deli.** [159.1]
+53. [ ] **Izvoz u PGN kaže na koliko se partija tutorijal deli.** [159.1]
    O čemu se radi: Dijalog „Save as .pgn“ pre upisa fajla kaže da li se delovi
    tutorijala nadovezuju u jednu partiju ili razdvajaju u više njih.
    Gde: `Teach` → `Tutorials` (kartica) → `Saved tutorials` → izaberi tutorijal
@@ -8334,7 +8479,7 @@ odlazi na kraj spiska u alatu.
    partija većim od 1.
    Potrebno: Windows.
 
-53. [ ] **Dijalog kaže šta PGN ne nosi.** [159.2]
+54. [ ] **Dijalog kaže šta PGN ne nosi.** [159.2]
    O čemu se radi: Isti dijalog objašnjava da pitanje dela, odgovor, prihvaćeni
    potezi, strana table, naslov, oznake i jezik ostaju samo u sačuvanom
    tutorijalu — PGN ih ne nosi.
@@ -8347,7 +8492,7 @@ odlazi na kraj spiska u alatu.
    naslov/oznake/jezik tutorijala ostaju iza — sačuvani tutorijal ih čuva sve.
    Potrebno: Windows.
 
-54. [ ] **Ime izvezenog fajla je naslov tutorijala.** [159.3]
+55. [ ] **Ime izvezenog fajla je naslov tutorijala.** [159.3]
    O čemu se radi: Fajl se imenuje po naslovu tutorijala (razmaci postaju
    crtice); tutorijal bez naslova dobija ime po datumu.
    Gde: `Teach` → `Tutorials` (kartica) → `Saved tutorials` → izaberi tutorijal
@@ -8359,7 +8504,7 @@ odlazi na kraj spiska u alatu.
    `tutorial-GGGG-MM-DD.pgn` sa današnjim datumom.
    Potrebno: Windows; PGN fajl.
 
-55. [ ] **Fajl ima onoliko partija koliko je dijalog najavio.** [159.4]
+56. [ ] **Fajl ima onoliko partija koliko je dijalog najavio.** [159.4]
    O čemu se radi: Kada se tutorijal razdvaja u više partija, fajl ih upisuje
    razdvojene praznim redom, svaka sa svojim zaglavljem; druga i svaka sledeća
    partija koja ne počinje od početne pozicije nosi `[SetUp "1"]` i `[FEN]`.
@@ -8372,7 +8517,7 @@ odlazi na kraj spiska u alatu.
    počinju od početne pozicije imaju `[SetUp "1"]` i `[FEN ...]` red.
    Potrebno: Windows; PGN fajl.
 
-56. [ ] **Pitanje dela se u PGN-u vidi kao komentar pre poteza.** [159.5]
+57. [ ] **Pitanje dela se u PGN-u vidi kao komentar pre poteza.** [159.5]
    O čemu se radi: Tekst pitanja („ask_move“ dela) se upisuje kao PGN komentar
    na poziciji pre poteza o kome pita, pošto sâmo pitanje (kao interakcija) PGN
    ne nosi.
@@ -8384,7 +8529,7 @@ odlazi na kraj spiska u alatu.
    neposredno pre poteza o kome pita, ne posle.
    Potrebno: Windows; PGN fajl.
 
-57. [ ] **Strelica na preseku pitanja se ne duplira u PGN-u.** [159.6]
+58. [ ] **Strelica na preseku pitanja se ne duplira u PGN-u.** [159.6]
    O čemu se radi: Kad je tutorijal sečen na mestu gde je nacrtana strelica, ta
    strelica ranije se mogla upisati dvaput (jednom za svaki susedni deo) —
    proverava se da PGN nosi samo jedan `[%cal]` za nju.
@@ -8396,7 +8541,7 @@ odlazi na kraj spiska u alatu.
    dva.
    Potrebno: Windows; PGN fajl.
 
-58. [ ] **Izvezeni PGN se čita nazad bez primedbi.** [159.7]
+59. [ ] **Izvezeni PGN se čita nazad bez primedbi.** [159.7]
    O čemu se radi: Put napolje i nazad: fajl izvezen iz tutorijala mora da se
    pročita natrag kroz uvoznik bez ijedne primedbe o pokvarenom potezu.
    Gde: `Teach` → `Tutorials` (kartica) → `Saved tutorials` → izaberi tutorijal
@@ -8408,7 +8553,7 @@ odlazi na kraj spiska u alatu.
    zeleni, nema upozorenja o odbačenom potezu).
    Potrebno: Windows; PGN fajl.
 
-59. [ ] **Izvoz uzima ono što je na ekranu, ne poslednje sačuvano.** [159.8]
+60. [ ] **Izvoz uzima ono što je na ekranu, ne poslednje sačuvano.** [159.8]
    O čemu se radi: `Save as .pgn` izvozi trenutni nacrt (uključujući nesačuvane
    izmene), ne poslednju sačuvanu verziju tutorijala.
    Gde: `Teach` → `Tutorials` (kartica) → `Saved tutorials` → izaberi tutorijal
@@ -8418,7 +8563,7 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Nova, nesačuvana rečenica se nalazi u izvezenom fajlu.
    Potrebno: Windows.
 
-60. [ ] **Cancel ne radi ništa; uspešan izvoz javlja putanju.** [159.9]
+61. [ ] **Cancel ne radi ništa; uspešan izvoz javlja putanju.** [159.9]
    O čemu se radi: U dijalogu za izvoz, `Cancel` zatvara dijalog bez upisa;
    posle uspešnog snimanja dijalog se zatvara sam i javlja se poruka sa
    putanjom fajla.
@@ -8431,7 +8576,7 @@ odlazi na kraj spiska u alatu.
    (putanja fajla).
    Potrebno: Windows.
 
-61. [ ] **Traka studija ne seče dugmad na uskom prozoru.** [159.10]
+62. [ ] **Traka studija ne seče dugmad na uskom prozoru.** [159.10]
    O čemu se radi: Dugme `Save as .pgn` je sedmo od devet kontrola u gornjoj
    traci studija (Undo, Redo, Discard changes, Position setup, Record
    narration, Export video, Save as .pgn, Preview tutorial, Save tutorial).
@@ -8446,7 +8591,7 @@ odlazi na kraj spiska u alatu.
    Stud…“ (tri tačkice), a sva dugmad ostaju vidljiva i klikabilna.
    Potrebno: Windows.
 
-62. [ ] **Obrisan deo se vraća sa Undo, i ostaje posle čuvanja.** [151.1]
+63. [ ] **Obrisan deo se vraća sa Undo, i ostaje posle čuvanja.** [151.1]
    O čemu se radi: Vlasnikov odgovor 'ok' je pratila napomena da je navikao da
    čuvanje resetuje Undo/Redo (da se ne može vratiti dok se ne naprave nove
    izmene) — to trenutno nije tako: `Save tutorial` ne prazni istoriju izmena,
@@ -8463,7 +8608,7 @@ odlazi na kraj spiska u alatu.
    odgovara očekivanju, to je zasebna odluka o ponašanju, ne kvar ove provere.
    Potrebno: Windows i telefon; sačuvan tutorijal sa bar dva dela.
 
-63. [ ] **`Discard changes` vraća potez; `Save tutorial` treba da bude sivo
+64. [ ] **`Discard changes` vraća potez; `Save tutorial` treba da bude sivo
    posle čuvanja.** [151.6]
    O čemu se radi: Poznat problem, nije popravljen: Dugme `Save tutorial` nema
    uslov onPressed — nikad nije sivo/onemogućeno, ni kad nema izmena za
@@ -8478,7 +8623,7 @@ odlazi na kraj spiska u alatu.
    suprotno onome što se očekuje da se vidi.
    Potrebno: Windows i telefon; sačuvan tutorijal.
 
-64. [ ] **`Preview tutorial` je reč na širokom prozoru, ikonica na uskom; nove
+65. [ ] **`Preview tutorial` je reč na širokom prozoru, ikonica na uskom; nove
    ikonice se vide.** [151.10]
    O čemu se radi: Provera da se nove ikonice (Redo, Discard changes) zaista
    vide, ne kao prazan kvadrat (CLAUDE.md, 'stale icon font').
@@ -8494,7 +8639,7 @@ odlazi na kraj spiska u alatu.
    ponovo release verziju.
    Potrebno: Windows i telefon; sačuvan tutorijal; release build.
 
-65. [ ] **Izmena rečenice odmah pokazuje traku o zastarelom snimku.** [140.1]
+66. [ ] **Izmena rečenice odmah pokazuje traku o zastarelom snimku.** [140.1]
    O čemu se radi: Marker imenuje takt po redu; prepravljena rečenica (bez
    promene broja taktova) menja glas na pogrešnom mestu, pa potpis liste
    taktova mora to da uhvati. Pretpostavlja stavke 138 i 139. Snimanje glasa
@@ -8511,7 +8656,7 @@ odlazi na kraj spiska u alatu.
    `Record again` i `Export without your voice`.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-66. [ ] **Strelica i krug na tabli ne obaraju snimak.** [140.6]
+67. [ ] **Strelica i krug na tabli ne obaraju snimak.** [140.6]
    O čemu se radi: Pretpostavlja stavke 138 i 139. Snimanje glasa preko
    tutorijala je pisano kao Windows-only (studio tada nije postojao na
    telefonu); otkad studio ima raspored za uzak ekran, `Record narration` je i
@@ -8523,7 +8668,7 @@ odlazi na kraj spiska u alatu.
    nudi `My recording …`.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-67. [ ] **Snimak napravljen pre potpisa se i dalje sudi po broju taktova.**
+68. [ ] **Snimak napravljen pre potpisa se i dalje sudi po broju taktova.**
    [140.7]
    O čemu se radi: Snimak bez potpisa liste taktova (napravljen pre ove faze)
    ne sme da bude odbijen na pravom tutorijalu — sudi se po starom pravilu
@@ -8536,7 +8681,7 @@ odlazi na kraj spiska u alatu.
    što nema potpis, dok broj taktova odgovara.
    Potrebno: Windows i telefon; sačuvan tutorijal; stariji snimak bez potpisa.
 
-68. [ ] **Preimenovanje ne obara snimak.** [140.5]
+69. [ ] **Preimenovanje ne obara snimak.** [140.5]
    O čemu se radi: Pola faze — sat vremena snimanja ne sme da propadne zbog
    naslova. Pretpostavlja stavke 138 i 139. Snimanje glasa preko tutorijala je
    pisano kao Windows-only (studio tada nije postojao na telefonu); otkad
@@ -8549,7 +8694,7 @@ odlazi na kraj spiska u alatu.
    izmene; `Export video` i dalje nudi `My recording …`.
    Potrebno: Windows i telefon; sačuvan tutorijal sa snimkom.
 
-69. [ ] **Telefon položeno: tabla levo celom visinom, tabovi desno.** [179.7]
+70. [ ] **Telefon položeno: tabla levo celom visinom, tabovi desno.** [179.7]
    O čemu se radi: Isti raspored kao ostali ekrani u položenom telefonu — tabla
    zauzima levu stranu celom visinom.
    Gde: Teach → kartica `Tutorials` → otvori tutorijal, telefon položeno.
@@ -8558,7 +8703,7 @@ odlazi na kraj spiska u alatu.
    `Line`/`Task`/`Parts` su desno.
    Potrebno: telefon; telefon položeno.
 
-70. [ ] **Tutorijal sačuvan na telefonu se identično otvara na Windows-u.**
+71. [ ] **Tutorijal sačuvan na telefonu se identično otvara na Windows-u.**
    [179.8]
    O čemu se radi: Studio je od faze 6c isti kontroler na oba uređaja; sadržaj
    (delovi, komentari, pitanje) mora da bude potpuno isti bez obzira gde je
@@ -8570,7 +8715,7 @@ odlazi na kraj spiska u alatu.
    uređaja.
    Potrebno: Windows i telefon.
 
-71. [ ] **Meni „More“ u studiju na telefonu sadrži sve radnje editora.**
+72. [ ] **Meni „More“ u studiju na telefonu sadrži sve radnje editora.**
    [179.6]
    O čemu se radi: Posle faze 6a-6c je meni prelivanja dobio i „Details…“
    (naslov/oznake/jezik) i, kasnije, dve radnje za pomeranje delova između
@@ -8583,7 +8728,7 @@ odlazi na kraj spiska u alatu.
    `Position setup`.
    Potrebno: telefon.
 
-72. [ ] **Telefon portret: studio ima red poteza ispod table.** [179.2]
+73. [ ] **Telefon portret: studio ima red poteza ispod table.** [179.2]
    O čemu se radi: Prijavljeno uživo 18.9.2026 da nema trake poteza na telefonu
    (raspored namerno nema Flow/Tree/PGN table). Isto veče je dodat vodoravan
    red odigranih poteza ispod table, sa istim izvorom koji Windows koristi za
@@ -8597,7 +8742,28 @@ odlazi na kraj spiska u alatu.
 
 ### Teach — Domaći i napredak učenika
 
-1. [ ] **Klik na sredinu reda odigrane partije otvara pregled, ne Analizu.**
+1. [ ] **`Send a video` na stranici učenika.** [246.7]
+   O čemu se radi: Nekadašnje „Assign tutorial" šalje video; tutorijal bez
+   videa se vidi, ali ne može da se izabere.
+   Gde: `Teach` → učenici → učenik → `Send a video`.
+   Uradi: Otvori prozor i pogledaj spisak.
+   Treba da vidiš: Tutorijal sa videom — „… · video ready"; bez videa — sivo,
+   `No video yet — export it first`; pojedinačne pozicije se ne nude.
+   `Send` šalje izabrani.
+   Potrebno: jedan tutorijal sa videom i jedan bez; prihvaćen učenik.
+
+2. [ ] **Trener vidi kad je video skinut.** [246.8]
+   O čemu se radi: Skidanje je jedino što se o videu zna; trener dobija
+   obaveštenje, a video sam ne čeka u njegovom redu za pregled (D3, D4).
+   Gde: obaveštenja; `Teach` → učenici → učenik → zadatak sa videom → pregled.
+   Uradi: Posle [246.1] pogledaj obaveštenja i pregled tog zadatka.
+   Treba da vidiš: Obaveštenje „Ana downloaded the video: …" (ime učenika);
+   u pregledu „Downloaded on …" (ili `Not downloaded yet.` pre skidanja) i
+   nikakvu tablu ni ocenu; broj zadataka koji čekaju pregled se zbog videa ne
+   povećava.
+   Potrebno: [246.1] urađeno.
+
+3. [ ] **Klik na sredinu reda odigrane partije otvara pregled, ne Analizu.**
    [190.3]
    O čemu se radi: U pregledu domaćeg, red sa odigranom „Play it out“ partijom
    ima svoj pregled (presuda, tabla na kraju); klik na sredinu reda ne sme da
@@ -8609,7 +8775,7 @@ odlazi na kraj spiska u alatu.
    ne Analiza i ne tabla za igru.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-2. [ ] **Pregled odigrane partije pokazuje zadatak, poteze i dve table.**
+4. [ ] **Pregled odigrane partije pokazuje zadatak, poteze i dve table.**
    [190.4]
    O čemu se radi: Faza 9 je definisala šta trener vidi od odigrane partije:
    zadatak rečima, presudu, odigrane poteze i dve table okrenute na učenikovu
@@ -8622,7 +8788,7 @@ odlazi na kraj spiska u alatu.
    piše „board not available“, „viewed“ ni „correct 0“.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-3. [ ] **„Draw or better“ sa punom tablom objašnjava ograničenje ocene.**
+5. [ ] **„Draw or better“ sa punom tablom objašnjava ograničenje ocene.**
    [190.5]
    O čemu se radi: Kad ima više od sedam figura, tablebase se ne pita —
    proverava se samo da učenik nije matiran, a konačnu ocenu daje trener;
@@ -8635,7 +8801,7 @@ odlazi na kraj spiska u alatu.
    nije matiran i da je na treneru da oceni poziciju.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-4. [ ] **Pregled odigrane partije se ne seče na telefonu.** [190.7]
+6. [ ] **Pregled odigrane partije se ne seče na telefonu.** [190.7]
    O čemu se radi: Dve table i tekst pregleda moraju da stanu na ekran telefona
    i uspravno i položeno, bez odsecanja.
    Gde: Teach → `Homework` → red domaćeg → stavka odigrane partije → pregled.
@@ -8645,7 +8811,7 @@ odlazi na kraj spiska u alatu.
    jednoj orijentaciji.
    Potrebno: telefon; nalog trenera i učenika; telefon položeno.
 
-5. [ ] **Editor domaćeg nema prekidač „mora rešeno“** [185.9]
+7. [ ] **Editor domaćeg nema prekidač „mora rešeno“** [185.9]
    O čemu se radi: Prekidač „Solved“/„mora rešeno“ je izbačen 18.9.2026 (stavka
    184.7) i od tada se nije vratio.
    Gde: Teach → `Homework` → domaći → editor stavke.
@@ -8654,7 +8820,7 @@ odlazi na kraj spiska u alatu.
    tekst „must be solved“.
    Potrebno: Windows i telefon.
 
-6. [ ] **Domaći sa pozicijom pod revizijom se ne šalje.** [183.4]
+8. [ ] **Domaći sa pozicijom pod revizijom se ne šalje.** [183.4]
    O čemu se radi: Ako neka stavka domaćeg nosi oznaku „needs review“ (pozicija
    bez potvrđene strane na potezu), celo slanje se odbija — učenik ne dobija
    ništa od tog domaćeg, čak ni stavke koje su bile u redu.
@@ -8665,7 +8831,7 @@ odlazi na kraj spiska u alatu.
    ne dobija ni tutorijal iz istog domaćeg.
    Potrebno: Windows; nalog trenera i učenika.
 
-7. [ ] **Domaći → Add nudi samo prave zadatke, ne i „Play it out“** [186.6]
+9. [ ] **Domaći → Add nudi samo prave zadatke, ne i „Play it out“** [186.6]
    O čemu se radi: Birač za dodavanje stavki u domaći nudi tri vrste
    (tutorijal, zadaci, skup zagonetki); gola pozicija bez rešenja se ne nudi, i
    svaki zadatak postaje svoj red.
@@ -8677,7 +8843,7 @@ odlazi na kraj spiska u alatu.
    odvojena reda u domaćem.
    Potrebno: Windows i telefon.
 
-8. [ ] **Domaći → Add više ne nudi gole pozicije kao zadatak.** [185.5]
+10. [ ] **Domaći → Add više ne nudi gole pozicije kao zadatak.** [185.5]
    O čemu se radi: Vlasnik je 18.9.2026 primetio da se gola pozicija (bez
    rešenja) nudi u istom dijalogu kao pravi zadatak, iako se ne može poslati
    kao zadatak. Faza 10 (stavka 191) je preimenovala i suzila birač na
@@ -8688,7 +8854,7 @@ odlazi na kraj spiska u alatu.
    rešenja se ne pojavljuje u ovom birač.
    Potrebno: Windows i telefon.
 
-9. [ ] **Klizač rejtinga za skup zagonetki ide do 2800, ne do 3400.** [183.6]
+11. [ ] **Klizač rejtinga za skup zagonetki ide do 2800, ne do 3400.** [183.6]
    O čemu se radi: Opis je 18.9.2026 ispravljen na vlasnikovu primedbu — klizač
    u dijalogu ide 400–2800; birajući usku temu i rejting 2800–2800, server ne
    vraća nijednu zagonetku (ranije je greškom vraćao 500).
@@ -8699,7 +8865,7 @@ odlazi na kraj spiska u alatu.
    2800–2800 dijalog javlja da nema zagonetki koje odgovaraju izabranom.
    Potrebno: Windows; server.
 
-10. [ ] **FEN se sam dopunjava i razlog nelegalnosti se ispisuje.** [183.1]
+12. [ ] **FEN se sam dopunjava i razlog nelegalnosti se ispisuje.** [183.1]
    O čemu se radi: Vlasnik je 18.9.2026 prijavio da je dijalog „Play it out“
    odbijao svaki nepotpun FEN istom rečenicom. Isto veče je popravljeno: tabla
    sama dopuni rokade i upiše dopunjen FEN u polje; prekidač strane odlučuje ko
@@ -8719,7 +8885,7 @@ odlazi na kraj spiska u alatu.
    sačuvane stavke ostaju iste — bez duplikata i bez izgubljenih izbora.
    Potrebno: Windows.
 
-11. [ ] **Pregled domaćeg i dalje pokazuje rešenje Find zadatka.** [198.6]
+13. [ ] **Pregled domaćeg i dalje pokazuje rešenje Find zadatka.** [198.6]
    O čemu se radi: Posle učenikovog odgovora na Find stavku, i trener i učenik
    u pregledu domaćeg treba da vide rešenje kao i pre prelaska na jedan-potez
    model.
@@ -8731,7 +8897,7 @@ odlazi na kraj spiska u alatu.
    prihvaćene alternative), isto kao pre.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
-12. [ ] **Roditeljski izveštaj je engleski, brojevi nepromenjeni.** [132.5]
+14. [ ] **Roditeljski izveštaj je engleski, brojevi nepromenjeni.** [132.5]
    O čemu se radi: Naslov, legenda, imena motiva (npr. „back-rank mate”,
    „hanging piece”) i poruka trenera su engleski; brojevi i procenti ostaju
    kakvi jesu.
@@ -8744,7 +8910,7 @@ odlazi na kraj spiska u alatu.
    nepromenjeni (isti kao u aplikaciji).
    Potrebno: Windows; nalog trenera i učenika.
 
-13. [ ] **Trend u trenerskom pregledu nije "pre i posle"** [58.8]
+15. [ ] **Trend u trenerskom pregledu nije "pre i posle"** [58.8]
    O čemu se radi: Trend u trenerskom pregledu učenikove arhive ne sme se
    prikazati kao poređenje pre/posle.
    Gde: `Teach` → `Students and trainers` → red učenika → `Progress` → `Games`.

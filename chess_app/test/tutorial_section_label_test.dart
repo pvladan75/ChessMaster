@@ -13,8 +13,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 
@@ -61,17 +59,9 @@ void main() {
       expect(part.label(0), endsWith('…'));
     });
 
-    test('a question is called by what it asks', () {
-      final part = partWith('')
-        ..kind = LessonStepKind.askMove
-        ..instruction = 'Nađi najbolji potez za belog.';
-
-      expect(part.label(0), 'Nađi najbolji potez za belog.');
-    });
-
     test('a part with no words at all falls back on the number', () {
-      // Rare — a part almost always carries either a sentence or a task — and
-      // the only place the word „Part" is still read.
+      // Rare — a part almost always carries a sentence — and the only place
+      // the word „Part" is still read.
       expect(partWith('1. e4').label(2), 'Part 3');
     });
 

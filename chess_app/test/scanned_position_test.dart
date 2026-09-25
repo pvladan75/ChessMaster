@@ -90,7 +90,6 @@ void main() {
     });
   });
 
-
   group('ScanResult', () {
     test('counts how many positions need a look', () {
       final result = ScanResult.fromJson({

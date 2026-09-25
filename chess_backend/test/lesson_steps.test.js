@@ -1,34 +1,15 @@
 // lesson_steps.test.js
-// Covers the crossing where a position from the library becomes a lesson step:
-// what has to survive it, and what must not get through.
+// Covers the crossing where a position becomes a tutorial's part: what has to
+// survive it, and what must not get through. A part carries no task or
+// solution since phase 4 of `docs/PLAN-TUTORIJAL-VIDEO.md`
+// (`lesson_step_kinds.test.js` holds that rule).
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildLessonStep, stepsOfLesson, redactStepForStudent } = require('../services/lessonSteps');
+const { buildLessonStep, stepsOfLesson } = require('../services/lessonSteps');
 
 const FEN = '6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1';
-
-test('the task travels with the position', () => {
-  const built = buildLessonStep({
-    title: '#122 · Mat u 333',
-    fen: FEN,
-    instruction: 'Beli matira u jednom potezu',
-  });
-
-  // A step with no task is a board with no question on it — the oldest
-  // complaint about this feature, and the reason the field exists at all.
-  assert.equal(built.ok, true);
-  assert.equal(built.entry.instruction, 'Beli matira u jednom potezu');
-});
-
-test('the solution travels too, even though a lesson is read and not solved', () => {
-  const built = buildLessonStep({ fen: FEN, solutionSan: 'Ra8#' });
-
-  // Dropped here it would be gone, and the same step may later be set as
-  // homework, where the move is the only thing that can judge an answer.
-  assert.equal(built.entry.solutionSan, 'Ra8#');
-});
 
 test('a position no board can load is refused, not repaired', () => {
   const built = buildLessonStep({ fen: 'not a position' });
@@ -91,19 +72,6 @@ test('which way round the board stands travels, and absent is a third answer', (
   );
 });
 
-test('the orientation is not an answer, so it survives redaction', () => {
-  const { entry } = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_move',
-    solutionSan: 'Ra8+',
-    blackOrientation: true,
-  });
-  const shown = redactStepForStudent(entry);
-
-  assert.equal(shown.blackOrientation, true);
-  assert.equal(shown.solutionSan, undefined, 'the answer still goes');
-});
-
 test("a row's own database id is not a step id", () => {
   // This used to be part of the test above, where `id: 7` was stripped along
   // with `owner_id` and `themes`. It cannot be stripped any more — `id` now
@@ -134,36 +102,12 @@ test('long text is refused with its length rather than cut', () => {
   assert.equal(title.ok, false);
   assert.equal(title.status, 400);
   assert.match(title.error, /The title is 201 characters long; a part can hold at most 200/);
-
-  const task = buildLessonStep({ fen: FEN, instruction: 'y'.repeat(501) });
-  assert.equal(task.ok, false);
-  assert.match(task.error, /The task is 501 characters long; a part can hold at most 500/);
 });
 
 test('text at its cap is kept whole', () => {
-  const built = buildLessonStep({ fen: FEN, title: 'x'.repeat(200), instruction: 'y'.repeat(500) });
+  const built = buildLessonStep({ fen: FEN, title: 'x'.repeat(200) });
   assert.equal(built.ok, true);
   assert.equal(built.entry.title.length, 200);
-  assert.equal(built.entry.instruction.length, 500);
-});
-
-test('a choice longer than its cap is refused', () => {
-  const built = buildLessonStep({
-    fen: FEN,
-    kind: 'ask_choice',
-    choices: [{ text: 'z'.repeat(201), correct: true }, { text: 'No', correct: false }],
-  });
-  assert.equal(built.ok, false);
-  assert.match(built.error, /A choice is 201 characters long/);
-});
-
-test('empty text is absent, not stored as an empty string', () => {
-  const built = buildLessonStep({ fen: FEN, instruction: '  ', solutionSan: '' });
-
-  // The viewer says nothing when the field is missing; an empty string would
-  // render as a task that says nothing at all.
-  assert.equal('instruction' in built.entry, false);
-  assert.equal('solutionSan' in built.entry, false);
 });
 
 
@@ -248,8 +192,3 @@ test('a line at its cap is kept whole', () => {
   assert.equal(built.entry.pgn, pgn);
 });
 
-test('a solution or a correct move longer than a move can be is refused, not cut into another move', () => {
-  const solution = buildLessonStep({ fen: FEN, kind: 'ask_move', solutionSan: 'Ra1'.padEnd(25, '!') });
-  assert.equal(solution.ok, false);
-  assert.match(solution.error, /The solution is 25 characters long/);
-});

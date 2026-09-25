@@ -24,12 +24,8 @@
 /// which parts belong to which game and hand it a tree per game.
 ///
 /// **What a PGN cannot carry**, and the trainer is told so before the file is
-/// written: what a part *asks* (`kind`), its answer and the moves accepted
-/// beside it, which way round the board is drawn, and the tutorial's own title,
-/// labels and language. A part's `instruction` does travel — as the sentence it
-/// is, written on the position it is asked from — because a question part whose
-/// wording were dropped too would contribute nothing at all to the file, and a
-/// silent loss is the fault this repository keeps paying for.
+/// written: which way round a part's board is drawn, and the tutorial's own
+/// title, labels and language.
 library;
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -51,7 +47,6 @@ List<AnalysisNode> gameTreesOfTutorial(List<TutorialSection> sections) {
 
   for (final section in sections) {
     final tree = copyTree(section.root);
-    _writeInstruction(tree, section);
 
     if (tail == null || !MoveTree.samePosition(tree.fen, tail.fen)) {
       games.add(tree);
@@ -106,36 +101,21 @@ Map<String, String> _headers(TutorialDraft draft,
   };
 }
 
-/// The part's task, written onto the position it is asked from.
-///
-/// A question is a position, a sentence and an answer; the answer is the move
-/// the tutorial itself goes on to play, so the only thing with nowhere else to
-/// go is the sentence. It is appended rather than substituted: a part can carry
-/// both a note about the position and a task, and dropping either would be the
-/// export deciding which of a trainer's two sentences mattered.
-void _writeInstruction(AnalysisNode root, TutorialSection section) {
-  final task = (section.instruction ?? '').trim();
-  if (task.isEmpty) return;
-  root.comment =
-      root.comment.trim().isEmpty ? task : '${root.comment.trim()} $task';
-}
-
 /// Hangs [next]'s line on [join], the position both describe.
 ///
 /// The two nodes are the same board — that is what got us here — so what [next]
 /// carries about it is written onto the node that is already in the game: the
-/// sentence, the arrows and the coloured squares. `splitForQuestion` drops a
+/// sentence, the arrows and the coloured squares. „Insert a line here" drops a
 /// continuation's sentence precisely because the part in front has just read it
 /// out, so in a tutorial this app cut there is usually nothing to merge; in one
 /// a trainer built by hand there often is.
 ///
 /// **The drawings are merged rather than appended**, and that is not tidiness:
-/// `splitForQuestion` *copies* the cursor's arrows and squares onto the part it
-/// makes, because the board does not reload across a join and a circle that
-/// vanished mid-question would be a flicker. Both parts therefore carry the
-/// same arrow, and joining them back by concatenation would write it twice —
-/// which a reader draws as one arrow over another, on every question this app
-/// has ever cut.
+/// a cut *copies* the cursor's arrows and squares onto the part it makes,
+/// because the board does not reload across a join and a circle that vanished
+/// mid-film would be a flicker. Both parts therefore carry the same arrow, and
+/// joining them back by concatenation would write it twice — which a reader
+/// draws as one arrow over another.
 void _joinOnto(AnalysisNode join, AnalysisNode next) {
   final text = next.comment.trim();
   if (text.isNotEmpty) {

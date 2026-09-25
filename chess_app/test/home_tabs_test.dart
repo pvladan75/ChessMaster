@@ -288,7 +288,6 @@ void main() {
           onOpenStudent: (_, __) {},
           hasTrainer: false,
           onOpenAssignments: () {},
-          onOpenReviews: () {},
           onJoinSession: (_) {},
           onRefreshRecordings: () {},
           onOpenReplay: (_) {},

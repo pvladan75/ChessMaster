@@ -8,7 +8,7 @@
 ///    game and a part that opens on a board of its own starts another, so a
 ///    trainer learns what the file will hold before they name it.
 ///  * **What a PGN cannot carry.** A trainer who finds that out by opening the
-///    file somewhere else and missing their questions finds it out too late.
+///    file somewhere else finds it out too late.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,18 +21,14 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 
-/// The one sentence about what stays behind.
-///
-/// The `instruction` is deliberately not in it: a part's wording does travel,
-/// written on the position it is asked from. What has no home in a PGN is
-/// everything that makes a part a *question* rather than a demonstration, and
-/// the three things that belong to the tutorial rather than to any game.
+/// The one sentence about what stays behind: which way round each part is
+/// drawn, and the three things that belong to the tutorial rather than to any
+/// game.
 const String pgnExportLoses =
     'A PGN carries the moves, the sentences, the drawings and the '
-    'assessments. What a part asks for — the answer, the moves accepted '
-    'beside it, which way round the board is drawn — stays behind, and so do '
-    'this tutorial\'s title, labels and language. The saved tutorial keeps '
-    'all of it.';
+    'assessments. Which way round each part\'s board is drawn stays behind, '
+    'and so do this tutorial\'s title, labels and language. The saved '
+    'tutorial keeps all of it.';
 
 /// How the parts come apart into games, in one line.
 String pgnExportSummary(int parts, int games) {

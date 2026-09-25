@@ -20,8 +20,6 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/assignments/models/assignment.dart'
-    show LessonStepKind;
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
@@ -98,8 +96,7 @@ TutorialDraft draftOf({String pgn = _pgn}) {
     lessonId: 31,
     title: 'Centre',
     sections: [
-      TutorialSection(
-          root: read.root, title: 'Part', kind: LessonStepKind.show),
+      TutorialSection(root: read.root, title: 'Part'),
     ],
   );
 }

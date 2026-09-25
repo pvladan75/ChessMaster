@@ -20,7 +20,6 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart' show PlayerColor;
 
-import 'package:chess_app/features/assignments/screens/lesson_viewer_screen.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
@@ -206,17 +205,20 @@ void main() {
     await close(tester);
   });
 
-  group('„Preview tutorial" sets one part', () {
+  // One part, turned from its own row. Its door was „Preview tutorial", the
+  // student's viewer run on the draft; that door went with the viewer
+  // (docs/PLAN-TUTORIJAL-VIDEO.md, D12), and the rules it was held to stay.
+  group('„Turn this part" turns one part', () {
     PlayerColor shown(WidgetTester tester) => tester
-        .widget<BoardWithCoordinates>(find.byType(BoardWithCoordinates).last)
+        .widget<BoardWithCoordinates>(find.byType(BoardWithCoordinates).first)
         .orientation;
 
-    Future<void> preview(WidgetTester tester) async {
-      await tester.tap(find.byKey(const Key('preview-tutorial')));
+    Future<void> turn(WidgetTester tester, int index) async {
+      await tester.tap(find.byKey(Key('turn-part-$index')));
       await tester.pumpAndSettle();
     }
 
-    Future<void> step(WidgetTester tester, String label) async {
+    Future<void> select(WidgetTester tester, String label) async {
       await tester.tap(find.text(label));
       await tester.pumpAndSettle();
     }
@@ -227,23 +229,21 @@ void main() {
         {'fen': endgameFen, 'title': 'Deo 2', 'kind': 'show'},
       ]);
 
-      await preview(tester);
-      await step(tester, 'Next part');
-      await tester.tap(find.byKey(const Key('preview-flip-part')));
-      await tester.pumpAndSettle();
-      expect(shown(tester), PlayerColor.black);
+      // The second part, turned while the first is the one open.
+      await turn(tester, 1);
+      expect(shown(tester), PlayerColor.white,
+          reason: 'the open part was not the one asked for');
 
       // Away and back: the part is still the way it was set.
-      await step(tester, 'Previous part');
+      await select(tester, 'Part 2');
+      expect(shown(tester), PlayerColor.black);
+      await select(tester, 'Part 1');
       expect(shown(tester), PlayerColor.white);
-      await step(tester, 'Next part');
+      await select(tester, 'Part 2');
       expect(shown(tester), PlayerColor.black,
           reason: 'the part forgot what it was set to when it was left');
 
-      Navigator.of(tester.element(find.byType(LessonViewerScreen))).pop();
-      await tester.pumpAndSettle();
       final sent = await save(tester, api);
-
       expect([for (final s in sent) (s as Map)['blackOrientation']],
           [false, true]);
 
@@ -259,15 +259,28 @@ void main() {
         {'fen': endgameFen, 'title': 'Deo 2', 'kind': 'show'},
       ]);
 
-      await preview(tester);
-      await tester.tap(find.byKey(const Key('preview-flip-part')));
-      await tester.pumpAndSettle();
-      Navigator.of(tester.element(find.byType(LessonViewerScreen))).pop();
-      await tester.pumpAndSettle();
+      await turn(tester, 0);
+      expect(shown(tester), PlayerColor.black,
+          reason: 'the board turns at once');
       final sent = await save(tester, api);
 
       expect([for (final s in sent) (s as Map)['blackOrientation']],
           [true, false]);
+
+      await close(tester);
+    });
+
+    testWidgets('and turning it back is the same button', (tester) async {
+      final api = await open(tester, [
+        {'fen': startFen, 'title': 'Deo 1', 'kind': 'show'},
+        {'fen': endgameFen, 'title': 'Deo 2', 'kind': 'show'},
+      ]);
+
+      await turn(tester, 1);
+      await turn(tester, 1);
+      final sent = await save(tester, api);
+      expect([for (final s in sent) (s as Map)['blackOrientation']],
+          [false, false]);
 
       await close(tester);
     });

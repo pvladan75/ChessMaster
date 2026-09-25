@@ -27,6 +27,7 @@
 const logger = require('./logger');
 const assignments = require('./assignmentService');
 const { loadHomework } = require('./homeworkTemplate');
+const { noFilmReason } = require('./tutorialFilm');
 const { assignableProblem, exerciseColumns } = require('./exercise');
 
 /// What each kind of item becomes as an assignment of its own.
@@ -88,23 +89,17 @@ async function planItems(pool, { trainerId, studentId, items }) {
         if (!lesson) {
           throw new SendRefused(422, `A tutorial in this homework is no longer yours.`);
         }
-        if (lesson.steps.length === 0) {
-          throw new SendRefused(422, `The tutorial "${lesson.title}" has no parts.`);
+        // A tutorial is sent as its film (docs/PLAN-TUTORIJAL-VIDEO.md, D5):
+        // one item, which the student's download completes.
+        if (!lesson.film) {
+          throw new SendRefused(422, noFilmReason(lesson.title));
         }
         planned.push({
           item,
           childKind: 'lesson',
           title: childTitle(item, { lessonTitle: lesson.title }),
           lessonId: lesson.id,
-          // `position` orders, `step_key` says which step it is — the bridge to
-          // the student's own schedule, and the reason an edited tutorial does
-          // not re-aim a half-finished assignment.
-          itemRows: lesson.steps.map((step, index) => ({
-            position: index,
-            stepKey: step.id,
-            puzzleId: null,
-            rating: null,
-          })),
+          itemRows: [{ position: 0, puzzleId: null, rating: null }],
         });
         break;
       }
@@ -131,7 +126,6 @@ async function planItems(pool, { trainerId, studentId, items }) {
           lessonId: null,
           itemRows: item.task.puzzleIds.map((id, index) => ({
             position: index,
-            stepKey: null,
             puzzleId: id,
             rating: null,
           })),
@@ -156,7 +150,6 @@ async function planItems(pool, { trainerId, studentId, items }) {
           lessonId: null,
           itemRows: puzzles.map((puzzle, index) => ({
             position: index,
-            stepKey: null,
             puzzleId: puzzle.puzzle_id,
             rating: puzzle.rating,
           })),
@@ -171,7 +164,7 @@ async function planItems(pool, { trainerId, studentId, items }) {
           lessonId: null,
           // One row, so the item completes the moment the game is recorded
           // (`recordEngineGameResult` writes it, `markCompleteIfDone` reads it).
-          itemRows: [{ position: 0, stepKey: 'game', puzzleId: null, rating: null }],
+          itemRows: [{ position: 0, puzzleId: null, rating: null }],
         });
         break;
       }
@@ -247,13 +240,13 @@ async function sendHomework(pool, { trainerId, studentId, homeworkId, dueAt = nu
 
       const values = [];
       const tuples = plan.itemRows.map((row, index) => {
-        const base = index * 5;
-        values.push(child.id, row.position, row.stepKey, row.puzzleId, row.rating);
-        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5})`;
+        const base = index * 4;
+        values.push(child.id, row.position, row.puzzleId, row.rating);
+        return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4})`;
       });
       await client.query(
         `INSERT INTO assignment_items
-           (assignment_id, position, step_key, puzzle_id, puzzle_rating)
+           (assignment_id, position, puzzle_id, puzzle_rating)
          VALUES ${tuples.join(', ')}`,
         values
       );

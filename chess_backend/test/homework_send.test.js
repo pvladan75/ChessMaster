@@ -12,6 +12,12 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-sig
 
 const realtime = require('../services/realtime');
 const { skipUnlessDatabase, freshDatabase } = require('./support/pgTestDb');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { EXPORTS_DIR } = require('../services/tutorialFilm');
+
+const films = [];
 
 realtime.init({ to: () => ({ emit: () => {} }) });
 
@@ -35,6 +41,7 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
   });
 
   after(async () => {
+    for (const film of films) fs.rmSync(path.join(EXPORTS_DIR, film), { force: true });
     if (db) await db.drop();
   });
 
@@ -61,12 +68,11 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
     return { trainerId, studentId };
   }
 
+  /// A tutorial with a film on disk — a tutorial is sent as its film
+  /// (docs/PLAN-TUTORIJAL-VIDEO.md), so one without is refused before the
+  /// case under test is reached.
   async function lessonOf(trainerId, steps = 2) {
     const positionList = JSON.stringify(
-      // Ids that are nothing like an index, on purpose: with `p0, p1, p2` a
-      // key derived from the position is indistinguishable from the step's own
-      // name, and a mutation that did exactly that survived this test once
-      // (CLAUDE.md rule 6 — a fixture luckier than the real thing).
       Array.from({ length: steps }, (_, i) => ({
         id: `s${(i + 3) * 7}x`,
         title: `Step ${i + 1}`,
@@ -74,11 +80,15 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
         pgn: '',
       }))
     );
+    fs.mkdirSync(EXPORTS_DIR, { recursive: true });
+    const film = `tutorial_send_${process.pid}_${crypto.randomBytes(4).toString('hex')}.mp4`;
+    fs.writeFileSync(path.join(EXPORTS_DIR, film), 'mp4');
+    films.push(film);
     const r = await pool.query(
-      `INSERT INTO saved_lessons (user_id, title, fen, pgn, position_list)
-       VALUES ($1, 'Pins', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '', $2::jsonb)
+      `INSERT INTO saved_lessons (user_id, title, fen, pgn, position_list, video_filename)
+       VALUES ($1, 'Pins', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '', $2::jsonb, $3)
        RETURNING id`,
-      [trainerId, positionList]
+      [trainerId, positionList, film]
     );
     return r.rows[0].id;
   }
@@ -164,16 +174,9 @@ describe('sending a homework', { skip: skip ? skip.skip : false }, () => {
     assert.deepEqual(children.map((c) => c.position), tpl.items.map((i) => i.position));
     assert.deepEqual(children.map((c) => c.gate), [false, true, false, true]);
 
-    // Each child's items: the tutorial's steps, the position, the puzzles, and
-    // one row for the game.
-    assert.deepEqual(children.map((c) => c.total_items), [3, 1, 2, 1]);
-
-    // The tutorial's steps travel by key, not by index.
-    const steps = await pool.query(
-      'SELECT step_key FROM assignment_items WHERE assignment_id = $1 ORDER BY position',
-      [children[0].id]
-    );
-    assert.deepEqual(steps.rows.map((r) => r.step_key), ['s21x', 's28x', 's35x']);
+    // Each child's items: the tutorial's film (one, whatever its three parts),
+    // the position, the puzzles, and one row for the game.
+    assert.deepEqual(children.map((c) => c.total_items), [1, 1, 2, 1]);
     assert.equal(children[0].lesson_id, lessonId);
 
     // The game's task is the trainer's, including the engine it must be played
