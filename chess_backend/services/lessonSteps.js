@@ -173,11 +173,12 @@ function stepsOfLesson({ positionList, title, fen, pgn }) {
 
 /// Names a stored step that was written before ids existed.
 ///
-/// `p<index>` and **not** a generated id, because this value is a database key
-/// the moment a schedule row is written against it: a generator here would hand
-/// out a different key on every read of the same lesson, and nothing would ever
-/// resolve twice. The index is also exactly what those rows mean today, which
-/// is what makes the backfill of `review_items` correct rather than a guess.
+/// `p<index>` and **not** a generated id, because a part's id is its identity
+/// across saves: the app sends it back, and `PUT /lessons/:id` refuses a save
+/// that would drop the stored ones. A generator here would hand out a different
+/// id on every read of the same lesson, so nothing would ever match twice.
+/// (It was first a key for `review_items` schedule rows, which went with
+/// phase 2 of docs/PLAN-TUTORIJAL-VIDEO.md.)
 function withBackfilledId(step, index) {
   if (!step || typeof step !== 'object') return step;
   const id = typeof step.id === 'string' && STEP_ID_PATTERN.test(step.id)
@@ -215,8 +216,9 @@ function buildLessonSteps(list) {
       return { ok: false, status: built.status, error: `Step ${i + 1}: ${built.error}` };
     }
 
-    // Two steps claiming one id makes [stepByKey] ambiguous, and a schedule row
-    // naming it would resolve to whichever happens to come first.
+    // Two steps claiming one id is two parts with one identity: [stepByKey]
+    // and the app, which keeps the id across saves, would each find whichever
+    // happens to come first.
     if (seen.has(built.entry.id)) {
       return {
         ok: false,
@@ -233,10 +235,10 @@ function buildLessonSteps(list) {
 
 /// The step a stored key names, or null.
 ///
-/// Null and never a neighbour. A trainer may delete a step a student has a
-/// schedule for, and handing back whichever step inherited its index would ask
-/// the child about a board nobody ever showed them — worse than showing
-/// nothing, which is what `getDue` already does with rows pointing past the end.
+/// Null and never a neighbour: a part that was deleted is not whichever part
+/// inherited its index. No route reads it since the schedule rows went (phase 2
+/// of docs/PLAN-TUTORIJAL-VIDEO.md); `lesson_step_identity.test.js` still holds
+/// the rule, for the day a reader by id comes back.
 function stepByKey(steps, key) {
   if (!Array.isArray(steps) || typeof key !== 'string') return null;
   return steps.find((step) => step && step.id === key) || null;

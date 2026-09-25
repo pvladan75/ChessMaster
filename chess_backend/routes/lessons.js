@@ -346,9 +346,10 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
 // client that reads, edits and PUTs back.
 //
 // **Every copied step gets a fresh id.** A step id is the identity of a step
-// *in this tutorial*: `stepByKey` resolves a schedule row and a recorded answer
-// by it, and two tutorials carrying one id is an ambiguity nobody would find
-// until a child's progress showed up in the wrong copy. Stripping the ids and
+// *in this tutorial*, kept across saves, and two tutorials carrying one id
+// would be one identity in two places — the ambiguity that once put a
+// student's progress in the wrong copy, when schedule rows still named parts
+// by id. Stripping the ids and
 // running the list back through `buildLessonSteps` mints new ones from the one
 // place allowed to build a step, and validates the copy on the way — a stored
 // list written before a validation rule existed is refused here rather than
