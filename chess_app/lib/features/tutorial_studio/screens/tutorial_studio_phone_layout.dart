@@ -491,7 +491,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
           title: Text(section.label(i)),
           subtitle: Text('$count ${count == 1 ? 'move' : 'moves'}'),
           selected: i == _c.draft.selected,
-          onTap: () => _c.select(i),
+          onTap: () => _selectSection(i),
         ),
         Padding(
           padding: const EdgeInsets.only(

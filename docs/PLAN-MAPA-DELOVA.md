@@ -272,8 +272,20 @@ case called `onMove` without moving the piece on the board, so a board that
 kept the move looked the same as one put back. The case now moves the piece on
 the board's own controller first, as a drag does.
 
-Not settled here, and older than this phase: selecting **another part** still
-rebuilds the PGN field and loses unapplied text, as it did before D1.
+**Then every other way out of a part** — the owner's decision of 25.9.2026,
+the same evening: the field is rebuilt whenever the open part's line is a
+different one, so selecting another part, „New part", „Clone part", deleting
+the open part or one before it, „Add parts from a tutorial…", „Insert a line
+here", „Position setup" and Undo/Redo are all held back over unapplied text,
+through one guard (`_heldForPgn`) — „That would open another part. Apply or
+discard the text in the PGN tab first." Moving the open part and tapping it
+again leave it open and are not held. Node ids are not stored, so Undo rebuilds
+the part too. And **Ctrl+Z in the PGN field** had been the studio's undo — its
+shortcuts sit nearer the fields than the text field's — so fixing a typo threw
+the whole text away; over unapplied text the studio's shortcut now steps aside
+(`_StudioHistoryAction.isEnabled`) and the key reaches the field. Twelve cases
+in `tutorial_pgn_tab_test` (→ **4052**, a full run; analyze the same 22);
+twelve mutations, one per guard and condition, each red on the right case.
 
 - `playMove`: when the cursor has children and the move is not one of them, D1.
   The new part: root on the cursor's position, carrying its arrows and squares

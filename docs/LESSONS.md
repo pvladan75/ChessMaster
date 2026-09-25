@@ -8134,3 +8134,22 @@ da vidi da poništavanje fali.**
 okrenut preko prelomne tačke menja raspored u telefonski, koji nema karticu
 PGN, a tabla ostaje: bez izveštaja na `dispose`, svaki sledeći drugi potez bi
 bio odbijen zbog teksta koga više nema. Mutacija to potvrđuje.
+
+## 25.9.2026 — Delovi kao mapa: izlazak iz dela preko neprimenjenog teksta
+
+Aplikacija **4040 → 4052**, pun prolaz: dvanaest slučajeva u
+`tutorial_pgn_tab_test` (četiri, sedam vrata iz tabele, Ctrl+Z). `analyze` isti
+22.
+
+**Vlasnik je imenovao jedna vrata; posledica ih ima deset.** Pitanje je bilo
+„klik na drugi deo", a polje se gradi iznova kad god se promeni koren otvorenog
+dela: novi deo, kloniranje, brisanje otvorenog ili dela ispred njega, delovi iz
+drugog tutorijala, „Insert a line here", „Position setup", Undo i Redo.
+Undo je među njima jer `AnalysisNode.fromJson` pravi nove id-jeve. **Traži
+vrata po posledici, ne po imenu koje je korisnik rekao** — ovde je to bio ključ
+panela (`ValueKey(_root.id)`) i svako mesto koje menja koren.
+
+**Prečica koja je bliža polju od polja uzima i tipkanje.** Ctrl+Z u polju PGN
+bio je Undo studija, koji je deo gradio iznova i bacao tekst. Zabrana bi tu
+samo zamenila tihi gubitak porukom na svaki pritisak; akcija koja preko
+neprimenjenog teksta kaže da je isključena pušta taster dalje, do polja.
