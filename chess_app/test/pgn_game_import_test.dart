@@ -130,23 +130,43 @@ void main() {
   });
 
   group('what comes out is what the rest of the app already reads', () {
-    test('one game is one part, not one part per comment', () {
+    test('one line is one part, not one part per comment', () {
       // An annotated game is one continuous line and the viewer narrates it
       // move by move; a part per comment is a transcript with a page-turn
       // between every sentence.
+      //
+      // Superseded in part 26.9.2026 by D2 of `docs/PLAN-MAPA-DELOVA.md`:
+      // this case asserted one part for [reviewed], whose `(3... Bc5! …)` the
+      // film never showed. A side line is a part of its own now — up to the
+      // fork, the side line, the game going on — and still not a part per
+      // comment.
       final tutorial = tutorialFromGame(reviewed);
+      expect(tutorial.positionList, hasLength(3));
+      for (final part in tutorial.positionList) {
+        expect(part['kind'] ?? 'show', 'show');
+      }
+      expect(tutorial.problems, isEmpty);
+    });
+
+    test('a game with no side line is one part, its text as it came', () {
+      final tutorial = tutorialFromGame(oneGame);
       expect(tutorial.positionList, hasLength(1));
       expect(tutorial.positionList.single['kind'], 'show');
       expect(tutorial.positionList.single['title'], 'Part 1');
     });
 
     test('the comments, the arrows and the assessment all travel', () {
-      final pgn =
-          tutorialFromGame(reviewed).positionList.single['pgn'] as String;
+      // Across the parts: the side line is re-written by the app's own writer
+      // when it becomes a part, and what a reader reads must survive that.
+      final pgn = tutorialFromGame(reviewed)
+          .positionList
+          .map((p) => p['pgn'] as String)
+          .join(' ');
       expect(pgn, contains('White takes the centre.'));
       expect(pgn, contains('[%csl Ge4]'));
       expect(pgn, contains('Nd4??'), reason: 'phase 2 reads this mark');
       expect(pgn, contains('Bc5!'));
+      expect(pgn, contains('Better move'));
     });
 
     test('a line that does not replay is reported, not silently shortened', () {

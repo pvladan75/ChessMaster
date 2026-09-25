@@ -1286,17 +1286,21 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     );
     if (course == null || !mounted) return;
 
-    // One node answers for the position and for the line, and the step is read
-    // back exactly the way the student's screen will read it. A line that does
-    // not replay from its own position is not saved: a step that quietly loses
-    // its moves is worse than a step that was never made, because the trainer
-    // finds out from a child.
-    final step = StudioLessonStep.from(anchor);
-    if (!step.replays) {
+    // A part is one line (D2 of `docs/PLAN-MAPA-DELOVA.md`): every side line
+    // under the anchor becomes a part of its own ([StudioLessonStep.partsFrom]).
+    //
+    // One node answers for the position and for the line, and each step is
+    // read back exactly the way the student's screen will read it. A line that
+    // does not replay from its own position is not saved: a step that quietly
+    // loses its moves is worse than a step that was never made, because the
+    // trainer finds out from a child.
+    final steps = StudioLessonStep.partsFrom(anchor);
+    final rejected = steps.fold<int>(0, (n, s) => n + s.rejectedMoves);
+    if (rejected > 0) {
       AppFeedback.show(
         context,
         () => SnackBar(
-          content: Text('Step was not saved: ${step.rejectedMoves} '
+          content: Text('Step was not saved: $rejected '
               'moves from the line cannot be played from this position.'),
           backgroundColor: context.colors.danger,
         ),
@@ -1304,9 +1308,11 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
       return;
     }
 
-    final error = await lessons.appendStep(
+    // One request, whole or not at all: a refusal in the middle of several
+    // must not leave half of the line in the tutorial.
+    final error = await lessons.appendSteps(
       lessonId: course.id,
-      step: step.toJson(title: 'New task'),
+      steps: [for (final step in steps) step.toJson(title: 'New task')],
     );
 
     if (!mounted) return;
@@ -1321,7 +1327,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
       AppFeedback.show(
           context,
           () => SnackBar(
-                content: const Text('Step successfully added to tutorial.'),
+                content: Text(steps.length == 1
+                    ? 'Step successfully added to tutorial.'
+                    : 'Added to the tutorial as ${steps.length} parts: every '
+                        'side line is a part of its own.'),
                 backgroundColor: context.colors.success,
               ));
     }

@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4052 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4075 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1899 with TEST_DATABASE_URL, 1743 without
+cd chess_backend && npm test          # node --test, 1905 with TEST_DATABASE_URL, 1747 without
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -835,6 +835,16 @@ step the code undoes cannot see the undo go missing.** Then every other way
 out of a part got the same hold (→ **4052**): ten doors rebuild the PGN field,
 not the one the owner named, because node ids are not stored and Undo is one
 of them — and Ctrl+Z inside that field had been the studio's undo all along.
+Then its phase 2 (→ **4075**, a full run; backend → **1747 / 1905**, both
+measured; analyze the same 22): every other door splits a fork into parts —
+`splitAtForks`, one function behind the PGN tab's Apply, both handovers, both
+import readers and Analysis's „Add this line", whose route now takes `steps`
+whole or not at all. **Applying a rule again is not the same as applying it
+once more**: `splitForLine` at the root of its own new line put the side lines
+after the continuation, reversed. And a door case that failed half way left its
+screen standing for the next one, which went red under a mutation that could
+not touch it — **close in `addTearDown`, or a neighbour's failure reads as a
+catch.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

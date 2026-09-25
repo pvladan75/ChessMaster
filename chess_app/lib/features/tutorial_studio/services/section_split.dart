@@ -1,6 +1,7 @@
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/services/fen_legality.dart';
 
 /// „Insert a line here" — phase 3 of `docs/PLAN-STUDIO-ISTORIJA.md`: one part
 /// becomes a demonstration up to [cursor], a new line from it, and the original
@@ -127,4 +128,130 @@ AnalysisNode _resolve(AnalysisNode root, List<int> path) {
     node = node.children[index];
   }
   return node;
+}
+
+/// **A part is one line** — D2 of `docs/PLAN-MAPA-DELOVA.md`: every fork in
+/// [part] made into parts, in the order „Insert a line here" makes them.
+///
+/// The film walks first children, so a side line left inside a part is saved
+/// and never shown. Every door that can bring a fork in — the PGN tab, the
+/// handover from Analysis, an import — passes the part through here, and only
+/// a move played on the board makes its part itself (D1).
+///
+/// At the first fork down the main line the part is cut by [splitForLine]:
+/// the part up to the fork, then each side line **in the order it stands**,
+/// then the original continuation going back to the fork. Each of those is
+/// split again the same way until no part forks. For a single fork the answer
+/// is [splitForLine]'s at that fork — one rule with two callers, and the gate
+/// holds it to that.
+///
+/// A part with no fork comes back as itself; any other is not modified.
+List<TutorialSection> splitAtForks(TutorialSection part) {
+  final fork = _firstFork(part.root);
+  if (fork == null) return [part];
+
+  final cut = splitForLine(part, fork);
+  return [
+    for (final piece in cut.parts)
+      if (identical(piece, cut.line))
+        for (final line in _onePerSideLine(piece)) ...splitAtForks(line)
+      else
+        ...splitAtForks(piece),
+  ];
+}
+
+/// Whether any position in [part] goes on in more than one way.
+bool partForks(TutorialSection part) => _forksBelow(part.root);
+
+bool _forksBelow(AnalysisNode node) =>
+    node.children.length > 1 || node.children.any(_forksBelow);
+
+/// The first position down the main line that goes on in more than one way.
+AnalysisNode? _firstFork(AnalysisNode root) {
+  for (AnalysisNode node = root;
+      node.children.isNotEmpty;
+      node = node.children.first) {
+    if (node.children.length > 1) return node;
+  }
+  return null;
+}
+
+/// [splitForLine]'s new line holds every side line at the fork as one child
+/// each; this makes a part of each, in order. The first keeps what the line's
+/// first position says, since that is read out once; every one carries its
+/// arrows and squares, because the board reloads at each return.
+List<TutorialSection> _onePerSideLine(TutorialSection line) {
+  final root = line.root;
+  if (root.children.length < 2) return [line];
+  return [
+    for (var i = 0; i < root.children.length; i++)
+      TutorialSection(
+        root: _rootWith(root, root.children[i], keepComment: i == 0),
+        blackOrientation: line.blackOrientation,
+      ),
+  ];
+}
+
+AnalysisNode _rootWith(
+  AnalysisNode like,
+  AnalysisNode child, {
+  required bool keepComment,
+}) {
+  final root = AnalysisNode(
+    fen: like.fen,
+    comment: keepComment ? like.comment : '',
+    arrows: [...like.arrows],
+    squares: [...like.squares],
+  );
+  final moved = copyTree(child);
+  moved.parent = root;
+  root.children.add(moved);
+  return root;
+}
+
+/// [root] made the open part's line, and the part made into parts at every
+/// fork ([splitAtForks]). Answers how many parts it became; the first stays
+/// open, standing on its start.
+///
+/// The one door for a whole tree arriving in a part: the PGN tab's Apply and
+/// both handovers from Analysis. What the part said before is gone, so its
+/// stored text goes with it.
+int openLineAsParts(TutorialDraft draft, AnalysisNode root) {
+  final part = draft.section
+    ..root = root
+    ..cursorNode = root
+    ..storedPgn = null;
+  final parts = splitAtForks(part);
+  draft.replaceSelected(parts);
+  return parts.length;
+}
+
+/// One stored step — the shape `position_list` holds — made into steps at
+/// every fork. The door for a tutorial arriving from outside: a JSON file, a
+/// PGN game, and through them „Open" and „Save" alike.
+///
+/// Read by the app's one reader ([TutorialSection.fromStep]) and written by
+/// the save's own writer ([TutorialSection.toJson]), so nothing here parses or
+/// prints a line a second way. [index] is the step's place in the tutorial,
+/// for the names a part with none is given.
+///
+/// **A step that does not fork comes back as it was**, its text untouched. So
+/// does one this cannot read whole — a position that is not chess, a kind that
+/// is not „show", moves that do not replay: the import's report names what is
+/// wrong with it, and splitting what the reader could make of it would save a
+/// shorter line under a clean report. No step that comes out carries an `id`.
+List<Map<String, dynamic>> splitStepAtForks(
+  Map<String, dynamic> step, {
+  int index = 0,
+}) {
+  if ((step['kind']?.toString() ?? 'show') != 'show') return [step];
+  if (fenIllegalReason(step['fen']?.toString() ?? '') != null) return [step];
+  final part = TutorialSection.fromStep(step);
+  if (part.rejectedMoves > 0 || !partForks(part)) return [step];
+
+  final parts = splitAtForks(part);
+  return [
+    for (var i = 0; i < parts.length; i++)
+      parts[i].toJson(index: index + i)..remove('id'),
+  ];
 }

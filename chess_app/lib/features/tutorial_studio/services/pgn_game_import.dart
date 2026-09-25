@@ -11,11 +11,12 @@
 /// What this file adds is the two questions that reader cannot ask: *where does
 /// one game end and the next begin*, and *what should the tutorial be called*.
 ///
-/// **One game is one part.** An annotated game is one continuous line and the
-/// viewer already narrates it move by move, each comment a beat; cutting it at
-/// every comment would make a transcript with a page-turn between every
-/// sentence. Parts get made where a trainer asks for them — phase 2, at the
-/// blunders — not here.
+/// **One game is one part — one line.** An annotated game is one continuous
+/// line and the viewer already narrates it move by move, each comment a beat;
+/// cutting it at every comment would make a transcript with a page-turn
+/// between every sentence. Its side lines are the exception: the film walks
+/// first children, so each variation is made a part of its own, in the order
+/// of D2 of `docs/PLAN-MAPA-DELOVA.md` (`splitStepAtForks`).
 ///
 /// **The movetext is kept as it came.** It is not re-exported: a round trip
 /// through `PgnExporterService` stamps a fresh `[Date]` and rewrites spacing, so
@@ -24,6 +25,7 @@
 library;
 
 import 'package:chess_app/features/lessons/models/part_titles.dart';
+import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/move_tree.dart';
 
@@ -156,6 +158,7 @@ ImportedTutorial tutorialFromGame(
     'kind': 'show',
     'pgn': moves,
   };
+  final steps = splitStepAtForks(step);
 
   return ImportedTutorial(
     title: titleOf(pgn, fileName: fileName, gameNumber: gameNumber),
@@ -165,12 +168,15 @@ ImportedTutorial tutorialFromGame(
     // sentences is how a tutorial comes to be read aloud in the wrong voice;
     // `LanguageWrite.unsaid` is the third answer this app already has for it.
     language: null,
-    positionList: [step],
+    positionList: steps,
     // The one reader, asked the one question it can answer: does this line
     // replay from this position? A game that does not is reported and still
     // opened, because a trainer can see what is wrong with it far better than
     // this can.
-    problems: problemsWithStep(step, partNumber: 1),
+    problems: [
+      for (var i = 0; i < steps.length; i++)
+        ...problemsWithStep(steps[i], partNumber: i + 1),
+    ],
     fileName: fileName,
   );
 }

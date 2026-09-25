@@ -281,9 +281,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     };
 
     if (handover != null) {
-      draft.section.root = handover.root;
-      draft.section.cursorNode = handover.root;
+      // Before the split, so every part it makes faces the same way.
       draft.section.blackOrientation = handover.blackOrientation;
+      openLineAsParts(draft, handover.root);
     }
     _c = TutorialDraftController(draft: draft);
     _c.addListener(_onController);
@@ -361,9 +361,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         // The parts already written stay; the one being written is the line
         // the trainer just handed over.
         stored.selected = stored.sections.length - 1;
-        stored.section.root = handover.root;
-        stored.section.cursorNode = handover.root;
-        stored.section.storedPgn = null;
+        openLineAsParts(stored, handover.root);
         _c.adopt(stored);
 
       case TutorialEntrySaved():
@@ -1595,8 +1593,13 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     // Nothing to invalidate by hand: `isPristine` compares `treeSignature`
     // against the tree itself, and this is a different tree.
     _annotationController.cancelPending();
-    _c.replaceLine(read.root);
-    AppFeedback.success(context, 'Applied.');
+    final parts = _c.replaceLine(read.root);
+    AppFeedback.success(
+      context,
+      parts == 1
+          ? 'Applied.'
+          : 'Applied as $parts parts: every side line is a part of its own.',
+    );
   }
 
   /// Asked once, never assumed: taking the pasted position changes the board a

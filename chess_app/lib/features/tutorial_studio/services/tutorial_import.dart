@@ -25,6 +25,7 @@ import 'dart:convert';
 
 import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/lessons/models/lesson_labels.dart';
+import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/services/fen_legality.dart';
 
@@ -224,12 +225,14 @@ ImportedTutorial readTutorialJson(String text, {String? fileName}) {
   }
 
   final positionList = <Map<String, dynamic>>[];
+  // Parts the forks made so far, so a part is numbered where it will stand.
+  var madeByForks = 0;
   for (var i = 0; i < rawList.length; i++) {
     final raw = rawList[i];
     if (raw is! Map) {
       problems.add(ImportProblem(
         fault: ImportFault.refused,
-        partNumber: i + 1,
+        partNumber: i + 1 + madeByForks,
         message: 'this part is not an object.',
       ));
       continue;
@@ -243,8 +246,16 @@ ImportedTutorial readTutorialJson(String text, {String? fileName}) {
     // twice would name them the same.
     step.remove('id');
 
-    positionList.add(step);
-    problems.addAll(problemsWithStep(step, partNumber: i + 1));
+    // A part is one line (D2 of `docs/PLAN-MAPA-DELOVA.md`): the film walks
+    // first children, so a side line kept inside a part would be imported and
+    // never shown.
+    final pieces = splitStepAtForks(step, index: positionList.length);
+    for (final piece in pieces) {
+      positionList.add(piece);
+      problems.addAll(problemsWithStep(piece, partNumber: i + 1 + madeByForks));
+      madeByForks++;
+    }
+    madeByForks--;
   }
 
   return ImportedTutorial(

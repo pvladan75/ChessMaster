@@ -547,6 +547,32 @@ class LessonApiService {
     }
   }
 
+  /// Appends several steps to an existing lesson, in order, **whole or not
+  /// at all** — the server builds every one before it writes any.
+  ///
+  /// The door for a line with side lines in it, which the app makes into one
+  /// part per line (D2 of `docs/PLAN-MAPA-DELOVA.md`): sent one request per
+  /// part, a refusal in the middle would leave half of them in the tutorial.
+  Future<String?> appendSteps({
+    required int lessonId,
+    required List<Map<String, dynamic>> steps,
+  }) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/lessons/$lessonId/steps'),
+            headers: _headers,
+            body: jsonEncode({'steps': steps}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 201) return null;
+      return _errorFrom(res.body, 'Adding steps failed (${res.statusCode}).');
+    } catch (e) {
+      AppLogger.log('[Lessons] Adding steps failed: $e');
+      return 'Cannot connect to server.';
+    }
+  }
+
   /// Saves a tutorial as a new version, and returns the copy's id.
   ///
   /// Phase 3a of `docs/PLAN-TUTORIJAL.md`. The trainer keeps one tutorial and

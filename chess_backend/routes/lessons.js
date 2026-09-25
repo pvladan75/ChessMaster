@@ -285,7 +285,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// POST /lessons/:id/steps — append one position to an existing course.
+// POST /lessons/:id/steps — append positions to an existing course.
 //
 // The other half of "add to lesson": a trainer looking at a position wants it
 // in a lesson without opening the editor and rebuilding the list.
@@ -293,13 +293,34 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // It appends server-side, in one statement, rather than having the client read
 // the lesson, push a step and PUT the whole thing back. Two people editing the
 // same lesson that way lose one of the edits, and the loser is silent.
+//
+// `step` is one part; `steps` is several, in order — a line from Analysis with
+// side lines in it arrives as one part per line (D2 of
+// `docs/PLAN-MAPA-DELOVA.md`; the server has no PGN reader and cannot split it
+// itself). **Whole or not at all**: every step is built before anything is
+// written, and the append is one statement, so a bad step anywhere in the
+// list leaves the tutorial as it was.
 router.post('/:id/steps', authenticateToken, async (req, res) => {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) {
     return res.status(400).json({ error: 'Unknown tutorial.' });
   }
 
-  const built = buildLessonStep(req.body?.step);
+  const hasStep = req.body?.step !== undefined;
+  const hasSteps = req.body?.steps !== undefined;
+  if (hasStep === hasSteps) {
+    return res.status(400).json({ error: 'Send either "step" or "steps".' });
+  }
+  if (hasSteps && (!Array.isArray(req.body.steps) || req.body.steps.length === 0)) {
+    return res.status(400).json({ error: '"steps" must be a list with at least one step.' });
+  }
+
+  const built = hasSteps
+    ? buildLessonSteps(req.body.steps)
+    : (() => {
+        const one = buildLessonStep(req.body.step);
+        return one.ok ? { ok: true, entries: [one.entry] } : one;
+      })();
   if (!built.ok) {
     return res.status(built.status).json({ error: built.error });
   }
@@ -312,7 +333,7 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
           AND (user_id = $3 OR trainer_id = $3)
           AND position_list IS NOT NULL
         RETURNING id, title, jsonb_array_length(position_list) AS step_count`,
-      [JSON.stringify([built.entry]), id, req.user.id]
+      [JSON.stringify(built.entries), id, req.user.id]
     );
 
     if (result.rows.length === 0) {

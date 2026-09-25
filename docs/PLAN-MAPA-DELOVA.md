@@ -309,7 +309,46 @@ twelve mutations, one per guard and condition, each red on the right case.
 - **Phone:** the same controller; one case at 360 × 640 that the move makes a
   part and the Parts tab shows it.
 
-### Phase 2 — every other door splits a fork [implementer; the route is the lead's]
+### Phase 2 — every other door splits a fork [implementer; the route is the lead's] — done 26.9.2026
+
+**Built inline by the lead, on branch `mapa-delova-faza-2`.** One function,
+`splitAtForks` (`TS/services/section_split.dart`), and one door each:
+
+- **2 and 3** — `openLineAsParts(draft, root)` beside it: the PGN tab's Apply
+  (through `replaceLine`, which now answers how many parts it made — „Applied
+  as 3 parts: every side line is a part of its own.") and **both** handover
+  sites in the studio.
+- **4 and 5** — `splitStepAtForks(step)`, called where an import's
+  `positionList` is made: `readTutorialJson` (JSON files, and the tutorial
+  from a game, which goes through it) and `tutorialFromGame` (PGN games). A
+  step that does not fork keeps its text byte for byte; a step the reader
+  cannot replay whole is left as it is, since its report already names what is
+  wrong and splitting the reader's shorter tree would save it under a clean
+  report. Problems are numbered where the parts will stand.
+- **6** — `StudioLessonStep.partsFrom(anchor)` and `appendSteps`: one request
+  with `steps: [...]`. The route (`BE/routes/lessons.js`) takes `step` or
+  `steps`, not both; every step is built before anything is written, and the
+  append was already one statement, so no transaction was needed for „whole or
+  not at all".
+
+**D2's order needed more than `splitForLine` applied again.** Its new line
+holds every side line at the fork as a child, and cutting that part at its
+own root puts the side lines after the continuation — reversed. `splitAtForks`
+lays them out one part each (`_onePerSideLine`): the first keeps the
+position's sentence, every one its marks.
+
+Gate: `T/tutorial_split_at_forks_test.dart` (10), `T/tutorial_fork_doors_test.dart`
+(12), `BE/test/lesson_steps_append.test.js` (4 + 2 on a real database).
+Mutations: twelve in the app, three in the route, each red on the right case.
+Two things the round found in the lead's own gate: no fixture put a sentence
+or an arrow on a position with two side lines, so „the sentence once, the
+marks on each" had nothing to fail on (a case was added); and a door case
+that failed half way left its screen standing, so its neighbour went red
+under a mutation that could not touch it — the cases now close through
+`addTearDown` and mint their own lesson ids.
+
+The plan's first description, kept for the record:
+
 
 - One pure function, `splitAtForks(TutorialSection) → List<TutorialSection>`,
   D2's order. For a single fork it must equal `splitForLine` at that fork, and
