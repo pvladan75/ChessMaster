@@ -235,11 +235,23 @@ if ($Install) {
         if (-not (Test-NasaInstalacija $InstallPath)) {
             Fail "$InstallPath postoji a nije instalacija ove aplikacije. Izaberi drugo mesto sa -InstallPath."
         }
+        # Pokrenuta kopija se proverava PRE brisanja, ne otkriva se iz greske.
+        # Remove-Item -Recurse brise prvo podfoldere pa tek onda fajlove, pa je
+        # 25.9.2026 obrisao data\ i tek onda zastao na zakljucanom DLL-u: skripta
+        # je rekla "zatvori aplikaciju", a instalacija je ostala bez data\ i
+        # svako sledece pokretanje se tiho gasilo sa izlaznim kodom 1.
+        $pokrenute = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
+            $_.Path -and $_.Path.StartsWith($InstallPath + "\", [StringComparison]::OrdinalIgnoreCase)
+        })
+        if ($pokrenute.Count -gt 0) {
+            $spisak = ($pokrenute | ForEach-Object { "$($_.ProcessName) ($($_.Id))" }) -join ", "
+            Fail "Iz $InstallPath je pokrenuto: $spisak. Zatvori aplikaciju pa pokreni ponovo - nista nije obrisano."
+        }
         try {
             Remove-Item -Recurse -Force $InstallPath
         }
         catch {
-            Fail "Ne mogu da obrisem staru kopiju u $InstallPath - najverovatnije je aplikacija pokrenuta. Zatvori je pa pokreni ponovo."
+            Fail "Stara kopija u $InstallPath je obrisana samo delimicno ($($_.Exception.Message)). Zatvori sve sto je drzi otvorenim i pokreni instalaciju ponovo - do tada se aplikacija iz te kopije ne pokrece."
         }
     }
     New-Item -ItemType Directory -Force -Path $InstallPath | Out-Null
