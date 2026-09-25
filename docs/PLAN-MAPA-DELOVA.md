@@ -226,7 +226,54 @@ reach e1, so the move is `Re1` and the reader refused it.
 - **Gate:** the counts written here; the fixtures replay with
   `rejectedMoves == 0`.
 
-### Phase 1 — a part is one line on the board [implementer]
+### Phase 1 — a part is one line on the board [implementer] — done 25.9.2026
+
+**Built inline by the lead, on branch `mapa-delova-faza-1`.**
+`MoveOutcome.branched`, `TutorialDraftController._openPartFrom`, the notice in
+`_onMove`. Gate `T/tutorial_one_line_test.dart` **14/14**, red on master for
+the right reason (the film lacked `h6`). Full run **4040 passed, 1 skipped**
+(4024 + 11 of the gate's first draft + 3 of the refusal below + 2 in the PGN
+tab); `analyze` the same 22 infos.
+
+The first full run had three reds, all settled:
+
+1. `tutorial_studio_test` „a second move from the same position is a fork,
+   and the strip asks which line" and
+2. `tutorial_delete_move_test` „a sideline can be made the line the child
+   walks" built their fork **by playing a second move**, which D1 replaces.
+   Rewritten openly, the supersession written above each: the fork comes from
+   a stored `pgn` with a variation, which the reader still makes (D4), so the
+   strip's question and „promote" stay covered. Each is red when the side line
+   is taken out of its fixture.
+3. `tutorial_pgn_tab_test` „a move played on the board does not wipe unapplied
+   text" — **a real finding.** The trainer types in the PGN tab without
+   applying and plays `1. d4` where the part plays `1. e4`: D1 opens part 2, the
+   field is rebuilt for it, and the text was gone without a word. **The owner's
+   decision of 25.9.2026: such a move is held back** — „This move would start
+   a new part. Apply or discard the text in the PGN tab first." — because
+   carrying the text across would apply it to a part it was not written for.
+   `playMove(..., mayOpenPart: false)` answers `MoveOutcome.heldBack` for that
+   move and only that one; the panel reports whether it holds unapplied text
+   (`onEdited`), and gained a **Discard** button, shown only while there is
+   something to discard — without it, „clear the text" had no way to be done
+   short of retyping the part. The old case was split in three: a move that
+   grows the line keeps the text (its original point), a move that would open a
+   part is held back with the board put back, and after Discard the same move
+   opens a part. One more case in the gate: an Android tablet turned across the
+   breakpoint swaps in the phone layout, which has no PGN tab, and the board
+   stays — the panel says „nothing held" as it goes, or every later second move
+   would be refused over text that no longer exists.
+
+Mutations of the refusal, each red on the right case: the screen always
+passing `mayOpenPart: true`; the controller ignoring the flag; the controller
+holding back every move; no report when typing; none after Discard; none on
+dispose; the board not put back. **The last one survived at first** — the
+case called `onMove` without moving the piece on the board, so a board that
+kept the move looked the same as one put back. The case now moves the piece on
+the board's own controller first, as a drag does.
+
+Not settled here, and older than this phase: selecting **another part** still
+rebuilds the PGN field and loses unapplied text, as it did before D1.
 
 - `playMove`: when the cursor has children and the move is not one of them, D1.
   The new part: root on the cursor's position, carrying its arrows and squares

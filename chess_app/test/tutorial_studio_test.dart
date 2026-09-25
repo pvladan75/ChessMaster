@@ -74,7 +74,9 @@ void main() {
   /// A desktop window: the screen is Windows-only by decision 5, and a board
   /// beside a tree needs the width it was designed for.
   Future<void> open(WidgetTester tester,
-      {TutorialHandover? handover, bool resumeDraft = true}) async {
+      {TutorialHandover? handover,
+      TutorialEntry? entry,
+      bool resumeDraft = true}) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -82,9 +84,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: TutorialStudioScreen(
         session: session,
-        entry: handover == null
-            ? const TutorialEntry.blank('')
-            : TutorialEntry.fromAnalysis(handover),
+        entry: entry ??
+            (handover == null
+                ? const TutorialEntry.blank('')
+                : TutorialEntry.fromAnalysis(handover)),
       ),
     ));
     await tester.pumpAndSettle();
@@ -179,11 +182,28 @@ void main() {
       // the first child by itself. A trainer who wrote two answers to one move
       // and gets only one of them back has lost the same thing the child's
       // screen lost until batch 52.
-      await open(tester, handover: TutorialHandover.position(openingFen));
-
-      await play(tester, 'e2', 'e4');
-      await tapTooltip(tester, 'Previous move');
-      await play(tester, 'd2', 'd4');
+      //
+      // Superseded 25.9.2026 by D1 of `docs/PLAN-MAPA-DELOVA.md`: this case
+      // built its fork by playing `1. d4` after `1. e4` from the start, and a
+      // second move now opens a part instead. A part saved with a side line is
+      // still read as one (D4 leaves such tutorials as they are), and the strip
+      // still has to ask there — so the fork comes from the stored text now.
+      await open(
+        tester,
+        entry: TutorialEntry.saved(const {
+          'id': 611,
+          'title': 'Otvaranje',
+          'position_list': [
+            {
+              'id': 'step-1',
+              'fen': openingFen,
+              'title': 'Part 1',
+              'pgn': '1. e4 (1. d4) *',
+              'kind': 'show',
+            },
+          ],
+        }),
+      );
       await tapTooltip(tester, 'Previous move');
 
       await tapTooltip(tester, 'Next move');

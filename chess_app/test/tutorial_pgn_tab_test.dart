@@ -343,27 +343,93 @@ void main() {
   });
 
   group('the trainer is the one who types in the field', () {
-    testWidgets('a move played on the board does not wipe unapplied text',
+    testWidgets('a move that grows the line does not wipe unapplied text',
         (tester) async {
       // The field follows the tree when the tree moves — a move played, an
       // arrow drawn — but not over the top of something the trainer has
       // written and not yet applied. Without the guard this is the shape of it:
       // they type a line, reach for the board, and their text is gone.
+      //
+      // Superseded 25.9.2026 by D1 of `docs/PLAN-MAPA-DELOVA.md`: this case
+      // used to play `1. d4` where the part plays `1. e4`, which then made a
+      // second child here. That move now opens a part and is held back (the
+      // next case), so the tree is changed here by the move that still grows
+      // the line — walking into `1. e4` and answering it.
       await open(tester, lessonWith(pgn: '1. e4'));
       await openTab(tester);
       await typeInto(tester, '1. d4 d5 { Moj tekst. }');
 
-      // A legal move **from the position the cursor is on** — the root, white
-      // to move — and one that is not already in the line, so the tree really
-      // changes and the exported text with it. The first version played a
-      // black move from a white-to-move position: nothing happened, and the
-      // mutation this test exists for went on passing.
-      board(tester).onMove('d2', 'd4', '');
+      board(tester).onMove('e2', 'e4', '');
+      await tester.pumpAndSettle();
+      board(tester).onMove('e7', 'e5', '');
       await tester.pumpAndSettle();
 
       expect(fieldText(tester), contains('Moj tekst.'),
           reason: 'the tree changed and took the trainer unapplied text with '
               'it');
+      await tester.tap(find.byKey(const Key('pgn-discard')));
+      await tester.pumpAndSettle();
+      expect(fieldText(tester), contains('e5'),
+          reason: 'the move did not reach the tree, so this case changed '
+              'nothing it could lose the text to');
+
+      await close(tester);
+    });
+
+    testWidgets('a move that would open a part is held back, and says why',
+        (tester) async {
+      // The owner's decision of 25.9.2026. A new part rebuilds the field for
+      // itself, so the typed text would be gone without a word; carried
+      // across, it would be applied to a part it was not written for.
+      await open(tester, lessonWith(pgn: '1. e4'));
+      await openTab(tester);
+      await typeInto(tester, '1. d4 d5 { Moj tekst. }');
+
+      // As a drag does it: the board moves the piece, then reports the move.
+      board(tester).controller.makeMove(from: 'd2', to: 'd4');
+      board(tester).onMove('d2', 'd4', '');
+      await tester.pumpAndSettle();
+
+      expect(board(tester).controller.getFen().split(' ').first,
+          startFen.split(' ').first,
+          reason: 'the board kept a move the part does not hold');
+      expect(fieldText(tester), contains('Moj tekst.'));
+      expect(
+          find.text('This move would start a new part. '
+              'Apply or discard the text in the PGN tab first.'),
+          findsOneWidget);
+      final step = await saveAndRead(tester);
+      expect(step.line.movesSan, ['e4'],
+          reason: 'one part, its line as it was: the move was not played');
+
+      await close(tester);
+    });
+
+    testWidgets('discarded, the text goes and the same move opens a part',
+        (tester) async {
+      await open(tester, lessonWith(pgn: '1. e4'));
+      await openTab(tester);
+      await typeInto(tester, '1. d4 d5 { Moj tekst. }');
+
+      expect(find.byKey(const Key('pgn-discard')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('pgn-discard')));
+      await tester.pumpAndSettle();
+      expect(fieldText(tester), isNot(contains('Moj tekst.')));
+      expect(find.byKey(const Key('pgn-discard')), findsNothing,
+          reason: 'nothing is left to discard');
+
+      board(tester).onMove('d2', 'd4', '');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Save tutorial'));
+      await tester.pumpAndSettle();
+      final parts = saves.single['positionList'] as List;
+      expect(parts, hasLength(2));
+      final opened = LessonStepLine.read(
+        fen: (parts[1] as Map)['fen'].toString(),
+        pgn: (parts[1] as Map)['pgn']?.toString(),
+      );
+      expect(opened.line.movesSan, ['d4']);
 
       await close(tester);
     });

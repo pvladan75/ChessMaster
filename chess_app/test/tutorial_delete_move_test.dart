@@ -71,7 +71,8 @@ void main() {
   ChessBoardWithOverlay board(WidgetTester tester) => tester
       .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay).first);
 
-  Future<_RecordingApi> open(WidgetTester tester) async {
+  Future<_RecordingApi> open(WidgetTester tester,
+      {TutorialEntry entry = const TutorialEntry.blank('Italijanka')}) async {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -79,7 +80,7 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: TutorialStudioScreen(
         session: session,
-        entry: const TutorialEntry.blank('Italijanka'),
+        entry: entry,
         lessonApi: api,
       ),
     ));
@@ -213,11 +214,28 @@ void main() {
 
   testWidgets('a sideline can be made the line the child walks',
       (tester) async {
-    final api = await open(tester);
-    await play(tester, 'e2', 'e4');
-    await play(tester, 'e7', 'e5');
-    await back(tester, 1);
-    await play(tester, 'c7', 'c5'); // a second reply to 1. e4
+    // Superseded 25.9.2026 by D1 of `docs/PLAN-MAPA-DELOVA.md`: this case
+    // built its fork by playing `1... c5` after `1... e5`, and a second move
+    // now opens a part instead. A part saved with a side line is still read as
+    // one (D4 leaves such tutorials as they are), and promoting is still how
+    // its trainer chooses which line is filmed — so the fork comes from the
+    // stored text now, and what is asserted is unchanged.
+    final api = await open(
+      tester,
+      entry: TutorialEntry.saved(const {
+        'id': 612,
+        'title': 'Italijanka',
+        'position_list': [
+          {
+            'id': 'step-1',
+            'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+            'title': 'Part 1',
+            'pgn': '1. e4 e5 (1... c5) *',
+            'kind': 'show',
+          },
+        ],
+      }),
+    );
 
     // Through the tree's own menu, on the „Stablo" tab — the node is drawn as
     // a `RichText`, so it is found by the text it renders rather than by a key

@@ -8102,3 +8102,35 @@ delova iz skice je na prvom puštanju pao: `19. Rfe1` u delu 7, gde lovac na
 c1 ostavlja samo jedan top koji stiže na e1, pa je potez `Re1` i čitač ga
 odbija. Bez tog testa, svako kasnije „nijedan deo se ne račva" stajalo bi na
 delu kome fali poslednji potez — zeleno iz pogrešnog razloga.
+
+## 25.9.2026 — Delovi kao mapa: faza 1
+
+Drugi potez u delu otvara novi deo odmah posle otvorenog (D1). Aplikacija
+**4024 → 4040**, 1 preskočen, pun prolaz bez ičeg drugog: +11 kapije
+(`tutorial_one_line_test.dart`, prva verzija), +3 za zadržan potez, +2 u
+kartici PGN (jedan slučaj postao tri); dva stara slučaja prepisana, broj im
+isti. `flutter analyze` isti 22 infoa. Backend nije diran.
+
+**Crveno u punom prolazu posle promene pravila nije uvek zastareo test.** Od
+tri crvena, dva su gradila račvu igrajući drugi potez — tačno ono što D1
+menja, i prepisana su otvoreno. Treći je bio pravi nalaz: tekst ukucan u
+kartici PGN, a nije primenjen, nestajao je bez reči kad potez otvori novi deo,
+jer se polje gradi za novi deo. Vlasnik je odlučio da se takav potez zadrži
+dok se tekst ne primeni ili odbaci. **Pre nego što se test prepiše da prati
+novo pravilo, pitaj šta je štitio** — ovaj je štitio korisnikov tekst, a to
+pravilo i dalje važi.
+
+**Poruka koja kaže „očisti" mora imati dugme koje čisti.** „Apply or clear"
+nije imalo način da se uradi osim da se deo prekuca od reči do reči, pa je
+panel dobio **Discard**, vidljiv samo dok ima šta da se odbaci.
+
+**Mutacija „tabla ne vraća figuru" je preživela** — slučaj je zvao `onMove`
+bez pomeranja figure na tabli, pa tabla koja je zadržala potez i tabla koja je
+vraćena izgledaju isto. Slučaj sada pomera figuru kontrolerom table, kao što
+prevlačenje radi. **Lažni ulaz koji preskače korak koji kod poništava ne može
+da vidi da poništavanje fali.**
+
+**Zastavica koju čuva vidžet mora da se spusti kad vidžet ode.** Tablet
+okrenut preko prelomne tačke menja raspored u telefonski, koji nema karticu
+PGN, a tabla ostaje: bez izveštaja na `dispose`, svaki sledeći drugi potez bi
+bio odbijen zbog teksta koga više nema. Mutacija to potvrđuje.
