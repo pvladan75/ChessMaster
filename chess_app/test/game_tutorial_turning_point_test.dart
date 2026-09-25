@@ -44,8 +44,10 @@ Map<String, dynamic> _row(String mover, String best, String played) => {
       'played': {'move': 'e4', 'eval': played},
     };
 
-Map<String, dynamic> _moment(String id, int index, Object? cost) =>
-    {'id': id, 'index': index, 'cost': cost};
+/// A moment that lost [lost] chances — what the decisive moment ranks by
+/// since phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md (pawns before).
+Map<String, dynamic> _moment(String id, int index, double lost) =>
+    {'id': id, 'index': index, 'lost': lost};
 
 void main() {
   final games = _games();
@@ -60,40 +62,40 @@ void main() {
         _row('White', '+0.2', '-2.0'),
       ];
       expect(
-        decisiveMoment([_moment('m1', 0, 'mate'), _moment('m2', 1, 1.0)], rows),
+        decisiveMoment([_moment('m1', 0, 30), _moment('m2', 1, 12)], rows),
         'm2',
       );
     });
 
-    test('among moves that changed it, the costliest wins', () {
+    test('among moves that changed it, the largest loss wins', () {
       final rows = [
         _row('White', '+0.2', '-2.0'),
         _row('White', '+0.2', '-2.0'),
       ];
       expect(
-        decisiveMoment([_moment('m1', 0, 1.0), _moment('m2', 1, 4.0)], rows),
+        decisiveMoment([_moment('m1', 0, 12), _moment('m2', 1, 30)], rows),
         'm2',
       );
     });
 
-    test('on equal cost the game turned the first time it turned', () {
+    test('on an equal loss the game turned the first time it turned', () {
       final rows = [
         _row('White', '+0.2', '-2.0'),
         _row('White', '+0.2', '-2.0'),
       ];
       expect(
-        decisiveMoment([_moment('m1', 0, 2.0), _moment('m2', 1, 2.0)], rows),
+        decisiveMoment([_moment('m1', 0, 20), _moment('m2', 1, 20)], rows),
         'm1',
       );
     });
 
-    test('when nothing changed hands it falls back to the costliest', () {
+    test('when nothing changed hands it falls back to the largest loss', () {
       final rows = [
         _row('White', '-3.0', '#-4'),
         _row('White', '-3.0', '#-4'),
       ];
       expect(
-        decisiveMoment([_moment('m1', 0, 2.0), _moment('m2', 1, 5.0)], rows),
+        decisiveMoment([_moment('m1', 0, 12), _moment('m2', 1, 25)], rows),
         'm2',
       );
     });
@@ -121,20 +123,25 @@ void main() {
     }
   });
 
-  test('g01 is the case the rule exists for', () {
-    final g01 =
-        games.firstWhere((g) => g['game'] == 'g01_scandinavian-defense');
-    final moments = skeletonMoments(g01['facts'] as Map<String, dynamic>);
+  // g01 was this case until phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md:
+  // a move costing a forced mate, played from a position already lost, passed
+  // over for one costing 2.11 pawns. In chances that forced mate costs almost
+  // nothing — the game was lost either way — so it is no longer a moment at
+  // all, and g04 is where the rule now decides: the largest loss did not
+  // change who stands better, a smaller one did. Rewritten openly, 25.9.2026.
+  test('g04 is the case the rule exists for', () {
+    final g04 = games.firstWhere((g) => g['game'] == 'g04_saragossa-opening');
+    final moments = skeletonMoments(g04['facts'] as Map<String, dynamic>);
     final marked = moments.firstWhere((m) => m['turning_point'] == true);
 
-    // Not m6, which costs a forced mate - Black was already losing there.
     expect(marked['id'], 'm3');
-    expect(marked['cost'], 2.11);
-    final costliest = moments
-        .reduce((a, b) => costValue(b['cost']) > costValue(a['cost']) ? b : a);
-    expect(costliest['cost'], 'mate',
-        reason: 'the fixture must hold a costlier moment that is not the '
-            'turning point, or this test cannot tell the rule from "costliest"');
+    expect(marked['lost'], 14.65);
+    final largest = moments
+        .reduce((a, b) => (b['lost'] as num) > (a['lost'] as num) ? b : a);
+    expect(largest['id'], isNot(marked['id']),
+        reason: 'the fixture must hold a larger loss that is not the turning '
+            'point, or this test cannot tell the rule from "largest loss"');
+    expect(largest['lost'], greaterThan(marked['lost'] as num));
   });
 
   group('the recap comes back to it, in whole-game mode only', () {

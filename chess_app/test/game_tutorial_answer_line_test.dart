@@ -156,11 +156,13 @@ void main() {
         }
       }
     }
-    // Sixteen of sixty-nine when this was written. Pinned as a band rather than
-    // a number: the point is that most parts are untouched, and that the rule
+    // Sixteen of sixty-nine when this was written; 63 moments since phase 1b
+    // of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md. Pinned as a band rather than a
+    // number: the point is that most parts are untouched, and that the rule
     // has not quietly become "always show six".
-    expect(total, 69);
-    expect(extended, inInclusiveRange(10, 25));
+    expect(total, 63);
+    // Nine of sixty-three since phase 1b.
+    expect(extended, inInclusiveRange(5, 25));
   });
 
   test('the fixtures miss only what their recorded answer was never asked', () {

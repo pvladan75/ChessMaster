@@ -16,11 +16,18 @@ import 'dart:io';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:chess_app/core/services/game_analysis_walker_service.dart'
+    show BlunderAlertSide;
+import 'package:chess_app/core/services/game_review_judge.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/review_verdicts.dart'
+    show applyReviewVerdicts;
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/game_facts.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/models/analysis_models.dart';
+
+import 'support/facts_engine.dart';
 
 const _fixtures = 'test/fixtures/game_tutorial';
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -221,6 +228,24 @@ void main() {
           uciMoves: uci,
           masters: masters,
         );
+
+        // And the review's verdicts, as the run writes them after the facts
+        // (phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md): the judge on the
+        // game's own answers, as `tool/judge_facts.dart` wrote the harness's
+        // input. So the rows compared below are the app's builder and the
+        // app's judge together, and `judged` is part of what must agree.
+        final reviewed = await GameReviewJudge(
+          analyzer: factsEngine(facts),
+          book: (fens) => factsMasters(facts, fens),
+          tablebase: (_) async => null,
+        ).review(
+          startingFen: _start,
+          uciMoves: uci,
+          depth: facts['depth'] as int,
+          puzzles: BlunderAlertSide.both,
+        );
+        applyReviewVerdicts(
+            (built['rows'] as List).cast<Map<String, dynamic>>(), reviewed!);
 
         expect(_difference(facts['rows'], built['rows']), isNull);
         expect(built['in_book'], facts['in_book']);

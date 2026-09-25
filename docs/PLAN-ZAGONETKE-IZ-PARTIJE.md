@@ -1165,6 +1165,112 @@ two moves near the best in chances are both accepted, the slider's count and
 the moments it gives are the same number; every rule by mutation, on both
 sides of the harness.
 
+
+**Briefed, 25.9.2026 — the owner's decisions of the same day:** the pawn rule
+goes out entirely and **there is no threshold slider** (the rule decides; the
+dialog says what it found); a tutorial's mistakes are decided by **the
+review's own judge, deepening included**, so the review and the tutorial call
+the same moves mistakes; the tutorial's **default depth is 20**, the depth `A`
+was measured at; and the ten fixture games' model answers are **re-recorded**
+(ten DeepSeek requests), with the moments that left and came listed in
+`LESSONS.md`.
+
+Measured first, on the ten fixture games' own depth-18 facts, walk only (a
+floor, no deepening): the old rule keeps **69** moments (the number the tests
+pin — the measurement reproduces it); the new one **65** — 54 stay, 15 leave
+(5 of them moves after which the chances barely moved: „cost 3.7 pawns" at
+6 → 2.5, a mate given up at 100 → 95), 11 come, most of them only moves the
+player found (g08: 2 → 5).
+
+The design:
+
+- **The verdicts are facts.** After the facts are built, the run judges the
+  game with `GameReviewJudge` (book: the walk already fetched; tablebase: the
+  app's one service; `puzzles: both`, for the only moves' second lines) and
+  writes onto each played move `judged`: `lost` (chances, two decimals),
+  `mistake`, `reason`, `unsettled`, `only` and `gap` for an only move found
+  (the extractor's own criteria, `buildPuzzlesFromReview(…).onlyMoves`), or
+  `unjudged` with the reason. The skeleton stays a pure function of the facts,
+  so the parity with the harness still holds.
+- **The engine's answers go through `EvalCache`**, named `exe:<identity>` as
+  the desktop engine already names them: the tutorial's four lines serve the
+  judge's walk and its two-line looks, so only the confirming and deepening
+  searches are new. `GameFactsStore` (`facts_store.dart`) is deleted with its
+  directory wipe kept for old files.
+- **A moment**: a mistake the judge settled, ranked by chances lost, then an
+  only move found, ranked by its gap; at most `maxMoments` (8); in game order.
+  **The question**: the candidates that would not be a mistake themselves
+  (`W(best) − W(c) < A`) count as correct, the question asked when at most
+  `maxCorrect` (3) do — „near" is `A`, one number, not a second one.
+  **The decisive moment** ranks by chances lost instead of pawns; the filler's
+  lexicon speaks of a move the judge called a mistake instead of one over
+  `minCost`.
+- `SkeletonParameters` loses `minCost` and `near`; the threshold slider, its
+  preference and `withMinCost` go; the slice dialog stays as the last door
+  before the words are paid for and says „N mistakes and M only moves found;
+  K become parts". A game with none says it is clean at that depth, with the
+  unsettled and unjudged counts, and spends nothing.
+- `best_stands_out` and `margin_pawns` are deleted, in the app and in
+  `make_facts.py`; the trial tools that read them read them optionally.
+- **The harness**: `skeleton.py` mirrors the selection from `judged` and the
+  question's `A` (the curve, held to the app by the fixtures, as `words_for`
+  is); the fixture facts get their `judged` from the app's judge through
+  `tool/game_facts.dart` (Stockfish, one thread, the fixtures' depth 18) —
+  one home for the rule; `export_fixtures.py` regenerates; the ten answers are
+  re-recorded and reassembled.
+
+**Built, 25.9.2026**, the rule, the run, the harness and the fixtures in one
+commit (the rule turns the fixture tests red until the fixtures carry the
+verdicts, so the three steps briefed could not each be green alone), and the
+deletion of `best_stands_out` / `margin_pawns` after it:
+
+- `review_verdicts.dart` (`applyReviewVerdicts`, `onlyMovesFound`,
+  `chancesOfValue`); `skeleton_moments.dart` `momentIndices`,
+  `momentCounts`, `correctCandidates`, and a moment's `kind` and `lost`. A
+  verdict the facts' own best move contradicts is left out, not told.
+- **The owner's fifth decision, the same day**: the right answers are every
+  move that would not itself be a mistake (`A`), measured first — questions
+  on 44 of the 63 moments (70%) against 61 (97%) at the old 0.3 pawns, and
+  alternative lines on 15 of 63 against 29 of 69, because a lesser move must
+  now be a real mistake.
+- **An only move is told as what it is**: „Only one move holds here" in the
+  question, „the move played in the game, the only one that held" on the
+  line's first move, „played in the game" while the line follows the game,
+  „In this position White found the only move that held…" as the program's
+  sentence — which names no move, since the line after it plays it — and
+  `cost_text` „was the only move that held", so the server's prompt reads
+  true with no change on the server.
+- The run judges with `GameReviewJudge` after the facts, through `EvalCache`
+  (`exe:<identity>`); a `review` stage in the progress; `GameTutorialSlice`
+  counts; the stop says a clean game is clean at its depth and names the
+  unsettled and unjudged moves. The depth preference moved to a new key, so
+  every trainer starts once at 20 (the old key held 18, the old default).
+- `GameFactsStore` was **not** deleted: the facts builder now also writes to
+  `EvalCache`, so the judge is served, and the per-game store still makes a
+  resumed build free. One store too many — flagged, not removed unasked.
+- **The fixtures**: `test/support/facts_engine.dart` answers the judge from a
+  game's own stored candidates (the played move alone from the position
+  after it), `tool/judge_facts.dart` writes the ten games' `judged` into the
+  harness's input with it, and the facts test and the run test reach the same
+  verdicts with the same stand-in — deterministic, no Stockfish. Measured:
+  71 mistakes and 11 only moves, 0 unsettled; where the judge and a
+  next-position estimate differed (4 moves), the judge valued a move by its
+  own line, as a real engine's `searchmoves` does. `skeleton.py` mirrors the
+  selection, the question's `A`, the only-move wording, the decisive moment
+  and the filler; the app and the harness gave the same 63 moments, slots and
+  texts before anything was paid for. The ten answers were recorded again
+  (DeepSeek flash, effort low, the 14.9 settings; 33–94 s each), and
+  `export_fixtures.py` reads them; its answer case now writes into the first
+  chosen moment that asks.
+
+Gate: `game_tutorial_moments_rule_test.dart` (9), the rewritten slice test
+(9), a g08 run that must reproduce the fixture's whole request with its three
+only moves, and every fixture test on the new fixtures (the app 4187 → 4188;
+the server's 1737 unchanged, its fixture tests green). 16 mutations of the app
+and one of the harness: 15 caught, the harness one refused loudly by
+`export_fixtures.py` itself, one inert and recorded — `<` against `<=` at `A`,
+since whole centipawns never make a loss of exactly 10.
+
 ### Phase 1t — five men or fewer from our own tables [lead, then implementer]
 
 The owner, 24.9.2026, after 1.2a brought the tablebase into the review.

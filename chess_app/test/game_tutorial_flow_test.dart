@@ -55,7 +55,6 @@ class _Runner implements GameTutorialRunner {
   int? depthAsked;
   String? fenAsked;
   List<String>? movesAsked;
-  double? minCostAsked;
   SkeletonParameters? sliceChosen;
 
   @override
@@ -74,7 +73,6 @@ class _Runner implements GameTutorialRunner {
     depthAsked = depth;
     fenAsked = startFen;
     movesAsked = uciMoves;
-    minCostAsked = parameters.minCost;
     for (final s in steps) {
       onProgress?.call(s);
     }
@@ -206,7 +204,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('door')));
     await tester.pumpAndSettle();
-    expect(find.text('Depth 18'), findsOneWidget);
+    // It opens at 20 since phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md — the
+    // depth the mistake rule's floor was measured at; 18 until then.
+    expect(find.text('Depth 20'), findsOneWidget);
 
     final slider = find.byKey(const Key('game-tutorial-depth'));
     await tester.drag(slider, const Offset(2000, 0));
@@ -382,7 +382,9 @@ void main() {
       opened: opened,
       chooseSlice: (context, slice) async {
         asked = slice.parameters;
-        return slice.parameters.withMinCost(2.5);
+        // No threshold since phase 1b: what the trainer can hand back is
+        // the parameters themselves, here with another cap.
+        return const SkeletonParameters(maxMoments: 5);
       },
     );
     await tester.tap(find.byKey(const Key('door')));
@@ -391,7 +393,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(asked, isNotNull, reason: 'the screen is asked');
-    expect(runner.sliceChosen?.minCost, 2.5,
+    expect(runner.sliceChosen?.maxMoments, 5,
         reason: 'and the answer goes back to the run');
 
     // The run carried on to the end, which says the question is a step in the

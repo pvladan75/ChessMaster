@@ -283,7 +283,7 @@ String fillerWords(
           .replaceAll('{move}', played['move'] as String)
           .replaceAll('{after}', stands(mover, standing(eval, mover))),
     );
-  } else if (costValue(played['cost_pawns']) >= parameters.minCost &&
+  } else if ((played['judged'] as Map?)?['mistake'] == true &&
       row['candidates'] != null &&
       (row['candidates'] as List).isNotEmpty) {
     final candidates = row['candidates'] as List;

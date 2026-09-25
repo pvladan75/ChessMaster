@@ -21,6 +21,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:chess_app/core/services/eval_cache.dart' show MoveAnalyzer;
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
 import 'package:chess_app/models/analysis_models.dart';
@@ -245,6 +246,10 @@ class UciEnginePool {
   }
 
   List<PositionAnalyzer> get analyzers => [for (final e in engines) e.analyzer];
+
+  /// The same engines, each also asked `searchmoves` — what the review's
+  /// judge needs (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1b).
+  List<MoveAnalyzer> get moveAnalyzers => [for (final e in engines) e.analyze];
 
   void close() {
     for (final e in engines) {

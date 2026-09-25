@@ -7861,3 +7861,39 @@ STANJE-RADA, pa i u ovom unosu. Parser PowerShell-a nije video grešku
 (putanja je samo pogrešan string). Nađeno pregledom izlaza; sada se posle
 takve izmene fajl skenira na kontrolne znake, a putanja se gradi sa
 `chr(92)`.
+
+## 25.9.2026 — Zagonetke iz partije, faza 1b: tutorijal na pravilu greške
+
+Aplikacija 4177 → **4188** (+9 `game_tutorial_moments_rule_test`, +1 u
+prepisanom `game_tutorial_slice_test`, +1 g08 u `game_tutorial_run_test`;
+4187 izmereno punim prolazom, a g08 slučaj posle njega u svom fajlu); server
+isti **1737**; analyze isti 23. Deset odgovora modela snimljeno ponovo.
+
+**Presude su činjenice.** Tutorijal i harness moraju da izaberu iste momente
+iz istih činjenica, a sudija treba engine. Zato sudija piše presudu u
+činjenice (`played.judged`), a skeleton čita samo nju — i aplikacijin i
+Python-ov. Za test partije presude piše aplikacijin sudija nad sačuvanim
+odgovorima iste partije (`test/support/facts_engine.dart`), pa alat koji ih
+upisuje i testovi koji ih čitaju dobijaju iste, bez Stockfish-a.
+
+**Merenje pre plaćanja.** Pre deset plaćenih zahteva privremeni test je
+uporedio aplikacijine i Python-ove momente na novim činjenicama — 63, isti
+tekstovi — i uporedio sa snimljenim promptom posle izmene rečenice programa
+(ista). Odgovor snimljen nad drugačijim tekstom je nameštaljka koja ne može da
+padne.
+
+**Rečenica koja krši tuđe pravilo.** Prva verzija za jedini potez („White
+played dxe4, the only move that held") imenovala je potez pre nego što ga
+tabla odigra — pravilo koje story test drži za greške važi i ovde. Sada: „White
+found the only move that held…".
+
+**Nameštaljka koja je uvek pogađala prvi izabrani moment.** Slučaj „pitanje
+koje imenuje potez" pisao je u pitanje prvog izabranog momenta; sa novim
+pravilom taj moment ne pita, pa je server odbio oblik umesto da aplikacija
+proveri reči. Sada piše u prvi izabrani moment koji pita.
+
+**Neaktivna mutacija, zapisana.** `<` naspram `<=` na `A`: gubitak od tačno
+10 šansi ne nastaje iz celih centipešaka, pa te dve verzije niko ne može da
+razlikuje. Mutacija harness-a (Python) uhvaćena je glasno još pre Dart testa:
+`export_fixtures.py` je odbio da piše, jer snimljeni runovi više ne odgovaraju
+onome što `skeleton.py` pravi.

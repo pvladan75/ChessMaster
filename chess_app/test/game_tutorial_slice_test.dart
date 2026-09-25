@@ -1,16 +1,16 @@
 // The two questions a trainer is asked around the engine - points 1 and 6 of
-// the owner's live pass, 14.9.2026.
+// the owner's live pass, 14.9.2026 - as phase 1b of
+// docs/PLAN-ZAGONETKE-IZ-PARTIJE.md left them.
 //
-// Point 1 asked for a dialog like "Review game": depth *and* a blunder
-// threshold, rather than depth alone. Point 6 asked to be told how many
-// mistakes were found with those settings, so a trainer can try another slice
-// when it is too few or too many.
-//
-// The second turned out cheaper than asked for. A game's answers are cached by
-// game, depth and engine (`factsKey`) and the threshold is no part of that key,
-// so re-slicing costs no engine time at all - the count answers while the
-// slider moves, and nothing is spent until the trainer presses the button.
-// "Run the analysis again" was never needed.
+// Rewritten on 25.9.2026, openly. Until then both dialogs carried a pawn
+// slider ("Teach a move that cost X pawns or more"), and this file held the
+// count to it. The owner took the pawn rule out that day: a tutorial's moments
+// are the moves the review's own judge calls mistakes, and the only moves a
+// player found, and there is no threshold left to slide. What stayed is the
+// point of point 6 - the trainer is told how many there are, how many become
+// parts, and that a game with too few cannot be written - before anything is
+// paid for. The first dialog asks the depth alone, and starts at 20, the depth
+// the rule's floor was measured at.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -22,25 +22,65 @@ import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.da
 import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 
-/// Facts whose moves cost exactly [costs] pawns.
-///
-/// Written by hand rather than taken from a fixture, so the number a test
-/// asserts is visible in the test that asserts it.
-Map<String, dynamic> _facts({List<double> costs = const [2.2, 2.0, 1.2, 0.4]}) {
-  const fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-  return {
-    'rows': [
-      for (final cost in costs)
-        {
-          'fen': fen,
-          'played': {'move': 'e4', 'cost_pawns': cost},
-          'candidates': [
-            {'move': 'd4'}
-          ],
+const _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+/// A row whose move the judge called a mistake (the facts' best, d4, is not
+/// the move played).
+Map<String, dynamic> _mistake({double lost = 20, bool unsettled = false}) => {
+      'fen': _fen,
+      'played': {
+        'move': 'e4',
+        'judged': {
+          'lost': lost,
+          'mistake': !unsettled,
+          'reason': unsettled ? null : 'lostChances',
+          'unsettled': unsettled,
+          'only': false,
         },
-    ],
-  };
-}
+      },
+      'candidates': [
+        {'move': 'd4'}
+      ],
+    };
+
+/// A row where the move played was the only one that held.
+Map<String, dynamic> _only() => {
+      'fen': _fen,
+      'played': {
+        'move': 'e4',
+        'judged': {
+          'lost': 0.0,
+          'mistake': false,
+          'reason': null,
+          'unsettled': false,
+          'only': true,
+          'gap': 30.0,
+        },
+      },
+      'candidates': [
+        {'move': 'e4'}
+      ],
+    };
+
+/// A row the judge found nothing wrong with.
+Map<String, dynamic> _fine() => {
+      'fen': _fen,
+      'played': {
+        'move': 'e4',
+        'judged': {
+          'lost': 2.0,
+          'mistake': false,
+          'reason': null,
+          'unsettled': false,
+          'only': false,
+        },
+      },
+      'candidates': [
+        {'move': 'd4'}
+      ],
+    };
+
+Map<String, dynamic> _facts(List<Map<String, dynamic>> rows) => {'rows': rows};
 
 Future<void> _pumpSlice(
   WidgetTester tester, {
@@ -63,44 +103,36 @@ Future<void> _pumpSlice(
   await tester.pumpAndSettle();
 }
 
-const _sliceSlider = Key('game-tutorial-slice-threshold');
 const _write = Key('game-tutorial-slice-write');
 
-/// Moves a slider to an exact value.
-///
-/// A pixel drag cannot: the range is 0.2 to 5.0 across whatever width the
-/// dialog happens to have, so 200 px saturates it in a narrow one and lands
-/// somewhere arbitrary in a wide one. One test below drags for real, to say the
-/// control is reachable at all; the rest ask about a number, so they set one.
-Future<void> _setSlider(WidgetTester tester, Key key, double value) async {
-  tester.widget<AppSlider>(find.byKey(key)).onChanged!(value);
-  await tester.pumpAndSettle();
-}
+String _found(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('game-tutorial-found'))).data!;
 
 void main() {
-  testWidgets('the count is what the threshold finds, and follows the slider',
-      (tester) async {
+  testWidgets(
+      'the count is the judge\'s mistakes and the only moves found — an '
+      'unsettled mistake and a fine move are neither', (tester) async {
     final answers = <SkeletonParameters?>[];
     await _pumpSlice(
       tester,
       slice: GameTutorialSlice(
-          facts: _facts(), parameters: const SkeletonParameters()),
+        facts: _facts([
+          _mistake(),
+          _fine(),
+          _mistake(lost: 12),
+          _mistake(unsettled: true),
+          _only(),
+        ]),
+        parameters: const SkeletonParameters(),
+      ),
       answers: answers,
     );
 
-    // Three of the four cost a pawn or more.
-    expect(find.text('3 moves cost 1.0 pawns or more.'), findsOneWidget);
+    expect(_found(tester), '2 mistakes and 1 move where only one move held.');
     expect(
         find.text('All of them become parts of the tutorial.'), findsOneWidget);
-
-    // At two pawns only two of them qualify.
-    await _setSlider(tester, _sliceSlider, 2.0);
-    expect(find.text('2 moves cost 2.0 pawns or more.'), findsOneWidget);
-
-    // And the slider is a control a trainer can actually reach and move.
-    await tester.drag(find.byKey(_sliceSlider), const Offset(-400, 0));
-    await tester.pumpAndSettle();
-    expect(find.text('2 moves cost 2.0 pawns or more.'), findsNothing);
+    expect(find.byType(AppSlider), findsNothing,
+        reason: 'there is no threshold left to slide');
   });
 
   testWidgets('the cap is said as well as the count', (tester) async {
@@ -111,15 +143,15 @@ void main() {
         // Ten mistakes against a cap of eight: both numbers have to be said, or
         // "10 found" over a tutorial of eight parts reads as a fault in the
         // tutorial rather than as the cap doing its job.
-        facts: _facts(costs: List<double>.filled(10, 2.0)),
+        facts: _facts([for (var i = 0; i < 10; i++) _mistake()]),
         parameters: const SkeletonParameters(),
       ),
       answers: answers,
     );
 
-    expect(find.text('10 moves cost 1.0 pawns or more.'), findsOneWidget);
-    expect(
-        find.text('The 8 worst become parts of the tutorial.'), findsOneWidget);
+    expect(_found(tester), '10 mistakes and 0 moves where only one move held.');
+    expect(find.text('The 8 that matter most become parts of the tutorial.'),
+        findsOneWidget);
   });
 
   testWidgets('fewer than two cannot be written, and says why', (tester) async {
@@ -127,40 +159,53 @@ void main() {
     await _pumpSlice(
       tester,
       slice: GameTutorialSlice(
-          facts: _facts(costs: const [2.0, 0.3]),
-          parameters: const SkeletonParameters()),
+        facts: _facts([_mistake(), _fine()]),
+        parameters: const SkeletonParameters(),
+      ),
       answers: answers,
     );
 
     expect(find.byKey(const Key('game-tutorial-too-few')), findsOneWidget);
     expect(tester.widget<FilledButton>(find.byKey(_write)).onPressed, isNull,
         reason: 'a tutorial of one is not offered');
-
-    // And the way out is in the trainer's hands rather than in a refusal.
-    await _setSlider(tester, _sliceSlider, 0.2);
-    expect(find.byKey(const Key('game-tutorial-too-few')), findsNothing);
-    expect(
-        tester.widget<FilledButton>(find.byKey(_write)).onPressed, isNotNull);
   });
 
-  testWidgets('the threshold it answers with is the one on the slider',
+  testWidgets('a clean game says so at its depth, and what kept it unsure',
       (tester) async {
     final answers = <SkeletonParameters?>[];
     await _pumpSlice(
       tester,
       slice: GameTutorialSlice(
-          facts: _facts(), parameters: const SkeletonParameters()),
+        facts: _facts([_fine(), _mistake(unsettled: true)]),
+        parameters: const SkeletonParameters(),
+        depth: 20,
+        unsettled: 1,
+        unjudged: 2,
+      ),
       answers: answers,
     );
-    await _setSlider(tester, _sliceSlider, 1.5);
+
+    expect(find.text('Nothing to teach from at depth 20.'), findsOneWidget);
+    expect(
+        tester.widget<Text>(find.byKey(const Key('game-tutorial-unsure'))).data,
+        'The looks still disagreed on 1 move(s). '
+        'The engine did not answer on 2 move(s).');
+  });
+
+  testWidgets('Write answers with the parameters it was given', (tester) async {
+    final answers = <SkeletonParameters?>[];
+    const parameters = SkeletonParameters(maxMoments: 5);
+    await _pumpSlice(
+      tester,
+      slice: GameTutorialSlice(
+        facts: _facts([_mistake(), _only()]),
+        parameters: parameters,
+      ),
+      answers: answers,
+    );
     await tester.tap(find.byKey(_write));
     await tester.pumpAndSettle();
-
-    expect(answers.single, isNotNull);
-    expect(answers.single!.minCost, 1.5);
-    // Everything else is the skeleton's own and no business of the trainer's.
-    expect(answers.single!.maxMoments, const SkeletonParameters().maxMoments);
-    expect(answers.single!.near, const SkeletonParameters().near);
+    expect(answers.single, same(parameters));
   });
 
   testWidgets('Cancel answers nothing at all', (tester) async {
@@ -168,7 +213,9 @@ void main() {
     await _pumpSlice(
       tester,
       slice: GameTutorialSlice(
-          facts: _facts(), parameters: const SkeletonParameters()),
+        facts: _facts([_mistake(), _only()]),
+        parameters: const SkeletonParameters(),
+      ),
       answers: answers,
     );
     await tester.tap(find.byKey(const Key('game-tutorial-slice-cancel')));
@@ -195,41 +242,38 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets('asks the threshold beside the depth', (tester) async {
+    testWidgets('asks the depth alone, starting at 20', (tester) async {
       await open(tester);
-      expect(find.byKey(const Key('game-tutorial-threshold')), findsOneWidget);
       expect(find.byKey(const Key('game-tutorial-depth')), findsOneWidget);
+      expect(find.byType(AppSlider), findsOneWidget,
+          reason: 'the pawn threshold is gone');
+      expect(find.text('Depth 20'), findsOneWidget);
     });
 
-    testWidgets('both are remembered for next time', (tester) async {
+    testWidgets('a depth remembered under the old key is not the start',
+        (tester) async {
+      // The old key held 18, the old default, for almost everyone.
+      SharedPreferences.setMockInitialValues({'app_game_tutorial_depth': 18});
+      await open(tester);
+      expect(find.text('Depth 20'), findsOneWidget);
+    });
+
+    testWidgets('the depth chosen is remembered for next time', (tester) async {
       await open(tester);
       tester
           .widget<AppSlider>(find.byKey(const Key('game-tutorial-depth')))
-          .onChanged!(20);
+          .onChanged!(22);
       await tester.pumpAndSettle();
-      await _setSlider(tester, const Key('game-tutorial-threshold'), 2.5);
       await tester.tap(find.byKey(const Key('game-tutorial-start')));
       await tester.pumpAndSettle();
 
       final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt(kGameTutorialDepthPreference), 20);
-      expect(prefs.getDouble(kGameTutorialThresholdPreference), 2.5);
+      expect(prefs.getInt(kGameTutorialDepthPreference), 22);
 
       // Read back on the next opening, which is the point of keeping it: a
       // test that only read the preference would pass with nothing reading it.
       await open(tester);
-      expect(find.textContaining('cost 2.5 pawns'), findsWidgets);
-    });
-
-    testWidgets('a remembered threshold off the slider is ignored',
-        (tester) async {
-      SharedPreferences.setMockInitialValues(
-          {kGameTutorialThresholdPreference: 99.0});
-      await open(tester);
-      expect(
-          find.textContaining(
-              'cost ${kGameTutorialDefaultThreshold.toStringAsFixed(1)} pawns'),
-          findsWidgets);
+      expect(find.text('Depth 22'), findsOneWidget);
     });
   });
 }

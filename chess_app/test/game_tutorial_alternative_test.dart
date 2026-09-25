@@ -24,7 +24,10 @@ import 'dart:io';
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:chess_app/core/services/mistake_rule.dart' show kMistakeLoss;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/board_queries.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/review_verdicts.dart'
+    show chancesOfValue;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
@@ -109,11 +112,19 @@ void main() {
           final shown = answerPlyCount(fen, mover, line, defaults);
           final sacrifices =
               givesMaterial(fen, mover, line.take(shown).toList());
+          // And a move clearly worse than the best exists to show: since
+          // phase 1b every move that would not be a mistake counts as right,
+          // and where all four do there is no lesser move to name.
+          final candidates =
+              (row['candidates'] as List).cast<Map<String, dynamic>>();
+          final lesser =
+              candidates.length > correctCandidates(candidates).length;
 
           // The gate, both ways round. Only the first direction would pass on
           // code that offered an alternative everywhere.
-          expect(_alternativeOf(moment) != null, sacrifices,
-              reason: '${moment['id']}: best line gives up = $sacrifices');
+          expect(_alternativeOf(moment) != null, sacrifices && lesser,
+              reason: '${moment['id']}: best line gives up = $sacrifices, '
+                  'a lesser move = $lesser');
         }
       });
     }
@@ -128,11 +139,14 @@ void main() {
         if (_alternativeOf(moment) != null) withAlternative++;
       }
     }
-    expect(total, 69);
-    // 29 when this was written, against 67 before it was gated. A band, so the
-    // test says "this did not quietly become every moment" rather than pinning
-    // a number no one can read a meaning into.
-    expect(withAlternative, inInclusiveRange(20, 40));
+    // 63 since phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md (69 on the
+    // pawn rule).
+    expect(total, 63);
+    // 29 of 69 when this was written, against 67 before it was gated; fewer
+    // since phase 1b, where a lesser move must be a mistake itself. A band, so
+    // the test says "this did not quietly become every moment" rather than
+    // pinning a number no one can read a meaning into.
+    expect(withAlternative, inInclusiveRange(8, 30));
   });
 
   test('the move shown is clearly worse, never one that is just as good', () {
@@ -144,18 +158,22 @@ void main() {
         if (alternative == null) continue;
         final row = rows[moment['index'] as int];
         final candidates = (row['candidates'] as List).cast<Map>();
-        final best = candidates.first['value_for_mover'] as num;
-        final near = (defaults.near * 100).round();
+        // „Clearly worse" in winning chances since phase 1b of
+        // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md: a move that would itself be a
+        // mistake (kMistakeLoss), where it was 0.3 pawns before.
+        double chances(Map c) => chancesOfValue(c['value_for_mover'] as int);
+        final best = chances(candidates.first);
 
         final san = (alternative['moves'] as List).first['san'] as String;
         final shown = candidates.firstWhere((c) => c['move'] == san);
-        expect(best - (shown['value_for_mover'] as num), greaterThan(near),
-            reason: '${moment['id']}: $san is within $near of the best, so '
-                'calling it the lesser move would not be true');
+        expect(best - chances(shown), greaterThanOrEqualTo(kMistakeLoss),
+            reason: '${moment['id']}: $san loses under $kMistakeLoss chances '
+                'against the best, so calling it the lesser move would not '
+                'be true');
 
         // And it is the best of those, not any of them.
         for (final c in candidates) {
-          if (best - (c['value_for_mover'] as num) <= near) continue;
+          if (best - chances(c) < kMistakeLoss) continue;
           expect(c['value_for_mover'] as num,
               lessThanOrEqualTo(shown['value_for_mover'] as num),
               reason: '${moment['id']}: ${c['move']} is better than $san');

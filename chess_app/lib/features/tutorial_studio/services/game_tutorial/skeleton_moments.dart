@@ -1,8 +1,11 @@
 import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/core/services/answer_line.dart' as answer_line;
+import 'package:chess_app/core/services/mistake_rule.dart' show kMistakeLoss;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/board_queries.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/evaluation_words.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/review_verdicts.dart'
+    show chancesOfValue;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 
 /// Python's `round(val)`: half-to-even, and only on a value that is **exactly**
@@ -99,40 +102,89 @@ String bookWords(Map<String, dynamic> row) {
   return said;
 }
 
-/// The moves of [rows] that cost at least [minCost] pawns, in game order.
-///
-/// The one reading of „this move is worth teaching from". Extracted so the
-/// trainer can be told how many there are before the words are paid for
-/// (`mistakeCount`) without a second copy of the rule deciding a different
-/// number from the one that becomes parts — this repository has already lost
-/// three days to one subquery written out three times.
-///
-/// It has no counterpart in `skeleton.py`, which keeps the loop inline: the
-/// harness has nobody to tell. The fixture gate proves the two still agree on
-/// what comes out.
-List<int> heavyIndices(List<Map<String, dynamic>> rows, double minCost) {
-  final heavy = <int>[];
-  for (var i = 0; i < rows.length; i++) {
-    final row = rows[i];
-    final played = row['played'] as Map<String, dynamic>?;
-    final candidates = row['candidates'] as List?;
-    if (played != null && candidates != null && candidates.isNotEmpty) {
-      if (costValue(played['cost_pawns']) >= minCost) {
-        heavy.add(i);
-      }
-    }
-  }
-  return heavy;
+/// The review's verdict on the move played in [row] (`review_verdicts.dart`),
+/// or null when the row has none.
+Map<String, dynamic>? judgedOf(Map<String, dynamic> row) =>
+    (row['played'] as Map<String, dynamic>?)?['judged']
+        as Map<String, dynamic>?;
+
+/// Whether [row]'s move is a moment. The verdict decides; the facts' own best
+/// move must agree with it — the move played for an only move, another move
+/// for a mistake — or the moment would tell the student something false
+/// („the best move was Bc5; the game played Bc5 instead"). They agree whenever
+/// the judge read the same answers as the facts, which the run arranges
+/// through the one store; a row where they do not is left out, not guessed.
+bool _isMoment(Map<String, dynamic> row) {
+  final judged = judgedOf(row);
+  final candidates = row['candidates'] as List?;
+  if (judged == null || candidates == null || candidates.isEmpty) return false;
+  final playedBest =
+      (candidates.first as Map)['move'] == (row['played'] as Map)['move'];
+  if (judged['mistake'] == true) return !playedBest;
+  return judged['only'] == true && playedBest;
 }
 
-/// How many moves of [facts] cost at least [minCost] pawns.
+/// The moves of [rows] worth teaching from — `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`,
+/// phase 1b: the settled mistakes, worst first by chances lost, then the only
+/// moves the player found, the widest gap first; at most [maxMoments]; in game
+/// order. The one reading of „this move is worth teaching from", asked by the
+/// moments themselves and by [momentCounts] alike, so the number the trainer
+/// is told and the parts that are made cannot differ.
 ///
-/// Cheap on purpose: it answers while a slider is being dragged, so it counts
-/// rows and builds no part, no board and no sentence.
-int mistakeCount(Map<String, dynamic> facts, double minCost) => heavyIndices(
-      (facts['rows'] as List).cast<Map<String, dynamic>>(),
-      minCost,
-    ).length;
+/// No threshold of its own: what a mistake is was decided by the review's
+/// judge and written into the facts (rule 12). Until 1b this was a cost in
+/// pawns over `minCost`, the eight most expensive.
+List<int> momentIndices(List<Map<String, dynamic>> rows, int maxMoments) {
+  final mistakes = <int>[];
+  final only = <int>[];
+  for (var i = 0; i < rows.length; i++) {
+    if (!_isMoment(rows[i])) continue;
+    (judgedOf(rows[i])!['mistake'] == true ? mistakes : only).add(i);
+  }
+  double key(int i, String field) =>
+      (judgedOf(rows[i])![field] as num? ?? 0).toDouble();
+  mistakes.sort((a, b) {
+    final cmp = key(b, 'lost').compareTo(key(a, 'lost'));
+    return cmp != 0 ? cmp : a.compareTo(b);
+  });
+  only.sort((a, b) {
+    final cmp = key(b, 'gap').compareTo(key(a, 'gap'));
+    return cmp != 0 ? cmp : a.compareTo(b);
+  });
+  return [...mistakes, ...only].take(maxMoments).toList()..sort();
+}
+
+/// How many mistakes and only moves [facts] hold, before the cap.
+///
+/// Cheap on purpose: it is what the last dialog says before the words are
+/// paid for, and it counts rows — no part, no board and no sentence.
+({int mistakes, int onlyMoves}) momentCounts(Map<String, dynamic> facts) {
+  var mistakes = 0;
+  var onlyMoves = 0;
+  for (final row in (facts['rows'] as List).cast<Map<String, dynamic>>()) {
+    if (!_isMoment(row)) continue;
+    if (judgedOf(row)!['mistake'] == true) {
+      mistakes++;
+    } else {
+      onlyMoves++;
+    }
+  }
+  return (mistakes: mistakes, onlyMoves: onlyMoves);
+}
+
+/// The candidates of [candidates] that count as a right answer: every move
+/// that would not itself be a mistake — within [kMistakeLoss] chances of the
+/// best. One number with the rule, not a second one: until 1b this was
+/// 0.3 pawns, which in a won position called a move losing nothing wrong and
+/// in an equal one called a real mistake right.
+List<Map<String, dynamic>> correctCandidates(
+    List<Map<String, dynamic>> candidates) {
+  final best = chancesOfValue(candidates.first['value_for_mover'] as int);
+  return [
+    for (final c in candidates)
+      if (best - chancesOfValue(c['value_for_mover'] as int) < kMistakeLoss) c,
+  ];
+}
 
 /// How many plies of [line] the answer part shows.
 ///
@@ -463,18 +515,7 @@ List<Map<String, dynamic>> skeletonMoments(
   final rows = (facts['rows'] as List).cast<Map<String, dynamic>>();
   final story = gameStory(rows);
 
-  final heavy = heavyIndices(rows, parameters.minCost);
-
-  // Stable sort by cost descending, then index ascending (Divergence 1)
-  heavy.sort((a, b) {
-    final costA = costValue(rows[a]['played']?['cost_pawns']);
-    final costB = costValue(rows[b]['played']?['cost_pawns']);
-    final cmp = costB.compareTo(costA);
-    if (cmp != 0) return cmp;
-    return a.compareTo(b);
-  });
-
-  final picked = heavy.take(parameters.maxMoments).toList()..sort();
+  final picked = momentIndices(rows, parameters.maxMoments);
 
   final out = <Map<String, dynamic>>[];
   for (var number = 1; number <= picked.length; number++) {
@@ -484,11 +525,11 @@ List<Map<String, dynamic>> skeletonMoments(
     final mover = row['to_move'] as String;
     final candidates = (row['candidates'] as List).cast<Map<String, dynamic>>();
     final best = candidates[0];
-    final near = (parameters.near * 100).round();
-    final bestVal = best['value_for_mover'] as num;
-    final correct = candidates
-        .where((c) => bestVal - (c['value_for_mover'] as num) <= near)
-        .toList();
+    final judged = judgedOf(row)!;
+    // An only move the player found: the game played the best move, and every
+    // sentence below that says otherwise is said differently.
+    final only = judged['mistake'] != true;
+    final correct = correctCandidates(candidates);
     final asks = correct.length <= parameters.maxCorrect;
 
     String? boardHere =
@@ -572,8 +613,19 @@ List<Map<String, dynamic>> skeletonMoments(
         for (var c = 1; c < correct.length; c++) correct[c]['move'] as String,
       ].join(', ');
       final boardText = boardHere != null ? ' On the board: $boardHere.' : '';
-      slots[qid] =
-          '$mover to move. The best move is ${best['move']}, and afterwards ${wordsFor(best['eval'] as String?)}. Also counted correct: ${alsoCorrect.isNotEmpty ? alsoCorrect : 'nothing else'}. What follows the best move: ${best['line']}. In the game ${played['move']} was played instead; it ${costText(played)} and afterwards ${wordsFor(played['eval'] as String?)}.$boardText Ask for the move in one sentence, without naming it or its destination square.';
+      if (only) {
+        // The only move the player found (phase 1b): nothing else holds, and
+        // the game played it — never „played instead".
+        final next = candidates.length > 1 ? candidates[1] : null;
+        final nextText = next == null
+            ? ''
+            : ' The next best, ${next['move']}, leaves ${wordsFor(next['eval'] as String?)}.';
+        slots[qid] =
+            '$mover to move. Only one move holds here: ${best['move']}, and afterwards ${wordsFor(best['eval'] as String?)}. What follows it: ${best['line']}. Every other move is clearly worse.$nextText The game found it.$boardText Ask for the move in one sentence, without naming it or its destination square.';
+      } else {
+        slots[qid] =
+            '$mover to move. The best move is ${best['move']}, and afterwards ${wordsFor(best['eval'] as String?)}. Also counted correct: ${alsoCorrect.isNotEmpty ? alsoCorrect : 'nothing else'}. What follows the best move: ${best['line']}. In the game ${played['move']} was played instead; it ${costText(played)} and afterwards ${wordsFor(played['eval'] as String?)}.$boardText Ask for the move in one sentence, without naming it or its destination square.';
+      }
 
       final bestMoveStr = best['move'] as String;
       final cleanMove = bestMoveStr.replaceAll(RegExp(r'[+#]+$'), '');
@@ -610,9 +662,15 @@ List<Map<String, dynamic>> skeletonMoments(
     final lineMoves = lineSans
         .take(answerPlyCount(row['fen'] as String, mover, lineSans, parameters))
         .toList();
+    // For an only move the line starts with the game's own move, and goes on
+    // as the game did for as long as the two agree.
+    var onGame = only;
     for (var k = 1; k <= lineMoves.length; k++) {
       final san = lineMoves[k - 1];
       final sid = '$mid.answer.$k';
+      final gameRow = i + k - 1 < rows.length ? rows[i + k - 1] : null;
+      onGame = onGame &&
+          (gameRow?['played'] as Map<String, dynamic>?)?['move'] == san;
       final info = playMoveOnBoard(board, san);
       // A move of the best line did not happen, and the slot says so in its
       // own words — a student met „Black plays Qf6 instead of the game move
@@ -626,8 +684,16 @@ List<Map<String, dynamic>> skeletonMoments(
       // the marker is the two words the prompt's rule keys on and nothing
       // more; the prompt now also says that a move with nothing to tell gets
       // an empty slot rather than a sentence about the line continuing.
-      var text =
-          '${info['words']}${k == 1 ? '; the best move, which the game did not play' : '; not played'}';
+      final marker = only
+          ? (k == 1
+              ? '; the move played in the game, the only one that held'
+              : onGame
+                  ? '; played in the game'
+                  : '; not played')
+          : (k == 1
+              ? '; the best move, which the game did not play'
+              : '; not played');
+      var text = '${info['words']}$marker';
       final bestEval = best['eval'] as String?;
       if (k == 1 &&
           sacrifice(row['fen'] as String, mover, lineMoves, bestEval)) {
@@ -648,8 +714,12 @@ List<Map<String, dynamic>> skeletonMoments(
       played['move'] as String,
     );
     final program = <String, String>{
-      fork: 'In this position $mover played ${played['move']}. '
-          'The best move was…',
+      // An only move is not named here either: the line after this part
+      // plays it, and a move read before it is played is given away.
+      fork: only
+          ? 'In this position $mover found the only move that held…'
+          : 'In this position $mover played ${played['move']}. '
+              'The best move was…',
     };
     parts.add({
       'kind': 'show',
@@ -748,8 +818,10 @@ List<Map<String, dynamic>> skeletonMoments(
       'label': row['label'],
       'mover': mover,
       'played': played['label'],
+      'kind': only ? 'only' : 'mistake',
+      'lost': judged['lost'],
       'cost': played['cost_pawns'],
-      'cost_text': costText(played),
+      'cost_text': only ? 'was the only move that held' : costText(played),
       'left_book': played['left_book'] == true,
       'best': best['move'],
       'asks': asks,
@@ -785,11 +857,12 @@ bool changedHands(List<Map<String, dynamic>> rows, int i) {
 
 /// Which of [moments] the game turned on, by id; null when it is empty.
 ///
-/// Whether the move changed who stands better comes before what it cost,
+/// Whether the move changed who stands better comes before what it lost,
 /// because a game already lost collects expensive blunders that decide
 /// nothing — on g01 a move costing a forced mate is passed over for one costing
 /// 2.11 pawns, because the first was played from a position already lost and
-/// the second is where it was lost. [mistakeKind] is that question and is not
+/// the second is where it was lost. What it lost is counted in chances since
+/// phase 1b of `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, as the moments are chosen. [mistakeKind] is that question and is not
 /// asked a second way here: it is the same classifier the filler's lexicon
 /// uses, so the sentence the student reads at that move and the moment called
 /// decisive cannot disagree. Ties go to the earlier move.
@@ -809,7 +882,11 @@ String? decisiveMoment(
   var bestKey = (false, 0.0, 0);
   for (final m in moments) {
     final index = m['index'] as int;
-    final key = (changedHands(rows, index), costValue(m['cost']), -index);
+    final key = (
+      changedHands(rows, index),
+      (m['lost'] as num? ?? 0).toDouble(),
+      -index,
+    );
     if (best == null ||
         (key.$1 ? 1 : 0) > (bestKey.$1 ? 1 : 0) ||
         (key.$1 == bestKey.$1 &&

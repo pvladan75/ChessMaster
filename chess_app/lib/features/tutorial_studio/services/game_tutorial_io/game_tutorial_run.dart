@@ -19,13 +19,18 @@ import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
-    show PositionAnalyzer;
+import 'package:chess_app/core/services/eval_cache.dart';
+import 'package:chess_app/core/services/game_analysis_walker_service.dart'
+    show BlunderAlertSide;
+import 'package:chess_app/core/services/game_review_judge.dart';
+import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/game_facts.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial/review_verdicts.dart'
+    show applyReviewVerdicts;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart'
     show assembleSkeleton;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_moments.dart'
-    show mistakeCount, skeletonMoments;
+    show momentCounts, skeletonMoments;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/words_request.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/facts_store.dart';
@@ -35,7 +40,9 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/uci
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/words_client.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 
-enum GameTutorialStage { engine, masters, analysis, words, assembly }
+/// [review] is the review's own judge deciding which moves are mistakes
+/// (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, phase 1b), after the analysis.
+enum GameTutorialStage { engine, masters, analysis, review, words, assembly }
 
 /// Where the run is. [secondsLeft] is null for „no estimate", never zero: it is
 /// a rate measured over this run's own searches, and there is none until two
@@ -103,8 +110,11 @@ class GameTutorialResult {
   List<String> get missingSlots => _list('missing_slots');
 }
 
+/// The engines of one run. Each answers `searchmoves` too ([MoveAnalyzer]),
+/// because the review's judge asks the played move alone; a [MoveAnalyzer] is
+/// what the facts builder asks as well.
 typedef FactsEngines = ({
-  List<PositionAnalyzer> analyzers,
+  List<MoveAnalyzer> analyzers,
   void Function() close,
 });
 
@@ -118,7 +128,7 @@ Future<String?> localEnginePath() async {
 
 Future<FactsEngines> startFactsEngines(String path, int workers) async {
   final pool = await UciEnginePool.start(path, workers: workers);
-  return (analyzers: pool.analyzers, close: pool.close);
+  return (analyzers: pool.moveAnalyzers, close: pool.close);
 }
 
 /// Every part of [tutorial] with White at the bottom, said on each part.
@@ -176,32 +186,44 @@ ImportedTutorial showOnly(ImportedTutorial tutorial) => readTutorialJson(
       fileName: tutorial.fileName,
     );
 
-/// What the trainer is shown once the engine is done and before the words are
-/// paid for — point 6 of the owner's live pass, 14.9.2026.
+/// What the trainer is shown once the engine and the judge are done and before
+/// the words are paid for — point 6 of the owner's live pass, 14.9.2026.
 ///
-/// **The threshold is free to change and the depth is not.** A game's answers
-/// are cached by game, depth and engine (`factsKey`) and the threshold is no
-/// part of that key, so re-slicing the same game at another threshold costs no
-/// engine time at all — only the words are paid for again, and they have not
-/// been asked for yet at this point. That is why the question is asked here
-/// rather than offered as „run it again".
+/// **No threshold since phase 1b** (`docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`, the
+/// owner's word of 25.9.2026): the review's judge has decided which moves are
+/// mistakes, and the only moves the player found are moments too. What is
+/// left to show is how many there are, how many become parts, and — when the
+/// game has too few — that it is clean at this depth rather than a threshold
+/// to move.
 class GameTutorialSlice {
-  const GameTutorialSlice({required this.facts, required this.parameters});
+  const GameTutorialSlice({
+    required this.facts,
+    required this.parameters,
+    this.depth,
+    this.unsettled = 0,
+    this.unjudged = 0,
+  });
 
-  /// The engine's answers for the whole game.
+  /// The engine's answers for the whole game, with the judge's verdicts.
   final Map<String, dynamic> facts;
-
-  /// The slice being proposed, which the trainer may change.
   final SkeletonParameters parameters;
 
-  /// How many moves cost at least [minCost] pawns. Cheap enough for a slider.
-  int countAt(double minCost) => mistakeCount(facts, minCost);
+  /// The depth the verdicts stand on; null when it was not recorded.
+  final int? depth;
 
-  /// How many of those would become parts: the rest are over the cap.
-  int partsAt(double minCost) {
-    final found = countAt(minCost);
-    return found < parameters.maxMoments ? found : parameters.maxMoments;
-  }
+  /// Moves the judge could not settle, and moves it could not judge — never
+  /// mistakes, and never „clean".
+  final int unsettled;
+  final int unjudged;
+
+  ({int mistakes, int onlyMoves}) get counts => momentCounts(facts);
+
+  /// Every moment found, before the cap.
+  int get found => counts.mistakes + counts.onlyMoves;
+
+  /// How many of those become parts: the rest are over the cap.
+  int get parts =>
+      found < parameters.maxMoments ? found : parameters.maxMoments;
 }
 
 class GameTutorialRunner {
@@ -213,6 +235,8 @@ class GameTutorialRunner {
     GameFactsStore? store,
     Future<MastersWalk> Function(List<String> fens)? walkMasters,
     Future<WordsOutcome> Function(Map<String, dynamic> request)? askWords,
+    EvalCache? answers,
+    TablebaseLookup? tablebase,
     int? workers,
     SleepWatch? sleepWatch,
     DateTime Function()? now,
@@ -225,6 +249,8 @@ class GameTutorialRunner {
                 sessionToken: token, openingNameOf: await ecoOpeningNames())),
         _askWords = askWords ??
             ((request) => requestTutorialWords(request, token: token)),
+        _answers = answers ?? EvalCache.instance,
+        _tablebase = tablebase ?? SyzygyTablebaseService.instance.lookup,
         _workers = workers ?? defaultFactsWorkers(),
         _sleepWatch = sleepWatch ?? SleepWatch(),
         _now = now ?? DateTime.now;
@@ -235,12 +261,19 @@ class GameTutorialRunner {
   final GameFactsStore _store;
   final Future<MastersWalk> Function(List<String> fens) _walkMasters;
   final Future<WordsOutcome> Function(Map<String, dynamic> request) _askWords;
+
+  /// The engine's answers by position — the store the review keeps too
+  /// (`EvalCache`, phase 1.1), so a game reviewed first costs the tutorial only
+  /// what the review did not ask, and the reverse.
+  final EvalCache _answers;
+  final TablebaseLookup _tablebase;
   final int _workers;
   final SleepWatch _sleepWatch;
   final DateTime Function() _now;
 
   bool _cancelled = false;
   FactsEngines? _engines;
+  GameReviewJudge? _judge;
 
   static const _cancelledStop = GameTutorialStopped('cancelled',
       'Cancelled. The positions already searched are kept for next time.');
@@ -249,6 +282,7 @@ class GameTutorialRunner {
   /// are searching.
   void cancel() {
     _cancelled = true;
+    _judge?.cancel();
     _engines?.close();
   }
 
@@ -300,8 +334,13 @@ class GameTutorialRunner {
     final recorder = _store.recorder(key, initial: known);
 
     final Map<String, dynamic> facts;
+    GameReviewResult? reviewed;
     var searched = 0;
     final started = _now();
+    // Named as the desktop engine names its answers (`answerStoreName`), so
+    // the review and the tutorial on this computer share them.
+    final storeName = 'exe:$identity';
+    final tally = EngineAnswerTally();
     try {
       _engines = await _startEngines(path, _workers);
     } catch (e) {
@@ -311,8 +350,12 @@ class GameTutorialRunner {
     _sleepWatch.start();
     try {
       _checkCancelled();
+      final asked = [
+        for (final a in _engines!.analyzers)
+          _answers.wrapMoves(a, engine: () async => storeName, tally: tally),
+      ];
       facts = await GameFactsBuilder(
-        analyzers: _engines!.analyzers,
+        analyzers: asked,
         depth: depth,
         sleeps: () => _sleepWatch.sleeps,
       ).build(
@@ -337,12 +380,37 @@ class GameTutorialRunner {
               done: done, total: total, secondsLeft: left));
         },
       );
+
+      // The review's own judge decides which moves are mistakes (phase 1b):
+      // its walk and its two-line looks are served by the answers just
+      // stored, so what it adds is only the played move alone and the
+      // deepening where two looks disagree.
+      _checkCancelled();
+      say(const GameTutorialProgress(GameTutorialStage.review));
+      final judge = GameReviewJudge(
+        analyzer: asked.first,
+        book: (_) async => walk,
+        tablebase: _tablebase,
+      );
+      _judge = judge;
+      reviewed = await judge.review(
+        startingFen: startFen,
+        uciMoves: uciMoves,
+        depth: depth,
+        puzzles: BlunderAlertSide.both,
+        onProgress: (p) => say(GameTutorialProgress(GameTutorialStage.review,
+            done: p.done, total: p.total)),
+      );
+      if (reviewed == null || _cancelled) throw _cancelledStop;
+      applyReviewVerdicts(
+          (facts['rows'] as List).cast<Map<String, dynamic>>(), reviewed);
     } on GameFactsCancelled {
       throw _cancelledStop;
     } on GameFactsException catch (e) {
       if (_cancelled) throw _cancelledStop;
       throw GameTutorialStopped('engine-failed', e.message);
     } finally {
+      _judge = null;
       _sleepWatch.stop();
       _engines?.close();
       _engines = null;
@@ -355,8 +423,13 @@ class GameTutorialRunner {
     var sliced = parameters;
     if (chooseSlice != null) {
       _checkCancelled();
-      final chosen = await chooseSlice(
-          GameTutorialSlice(facts: facts, parameters: sliced));
+      final chosen = await chooseSlice(GameTutorialSlice(
+        facts: facts,
+        parameters: sliced,
+        depth: depth,
+        unsettled: reviewed.unsettled,
+        unjudged: reviewed.unjudged,
+      ));
       if (chosen == null) throw _cancelledStop;
       sliced = chosen;
     }
@@ -366,10 +439,11 @@ class GameTutorialRunner {
       throw GameTutorialStopped(
         'too-few-moments',
         offered.isEmpty
-            ? 'No move in this game cost a pawn or more, so there is no mistake '
-                'to teach from. Nothing was spent.'
+            ? 'No mistake found at depth $depth, and no move where only one '
+                'held — nothing to teach from in this game.'
+                '${_unsure(reviewed)} Nothing was spent.'
             : 'Only one moment in this game is worth teaching, and a tutorial '
-                'needs two. Nothing was spent.',
+                'needs two.${_unsure(reviewed)} Nothing was spent.',
       );
     }
     _checkCancelled();
@@ -408,5 +482,18 @@ class GameTutorialRunner {
       searched: searched,
       tokens: outcome.tokens,
     );
+  }
+
+  /// What keeps a game from being called clean: moves the looks still
+  /// disagreed on, and moves the engine did not answer (the review's own rule,
+  /// §3 — a game with either is never said to be clean).
+  static String _unsure(GameReviewResult r) {
+    final said = [
+      if (r.unsettled > 0)
+        ' The looks still disagreed on ${r.unsettled} move(s).',
+      if (r.unjudged > 0)
+        ' The engine did not answer on ${r.unjudged} move(s).',
+    ];
+    return said.join();
   }
 }

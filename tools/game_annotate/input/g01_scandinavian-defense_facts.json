@@ -21,7 +21,14 @@
     "eval": "+0.35",
     "value_for_mover": 35,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.37,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 2879587,
@@ -87,7 +94,14 @@
     "eval": "+0.70",
     "value_for_mover": -70,
     "rank": null,
-    "cost_pawns": 0.35
+    "cost_pawns": 0.35,
+    "judged": {
+     "lost": 3.19,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 1309466,
@@ -154,7 +168,14 @@
     "eval": "+0.72",
     "value_for_mover": 72,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 24305,
@@ -221,7 +242,14 @@
     "eval": "+0.70",
     "value_for_mover": -70,
     "rank": 2,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 23546,
@@ -287,7 +315,14 @@
     "eval": "+0.65",
     "value_for_mover": 65,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.45,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 16569,
@@ -354,7 +389,14 @@
     "eval": "+1.07",
     "value_for_mover": -107,
     "rank": null,
-    "cost_pawns": 0.42
+    "cost_pawns": 0.42,
+    "judged": {
+     "lost": 3.77,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 15038,
@@ -420,7 +462,14 @@
     "eval": "+0.21",
     "value_for_mover": 21,
     "rank": 3,
-    "cost_pawns": 0.86
+    "cost_pawns": 0.86,
+    "judged": {
+     "lost": 7.61,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 10,
@@ -477,7 +526,14 @@
     "eval": "+0.86",
     "value_for_mover": -86,
     "rank": null,
-    "cost_pawns": 0.65
+    "cost_pawns": 0.65,
+    "judged": {
+     "lost": 5.92,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "book": {
     "games": 1,
@@ -533,7 +589,14 @@
     "eval": "+0.97",
     "value_for_mover": 97,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "White's pawns hold more of the centre.",
    "candidates": [
@@ -575,7 +638,14 @@
     "eval": "+2.23",
     "value_for_mover": -223,
     "rank": null,
-    "cost_pawns": 1.26
+    "cost_pawns": 1.26,
+    "judged": {
+     "lost": 10.61,
+     "mistake": true,
+     "reason": "lostChances",
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white queen on e2 pins the black pawn on e7 to the king on e8.",
    "candidates": [
@@ -617,7 +687,14 @@
     "eval": "+1.62",
     "value_for_mover": 162,
     "rank": null,
-    "cost_pawns": 0.61
+    "cost_pawns": 0.61,
+    "judged": {
+     "lost": 4.96,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -658,7 +735,14 @@
     "eval": "+1.69",
     "value_for_mover": -169,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.59,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "White's pawns no longer hold more of the centre.",
    "candidates": [
@@ -700,7 +784,14 @@
     "eval": "+1.39",
     "value_for_mover": 139,
     "rank": 2,
-    "cost_pawns": 0.3
+    "cost_pawns": 0.3,
+    "judged": {
+     "lost": 2.55,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -741,7 +832,14 @@
     "eval": "+1.44",
     "value_for_mover": -144,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.43,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -782,7 +880,14 @@
     "eval": "+1.24",
     "value_for_mover": 124,
     "rank": 3,
-    "cost_pawns": 0.2
+    "cost_pawns": 0.2,
+    "judged": {
+     "lost": 1.73,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -823,7 +928,14 @@
     "eval": "+1.35",
     "value_for_mover": -135,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.96,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on e6 is no longer pinned.",
    "candidates": [
@@ -865,7 +977,14 @@
     "eval": "+1.09",
     "value_for_mover": 109,
     "rank": null,
-    "cost_pawns": 0.26
+    "cost_pawns": 0.26,
+    "judged": {
+     "lost": 2.28,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white rook on e1 stands on the half-open e-file.",
    "candidates": [
@@ -907,7 +1026,14 @@
     "eval": "+1.32",
     "value_for_mover": -132,
     "rank": 2,
-    "cost_pawns": 0.23
+    "cost_pawns": 0.23,
+    "judged": {
+     "lost": 2.02,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -948,7 +1074,14 @@
     "eval": "+1.00",
     "value_for_mover": 100,
     "rank": 3,
-    "cost_pawns": 0.32
+    "cost_pawns": 0.32,
+    "judged": {
+     "lost": 2.81,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -989,7 +1122,14 @@
     "eval": "+1.71",
     "value_for_mover": -171,
     "rank": null,
-    "cost_pawns": 0.71
+    "cost_pawns": 0.71,
+    "judged": {
+     "lost": 6.14,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1030,7 +1170,14 @@
     "eval": "+1.38",
     "value_for_mover": 138,
     "rank": null,
-    "cost_pawns": 0.33
+    "cost_pawns": 0.33,
+    "judged": {
+     "lost": 2.8,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1071,7 +1218,14 @@
     "eval": "+1.78",
     "value_for_mover": -178,
     "rank": 4,
-    "cost_pawns": 0.4
+    "cost_pawns": 0.4,
+    "judged": {
+     "lost": 3.39,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1112,7 +1266,14 @@
     "eval": "+1.79",
     "value_for_mover": 179,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1153,7 +1314,14 @@
     "eval": "+3.04",
     "value_for_mover": -304,
     "rank": null,
-    "cost_pawns": 1.25
+    "cost_pawns": 1.25,
+    "judged": {
+     "lost": 9.48,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1194,7 +1362,14 @@
     "eval": "+2.66",
     "value_for_mover": 266,
     "rank": 3,
-    "cost_pawns": 0.38
+    "cost_pawns": 0.38,
+    "judged": {
+     "lost": 2.69,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1235,7 +1410,14 @@
     "eval": "+2.59",
     "value_for_mover": -259,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on e6 is backward: it has fallen behind its neighbours and cannot advance safely.",
    "candidates": [
@@ -1277,7 +1459,14 @@
     "eval": "+2.74",
     "value_for_mover": 274,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1318,7 +1507,14 @@
     "eval": "+2.71",
     "value_for_mover": -271,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1359,7 +1555,14 @@
     "eval": "+2.55",
     "value_for_mover": 255,
     "rank": 3,
-    "cost_pawns": 0.16
+    "cost_pawns": 0.16,
+    "judged": {
+     "lost": 1.18,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white knight on e5 stands on an outpost: no black pawn can drive it away.",
    "candidates": [
@@ -1401,7 +1604,14 @@
     "eval": "+2.69",
     "value_for_mover": -269,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 1.03,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely.",
    "candidates": [
@@ -1443,7 +1653,14 @@
     "eval": "+2.54",
     "value_for_mover": 254,
     "rank": 3,
-    "cost_pawns": 0.15
+    "cost_pawns": 0.15,
+    "judged": {
+     "lost": 1.1,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1484,7 +1701,14 @@
     "eval": "+2.60",
     "value_for_mover": -260,
     "rank": 3,
-    "cost_pawns": 0.06
+    "cost_pawns": 0.06,
+    "judged": {
+     "lost": 0.45,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1525,7 +1749,14 @@
     "eval": "+2.38",
     "value_for_mover": 238,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 1.65,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white pawn on h5 is backward: it has fallen behind its neighbours and cannot advance safely.",
    "candidates": [
@@ -1567,7 +1798,14 @@
     "eval": "+2.48",
     "value_for_mover": -248,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.76,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on g7 is backward: it has fallen behind its neighbours and cannot advance safely.",
    "candidates": [
@@ -1609,7 +1847,14 @@
     "eval": "+2.45",
     "value_for_mover": 245,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.23,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black bishop on d6 is attacked by the white knight on f7 and has no defender.",
    "candidates": [
@@ -1651,7 +1896,14 @@
     "eval": "+2.69",
     "value_for_mover": -269,
     "rank": 4,
-    "cost_pawns": 0.24
+    "cost_pawns": 0.24,
+    "judged": {
+     "lost": 1.78,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black bishop on d6 is no longer hanging.",
    "candidates": [
@@ -1693,7 +1945,14 @@
     "eval": "+2.02",
     "value_for_mover": 202,
     "rank": null,
-    "cost_pawns": 0.67
+    "cost_pawns": 0.67,
+    "judged": {
+     "lost": 5.14,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white knight on h6 is attacked by the black pawn on g7, a cheaper piece.",
    "candidates": [
@@ -1735,7 +1994,14 @@
     "eval": "+1.69",
     "value_for_mover": -169,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white pawn on g6 is a passed pawn: no black pawn can block or capture it. The black pawn on h6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on g7 is no longer backward.",
    "candidates": [
@@ -1765,7 +2031,14 @@
     "eval": "+1.88",
     "value_for_mover": 188,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black rook on f8 is attacked by the white bishop on h6, a cheaper piece. The white pawn on h5 is a passed pawn: no black pawn can block or capture it. The black king on g8 has lost its pawn shield.",
    "candidates": [
@@ -1807,7 +2080,14 @@
     "eval": "+2.21",
     "value_for_mover": -221,
     "rank": null,
-    "cost_pawns": 0.33
+    "cost_pawns": 0.33,
+    "judged": {
+     "lost": 2.64,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1848,7 +2128,14 @@
     "eval": "+2.51",
     "value_for_mover": 251,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black queen on e7 is attacked by the white bishop on f8, a cheaper piece. The white bishop on f8 skewers the black queen on e7 and the bishop on d6 behind it.",
    "candidates": [
@@ -1890,7 +2177,14 @@
     "eval": "+2.54",
     "value_for_mover": -254,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.22,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black queen on e7 is no longer hanging. The black queen on e7 is no longer skewered. Black has the bishop pair.",
    "candidates": [
@@ -1932,7 +2226,14 @@
     "eval": "+2.63",
     "value_for_mover": 263,
     "rank": 2,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -1973,7 +2274,14 @@
     "eval": "+4.74",
     "value_for_mover": -474,
     "rank": null,
-    "cost_pawns": 2.11
+    "cost_pawns": 2.11,
+    "judged": {
+     "lost": 12.66,
+     "mistake": true,
+     "reason": "lostChances",
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawns on a3 and a4 are isolated: no pawn on a neighbouring file can defend them. The black pawn on c6 is isolated: no pawn on a neighbouring file can defend it. The black pawn on c6 is no longer backward.",
    "candidates": [
@@ -2015,7 +2323,14 @@
     "eval": "+2.74",
     "value_for_mover": 274,
     "rank": 2,
-    "cost_pawns": 2.0
+    "cost_pawns": 2.0,
+    "judged": {
+     "lost": 9.75,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -2056,7 +2371,14 @@
     "eval": "+4.81",
     "value_for_mover": -481,
     "rank": null,
-    "cost_pawns": 2.07
+    "cost_pawns": 2.07,
+    "judged": {
+     "lost": 12.18,
+     "mistake": true,
+     "reason": "lostChances",
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on a4 is a passed pawn: no white pawn can block or capture it. The black pawn on b2 is a passed pawn: no white pawn can block or capture it. The black pawn on c6 is backward: it has fallen behind its neighbours and cannot advance safely. The black pawns on a3 and a4 are no longer isolated. The black pawn on c6 is no longer isolated.",
    "candidates": [
@@ -2098,7 +2420,14 @@
     "eval": "+5.39",
     "value_for_mover": 539,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white king on b1 has lost its pawn shield.",
    "candidates": [
@@ -2141,7 +2470,14 @@
     "value_for_mover": -99989,
     "rank": null,
     "cost_pawns": "mate",
-    "cost_mate": "allowed a forced mate"
+    "cost_mate": "allowed a forced mate",
+    "judged": {
+     "lost": 12.08,
+     "mistake": true,
+     "reason": "lostChances",
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on e6 is attacked by the white rook on e1 and has no defender.",
    "candidates": [
@@ -2183,7 +2519,14 @@
     "eval": "#10",
     "value_for_mover": 99990,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black queen on f8 is attacked by the white pawn on g7, a cheaper piece.",
    "candidates": [
@@ -2225,7 +2568,14 @@
     "eval": "#4",
     "value_for_mover": -99996,
     "rank": null,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white rook on e1 forks the black bishop on f1 and the pawn on e6. White has no light-squared bishop, and four of its pawns stand on dark squares, so the light squares are weak.",
    "candidates": [
@@ -2267,7 +2617,14 @@
     "eval": "#14",
     "value_for_mover": 99986,
     "rank": 3,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white queen on f8 forks the black king on g8 and the bishop on d6. The white queen on f8 pins the black knight on b8 to the rook on a8. The black bishop on d6 is attacked by the white queen on f8 and has no defender. White has no light-squared bishop, and three of its pawns stand on dark squares, so the light squares are weak. The white pawn on f2 is isolated: no pawn on a neighbouring file can defend it. The white pawn on h6 is isolated: no pawn on a neighbouring file can defend it. White's light squares are no longer weak.",
    "candidates": [
@@ -2309,7 +2666,14 @@
     "eval": "#7",
     "value_for_mover": -99993,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The fork by the white queen on f8 is over. The black knight on b8 is no longer pinned.",
    "candidates": [
@@ -2345,7 +2709,14 @@
     "eval": "#14",
     "value_for_mover": 99986,
     "rank": 2,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "White's light squares are no longer weak.",
    "candidates": [
@@ -2387,7 +2758,14 @@
     "eval": "#2",
     "value_for_mover": -99998,
     "rank": null,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black bishop on f1 is no longer hanging. The fork by the white rook on e1 is over.",
    "candidates": [
@@ -2429,7 +2807,14 @@
     "eval": "#1",
     "value_for_mover": 99999,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white queen on h8 skewers the black king on f8 and the knight on b8 behind it. The white rook on h1 stands on the open h-file. The white pawn on h7 is no longer isolated.",
    "candidates": [
@@ -2471,7 +2856,14 @@
     "eval": "#1",
     "value_for_mover": -99999,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white queen on h8 pins the black knight on b8 to the rook on a8. The black king on f8 is no longer skewered. The g-file beside the black king is no longer open.",
    "candidates": [
@@ -2495,7 +2887,14 @@
     "eval": "#1",
     "value_for_mover": 99999,
     "rank": 3,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white queen on e8 skewers the black king on e7 and the pawn on e6 behind it. The white queen on e8 stands on the half-open e-file.",
    "candidates": [
@@ -2537,7 +2936,14 @@
     "eval": "#1",
     "value_for_mover": -99999,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on e6 is attacked twice and defended only once. The black pawn on f5 is no longer hanging. The g-file beside the black king on f6 is open.",
    "candidates": [
@@ -2561,7 +2967,14 @@
     "eval": "#1",
     "value_for_mover": 99999,
     "rank": null,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black king on f6 is the only defender of the pawn on e6, and it is attacked by the white queen on h8.",
    "candidates": [
@@ -2603,7 +3016,14 @@
     "eval": "#1",
     "value_for_mover": -99999,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black pawn on e6 no longer depends on one attacked defender.",
    "candidates": [
@@ -2627,7 +3047,14 @@
     "eval": "#1",
     "value_for_mover": 99999,
     "rank": 2,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The white queen on h8 pins the black knight on b8 to the rook on a8. The move from e8 uncovers a discovered attack: the white queen on h8 now attacks the black knight on b8. The white queen on h5 stands on the open h-file.",
    "candidates": [
@@ -2669,7 +3096,14 @@
     "eval": "#1",
     "value_for_mover": -99999,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "candidates": [
     {
@@ -2692,7 +3126,14 @@
     "eval": "checkmate",
     "value_for_mover": 100000,
     "rank": 1,
-    "cost_pawns": 0
+    "cost_pawns": 0,
+    "judged": {
+     "lost": 0.0,
+     "mistake": false,
+     "reason": null,
+     "unsettled": false,
+     "only": false
+    }
    },
    "motifs_after_played": "The black king on f4 is checkmated.",
    "candidates": [

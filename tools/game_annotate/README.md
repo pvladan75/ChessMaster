@@ -461,7 +461,7 @@ layer at a time.
 |---|---|---|
 | **F** | arm B plus a table of every position; parts name a position by label (`"from": "14... Qc7"`) and the harness fills the FEN | everything but the FENs |
 | **G** | the bare game plus `input/<game>_facts.json`: for every position the four best moves at depth 20 with evaluations, the move played and its cost, whether the best move stands out, and the app's motifs; the model must not assess moves | the moments, the lines (copied from the facts), the questions (checked against the facts), the words |
-| **H** | a skeleton built by `skeleton.py`: candidate moments where the move played cost ≥ 1.0 pawns, each with its parts, FENs, lines and questions already made (every move within 0.3 of the best is correct, no question when more than 3 are); every text field empty and shown with its facts | which 2–3 of the offered moments, and the words |
+| **H** | a skeleton built by `skeleton.py`: candidate moments — until 25.9.2026 the moves that cost ≥ 1.0 pawns (every move within 0.3 of the best correct), since phase 1b of `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md` the moves the app's review judge called mistakes and the only moves found (every move that is not itself a mistake correct) — each with its parts, FENs, lines and questions already made (no question when more than 3 are correct); every text field empty and shown with its facts | which 2–3 of the offered moments, and the words |
 
 `make_facts.py` computes the facts once per game with the same engine settings
 the grading uses. **The thresholds belong to the skeleton, not to the analysis**:
@@ -549,6 +549,9 @@ failure. `review_run.py` prints everything a person still has to read.
 
 ```bash
 python make_facts.py <game>          # depth 18, 8 positions at a time
+# since phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md: the review's verdicts,
+# written by the app's own judge (from chess_app/; JUDGE_FACTS_GAMES=<game>)
+flutter test tool/judge_facts.dart
 python run_api.py H --name <game> --provider deepseek --model deepseek-flash --reasoning-effort low --max-tokens 64000
 python run_arm.py H --name <game> --model gemini-3.8-flash-high
 python review_run.py out/<run>

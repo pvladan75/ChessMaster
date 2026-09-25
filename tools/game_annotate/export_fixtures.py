@@ -43,21 +43,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 DEST = os.path.join(REPO, 'chess_app', 'test', 'fixtures', 'game_tutorial')
 
-# The run of each game whose words the fixtures carry: round 2 of the narration
-# measurement, 14.9.2026 (docs/PLAN-NARACIJA.md) - the story prompt the owner
-# read and chose to replace the old one with. Named, not globbed: each game has
-# several runs, and the answer is the one thing a fixture cannot recompute.
+# The run of each game whose words the fixtures carry. Round 2 of the narration
+# measurement, 14.9.2026 (docs/PLAN-NARACIJA.md), until phase 1b of
+# docs/PLAN-ZAGONETKE-IZ-PARTIJE.md changed which moments a game offers: its
+# answers chose moments by number, so they were recorded again on 25.9.2026,
+# the same prompt, model and settings, on the owner's word. Named, not globbed:
+# each game has several runs, and the answer is the one thing a fixture cannot
+# recompute.
 RUNS = {
-    'g01_scandinavian-defense': '20260914-235815',
-    'g02_french-defense': '20260914-235815',
-    'g03_scandinavian-defense': '20260914-235815',
-    'g04_saragossa-opening': '20260914-235815',
-    'g05_french-defense': '20260914-235837',
-    'g06_zukertort-opening': '20260914-235857',
-    'g07_english-opening': '20260914-235905',
-    'g08_nimzowitsch-defense': '20260914-235927',
-    'g09_caro-kann-defense': '20260914-235936',
-    'g10_english-opening': '20260914-235943',
+    'g01_scandinavian-defense': '20260925-082238',
+    'g02_french-defense': '20260925-082311',
+    'g03_scandinavian-defense': '20260925-082445',
+    'g04_saragossa-opening': '20260925-082544',
+    'g05_french-defense': '20260925-082612',
+    'g06_zukertort-opening': '20260925-082653',
+    'g07_english-opening': '20260925-082735',
+    'g08_nimzowitsch-defense': '20260925-082831',
+    'g09_caro-kann-defense': '20260925-082913',
+    'g10_english-opening': '20260925-082951',
 }
 
 ABOUT = ('Written by tools/game_annotate/export_fixtures.py from skeleton.py. '
@@ -65,7 +68,7 @@ ABOUT = ('Written by tools/game_annotate/export_fixtures.py from skeleton.py. '
 
 
 def run_dir(game):
-    return os.path.join(HERE, 'out', 'H-api-deepseek-flash-effort-low-story-%s-%s'
+    return os.path.join(HERE, 'out', 'H-api-deepseek-flash-effort-low-%s-%s'
                         % (game, RUNS[game]))
 
 
@@ -148,8 +151,14 @@ def answer_cases(answer):
     chosen = real['chosen']
     dropped = dict(real, slots={k: v for k, v in real['slots'].items()
                                 if not k.startswith(chosen[0] + '.lead.')})
+    # The first chosen moment that asks: a slot of a question that was never
+    # offered is a shape the server refuses, and this case is about the words.
+    # (chosen[0] asked on every fixture until phase 1b of
+    # docs/PLAN-ZAGONETKE-IZ-PARTIJE.md; not every moment asks since.)
+    asks = {m['id'] for m in skeleton.moments(ANSWER_GAME) if m['asks']}
+    asking = next(c for c in chosen if c in asks)
     worded = dict(real, slots=dict(real['slots'], **{
-        '%s.question' % chosen[0]: 'Find the fork that wins the knight with Qxe2+.'}))
+        '%s.question' % asking: 'Find the fork that wins the knight with Qxe2+.'}))
     cases = [
         ('the answer is not JSON', 'Here are the moments I chose: m1, m3.'),
         ('a moment chosen that was not offered', json.dumps(dict(real, chosen=[chosen[0], 'm99']))),
@@ -230,21 +239,20 @@ def edge_cases():
         for alt, share in zip(book.get('alternatives') or [], (0.0025, 0.0125, 0.545)):
             alt['share'] = share
 
-    # A cost variant of g09, which has more candidates than `max_moments`: the
-    # cost of the ninth-most-expensive move made equal to the eighth's, and two
-    # more pairs made equal inside the cut, so the order of ties decides which
-    # moments are offered and what they are numbered.
+    # A variant of g09, which has more mistakes than `max_moments`: the chances
+    # lost by the ninth-worst mistake made equal to the eighth's, and two more
+    # pairs made equal inside the cut, so the order of ties decides which
+    # moments are offered and what they are numbered. (Pawns until phase 1b of
+    # docs/PLAN-ZAGONETKE-IZ-PARTIJE.md; the judge's chances lost since.)
     tied = copy.deepcopy(skeleton.facts_of('g09_caro-kann-defense'))
     rows = tied['rows']
     heavy = [i for i, r in enumerate(rows)
-             if r.get('played') and r.get('candidates')
-             and skeleton._cost_value(r['played'].get('cost_pawns')) >= 1.0
-             and r['played'].get('cost_pawns') != 'mate']
-    by_cost = sorted(heavy, key=lambda i: rows[i]['played']['cost_pawns'], reverse=True)
-    assert len(by_cost) > 9, 'g09 no longer has enough numeric candidates for a tie'
-    # the later ply of each pair takes the earlier-sorted one's cost
-    for a, b in ((by_cost[7], by_cost[8]), (by_cost[1], by_cost[2]), (by_cost[4], by_cost[5])):
-        rows[b]['played']['cost_pawns'] = rows[a]['played']['cost_pawns']
+             if skeleton._is_moment(r) and skeleton.judged_of(r).get('mistake')]
+    by_lost = sorted(heavy, key=lambda i: (-skeleton.judged_of(rows[i])['lost'], i))
+    assert len(by_lost) > 9, 'g09 no longer has enough mistakes for a tie'
+    # the later ply of each pair takes the earlier-sorted one's loss
+    for a, b in ((by_lost[7], by_lost[8]), (by_lost[1], by_lost[2]), (by_lost[4], by_lost[5])):
+        skeleton.judged_of(rows[b])['lost'] = skeleton.judged_of(rows[a])['lost']
     parameters = dict(skeleton.DEFAULTS)
 
     book_moments = with_facts(booked, lambda: skeleton.moments('booked', parameters))
@@ -344,8 +352,8 @@ def edge_cases():
         'tiedFacts': tied,
         'tiedMoments': with_facts(tied, lambda: skeleton.moments('tied', parameters)),
         'tiedPairs': [[rows[a]['label'], rows[b]['label']] for a, b in
-                      ((by_cost[7], by_cost[8]), (by_cost[1], by_cost[2]),
-                       (by_cost[4], by_cost[5]))],
+                      ((by_lost[7], by_lost[8]), (by_lost[1], by_lost[2]),
+                       (by_lost[4], by_lost[5]))],
     }
 
 

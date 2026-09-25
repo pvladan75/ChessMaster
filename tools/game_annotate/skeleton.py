@@ -9,12 +9,15 @@ decisions: a FEN rebuilt in its head, a move copied a letter wrong, a question
 on a position with four equal answers, a „better move" that was fourth. So here
 the program decides all of that from the facts `make_facts.py` computed:
 
- * **candidate moments** - positions where the move played cost at least
-   `min_cost` pawns, the `max_moments` most expensive of them;
+ * **candidate moments** - since phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md
+   the moves the app's review judge called mistakes, worst first by winning
+   chances lost, then the only moves the player found, at most `max_moments`
+   of them (the verdicts are in the facts, `played.judged`, written by
+   `chess_app/tool/judge_facts.dart`; until 1b, a cost of `min_cost` pawns);
  * for each, **a block of parts**: the last `lead_plies` moves of the game
-   leading into it, a question when the moves within `near` pawns of the best
-   number at most `max_correct` (all of them accepted), and the answer as the
-   best line from the facts;
+   leading into it, a question when the moves that would not themselves be a
+   mistake number at most `max_correct` (all of them accepted), and the answer
+   as the best line from the facts;
  * every FEN, every move in the board's own SAN, every answer.
 
 The model is left with the one decision it did well - which moments teach a
@@ -22,7 +25,8 @@ student the most - and the words: it chooses two or three moments by id and fill
 the empty slots of those, each slot shown with the facts it may speak from.
 
 **The parameters are applied here, never stored in the facts.** A facts file is
-raw engine output, so a threshold can change without analysing a game again.
+engine output and the judge's verdicts on it; the shape of a tutorial can change
+without analysing a game again.
 
 **What the model returns is checked before it is used, and nothing is patched.**
 A missing slot stays empty and is reported; a slot id that belongs to no chosen
@@ -39,6 +43,7 @@ between them filled in by code (`whole_game`). `python skeleton.py --assemble
 
 import io
 import json
+import math
 import os
 import re
 import sys
@@ -50,10 +55,13 @@ import chess.svg
 HERE = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(HERE, 'input')
 
+# No threshold since phase 1b of docs/PLAN-ZAGONETKE-IZ-PARTIJE.md: a moment is
+# a move the app's review judge called a mistake, or the only move the player
+# found - its verdict is in the facts, `played.judged`, written by
+# `chess_app/tool/judge_facts.dart` - and a move counts as correct when it
+# would not itself be a mistake (MISTAKE_LOSS chances of the best).
 DEFAULTS = {
-    'min_cost': 1.0,       # pawns a move must have cost to be a moment
-    'near': 0.3,           # pawns within the best that still count as correct
-    'max_correct': 3,      # more equally good moves than this, and no question
+    'max_correct': 3,      # more right answers than this, and no question
     'max_moments': 8,      # candidates offered to the model
     'lead_plies': 3,       # game moves shown before a moment
     'answer_plies': 4,     # moves of the best line shown as the answer
@@ -226,6 +234,60 @@ def cost_text(played):
 
 def _cost_value(cost):
     return 1e9 if cost == 'mate' else (cost if isinstance(cost, (int, float)) else -1)
+
+
+# --- The mistake rule's two numbers the skeleton reads -------------------------
+#
+# `chess_app/lib/core/services/mistake_rule.dart` is the one home; the verdicts
+# themselves come from the app's judge. What is read here is only the curve and
+# `A`, for the question's right answers - held to the app by the fixtures, as
+# `words_for` is.
+
+MISTAKE_LOSS = 10  # kMistakeLoss
+FACTS_MATE = 100000  # kFactsMate: a mate is written as this less its distance
+
+
+def chances_of_value(value):
+    """`chancesOfValue`: winning chances of a facts value, 0 to 100."""
+    if value > FACTS_MATE // 2:
+        return 100.0
+    if value < -(FACTS_MATE // 2):
+        return 0.0
+    return 50 + 50 * (2 / (1 + math.exp(-0.00368208 * value)) - 1)
+
+
+def judged_of(row):
+    return (row.get('played') or {}).get('judged')
+
+
+def _is_moment(row):
+    """`_isMoment`: the verdict decides, and the facts' best move agrees."""
+    judged = judged_of(row)
+    if not judged or not row.get('candidates'):
+        return False
+    played_best = row['candidates'][0]['move'] == row['played']['move']
+    if judged.get('mistake'):
+        return not played_best
+    return bool(judged.get('only')) and played_best
+
+
+def moment_indices(rows, max_moments):
+    """`momentIndices`: settled mistakes by chances lost, then only moves by
+    gap, capped, in game order."""
+    mistakes = [i for i, r in enumerate(rows)
+                if _is_moment(r) and judged_of(r).get('mistake')]
+    only = [i for i, r in enumerate(rows)
+            if _is_moment(r) and not judged_of(r).get('mistake')]
+    mistakes.sort(key=lambda i: (-(judged_of(rows[i]).get('lost') or 0), i))
+    only.sort(key=lambda i: (-(judged_of(rows[i]).get('gap') or 0), i))
+    return sorted((mistakes + only)[:max_moments])
+
+
+def correct_candidates(candidates):
+    """`correctCandidates`: every candidate that would not be a mistake."""
+    best = chances_of_value(candidates[0]['value_for_mover'])
+    return [c for c in candidates
+            if best - chances_of_value(c['value_for_mover']) < MISTAKE_LOSS]
 
 
 def share_words(share):
@@ -539,11 +601,7 @@ def moments(name, cfg=None):
     rows = facts_of(name)['rows']
     story = game_story(rows)
 
-    heavy = [i for i, row in enumerate(rows)
-             if row.get('played') and row.get('candidates')
-             and _cost_value(row['played'].get('cost_pawns')) >= cfg['min_cost']]
-    picked = sorted(sorted(heavy, key=lambda i: _cost_value(rows[i]['played']['cost_pawns']),
-                           reverse=True)[:cfg['max_moments']])
+    picked = moment_indices(rows, cfg['max_moments'])
 
     out = []
     for number, i in enumerate(picked, 1):
@@ -551,9 +609,10 @@ def moments(name, cfg=None):
         row = rows[i]
         mover = row['to_move']
         best = row['candidates'][0]
-        near = int(round(cfg['near'] * 100))
-        correct = [c for c in row['candidates']
-                   if best['value_for_mover'] - c['value_for_mover'] <= near]
+        judged = judged_of(row)
+        # An only move the player found: the game played the best move.
+        only = not judged.get('mistake')
+        correct = correct_candidates(row['candidates'])
         asks = len(correct) <= cfg['max_correct']
         board_here = rows[i - 1].get('motifs_after_played') if i > 0 else None
         if not board_here:
@@ -608,16 +667,29 @@ def moments(name, cfg=None):
         # The question.
         if asks:
             qid = '%s.question' % mid
-            slots[qid] = (
-                '%s to move. The best move is %s, and afterwards %s. Also counted '
-                'correct: %s. What follows the best move: %s. In the game %s was '
-                'played instead; it %s and afterwards %s.%s Ask for the '
-                'move in one sentence, without naming it or its destination square.' % (
-                    mover, best['move'], words_for(best['eval']),
-                    ', '.join(c['move'] for c in correct[1:]) or 'nothing else',
-                    best['line'], played['move'], cost_text(played),
-                    words_for(played.get('eval')),
-                    (' On the board: %s.' % board_here) if board_here else ''))
+            if only:
+                nxt = row['candidates'][1] if len(row['candidates']) > 1 else None
+                next_text = (' The next best, %s, leaves %s.' % (
+                    nxt['move'], words_for(nxt.get('eval')))) if nxt else ''
+                slots[qid] = (
+                    '%s to move. Only one move holds here: %s, and afterwards %s. '
+                    'What follows it: %s. Every other move is clearly worse.%s '
+                    'The game found it.%s Ask for the move in one sentence, '
+                    'without naming it or its destination square.' % (
+                        mover, best['move'], words_for(best['eval']),
+                        best['line'], next_text,
+                        (' On the board: %s.' % board_here) if board_here else ''))
+            else:
+                slots[qid] = (
+                    '%s to move. The best move is %s, and afterwards %s. Also counted '
+                    'correct: %s. What follows the best move: %s. In the game %s was '
+                    'played instead; it %s and afterwards %s.%s Ask for the '
+                    'move in one sentence, without naming it or its destination square.' % (
+                        mover, best['move'], words_for(best['eval']),
+                        ', '.join(c['move'] for c in correct[1:]) or 'nothing else',
+                        best['line'], played['move'], cost_text(played),
+                        words_for(played.get('eval')),
+                        (' On the board: %s.' % board_here) if board_here else ''))
             facts[qid] = {'gain': 0, 'mate': False, 'fork': False, 'pin': False,
                           'motifs': board_here or '', 'question': True,
                           'names': [best['move'], best['move'].rstrip('+#')[-2:]]}
@@ -630,8 +702,14 @@ def moments(name, cfg=None):
         moves = []
         line_sans = best['line'].split()
         shown = answer_ply_count(row['fen'], mover, line_sans, cfg)
+        # For an only move the line starts with the game's own move, and goes
+        # on as the game did for as long as the two agree.
+        on_game = only
         for k, san in enumerate(line_sans[:shown], 1):
             sid = '%s.answer.%d' % (mid, k)
+            game_row = rows[i + k - 1] if i + k - 1 < len(rows) else None
+            on_game = on_game and bool(game_row) and \
+                (game_row.get('played') or {}).get('move') == san
             info = play(board, san)
             # A move of the best line did not happen, and the slot says so in
             # its own words: a student met „Black plays Qf6 instead of the game
@@ -647,9 +725,14 @@ def moments(name, cfg=None):
             # rule keys on and nothing more; the prompt now also says that a
             # move with nothing to tell gets an empty slot rather than a
             # sentence about the line continuing.
-            slots[sid] = info['words'] + (
-                '; the best move, which the game did not play' if k == 1
-                else '; not played')
+            if only:
+                marker = ('; the move played in the game, the only one that held'
+                          if k == 1 else
+                          '; played in the game' if on_game else '; not played')
+            else:
+                marker = ('; the best move, which the game did not play' if k == 1
+                          else '; not played')
+            slots[sid] = info['words'] + marker
             if k == 1 and _sacrifice(row['fen'], mover, line_sans[:shown], best.get('eval')):
                 slots[sid] += ('; this line gives material for activity: at its '
                                'end %s is still material down and %s, and not '
@@ -663,8 +746,13 @@ def moments(name, cfg=None):
         # model is not asked to, and the answer part has no introduction.
         fork = '%s.fork' % mid
         played_move = chess.Board(row['fen']).parse_san(played['move'])
-        program = {fork: 'In this position %s played %s. The best move was…' % (
-            mover, played['move'])}
+        # An only move is not named here either: the line after this part
+        # plays it, and a move read before it is played is given away.
+        program = {fork: (
+            'In this position %s found the only move that held…' % mover
+            if only else
+            'In this position %s played %s. The best move was…' % (
+                mover, played['move']))}
         parts.append({'kind': 'show', 'fen': row['fen'], 'intro': fork,
                       'moves': [], 'program': True,
                       # Square names, not indices: this is data the app's port reads back
@@ -742,8 +830,11 @@ def moments(name, cfg=None):
 
         out.append({
             'id': mid, 'index': i, 'label': row['label'], 'mover': mover,
-            'played': played['label'], 'cost': played.get('cost_pawns'),
-            'cost_text': cost_text(played),
+            'played': played['label'],
+            'kind': 'only' if only else 'mistake',
+            'lost': judged.get('lost'),
+            'cost': played.get('cost_pawns'),
+            'cost_text': 'was the only move that held' if only else cost_text(played),
             'left_book': bool(played.get('left_book')),
             'best': best['move'], 'asks': asks,
             'correct': [c['move'] for c in correct], 'board': board_here,
@@ -801,7 +892,7 @@ def decisive_moment(moments_list, rows):
         return None
     return max(moments_list,
                key=lambda m: (_changed_hands(rows, m['index']),
-                              _cost_value(m['cost']), -m['index']))['id']
+                              m.get('lost') or 0, -m['index']))['id']
 
 
 # --- The prompt ---------------------------------------------------------------
@@ -1318,7 +1409,7 @@ def filler_words(rows, r, cfg, resumed, used, events=None):
         said.append(_pick('resumed', used).format(
             mover=mover, move=played['move'],
             after=_stands(mover, standing(played.get('eval'), mover))))
-    elif _cost_value(played.get('cost_pawns')) >= cfg['min_cost'] and row.get('candidates'):
+    elif (played.get('judged') or {}).get('mistake') and row.get('candidates'):
         best = row['candidates'][0]['eval']
         kind = mistake_kind(standing(best, mover), standing(played.get('eval'), mover))
         if kind:

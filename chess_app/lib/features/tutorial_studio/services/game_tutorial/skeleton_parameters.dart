@@ -1,7 +1,11 @@
+/// The tutorial's shape. **No threshold since phase 1b** of
+/// `docs/PLAN-ZAGONETKE-IZ-PARTIJE.md`: what a mistake is, and which other
+/// moves count as right, is the mistake rule's (`mistake_rule.dart`), decided
+/// by the review's judge and written into the facts — the trainer's pawn
+/// slider (`minCost`) and the 0.3 pawns of „near the best" (`near`) went with
+/// it, on the owner's word of 25.9.2026.
 class SkeletonParameters {
   const SkeletonParameters({
-    this.minCost = 1.0,
-    this.near = 0.3,
     this.maxCorrect = 3,
     this.maxMoments = 8,
     this.leadPlies = 3,
@@ -9,8 +13,6 @@ class SkeletonParameters {
     this.maxAnswerPlies = 8,
   });
 
-  final double minCost;
-  final double near;
   final int maxCorrect;
   final int maxMoments;
   final int leadPlies;
@@ -22,21 +24,7 @@ class SkeletonParameters {
   /// day that changes.
   final int maxAnswerPlies;
 
-  /// The same parameters at another threshold — what the trainer's slider
-  /// changes, and the only field of these a trainer ever sets.
-  SkeletonParameters withMinCost(double value) => SkeletonParameters(
-        minCost: value,
-        near: near,
-        maxCorrect: maxCorrect,
-        maxMoments: maxMoments,
-        leadPlies: leadPlies,
-        answerPlies: answerPlies,
-        maxAnswerPlies: maxAnswerPlies,
-      );
-
   Map<String, dynamic> toJson() => {
-        'min_cost': minCost,
-        'near': near,
         'max_correct': maxCorrect,
         'max_moments': maxMoments,
         'lead_plies': leadPlies,

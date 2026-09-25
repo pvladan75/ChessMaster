@@ -88,8 +88,13 @@ void main() {
 
           final san = (m['played'] as String).split(' ').last;
           final mover = m['mover'] as String;
-          expect((m['program'] as Map)['$id.fork'],
-              'In this position $mover played $san. The best move was…');
+          // An only move the player found says what it is (phase 1b of
+          // docs/PLAN-ZAGONETKE-IZ-PARTIJE.md): the game played the best move.
+          expect(
+              (m['program'] as Map)['$id.fork'],
+              m['kind'] == 'only'
+                  ? 'In this position $mover found the only move that held…'
+                  : 'In this position $mover played $san. The best move was…');
           expect(_tokens((m['program'] as Map)['$id.fork'] as String),
               isNot(contains(m['best'])),
               reason: '$id: a move read before it is played is given away');

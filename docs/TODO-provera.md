@@ -5878,6 +5878,28 @@ odgovor. **Ništa od ovoga nije viđeno uživo.**
     se odmah smanjuje, a otvoreni tutorijal nema nijedan deo sa pitanjem; ništa
     se ne plaća ponovo. Za učenike je kao do sada.
 
+## 245. Tutorijal iz partije na pravilu greške — 25.9.2026, nije viđeno uživo
+
+`PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1b. Na računaru (tutorijal traži lokalni
+engine); backend ne mora da se restartuje zbog ovoga.
+
+1. [ ] **Prvi dijalog.** „Make a tutorial" iz Analysis: nema više klizača
+   „Teach a move that cost X pawns"; dubina počinje na **20** (i ako si ranije
+   imao 18). Izaberi drugu dubinu, zatvori, otvori ponovo: pamti je.
+2. [ ] **Tok.** Posle analize se vidi korak „Checking which moves are
+   mistakes, the way a game review does."
+3. [ ] **Drugi dijalog.** „What the engine found": „N mistakes and M moves
+   where only one move held." i koliko postaje delova; nema klizača. Na
+   partiji bez grešaka: „Nothing to teach from at depth 20", Write ugašen.
+4. [ ] **Iste greške kao pregled.** Na istoj partiji „Review entire game" sa
+   Blunder Alert: potezi sa `??` su isti potezi koje tutorijal uči (uz najviše
+   8 momenata).
+5. [ ] **Jedini potez.** Na partiji gde je igrač našao jedini dobar potez: taj
+   deo pita „nađi potez", a posle kaže da je partija baš njega odigrala — nigde
+   „which the game did not play".
+6. [ ] **Pitanja.** Na momentu gde je više poteza jednako dobro (nijedan nije
+   greška), nema pitanja — samo objašnjenje.
+
 ## 244. Tablebase za 5 figura i manje iz naših tabela — 25.9.2026, nije viđeno uživo
 
 `PLAN-ZAGONETKE-IZ-PARTIJE.md`, faza 1t. Treba restart backenda (nova ruta
