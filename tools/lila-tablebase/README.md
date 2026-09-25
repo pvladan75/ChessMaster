@@ -41,3 +41,12 @@ fewer from phase 0's walks it answers exactly as Lichess does in category and
 in every move's category. The order among equally good moves and a few DTZ
 values rounded one apart differ, because Lichess also sorts by DTM, which
 Prophet gives it and this build does not have.
+
+## On the droplet
+
+`deploy/tablebase-setup.sh` does the same on Linux, where upstream builds
+without the patch: it fetches the 3-4-5 set from `tablebase.sesse.net`, checks
+every file against `3-4-5.sha256` (written from the owner's set, so both
+machines hold the very same tables), builds upstream at the same commit, and
+runs it as the systemd unit `lila-tablebase` on `127.0.0.1:9000`. Run on
+25.9.2026: 290 of 290 files verified, an 11-minute build, about 52 MB running.

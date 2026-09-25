@@ -1261,10 +1261,20 @@ still open):
 Gate: `test/tablebase_local.test.js` (14 cases) and
 `test/syzygy_tablebase_server_test.dart` (6), both asserting the URLs asked;
 15 mutations, all caught. End to end on the real prober (no backend started):
-a five-man position answered locally, a six-man one by Lichess. **Open**: the
-droplet — the 3-4-5 set and lila-tablebase through `deploy/` [lead] when the
-switch to the droplet happens (a Linux build of upstream, no patch); and the
-owner's live check, TODO-provera 244.
+a five-man position answered locally, a six-man one by Lichess.
+
+**The droplet, the same day** (the owner: „na droplet možemo i sad"):
+`deploy/tablebase-setup.sh`, idempotent, as root — the 3-4-5 set fetched from
+the public mirror `tablebase.sesse.net` and every file checked against
+`tools/lila-tablebase/3-4-5.sha256`, written from the owner's own set (290 of
+290 verified), upstream lila-tablebase at the same pinned commit built as its
+own user (11 minutes on the one CPU; the droplet has 2 GB and 2 GB of swap,
+not the 960 MB this plan assumed), a systemd unit `lila-tablebase` on
+`127.0.0.1:9000` with the tables read-only, and `LOCAL_TABLEBASE_URL` set in
+the backend's `.env`. Measured there: active, enabled, about 52 MB, and the
+same answer as the owner's machine for a real five-man position. The backend
+service on the droplet stays stopped, as decided; the tables are ready for
+the day it starts. **Open**: the owner's live check, TODO-provera 244.
 
 ### Phase 2 — the stored review [lead]
 

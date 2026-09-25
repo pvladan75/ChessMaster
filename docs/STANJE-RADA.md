@@ -67,8 +67,14 @@ Rust je instaliran na ovom računaru; `lila-tablebase` je kloniran u
 Upoređen sa Lichess-om na 71 pravoj poziciji: isti ishod i isti ishod svakog
 poteza, 71 od 71.
 
-**Ostaje:** droplet (tabele 3-4-5 i `lila-tablebase` kroz `deploy/`, kad
-se pređe na droplet) i provera uživo. Detalji u planu, faza 1t, „Built".
+**Droplet je urađen istog dana** (`deploy/tablebase-setup.sh`): tabele
+3-4-5 proverene fajl po fajl prema vlasnikovom skupu, `lila-tablebase` kao
+servis na `127.0.0.1:9000`, `LOCAL_TABLEBASE_URL` u `.env` servera; backend
+na droplet-u i dalje ugašen, kao što je odlučeno. Uz to je `.env` droplet-a
+dobio `DIGITALOCEAN_TOKEN` i `LICHESS_API_TOKEN`, a `DASHSCOPE_API_KEY` i
+`AZURE_OPENAI_*` su obrisani iz oba `.env` (server ih ne čita).
+
+**Ostaje:** provera uživo. Detalji u planu, faza 1t, „Built".
 
 ## Zagonetke iz partije, faza 3: pregled piše komentare — 25.9.2026, u kodu, ostaje provera uživo (stavka 243)
 
