@@ -737,6 +737,10 @@ form. The ones that matter most:
 
 ## 8. Next, to be agreed: the parts drawn as a tree
 
+**Superseded 25.9.2026 by [PLAN-MAPA-DELOVA.md](PLAN-MAPA-DELOVA.md)**, which
+the owner opened from a live look at the studio and accepted as recommended the
+same day; its §4 answers the five questions below. Kept as it was written.
+
 The owner's second paragraph (§1). **Nothing decided; to be agreed once
 phases 1–7 are done.** What already exists, so the conversation starts from
 it rather than from nothing:

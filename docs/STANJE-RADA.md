@@ -55,6 +55,30 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Delovi tutorijala kao mapa, i deo kao jedna linija — 25.9.2026, plan, ništa u kodu
+
+Vlasnik je u studiju odigrao drugi potez unutar istog dela (18... h6 19. Rxe5
+pored 18... cxd4) i pitao šta se tada dešava, da li se deo podelio, i traži da
+se vidi koji deo se na koji nastavlja — nešto kao grafičko stablo poteza — uz
+bolje korišćenje prostora oko table na desktopu i ime tutorijala koje se vidi
+celo.
+
+**Nalaz, izmeren:** deo se ne deli; račva ostaje u stablu dela i čuva se, ali
+**film prikazuje samo prvi potez na svakoj račvi** — sporedna linija i sve
+napisano na njoj tiho nedostaju u videu. Isto važi za varijante uvezenog PGN-a,
+za liniju predatu iz Analize i za „Add this line to a tutorial…".
+
+**Plan: [PLAN-MAPA-DELOVA.md](PLAN-MAPA-DELOVA.md)**, zamenjuje §8 plana
+`PLAN-TUTORIJAL-VIDEO.md`. **Vlasnik je istog dana odgovorio „sve po
+preporuci, napiši plan"**: deo je jedna linija — drugi potez na tabli pravi nov
+deo odmah posle otvorenog (D1); ostala vrata račvu dele na delove redom kao
+„Insert a line here" (D2); lista delova postaje mapa — redovi po redu filma,
+trake levo za to kako se spajaju (D3); postojeći delovi sa račvom se ne menjaju
+sami, studio to kaže i nudi dugme „Make it a part" (D4). Na širokom prozoru mapa
+dobija kolonu levo od table ako tabla zadržava veličinu, a naslov ide u gornju
+traku, oznake i jezik iza „Details…". Faze 0–6; sledeća je faza 0 (merenje u
+worktree-u i zajednički fixture-i).
+
 ## Tutorijal služi samo za video — 25.9.2026, faze 0, 2 i 3 u kodu, ostaje provera uživo ([246.1]–[246.10])
 
 Vlasnik: tutorijal je samo materijal za video; učeniku se više ne šalje
