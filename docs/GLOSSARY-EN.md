@@ -15,7 +15,7 @@ written against exactly these terms.
 
 | | |
 |---|---|
-| **Tutorial** | The thing a trainer *writes*. A child walks it alone, at their own pace, whenever they like. Asynchronous. |
+| **Tutorial** | The thing a trainer *writes*: material for a film. What a student receives is the film — a **Tutorial video** — never the tutorial itself (25.9.2026, `docs/PLAN-TUTORIJAL-VIDEO.md`). Asynchronous. |
 | **Session** | The thing a trainer *runs*. Trainer and student are in a room at the same time, on one board, with voice. Live. |
 
 Serbian froze this pair on 6.9.2026 as **Tutorijal** and **Čas**, after one word
@@ -25,8 +25,8 @@ lekciju" (homework for Thursday) read to a child as the same event.
 
 **„Session", not „Lesson", and the reason is not taste.** The code has already
 spent the word *lesson* on the artefact: the table is `saved_lessons`, the wire
-type is `LessonStep`, the child's screen is `LessonViewerScreen`, the service is
-`LessonApiService`. If the interface called the *live* thing a Lesson, then
+type is `LessonStep`, the service is `LessonApiService`, and an assignment of a
+tutorial's video is of kind `lesson`. If the interface called the *live* thing a Lesson, then
 every bug report, every log line and every conversation would carry a word that
 means one thing in the UI and the opposite in the code. „Session" costs nothing
 and removes that.
@@ -77,9 +77,7 @@ because it is the verb and the tab is a verb.
 | Tok | **Flow** | The timeline a tutorial is written on. Already the panel's word (`TutorialFlowPanel`). |
 | Stablo | **Tree** | |
 | Polazna pozicija | **Starting position** | |
-| Zadatak za učenika | **Task** | What the child is asked. The field, not the tutorial. |
-| Ponuđeni odgovori | **Answers** | |
-| Samo prikaži / Traži potez na tabli / Traži odgovor iz liste | **Show / Find the move / Choose the answer** | The three kinds. The wire keeps `show`, `ask_move`, `ask_choice`. |
+| Prikaz | **Show** | The one kind of part since 25.9.2026: a part shows a position and a line, and asks nothing. The wire says `show`; `ask_move` and `ask_choice` are refused. A question for a student is an **Exercise**. |
 
 ## The people, and what passes between them
 
@@ -91,7 +89,8 @@ because it is the verb and the tab is a verb.
 | Saglasnost | **Consent** | The parent's, and the word the legal texts use. |
 | Zadatak (pozicija + cilj) | **Exercise** | A position **plus a task**, with a name and labels: what a trainer makes, keeps in the Library and puts in a homework. A bare **Position** cannot be sent. Its **Task** is *Find the move(s)*, *Win* or *Draw or better*. A number of moves on *Draw or better* is **for N moves**; on *Win* it is **Checkmate in N moves** — never „win for N moves" (19.9.2026). `custom_puzzles` on the wire, read only through `services/exercise.js`. `docs/PLAN-EXERCISE.md`. |
 | Rešiti (svoj zadatak) | **Solve** | Answering an exercise **alone**, for one's own growth rather than as homework: the Library card's „Solve" and Practise's „My exercises" (23.9.2026, `docs/PLAN-MATERIJAL.md` phase 1). The three verbs on an exercise are **Open** (study it), **Solve**, and **Assign to student** / **Send to student**. |
-| Zadatak (domaći) | **Assignment** | Homework. Matches `assignments` on the wire. Distinct from **Task**, which is what one part asks. |
+| Zadatak (domaći) | **Assignment** | Homework. Matches `assignments` on the wire. Distinct from **Task**, which is what an exercise asks. |
+| Video tutorijala | **Video** / **Tutorial video** | What a student receives from a tutorial: its exported film, sent alone („Send to student", „Send a video") or as a homework item. Done when the whole file has been downloaded — *Downloaded on …* / *Not downloaded yet*; whether it was watched is never known. The wire kind stays `lesson` (`docs/PLAN-TUTORIJAL-VIDEO.md`, D14). |
 | Poziv | **Invitation** | |
 | Grupa | **Group** | |
 

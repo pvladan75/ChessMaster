@@ -663,13 +663,13 @@ oblačići sa nazivima.
       pravo da vodi tablu, dugmad su siva i ne rade. — *prepisano 25.9.2026 u novi spisak: Sesija — Soba, stavka 25.*
 - [ ] **AI Studio** — čipovi sa potezima i dalje stoje iznad dugmadi. Novo:
       kad si na početku, čip „Početak" je **označen** (ranije nikad nije bio). — **prevaziđeno (25.9.2026):** Red čipova sa odigranim potezima (i markiranim početnim „Start" korakom) je izbrisan 28.8.2026 zajedno sa `showMoveChips` — u AI Studiju iznad trake danas stoji samo stablo rešenja zagonetke (drugačiji sadržaj), bez ijednog čipa za početnu poziciju.
-- [ ] **Pregled zadate lekcije** (kao učenik, korak sa linijom poteza) — brojač
+- [x] **Pregled zadate lekcije** (kao učenik, korak sa linijom poteza) — brojač
       „Potez 3 od 12" se **preselio iznad dugmadi u sam red**, između `<` i `>`.
-      Traka je sada u kartici, kao na ostalim ekranima. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 17.*
+      Traka je sada u kartici, kao na ostalim ekranima. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 17.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 - [ ] **Ponavljanje u razmacima** — posle „Prikaži nastavak" traka izgleda isto
-      kao svugde i **ima dugme za okretanje table**, kog ranije nije bilo. — *prepisano 25.9.2026 u novi spisak: Home — Ponavljanje u razmacima, stavka 1.*
+      kao svugde i **ima dugme za okretanje table**, kog ranije nije bilo. — *prepisano 25.9.2026 u novi spisak: Home — Ponavljanje u razmacima, stavka 1.* — **prevaziđeno (25.9.2026):** „Due for review" i ponavljanje delova tutorijala su uklonjeni (`docs/PLAN-TUTORIJAL-VIDEO.md`, D9, faza 3); vidi [246.10].
 - [ ] Okreni tablu u ponavljanju: tekst iznad table i dalje kaže tačno ko je na
-      potezu. Ne sme da se promeni sa okretanjem. — *prepisano 25.9.2026 u novi spisak: Home — Ponavljanje u razmacima, stavka 2.*
+      potezu. Ne sme da se promeni sa okretanjem. — *prepisano 25.9.2026 u novi spisak: Home — Ponavljanje u razmacima, stavka 2.* — **prevaziđeno (25.9.2026):** „Due for review" i ponavljanje delova tutorijala su uklonjeni (`docs/PLAN-TUTORIJAL-VIDEO.md`, D9, faza 3); vidi [246.10].
 - [ ] **Analysis Studio** — traka je sada svetla (`cardColor`), ne tamnosiva.
       Dugmad za komentar, AI komentar, NAG i brisanje stoje na istom mestu, u
       istom redu, i rade. — *prepisano 25.9.2026 u novi spisak: Analyse — Analysis, stavka 9.*
@@ -747,10 +747,10 @@ lekcije sačuvane kao jedna pozicija, „Pregled i komentari" je pokazivao praza
 kvadrat umesto table. Vidi „Koraci lekcije su se čitali na četiri načina" u
 [STANJE-RADA.md](../STANJE-RADA.md).
 
-- [ ] Otvori taj isti pregled ponovo — tabla se sada vidi, a naslov je naziv
-      pozicije umesto „Pozicija 1". (Backend je restartovan sam, ne treba ništa.) — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 19.*
-- [ ] Lekcija sa **više** koraka i dalje pokazuje svoj korak, ne svoju prvu
-      poziciju. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 20.*
+- [x] Otvori taj isti pregled ponovo — tabla se sada vidi, a naslov je naziv
+      pozicije umesto „Pozicija 1". (Backend je restartovan sam, ne treba ništa.) — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 19.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+- [x] Lekcija sa **više** koraka i dalje pokazuje svoj korak, ne svoju prvu
+      poziciju. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 20.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 
 ## Značka je stajala i posle čitanja — nađeno i popravljeno 20.8.2026
 
@@ -2779,7 +2779,7 @@ Traži **vaš Lichess token** (isti kao sudija), jer troši vašu kvotu.
    moglo ući samo klikom u stablu. — *prepisano 25.9.2026 u novi spisak: Analyse — Analysis, stavka 18.*
 3. [x] **Soba za lekciju i AI Studio.** Isto, tamo gde partija ima varijante. — ✅ vlasnik, u alatu za proveru, 3.9.2026.
 4. [ ] **Lekcije i ponavljanja se nisu promenili.** Tamo nema grana; „napred"
-   ide bez ikakvog pitanja. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 6.*
+   ide bez ikakvog pitanja. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 6.* — **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 5. [x] **Zatvaranje lista ne pomera tablu.** Otvoriti izbor pa ga zatvoriti
    klikom pored — pozicija mora da ostane ista. — ✅ vlasnik, u alatu za proveru, 3.9.2026.
 6. [x] **„Na kraj" ne pita.** Dugme „|>" ide do kraja linije bez pitanja na
@@ -4001,52 +4001,52 @@ proverava kako izgleda **detetu** (stavke 1–16). Treba jedna lekcija sa tri
 koraka: jedan `show`, jedan `ask_move` (sa `acceptedSans`, da se vidi i druga
 tačna varijanta) i jedan `ask_choice`.
 
-1. [ ] **Stara lekcija bez `kind`-a i dalje radi** — otvori bilo koji postojeći
+1. [x] **Stara lekcija bez `kind`-a i dalje radi** — otvori bilo koji postojeći
    zadatak lekcije. Tabla se igra, ništa ne pita, nema banera. Ovo je jedina
-   stavka koja proverava da ništa nije pokvareno. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 22.*
-2. [ ] **`ask_move`, tačan potez** → „Tačno." i ništa više. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 2.*
-3. [ ] **`ask_move`, druga tačna varijanta** → „Tačno. Mi nastavljamo posle
+   stavka koja proverava da ništa nije pokvareno. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 22.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+2. [x] **`ask_move`, tačan potez** → „Tačno." i ništa više. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 2.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+3. [x] **`ask_move`, druga tačna varijanta** → „Tačno. Mi nastavljamo posle
    `<potez>`." Figure ostaju tamo gde si ih ti odigrao — rečenica kaže odakle
-   lekcija ide dalje, tabla se ne pomera sama. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 3.*
-4. [ ] **`ask_move`, pogrešan potez** → poruka je **serverova** („taj potez nije
+   lekcija ide dalje, tabla se ne pomera sama. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 3.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+4. [x] **`ask_move`, pogrešan potez** → poruka je **serverova** („taj potez nije
    moguć u ovoj poziciji" i „nije traženi potez" su dve različite poruke i moraju
    da se razlikuju), a **figure se vrate na početnu poziciju koraka**. Odigraj
-   odmah drugi potez: mora da bude primljen normalno, bez pritiska na išta. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 4.*
-5. [ ] **„Pokaži mi" se ne nudi posle prve greške**, a posle druge se pojavi.
-   Pritisni ga: pokaže „Rešenje: `<potez>`". — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 5.*
-6. [ ] **`ask_choice`** → opcije se vide, **tabla se ne igra** (probaj da
-   povučeš figuru — ne sme da se pomeri), izbor šalje odgovor i verdikt stiže. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 6.*
-7. [ ] **Tačno i netačno se razlikuju i bez boje.** Vlasnik je daltonista:
-   gledaj ikonicu i oblik banera, ne nijansu. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 7.*
-8. [ ] **Na telefonu (360 dp) ništa nije odsečeno.** Izmereno u testu 5.9.2026 i
+   odmah drugi potez: mora da bude primljen normalno, bez pritiska na išta. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 4.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+5. [x] **„Pokaži mi" se ne nudi posle prve greške**, a posle druge se pojavi.
+   Pritisni ga: pokaže „Rešenje: `<potez>`". — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 5.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+6. [x] **`ask_choice`** → opcije se vide, **tabla se ne igra** (probaj da
+   povučeš figuru — ne sme da se pomeri), izbor šalje odgovor i verdikt stiže. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 6.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+7. [x] **Tačno i netačno se razlikuju i bez boje.** Vlasnik je daltonista:
+   gledaj ikonicu i oblik banera, ne nijansu. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 7.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+8. [x] **Na telefonu (360 dp) ništa nije odsečeno.** Izmereno u testu 5.9.2026 i
    čisto je, ali release build ne crta upozorenje pa se gleda okom. **Opcije kod
    `ask_choice` su ispod prevoja** — treba skrolovati ispod table da bi se
    videle. To nije kvar; odluka je da li je prihvatljivo detetu koje prvi put
-   vidi ekran. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 16.*
-9. [ ] **Isključi mrežu usred odgovora** → „Odgovor nije poslat — proveri vezu."
-   i tabla ostaje tamo gde je bila. Dete sme odmah da pokuša ponovo. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 8.*
-10. [ ] **Nigde nema tajmera, bodova ni niza.** Ovaj ekran se koristi u sekciji
-    gde deca vide ekrane jedno drugom. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 9.*
+   vidi ekran. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 16.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+9. [x] **Isključi mrežu usred odgovora** → „Odgovor nije poslat — proveri vezu."
+   i tabla ostaje tamo gde je bila. Dete sme odmah da pokuša ponovo. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 8.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+10. [x] **Nigde nema tajmera, bodova ni niza.** Ovaj ekran se koristi u sekciji
+    gde deca vide ekrane jedno drugom. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 9.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 
 Uz to, faza 6 (crtež i glas, paket 49) — za ovo treba korak čiji PGN nosi
 `[%csl]` i `[%cal]`, jedan pre prvog poteza i jedan uz potez:
 
-11. [ ] **Polje koje je autor obojio se vidi kao prsten**, i vidi se **pre**
+11. [x] **Polje koje je autor obojio se vidi kao prsten**, i vidi se **pre**
     prvog poteza. Prsten ima crnu i belu ivicu oko boje — to je ono što ga drži
     čitljivim na svakoj tabli i za svako oko; ako se vidi samo boja, nešto nije
-    nacrtano kako treba. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 10.*
-12. [ ] **Prsten se ne meša sa poslednjim potezom** (uglovi) ni sa poljem sa
-    kog trener crta (pun krug). Razlika je oblik, ne nijansa. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 11.*
-13. [ ] **Korak napred menja crtež**, korak nazad ga vraća. Prođi liniju do
-    kraja i natrag. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 12.*
-14. [ ] **`[%csl Yd5]` daje siv prsten**, jer paleta nema žutu. To je poznato i
+    nacrtano kako treba. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 10.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+12. [x] **Prsten se ne meša sa poslednjim potezom** (uglovi) ni sa poljem sa
+    kog trener crta (pun krug). Razlika je oblik, ne nijansa. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 11.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+13. [x] **Korak napred menja crtež**, korak nazad ga vraća. Prođi liniju do
+    kraja i natrag. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 12.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+14. [x] **`[%csl Yd5]` daje siv prsten**, jer paleta nema žutu. To je poznato i
     zapisano; pitanje za uživo je da li je sivo dovoljno ili paleti treba šesta
     boja — a šesta se **meri** u postojeći skup (1.5:1 na svaki par, pod
-    protanopijom i deuteranopijom), ne bira. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 21.*
-15. [ ] **Zvučnik pored zadatka i pored beleške radi**, i čita **tačno ono što
-    piše**. Ništa se ne izgovara što nije napisano. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 13.*
-16. [ ] **Sa isključenim govorom ekran ne gubi ništa** — svaka rečenica koja bi
-    se čula i dalje stoji napisana. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 14.*
+    protanopijom i deuteranopijom), ne bira. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 21.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+15. [x] **Zvučnik pored zadatka i pored beleške radi**, i čita **tačno ono što
+    piše**. Ništa se ne izgovara što nije napisano. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 13.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
+16. [x] **Sa isključenim govorom ekran ne gubi ništa** — svaka rečenica koja bi
+    se čula i dalje stoji napisana. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 14.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 
 Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i pravi:
 
@@ -4060,19 +4060,19 @@ Trenerova strana, faza 7 (paket 50) — ovim se lekcija iz gornjih stavki i prav
     nije otvarao.
 18. [ ] **Korak napravljen iz studija nosi crtež.** Nacrtaj strelicu i oboji
     polje u studiju, napravi korak, pa ga otvori kao đak — strelica i prsten su
-    tu. To je i razlog zašto dugme stoji baš na tom ekranu. — *prepisano 25.9.2026 u novi spisak: Analyse — Tutorijal iz partije, stavka 15.*
+    tu. To je i razlog zašto dugme stoji baš na tom ekranu. — *prepisano 25.9.2026 u novi spisak: Analyse — Tutorijal iz partije, stavka 15.* — **prevaziđeno (25.9.2026):** provera traži otvaranje kao učenik ili „Preview tutorial", kojih više nema (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3); crtež dela se vidi u filmu ([133.5]).
 19. [ ] **Tri polja rade:** rečenica, vrsta koraka, odgovor. Tačan potez se
-    **odigra na tabli**, ne kuca. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 17.*
+    **odigra na tabli**, ne kuca. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 17.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 20. [ ] **Server odbija, a trener vidi zašto.** Napravi `ask_move` bez rešenja i
     sačuvaj: poruka mora da kaže koje je pravilo prekršeno, a ne „Čuvanje nije
-    uspelo". Isto za `ask_choice` sa dva tačna odgovora. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 18.*
+    uspelo". Isto za `ask_choice` sa dva tačna odgovora. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 18.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 21. [ ] **Izmena ne gubi korake.** Otvori postojeću lekciju, promeni tekst
     jednog koraka, sačuvaj, pa je otvori ponovo — svi koraci su tu, istim
     redom. Zatim **preimenuj jednu pojedinačnu poziciju** i proveri da lekcija
     sa koracima nije dirnuta (to je popravka iz 7a). — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 19.*
 22. [ ] **„Pregled" pokazuje đačkov ekran i ništa ne šalje.** Odigraj potez u
     pregledu: piše da je ovo pregled i da potez nije poslat na proveru. Ne sme
-    da se pojavi „Odgovor nije poslat — proveri vezu." ni ocena. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 51.*
+    da se pojavi „Odgovor nije poslat — proveri vezu." ni ocena. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 51.* — **prevaziđeno (25.9.2026):** „Preview tutorial" i učenikov pregled tutorijala su uklonjeni (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3); jedan deo se okreće iz svog reda ([246.9]), a ono što deo pokazuje vidi se u filmu ([133.5]).
 23. [ ] **U `CreateCourseDialog` više nema unosa zadatka** — samo redosled i
     izbor pozicija. Tekst koraka se piše u studiju. — **prevaziđeno (25.9.2026):** `CreateCourseDialog` je u potpunosti obrisan 17.9.2026 zajedno sa starim urednikom; jedini dijalog za pravljenje novog tutorijala je danas „New tutorial” sa samo jednim poljem (naziv) — tekst zadatka se od tada piše isključivo unutar studija, nikad u dijalogu za pravljenje.
 
@@ -4083,7 +4083,7 @@ Popravke od 6.9.2026 — korak nosi liniju, ne samo sliku:
     napravi korak. Kao đak: traka „Potez N od M" postoji, listanje menja
     poziciju, i uz svaki potez stoji komentar koji si napisao. Ranije se ovde
     dobijala **nepomična slika**, bez trake i bez ijednog komentara, a trener je
-    pri čuvanju video „Korak uspešno dodat". — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 29.*
+    pri čuvanju video „Korak uspešno dodat". — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 29.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 25. [ ] **Pitanje „Odakle počinje korak?"** iskoči kad ne stojiš na početnoj
     poziciji stabla — „Od početka linije" daje celu liniju, „Odavde" samo ono
     što sledi. Ako stojiš u **sporednoj varijanti**, u pitanju stoji i
@@ -4092,7 +4092,7 @@ Popravke od 6.9.2026 — korak nosi liniju, ne samo sliku:
 26. [ ] **Rečenica o početnoj poziciji stiže do đaka.** U studiju napiši
     komentar dok tabla stoji na **prvoj** poziciji koraka (pre ijednog poteza),
     napravi korak, otvori kao đak: rečenica se vidi odmah, na potezu 0. Kreni
-    napred — zameni je komentar prvog poteza; vrati se nazad — opet je tu. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 20.*
+    napred — zameni je komentar prvog poteza; vrati se nazad — opet je tu. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 20.* — **prevaziđeno (25.9.2026):** „Preview tutorial" i učenikov pregled tutorijala su uklonjeni (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3); jedan deo se okreće iz svog reda ([246.9]), a ono što deo pokazuje vidi se u filmu ([133.5]).
 
 Pedagoški šablon iz 6.9.2026 — lekcija se sluša, pa se pita.
 
@@ -4103,24 +4103,24 @@ ne proverava tri puta isti ekran: pregledač je od tada dobio i grananje (batch
 strana bude gotova. Ništa od ovoga nije viđeno kako radi.
 
 
-27. [ ] **Linija se šeta brzinom glasa.** Uključi govor, otvori korak sa
+27. [x] **Linija se šeta brzinom glasa.** Uključi govor, otvori korak sa
     linijom i pritisni „Pročitaj mi liniju" u traci poteza. Svaki potez se
     odigra **tek kad se rečenica ispred njega dovrši** — ne ranije, i ne po
     tajmeru. Test za ovo je lekcija o opoziciji iz razgovora:
     `8/8/8/3k4/8/8/3PK3/8 w - - 0 1` sa `1. Kd3 … Ke5 … 2. Kc4 … Kd6 3. Kd4`.
     Proveri i da zelena polja e4/d4/c4 stoje **dok** se čita rečenica o Kd3, i
-    da nestanu sa sledećim potezom. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 18.*
+    da nestanu sa sledećim potezom. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 18.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 27a. [ ] **Dete može da preuzme.** Pritisak na „Prethodni potez", na strelicu,
     ili potez odigran rukom — zaustavlja čitanje i glas ućuti. „Zaustavi
     čitanje" isto. Sa isključenim govorom dugmeta za čitanje nema, a listanje
     radi kao i pre.
-28. [ ] **Demonstracija prelazi u pitanje bez skoka.** Napravi lekciju od dva
+28. [x] **Demonstracija prelazi u pitanje bez skoka.** Napravi lekciju od dva
     koraka: `show` sa linijom koja se zaustavi na nekoj poziciji, pa
     `ask_move` **na toj istoj poziciji**. Sa uključenim govorom: po kraju
     linije lekcija sama pređe na pitanje, narator ga izgovori, i tabla se
     otključa — **bez treptaja, bez okretanja table, bez učitavanja novog
     ekrana**. Ovo je tačka koju treba gledati u oči: ako se tabla makar na
-    trenutak „resetuje", nije dobro. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 15.*
+    trenutak „resetuje", nije dobro. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 15.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 28a. [ ] **Isto važi i rukom.** Sa isključenim govorom dođi do kraja linije i
     pritisni „Sledeći korak" — ista tabla, ista orijentacija, samo se otključa.
 29. [ ] **Korak koji počinje drugde se ne otvara sam.** Ako sledeći korak stoji
@@ -4160,15 +4160,15 @@ zajedničku proveru uz fazu 5 `PLAN-TUTORIJAL.md`.
 1. [ ] **Pita pre nego što se desi.** Otvori tutorijal čiji korak nosi liniju i
    postavi mu tip „Traži potez na tabli". Pojavi se pitanje „Dete bi videlo
    odgovor"; „Odustani" vraća tip na ono što je bio — proveri da padajući meni
-   **stvarno pokazuje stari tip**, ne novi. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 12.*
+   **stvarno pokazuje stari tip**, ne novi. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 12.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 2. [ ] **„Ukloni liniju i postavi pitanje"** ukloni liniju i postavi pitanje; u
-   „Pregled" se vidi da trake poteza više nema. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 13.*
+   „Pregled" se vidi da trake poteza više nema. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 13.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 3. [ ] **Stari korak se prijavi sam.** Ako neki već sačuvan korak ima i liniju i
    „Traži potez na tabli", pri otvaranju stoji crveno upozorenje, čuvanje se
    odbija i poruka imenuje baš taj korak. Posle „Ukloni liniju" čuvanje prođe i
-   **tačan potez ostaje zapisan**. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 14.*
+   **tačan potez ostaje zapisan**. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 14.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 4. [ ] **Pitanje sa ponuđenim odgovorima i dalje sme da nosi liniju** — ništa ne
-   pita i ništa ne odbija. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 15.*
+   pita i ništa ne odbija. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 15.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 
 ## 111. Studio za tutorijal — pisanje i čuvanje — 6.9.2026, nije viđeno uživo
 
@@ -4182,12 +4182,12 @@ Faza 4b (batch 54). Ide zajedno sa tačkom 109, uz fazu 5.
 2. [ ] **Do „Sačuvaj tutorijal" ništa nije otišlo na server** — tutorijal se ne
    pojavljuje u biblioteci dok ne pritisneš to dugme. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 36.*
 3. [ ] **Otvori sačuvani tutorijal kao đak.** Primer 1 se čita kao linija sa
-   rečenicama, pa se bez učitavanja table pređe na pitanje. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 9.*
+   rečenicama, pa se bez učitavanja table pređe na pitanje. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 9.* — **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 4. [ ] **Ime preživi zatvaranje.** Upiši ime, zatvori prozor odmah, otvori
    ponovo — i ime i primeri su tu. (Ovo je popravka vođe pri spajanju; ime je
    bilo jedino što se nije vraćalo.) — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 37.*
 5. [ ] **Pitanje sa ponuđenim odgovorima:** dodaj dva odgovora, označi tačan,
-   sačuvaj; pa probaj da sačuvaš bez označenog — odbija se **pre** slanja. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 11.*
+   sačuvaj; pa probaj da sačuvaš bez označenog — odbija se **pre** slanja. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 11.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 
 ## 112. Koraci tutorijala — dodaj, obriši, premesti — 6.9.2026, nije viđeno uživo
 
@@ -4203,7 +4203,7 @@ Faza 4c (batch 55), u editoru koraka. Ide uz tačke 109 i 111, uz fazu 5.
 3. [ ] **Ovo je tačka koju treba gledati u oči.** Ako je neki đak već radio taj
    tutorijal, posle dodavanja i čuvanja **njegov napredak na ostalim koracima
    mora da ostane**. To je ceo razlog zbog kojeg su oznake koraka pisane ovako;
-   proveri na nalogu koji je već odgovarao bar jedan korak. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 9.*
+   proveri na nalogu koji je već odgovarao bar jedan korak. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 9.* — **prevaziđeno (25.9.2026):** napredak učenika po delu tutorijala više ne postoji — učenik dobija video, jedna stavka po tutorijalu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 2).
 4. [ ] **Obriši korak.** Pita pre brisanja i **imenuje korak**. „Odustani" ga
    ostavlja. Posle brisanja ostali koraci su netaknuti. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 21.*
 5. [ ] **Poslednji korak se ne briše.** Na tutorijalu sa jednim korakom
@@ -4456,7 +4456,7 @@ tako je i prijavljena, i tako je i pukla.
    drugi takt u „Toku": dugme više nije upaljeno, i klik po tabli ne crta. — ✅ vlasnik, u alatu za proveru, 7.9.2026.
 4. [ ] **Orijentacija table stiže do deteta.** U studiju okreni tablu na delu
    („Okreni tablu" ispod table), sačuvaj, pa otvori „Pregledaj kao učenik" —
-   tabla stoji onako kako si je ostavio. Isto i kroz pravi zadatak kod deteta. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 6.*
+   tabla stoji onako kako si je ostavio. Isto i kroz pravi zadatak kod deteta. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 6.* — **prevaziđeno (25.9.2026):** „Preview tutorial" i učenikov pregled tutorijala su uklonjeni (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3); jedan deo se okreće iz svog reda ([246.9]), a ono što deo pokazuje vidi se u filmu ([133.5]).
 5. [ ] **Svaki deo pamti svoju.** Okreni tablu na prvom delu, izaberi drugi
    deo (koji nije okrenut), pa se vrati na prvi — prvi je i dalje okrenut, a
    drugi nije. Sačuvaj, izađi, otvori ponovo: isto. — **prevaziđeno (25.9.2026):** Model se promenio 14.9.2026, baš zbog ovakvog nalaza: dugme za okretanje table u studiju („Flip board”) danas okreće SVE delove tutorijala odjednom (svaki od svog trenutnog stanja), ne samo otvoreni — jer je stari „samo otvoreni deo” model ostavljao delove da gledaju na različite strane bez ijednog traga na ekranu. Razlike između delova koje je trener namerno napravio ostaju očuvane (deo A i dalje gleda drugačije od dela B), ali okretanje na jednom delu više ne ostavlja drugi netaknutim, kako je stavka izvorno tražila. Poseban prekidač po delu postoji samo unutar „Preview tutorial”, ne u samom uređivanju.
@@ -4673,8 +4673,8 @@ nalog nikad ne bi mogao da upotrebi.
    trenerovih tutorijala nema. — *prepisano 25.9.2026 u novi spisak: Teach — Library i zadaci, stavka 26.*
 2. [ ] **Kod trenera je sve na svom mestu** — svi njegovi tutorijali, sa sve
    tri akcije. — *prepisano 25.9.2026 u novi spisak: Teach — Library i zadaci, stavka 27.*
-3. [ ] **Zadaci se ne diraju.** Tutorijal koji je trener **poslao** učeniku i
-   dalje stoji u zadacima i otvara se — to je drugi put i on ostaje. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 1.*
+3. [x] **Zadaci se ne diraju.** Tutorijal koji je trener **poslao** učeniku i
+   dalje stoji u zadacima i otvara se — to je drugi put i on ostaje. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 1.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 
 **Ostaje odluka za tebe, nije popravljeno:** da li učenik uopšte treba da u
 listi lekcija vidi sve što je trener ikad sačuvao (soba to prikazuje u sekciji
@@ -5298,7 +5298,7 @@ Popravljeni fajlovi su u `fixed/` podfolderu onog u kome su tutorijali.
    vidi da linija nije cela. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 7.*
 4. [ ] **Fajl koji server ne bi primio.** `adv_endgame_queen_vs_rook_and_pawn.json`
    iz `fixed/`: dijalog kaže da se rešenje „Qe5+" ne može odigrati u toj
-   poziciji. (Jedan fajl se i dalje može otvoriti da bi se popravio.) — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 8.*
+   poziciji. (Jedan fajl se i dalje može otvoriti da bi se popravio.) — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 8.* — **prevaziđeno (25.9.2026):** taj fajl sada pada zbog dela koji pita, i uvoz ga odbija imenujući deo ([246.12]); polje rešenja više ne postoji (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4).
 5. [x] **Više fajlova odjednom.** Izaberi svih 27 iz `fixed/` (Ctrl+A u
    biraču). Dijalog kaže koliko ih može da se sačuva i koliko ne, i imenuje
    one koje ne može. Upiši „endgame" u polje za oznake i pritisni „Save … to
@@ -5338,7 +5338,7 @@ pre nego što se rečenica ispiše do kraja, pa ostatak stigne odjednom.
    rečenice ispis se poklapa sa **novim** glasom. — ✅ vlasnik, u alatu za proveru, 11.9.2026.
 4. [ ] **Uputstvo govori istinu.** `docs/UPUTSTVO-STUDIO.md`, odeljak 8: bez
    ijednog upotrebljivog glasa na uređaju dugme ▶ se ne crta, a tutorijal se i
-   dalje prolazi dugmadima. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 8.*
+   dalje prolazi dugmadima. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 8.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 
 
 ## 149. Video bez komentara pored table — ✅ provereno uživo 11.9.2026
@@ -5383,20 +5383,20 @@ telefonu.
    Matej, i potezi se čuju na srpskom („lovac ce četiri"). **Presudi na uho**
    da li je „lovac ce četiri" dobro, ili bi „lovac c četiri" (samo slovo) bilo
    bolje — zadržava se ono što zvuči prirodno. Od druge rečenice ispis i govor
-   se završavaju zajedno. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 7.*
+   se završavaju zajedno. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 7.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 3. [ ] **Android.** Isti tutorijal na telefonu, kod đaka: čita Googleov srpski
    glas (ili hrvatski, ako srpskog nema), potezi na srpskom, isto pitanje kao u
-   tački 2. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 1.*
+   tački 2. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 1.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 4. [ ] **Uređaj bez glasa za taj jezik.** Najlakše bez brisanja glasova:
    prebaci tutorijal na „German" (ili drugi jezik čiji glas nemaš), sačuvaj,
    „Preview tutorial". Umesto ▶ stoji prekriženi zvučnik („No voice for this
    tutorial's language"); dodir kaže da uređaj nema glas i šta da se instalira.
-   Dugmad za poteze rade normalno, i ništa se ne čuje engleskim glasom. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 4.*
+   Dugmad za poteze rade normalno, i ništa se ne čuje engleskim glasom. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 4.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 5. [ ] **Ćirilica traži srpski glas.** Tutorijal na „Serbian (Cyrillic)" na
-   Windows-u koji ima samo hrvatski: nema ▶, stoji prekriženi zvučnik. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 5.*
+   Windows-u koji ima samo hrvatski: nema ▶, stoji prekriženi zvučnik. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 5.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 6. [ ] **Bez jezika je kao pre.** Vrati tutorijal na „Not set", sačuvaj: čita
    ga glas iz Podešavanja, kao ranije. Isto za neki stari tutorijal koji nikad
-   nije dobio jezik, i za jedan na „English". — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 3.*
+   nije dobio jezik, i za jedan na „English". — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 3.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 7. [ ] **Izvoz videa.** Za tutorijal na „Serbian (Latin)" dijalog za izvoz se
    otvara na srpskim glasovima, ako ih server ima (Azure). Hrvatski glas se tu
    **ne** nudi kao srpski. Sa piper-om, koji nema srpski glas, dijalog se
@@ -5410,7 +5410,7 @@ telefonu.
     se čitala kao „minus", a samo „h" se nije čulo. Komentar „Top ide na
     h-liniju, a c-pešak je slab." treba da se čuje kao „ha liniju" i „ce pešak".
     Redni brojevi se ne ispravljaju u kodu: piše se „sedmi red", ne „7. red"
-    (`UPUTSTVO-STUDIO.md`, odeljak 5). — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 2.*
+    (`UPUTSTVO-STUDIO.md`, odeljak 5). — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — kako ga vidi učenik, stavka 2.* — **prevaziđeno (25.9.2026):** aplikacija više ne čita tutorijal glasom uređaja — tutorijal čita samo film, a njegov glas se bira pri izvozu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 3).
 
 ## 151. Istorija u studiju: undo, sačuvana verzija i nova linija — 11.9.2026, nije viđeno uživo
 
@@ -5692,13 +5692,13 @@ od toga naprave pitanja.
 4. [ ] **Pitanje o greškama se pojavi samo kad ima šta da se pita.** Uvezi
    partiju bez oznaka: dijalog „Make questions from the mistakes?" ne sme da
    se pojavi. Uvezi partiju kroz „Review entire game": treba da se pojavi i da
-   kaže koliko ih je. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 4.*
+   kaže koliko ih je. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 4.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 5. [ ] **„Just the games" ostavlja partije kakve jesu** — svaki tutorijal je
-   jedan deo, `Show`. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 5.*
+   jedan deo, `Show`. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorijal — uvoz iz fajla, stavka 5.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 6. [ ] **„Make questions" seče.** Otvori dobijeni tutorijal u studiju: pre
    pitanja ide demonstracija, pitanje je gola pozicija, a deo posle njega nosi
-   odgovor. Rečenica pitanja ne sme da tvrdi da je odgovor jedini potez. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 30.*
-7. [ ] **Odgovor je engine-ov potez**, ne onaj koji je odigran u partiji. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 31.*
+   odgovor. Rečenica pitanja ne sme da tvrdi da je odgovor jedini potez. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 30.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
+7. [ ] **Odgovor je engine-ov potez**, ne onaj koji je odigran u partiji. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 31.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 8. [ ] **Ocene preživljavaju.** Otvori uvezenu partiju, promeni nešto bilo gde,
    sačuvaj, pa je otvori ponovo: `??` i `!` moraju i dalje da stoje na
    potezima. Do 12.9.2026. su se gubile pri prvom snimanju. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 32.*
@@ -5725,10 +5725,10 @@ ono što nijedan test ne dokazuje.
    i `[FEN]`. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 55.*
 5. [ ] **Pitanje se u fajlu vidi kao rečenica na svojoj poziciji.** Izvezi
    tutorijal sa `ask_move` delom: tekst pitanja mora da stoji kao komentar pre
-   poteza o kome se pita. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 56.*
+   poteza o kome se pita. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 56.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 6. [ ] **Strelica se ne duplira.** Izvezi tutorijal koji je sečen na pitanje
    tamo gde je nacrtana strelica: u fajlu sme da stoji samo jedno `[%cal]` za
-   nju. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 57.*
+   nju. — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 57.* — **prevaziđeno (25.9.2026):** tutorijal više nema delove koji pitaju; pitanje za učenika je vežba (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 4); vidi [246.11]–[246.14].
 7. [ ] **Put napolje i nazad.** Uvezi dobijeni fajl natrag kroz „Uvezi iz
    fajla": partije moraju da se pročitaju bez ijedne primedbe (zeleni redovi). — *prepisano 25.9.2026 u novi spisak: Teach — Tutorial studio, stavka 58.*
 8. [ ] **Izvozi se ono što je na ekranu.** Napiši novu rečenicu u delu, **ne**
@@ -5905,7 +5905,7 @@ engine); backend ne mora da se restartuje zbog ovoga.
    deo pita „nađi potez", a posle kaže da je partija baš njega odigrala — nigde
    „which the game did not play". — *prepisano 25.9.2026 u novi spisak: Analyse — Tutorijal iz partije, stavka 5.*
 6. [ ] **Pitanja.** Na momentu gde je više poteza jednako dobro (nijedan nije
-   greška), nema pitanja — samo objašnjenje. — *prepisano 25.9.2026 u novi spisak: Analyse — Tutorijal iz partije, stavka 6.*
+   greška), nema pitanja — samo objašnjenje. — *prepisano 25.9.2026 u novi spisak: Analyse — Tutorijal iz partije, stavka 6.* — **prevaziđeno (25.9.2026):** tutorijal iz partije više ne pravi pitanje ni u jednom momentu (`docs/PLAN-TUTORIJAL-VIDEO.md`, faza 5).
 
 ## 244. Tablebase za 5 figura i manje iz naših tabela — 25.9.2026, nije viđeno uživo
 
@@ -7507,9 +7507,9 @@ Kao **učenik**, sa domaćim koji ima „Play it out", pozicije i tutorijal.
    panel motora i prekidač strelica motora su se vratili, na istom ekranu. — ✅ vlasnik, u alatu za proveru, 19.9.2026.
 7. [ ] **Pozicija na koju je odgovoreno** i **rešen zadati taktički zadatak**: desni
    klik ponovo kopira FEN. Dva pogrešna pokušaja još uvek ne otvaraju ništa. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 25.*
-8. [ ] **Tutorijal iz domaćeg**: na koraku koji samo pokazuje, a posle kog dolazi
+8. [x] **Tutorijal iz domaćeg**: na koraku koji samo pokazuje, a posle kog dolazi
    pitanje, FEN se ne kopira; posle poslednjeg tačnog odgovora (ili „Show me")
-   kopira se. Već predat tutorijal kopira od početka. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 26.*
+   kopira se. Već predat tutorijal kopira od početka. — *prepisano 25.9.2026 u novi spisak: Home — Domaći i lekcije (My Assignments), stavka 26.* — ✅ vlasnik, u alatu za proveru, 25.9.2026; zatim **prevaziđeno (25.9.2026):** učenikov pregledač tutorijala je uklonjen — od tutorijala učenik dobija samo video (`docs/PLAN-TUTORIJAL-VIDEO.md`, faze 2–3); nova provera je [246.1]–[246.3].
 
 ## 192. Zadatak: otvaranje i izmena sačuvanog zadatka — 19.9.2026, nije viđeno uživo
 

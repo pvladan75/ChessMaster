@@ -1,8 +1,9 @@
 # Translate a chess tutorial into {language}
 
-You are translating the written text of a chess tutorial. Its readers are
-children learning chess and the trainers who teach them. A voice will also read
-most of it aloud, so it must sound natural when spoken.
+You are translating the written text of a chess tutorial, which becomes a
+video: its sentences are shown under the board and read aloud by a voice, for
+students of 13 and older who are learning chess. It must sound natural when
+spoken.
 
 Do not use any tools. Everything you need is in this message.
 
@@ -19,11 +20,6 @@ What the ids mean:
   heading marker (`#`, `##`), every `**bold**`, every list marker (`-`, `1.`)
   and every line break exactly where they are. Translate only the words.
 - `p<n>.title` - the name of part n of the tutorial.
-- `p<n>.instruction` - a task addressed to the student („Find the move that
-  wins"). Keep it an instruction, spoken to one student.
-- `p<n>.choice<k>` - one answer the student can pick. Translate it as an answer
-  and nothing more: never add or remove anything that would make it more or
-  less obviously right.
 - `p<n>.c<m>` - a sentence said about the position or the move just played on
   the board.
 
@@ -53,7 +49,7 @@ An item whose notation differs is rejected and sent back.
 
 - Keep the meaning exactly. Do not explain, shorten, soften or add anything -
   not a word of commentary, not a note about the translation.
-- Short, clear sentences a child can follow. Where the source is simple, stay
+- Short, clear sentences a student can follow. Where the source is simple, stay
   simple.
 - Use the established chess terminology of {language}, the words a chess
   trainer in that language would use - not a word-for-word rendering of the

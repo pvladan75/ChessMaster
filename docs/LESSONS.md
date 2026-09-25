@@ -8066,3 +8066,25 @@ ne prepisuje.
 **Promenljiva u odredištu komande se proverava pre kopiranja.** `cp -r …
 "$TMP/../"` je deset fascikli spustio u `AppData\Local`; uklonjene su tek
 posle `diff -rq` sa originalom. Odredište kopiranja piše se kao puna putanja.
+
+## 25.9.2026 — Tutorijal služi samo za video: faza 6
+
+Reči: priručnik, format fajla, alat za prevod, uputstvo za studio, rečnik,
+cene, i 55 stavki `TODO-provera` u arhivu. Brojevi testova nepromenjeni.
+
+**Rečenica koja je bila netačna i pre plana nađe se tek kad se plan čita
+naglas.** `practice.html` i `repertoire.html` su slale čitaoca na karticu
+„Review" na Home-u, koju je hranilo samo prolaženje kroz tutorijal — greške i
+repertoar su se oduvek vraćali u svom drilu. Test natpisa to nije mogao da
+vidi: „Review" postoji kao natpis negde u aplikaciji, samo ne tamo.
+**Test natpisa dokazuje da reč postoji, ne da je na mestu koje tekst kaže.**
+
+**Stavka se po starom broju nalazi, ne po poziciji.** Arhiva citira stavke
+novog spiska kao „stavka N", a faza 3 je iznad njih umetnula nove — pa je
+svaki N pomeren. Skripta je tražila po starom broju (`## 108.`, stavka 2), a
+gde ga nema, po belešci sa pomerajem izračunatim za svaki odeljak, i za
+svaku stavku proverila da beleška imenuje isti odeljak.
+
+**Primer iz dokumenta se proverava na dokumentu, ne na kopiji.** Primer u
+`PGN-TUTORIAL-FORMAT.md` je pročitan kroz `readTutorialJson` tako što je test
+izvukao JSON iz samog izmenjenog fajla; kopija u testu bi dokazala kopiju.

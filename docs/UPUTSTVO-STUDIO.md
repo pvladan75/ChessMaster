@@ -6,8 +6,12 @@ Kratko uputstvo za trenera koji piše tutorijal, i ujedno ugovor za bilo koga �
 **Pisano na srpskom namerno.** Ostali dokumenti u `docs/` su na engleskom; ovaj
 je za trenere koji ga koriste, kao i pravni tekstovi. Ne prevoditi.
 
-Studio postoji samo na Windows-u. Na telefonu se tutorijal i dalje uređuje
-starim editorom koraka, koji je zamrznut.
+**Tutorijal je materijal za video** (od 25.9.2026, `docs/PLAN-TUTORIJAL-VIDEO.md`).
+Učeniku se šalje film, nikad sam tutorijal; ako hoćeš da učenik nešto reši,
+napravi vežbu (*exercise*), ne deo tutorijala.
+
+Studio postoji na Windows-u i na telefonu; na telefonu su dva ekrana, „Line" i
+„Parts".
 
 **Aplikacija je na engleskom**, pa su nazivi dugmadi i polja u ovom uputstvu
 navedeni onako kako stoje na ekranu — „Save tutorial", „Flow" i tako dalje.
@@ -20,35 +24,30 @@ navedeni onako kako stoje na ekranu — „Save tutorial", „Flow" i tako dalje
 njoj, i ono što je na njoj nacrtano. Takt nastaje sam od sebe — čim povučeš
 potez na tabli, dobio si sledeći takt.
 
-**Deo** (na ekranu *part*) je jedna celina: **jedan tip zadatka i jedna
-polazna pozicija.** Deo ima onoliko taktova koliko poteza u njemu odigraš.
+**Deo** (na ekranu *part*) je jedna celina: **jedna polazna pozicija i linija
+iz nje.** Deo ima onoliko taktova koliko poteza u njemu odigraš.
 
 **Zlatno pravilo:**
 
-> Potezi se vuku na tabli. Nov deo se pravi **samo** kad se menja tip zadatka ili
-> kad se skače na drugu poziciju.
+> Potezi se vuku na tabli. Nov deo se pravi **samo** kad se skače na drugu
+> poziciju.
 
-Ako za svaki potez praviš nov deo, radiš deset puta više posla i dete dobija
+Ako za svaki potez praviš nov deo, radiš deset puta više posla, a film pokazuje
 deset tabli umesto jedne priče.
 
-## 2. Tri tipa dela
+## 2. Deo samo pokazuje
 
-Bira se u polju **„Task type"**, i važi za **ceo deo**:
+Svaki deo je demonstracija: pozicija, potezi i rečenice uz njih. Nema tipa
+zadatka, pitanja ni ponuđenih odgovora — film ne može da sačeka odgovor. Ako
+je pozicija vredna rešavanja, uvodna rečenica kaže šta da se traži, a linija
+pokazuje rešenje.
 
-| Tip | Šta dete radi |
-|---|---|
-| **Show only** | Gleda i sluša. Prolazi potez po potez kroz liniju koju si napisao. |
-| **Ask for move on board** | Vidi poziciju i mora da odigra potez. Tačan potez zadaješ tako što ga **odigraš na tabli** dok je ovaj tip izabran. |
-| **Ask for answer from list** | Vidi poziciju i bira jedan od ponuđenih odgovora. |
+**Deo bez ijednog poteza je potpuno ispravan deo.** „Pogledaj polje d5" plus
+strelica je cela lekcija; takav deo se čuva sa svojim komentarom i oznakama.
 
-**Pitanje se uvek postavlja o polaznoj poziciji dela.** Ako hoćeš da pitaš nešto
-posle tri poteza demonstracije, ta tri poteza su jedan deo, a pitanje je sledeći
-deo. Ne praviš ga ručno: stani na takt posle trećeg poteza i u panelu
-**„Tutorial contents"** pritisni **„Find the move"** ili **„Choose the
-answer"**. Studio sam deli deo — demonstracija ostaje u delu ispred, pitanje
-postaje nov deo na toj poziciji, a ono što je u liniji išlo dalje nastavlja se
-iza pitanja. Deo bez poteza se ne deli, nego sam postaje pitanje. Pregledač te
-delove spaja na **jednoj tabli**, bez resetovanja, pa dete ne vidi šav.
+**Okretanje jednog dela.** U redu svakog dela u spisku delova je dugme koje
+okreće samo taj deo („Turn this part"); dugme za okretanje table gore okreće
+sve delove.
 
 **Druga linija iz iste pozicije — „Insert a line here".** Primer: iz pozicije
 `8/3k4/1n3b2/8/8/8/2PK4/2R5 w` demonstracija ide `1. Ra1 Kc6 2. Ra6 Bb2 3. c3
@@ -57,55 +56,24 @@ na takt posle `Kc6`; na njegovoj kartici, pored „Delete this move", je ikonica
 račvanja puta — **„Insert a line here"**. Deo se deli na tri:
 
 1. **do `Kc6`** — ostaje stari deo, sa svojim imenom i sa istom oznakom na
-   serveru, pa ono što je dete već uradilo na tom delu ostaje vezano za njega;
+   serveru;
 2. **nova linija** od pozicije posle `Kc6` — studio te ostavlja na njenoj prvoj
    poziciji, pa samo odigraš `2. Ra8 Bb2`;
 3. **stari nastavak** `2. Ra6 Bb2 3. c3 Kb5` od iste pozicije.
 
 Svi komentari, strelice i polja ostaju gde su bili. Strelice i polja sa takta
-na kome si sekao prelaze i na početak nove linije i na početak nastavka, jer
-dete tu poziciju vidi ponovo. Ako si drugu liniju već odigrao kao varijantu na
-tom taktu, ona sama postaje nova linija. Ikonica se pojavljuje samo na taktu na
-kome stojiš, i samo u demonstraciji koja ima poteze. Pogrešan rez vraća jedan
-Ctrl+Z.
+na kome si sekao prelaze i na početak nove linije i na početak nastavka, jer se
+ta pozicija u filmu vidi ponovo. Ako si drugu liniju već odigrao kao varijantu
+na tom taktu, ona sama postaje nova linija. Ikonica se pojavljuje samo na taktu
+na kome stojiš, i samo u delu koji ima poteze. Pogrešan rez vraća jedan Ctrl+Z.
 
-Kad dete prolazi tutorijal, prvi deo i nova linija su jedna tabla; nastavak
-ponovo postavlja poziciju posle `Kc6`, kao kad se okrene strana.
+U filmu su prvi deo i nova linija jedna tabla; nastavak ponovo postavlja
+poziciju posle `Kc6`, kao kad se okrene strana.
 
-## 3. Zašto pitanje ne sme da nosi liniju
+## 3. Komentar, strelice i polja
 
-Linija dela **nije sakrivena** od deteta — ona *jeste* lekcija, i dete može da je
-prolista dugmetom „Next move". Zato deo koji traži potez a nosi liniju
-pokazuje detetu sopstveni odgovor.
-
-Aplikacija to odbija sama, na tri mesta:
-
-* kad u „Task type" izabereš „Ask for move on board" nad delom koji ima
-  poteze, pita te („The student would see the answer") i nudi da liniju ukloni
-  („Remove line and ask question");
-* ako otvoriš stariji tutorijal koji je već takav, gore stoji crvena traka koja
-  **imenuje** te delove;
-* čuvanje se odbija dok takav deo postoji.
-
-Server to ne može da proveri — on `pgn` čuva kao običan tekst i nema čitač
-poteza. Zato je ovo jedina odbrana koju aplikacija donosi sama.
-
-**Deo bez ijednog poteza je potpuno ispravan deo.** „Pogledaj polje d5" plus
-strelica je cela lekcija; takav deo se čuva sa svojim komentarom i oznakama.
-
-## 4. Ponuđeni odgovori
-
-* **dva do četiri** odgovora;
-* **tačno jedan** označen kao tačan (kružić levo od teksta);
-* prazni odgovori se ne broje.
-
-Ne piši `!` i `??` u tekst odgovora — dete ih vidi, pa je pitanje rešeno bez
-šaha.
-
-## 5. Komentar, strelice i polja
-
-**Komentar pripada taktu i čita se pre poteza koji odlazi iz njega.** Redosled
-koji dete dobija je: vidi poziciju → čuje šta se o njoj kaže → odigra se sledeći
+**Komentar pripada taktu i čita se pre poteza koji odlazi iz njega.** Redosled u
+filmu je: vidi se pozicija → čuje se šta se o njoj kaže → odigra se sledeći
 potez. Zato panel **„Flow"** i crta rečenicu **između** poteza koji je stigao i
 poteza koji odlazi.
 
@@ -127,7 +95,7 @@ ili „c-pešak": glas to čita „ha linija", „ce pešak".
 * prelazak na drugi takt zaboravlja započetu strelicu i **isključuje crtanje**,
   da prvi klik na novom taktu ne bi nacrtao polje umesto da pomeri figuru.
 
-## 6. Tab „PGN" — tekst dela
+## 4. Tab „PGN" — tekst dela
 
 Treći tab pored „Flow" i „Tree" pokazuje deo kao tekst i prima tekst spolja.
 Ovo su jedina vrata kroz koja anotirana partija (iz knjige, iz motora, iz
@@ -168,7 +136,7 @@ ista tri odgovora:
   dvanaestom. **„Use starting position"** premešta deo na osnovnu poziciju.
 
 U oba slučaja **„Keep existing"** čita tekst od pozicije dela (i odbija ga ako
-se potezi odatle ne mogu odigrati), a **„Cancel"** ne menja ništa. Dete otvara
+se potezi odatle ne mogu odigrati), a **„Cancel"** ne menja ništa. Film počinje
 deo na poziciji koju si izabrao, zato se to pita, a ne pretpostavlja.
 
 Ako tekst bez `[FEN]` ne može da se odigra ni od pozicije dela ni od osnovne
@@ -179,30 +147,22 @@ Kursor u tekstu bira potez: tabla i „Flow" idu za njim. **Desni klik** na pote
 nudi „Add arrow", „Mark square" i „Add comment" — prve dve postave
 kursor na taj potez i uključe crtanje **na tabli**.
 
-## 7. Redosled rada i čuvanje
+## 5. Redosled rada i čuvanje
 
-1. **Naziv i jezik** („Language") — jezik odlučuje kojim glasom se tutorijal
-   čita (odeljak 8).
+1. **Naziv i jezik** („Language") — jezik odlučuje na kom glasu se otvara izvoz
+   videa (odeljak 6).
 2. **„Position setup"** (ikonica klizača gore desno) ako deo ne počinje iz
    osnovne pozicije.
 3. Povuci poteze i piši komentare po taktovima.
 4. Nov deo: **„New demonstration"** za sledeći primer — „From here" ga počinje
    na poziciji gde se linija otvorenog dela završava, „New board" iz osnovne
-   pozicije; **„Find the move"** ili **„Choose the answer"** za pitanje na
-   taktu na kome stojiš; **„Insert a line here"** za drugu liniju iz iste
-   pozicije (odeljak 2).
-5. **„Preview tutorial"** — otvara tutorijal onako kako ga prolazi onaj ko ga
-   čita u aplikaciji: dugmad, glas, pitanja. **Ništa ne šalje na server**;
-   odgovori u pregledu se ne beleže. Na uskom prozoru je to ikonica kape sa
-   istim imenom.
-6. **„Save tutorial"** — jedan upis, na kraju. Svaki sledeći pritisak menja
+   pozicije; **„Insert a line here"** za drugu liniju iz iste pozicije
+   (odeljak 2).
+5. **„Save tutorial"** — jedan upis, na kraju. Svaki sledeći pritisak menja
    **isti** tutorijal, ne pravi nov.
-
-**„Preview tutorial" nije izgled videa.** Video koji izvoziš ima svoj
-raspored: tablu, tekst komentara uz nju (ako ga u dijalogu ne isključiš) i glas
-koji biraš pri izvozu (odeljak 8). Kako će film izgledati vidiš u dijalogu **„Export video"**
-(ikonica kamere), dugmetom **„Preview"** — pokazuje nekoliko slika iz filma pre
-nego što se ceo renderuje.
+6. **„Export video"** (ikonica kamere) — film koji se šalje učeniku. Dugme
+   **„Preview"** u tom dijalogu pokazuje nekoliko slika iz filma pre nego što
+   se ceo renderuje; to je jedini pregled pre izvoza.
 
 Tutorijal mora da ima naziv. Poslednji deo se ne može obrisati. Nedovršen rad se
 sam čuva na računaru; kad sledeći put otvoriš nov tutorijal, pitaće te
@@ -233,7 +193,7 @@ izmenama i to piše na dnu ekrana.
 
 ---
 
-## 8. Glas koji čita tutorijal
+## 6. Jezik i glas videa
 
 **Tutorijal kaže na kom je jeziku, i to biraš ti.** Polje **„Language"** stoji u
 redu sa nazivom i oznakama: **„Not set"** ili jedan od sedam jezika — English,
@@ -241,56 +201,24 @@ Serbian (Latin), Serbian (Cyrillic), German, Spanish, Italian, French. Samo tih
 sedam, jer su to jezici čije poteze aplikacija ume da izgovori; jezik čiji bi
 potezi bili pročitani engleskim rečima se ne nudi.
 
-Čita ga **glas sa uređaja na kome se sluša**, ne sa servera — sistemski glas
-Androida ili Windowsa. Video je posebna priča, niže.
+**Tutorijal čita samo film.** Aplikacija tutorijal više ne čita naglas ni na
+jednom uređaju. Glas za **izvoz videa** biraš ti, i on važi za sve koji snimak
+gledaju. Dijalog za izvoz se otvara na glasovima jezika tutorijala; kad je jezik
+„Not set", na glasu izabranom prošli put. Potezi u komentaru se u filmu
+izgovaraju na jeziku glasa: „Bc4" postaje „lovac ce četiri", a ne „bishop c
+four". Ono što si napisao se ne menja — menja se samo ono što glas dobija.
 
-**Kad je jezik izabran:**
-
-1. **Uređaj sam bira glas tog jezika.** Za srpsku latinicu: srpski glas, a ako
-   ga nema hrvatski, pa bosanski. Windows nema srpski glas, a hrvatski
-   („Microsoft Matej") čita srpsku latinicu ispravno — zato je on dovoljan. Za
-   **ćirilicu** važi samo srpski glas, jer hrvatski ćirilicu ne ume da pročita.
-2. **Potezi u komentaru se izgovaraju na tom jeziku.** „Bc4" postaje „lovac ce
-   četiri", a ne „bishop c four". Ono što si napisao se ne menja — menja se samo
-   ono što glas dobija.
-3. **Nikad glasom drugog jezika.** Ako uređaj nema glas za taj jezik, umesto ▶
-   stoji ikonica prekriženog zvučnika; dodir na nju kaže zašto i šta treba
-   instalirati. Za srpsku latinicu na Windows-u: *Settings → Time & language →
-   Speech → Add voices*, pa hrvatski. Tutorijal se i dalje prolazi dugmadima —
-   to je isti tutorijal, ne slabiji.
-4. **Windows ponekad navede jezik za koji nema glas.** Tada se čitanje zaustavi
-   na prvoj rečenici, sa istom porukom, umesto da tutorijal protrči bez zvuka.
-
-**Kad je jezik „Not set"** — a takvi su svi tutorijali sačuvani pre 11.9.2026,
-dok im ne izabereš jezik — sve je kao ranije: čita glas izabran u Podešavanjima
-aplikacije, i jezik komentara i jezik glasa moraju da se poklope ručno. Srpski
-tekst pročitan engleskim glasom ne prijavi grešku nego zvuči kao da radi; zato
-je bolje izabrati jezik. Ako uređaj nema nijedan upotrebljiv glas, dugme ▶ se
-uopšte ne crta, a tutorijal se prolazi dugmadima.
-
-**Na tvom računaru i na detetovom telefonu čuju se različiti glasovi.**
-„Preview tutorial" čita glasom *tvog* uređaja — na Windows-u hrvatskim
-Matejem — a dete na Androidu čuje Googleov srpski glas. Oba čitaju isti tekst
-istim pravilima.
-
-**Brzinu govora bira vlasnik uređaja**, klizačem u Podešavanjima. **Tekst se
-ispisuje u ritmu glasa koji čita:** brzina se ne pretpostavlja nego meri iz
-rečenica koje je *taj* glas već pročitao, za svaki glas posebno. Prva rečenica
-svakog glasa u sesiji ide na procenu; od druge se ispis i govor poklapaju.
-
-**Video je drugačiji.** Glas za **izvoz videa** biraš ti, i on važi za sve koji
-snimak gledaju. Dijalog za izvoz se otvara na glasovima jezika tutorijala. Za
-video hrvatski glas **ne važi** kao srpski: server nema hrvatski rečnik poteza,
-pa bi potezi bili izgovoreni engleskim rečima. Ako server nema srpski glas,
-dijalog se otvara kao ranije.
+Za video hrvatski glas **ne važi** kao srpski: server nema hrvatski rečnik
+poteza, pa bi potezi bili izgovoreni engleskim rečima. Ako server nema srpski
+glas, dijalog se otvara kao ranije.
 
 **Tutorijal koji ne pišeš u studiju** — JSON fajl ili prevod — nosi jezik u
-polju `"language"` (`docs/PGN-TUTORIAL-FORMAT.md`, odeljak 9), a
+polju `"language"` (`docs/PGN-TUTORIAL-FORMAT.md`, odeljak 5), a
 `tools/tutorial_translate/translate.py --code sr-Latn` ga upisuje sam.
 
 ---
 
-## 9. Ako materijal priprema program (prompt za model)
+## 7. Ako materijal priprema program (prompt za model)
 
 Ovaj odeljak je namenjen da se prosledi modelu koji iz knjige ili PDF-a pravi
 gradivo. Sve ostalo iznad važi i za njega.
@@ -299,28 +227,23 @@ Traži izlaz u kome je **jedan deo = jedan blok**, ovako:
 
 ```
 ### Deo: <kratak naziv>
-Tip: prikaz | traži potez | traži odgovor
 FEN: <polazna pozicija dela>
-Zadatak: <samo ako tip nije „prikaz">
-Odgovori: <samo za „traži odgovor": dva do četiri, tačan označen sa (tačno)>
 PGN:
-1. e4 { rečenica [%cal Gd2d4][%csl Rd5] } e5 { rečenica } 2. Nf3
+{ uvodna rečenica } 1. e4 { rečenica [%cal Gd2d4][%csl Rd5] } e5 { rečenica } 2. Nf3
 ```
 
 Pravila koja model najčešće prekrši:
 
 1. **Standardne oznake, ne izmišljene.** `[%cal]` i `[%csl]`, nikako
    „(strelica d2d5)".
-2. **Jedan tip po delu.** Demonstracija i pitanje su **dva** dela; pitanje se
-   postavlja o polaznoj poziciji svog dela.
-3. **Deo koji traži potez ne sme da ima poteze u `PGN`** — samo komentar i
-   oznake. Tačan potez ide u `Zadatak`/`Odgovori`, ne u liniju.
-4. **Bez `!` i `??` u ponuđenim odgovorima.**
-5. **FEN mora biti legalan i potpun**, i svaki potez mora da se može odigrati iz
+2. **Deo samo pokazuje.** Nema pitanja, zadataka ni ponuđenih odgovora. Ako
+   knjiga traži rešenje, uvodna rečenica kaže šta se traži, a linija ga
+   pokazuje.
+3. **FEN mora biti legalan i potpun**, i svaki potez mora da se može odigrati iz
    njega — aplikacija odbija ceo tekst čim jedan ne može.
-6. **Komentar ide na potez posle kog se čita**, ne na potez o kome govori
+4. **Komentar ide na potez posle kog se čita**, ne na potez o kome govori
    unazad.
-7. **Redni brojevi rečima** — „sedmi red", „u dvanaestom potezu", nikako
+5. **Redni brojevi rečima** — „sedmi red", „u dvanaestom potezu", nikako
    „7. red". Broj sa tačkom glas čita kao kraj rečenice. Brojevi poteza
    ispred samog poteza u `PGN` ostaju kakvi jesu.
 

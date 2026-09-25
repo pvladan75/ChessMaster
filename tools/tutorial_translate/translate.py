@@ -9,12 +9,11 @@ file, a `_work/` folder with the strings, and `REPORT.txt`.
 
 **The model never sees a move.** Every piece of prose is pulled out of the
 tutorial into a flat list of `{id, text}` - the title, the description, each
-part's title (unless it is a generated „Part 3"), instruction and answers, and
-the words inside each `{ }` comment
+part's title (unless it is a generated „Part 3") and the words inside each
+`{ }` comment
 of a part's `pgn` with its `[%cal]`/`[%csl]` commands taken out. Only that list
 goes to the model, and the translations are written back into the same places.
-The moves, the arrows, the positions and which answer is correct never leave
-this script, so no translation can damage them - and after writing, the script
+The moves, the arrows and the positions never leave this script, so no translation can damage them - and after writing, the script
 proves it: every part's `pgn` with its comments removed must be byte-identical
 to the original's, and every field that is not prose must be equal.
 
@@ -43,10 +42,9 @@ Warnings are printed but do not block: a string returned unchanged, or one much
 shorter or longer than its source, which is what a dropped sentence and an
 added explanation look like.
 
-Step `id`s are always dropped. A step id names a child's schedule row and
-recorded answers, so a translated copy carrying the original's ids would show
-one child's progress in the wrong tutorial. The app's import drops them too;
-this is the second lock on the same door.
+Step `id`s are always dropped. The server mints them, and a translated copy
+carrying the original's ids would be two tutorials claiming the same parts.
+The app's import drops them too; this is the second lock on the same door.
 
 `run` skips a tutorial whose output already exists, so an interrupted batch is
 resumed by running it again. `--redo` translates again from scratch.
@@ -140,9 +138,6 @@ def extract(tutorial):
         if not (isinstance(title, str)
                 and GENERATED_PART_TITLE.match(title.strip())):
             put('p%d.title' % i, title)
-        put('p%d.instruction' % i, step.get('instruction'))
-        for k, choice in enumerate(step.get('choices') or [], 1):
-            put('p%d.choice%d' % (i, k), choice.get('text'))
         for m, match in enumerate(COMMENT.finditer(step.get('pgn') or ''), 1):
             put('p%d.c%d' % (i, m), prose_of(match.group(1)))
     return out
@@ -153,7 +148,7 @@ def merge(tutorial, tr, tags=None, code=None):
 
     [code] is the language the translation is in. Without one the field is
     **removed**, not kept: a source that said „en" and was translated into
-    Serbian would otherwise still say „en", and be read aloud in English.
+    Serbian would otherwise still say „en", and be filmed with an English voice.
     """
     new = copy.deepcopy(tutorial)
     if code:
@@ -170,11 +165,6 @@ def merge(tutorial, tr, tags=None, code=None):
         step.pop('id', None)
         if 'p%d.title' % i in tr:
             step['title'] = tr['p%d.title' % i]
-        if 'p%d.instruction' % i in tr:
-            step['instruction'] = tr['p%d.instruction' % i]
-        for k, choice in enumerate(step.get('choices') or [], 1):
-            if 'p%d.choice%d' % (i, k) in tr:
-                choice['text'] = tr['p%d.choice%d' % (i, k)]
 
         counter = [0]
 
@@ -201,11 +191,8 @@ def prove_untouched(src, new):
     a, b = src.get('positionList') or [], new.get('positionList') or []
     assert len(a) == len(b), 'the number of parts changed'
     for i, (s, n) in enumerate(zip(a, b), 1):
-        for field in ('fen', 'kind', 'solutionSan', 'acceptedSans', 'blackOrientation'):
+        for field in ('fen', 'kind', 'blackOrientation'):
             assert s.get(field) == n.get(field), 'part %d: %s changed' % (i, field)
-        sc, nc = s.get('choices') or [], n.get('choices') or []
-        assert [c.get('correct') for c in sc] == [c.get('correct') for c in nc], \
-            'part %d: which answer is correct changed' % i
         strip = lambda p: COMMENT.sub('{}', p or '')
         assert strip(s.get('pgn')) == strip(n.get('pgn')), \
             'part %d: the pgn changed outside its comments' % i
@@ -337,6 +324,15 @@ def one(path, args, offline, report):
 
     with open(path, encoding='utf-8') as fh:
         tutorial = json.load(fh)
+    # A tutorial only shows (docs/PLAN-TUTORIJAL-VIDEO.md): the app refuses a
+    # file with a part that asks, so translating one is work nobody can import.
+    asking = [i for i, step in enumerate(tutorial.get('positionList') or [], 1)
+              if (step.get('kind') or 'show') != 'show']
+    if asking:
+        report.append('REFUSED  %s - part %s asks a question, and a tutorial only '
+                      'shows; remove the part, or make the question an exercise'
+                      % (name, ', '.join(str(i) for i in asking)))
+        return False
     src = extract(tutorial)
     save_json(src_path, src)
 
@@ -400,7 +396,7 @@ def main():
                         help='the target language, in words: "Serbian (Latin script)"')
     parser.add_argument('--code', choices=TUTORIAL_LANGUAGES,
                         help='the language code written into every translated tutorial, '
-                             'so the app reads it with a voice for it (docs/PLAN-JEZIK-GLASA.md). '
+                             'so the video export opens on a voice for it (docs/PLAN-JEZIK-GLASA.md). '
                              'Without it the field is removed: a translation must not keep '
                              'the code of the language it was translated from')
     parser.add_argument('--model', default='gemini-3.8-flash-high')
@@ -418,7 +414,7 @@ def main():
         report.append('Every tutorial is marked "language": "%s".' % args.code)
     else:
         report.append('No --code: the translated tutorials say no language, and the '
-                      'app reads them with the voice chosen in Settings.')
+                      'video export opens on the voice chosen last time.')
     report.append('')
     ok = 0
     files = sources(args.src)

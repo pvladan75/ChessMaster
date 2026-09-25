@@ -653,6 +653,54 @@ partije` — go to the archive as superseded by this plan, with the owner's
 confirmation of 25.9.2026 recorded beside them. **Their text is not edited**:
 the QA tool matches on it.
 
+**Built 25.9.2026 by the lead.** Docs and tooling only; the counts are
+unchanged (app 4019, backend 1743 / 1899).
+
+- **`site/`**: phase 3 had already rewritten the four pages; what was left
+  was the landing page's description („tutorials a student walks alone"),
+  the student page's description and lead and its index line („what comes
+  back for review"), and **two pages that sent the reader to a „Review" card
+  on Home** (`practice.html`, `repertoire.html`) — untrue before this plan
+  too, since that card was fed only by tutorial parts (§2). Mistakes come back
+  in „My mistakes", repertoire positions in the drill. `manual_labels_test`
+  green, and watched red on a misspelt label in the edited paragraph.
+- **`PGN-TUTORIAL-FORMAT.md`**: §1's prompt makes show steps only (rule 9 is
+  now „every step only shows", the old 9–11 gone, 12–13 renumbered); the worked
+  example is two parts, read through `readTutorialJson` on the edited file —
+  two parts, no problems; the refusal and field tables, the language paragraph
+  (it picks the export's voice now; nothing in the app reads a tutorial aloud)
+  and §9 follow. Every „child" sentence about a viewer went with the viewer.
+- **`tools/tutorial_translate/`**: no task or answers extracted, merged or
+  compared; a source with a question part is **refused**, naming the part,
+  as the app's import refuses it (run on a made-up file with `merge`, which
+  calls no model); two report lines that said the app reads a tutorial with a
+  device voice now say the export opens on that voice; `prompt.md` loses the
+  two question ids and calls its readers students of 13 and older.
+- **`UPUTSTVO-STUDIO.md`**: rewritten around show-only parts — sections 3–4
+  (question rules, offered answers) and the device-voice half of the voice
+  section gone; „Turn this part" added; the model prompt's block has no type,
+  task or answers. Its first paragraph also said the studio was Windows-only
+  with a frozen editor on the phone, which had been untrue since the phone
+  studio; corrected.
+- **`GLOSSARY-EN.md`**: the Tutorial row, „Show" as the one kind, and
+  **Video / Tutorial video** (D14); Task and Answers of a part gone.
+- **`CENA-I-PRETPLATA.md`**: D5 as open question 7; the film's exemption from
+  the 14-day timer (D2) in §3; §4's list.
+- **`TODO-provera.md`**: **55 items** moved to the archive (862 → 807, no other
+  item's text changed): 23 of the viewer in `Home — Domaći i lekcije`, all
+  answered „ok" in the QA tool on 25.9.2026 and recorded so; the two sections
+  that went whole (`Home — Ponavljanje u razmacima` 2,
+  `Teach — Tutorijal — kako ga vidi učenik` 9); 17 in the studio, 3 in the
+  file import, 2 in the tutorial from a game. Each archive copy carries
+  **prevaziđeno (25.9.2026)** and the reason. **Three items stay, half untrue,
+  for the owner to decide** because their text cannot be edited: [177.2]
+  (expects `Due for review` on a trainer's Home), [172.3] (the lesson and
+  review screens among those that must fit sideways) and [151.10]
+  (`Preview tutorial` beside the icon check that still holds).
+- **Not docs, noticed**: `chess_backend/services/lessonSteps.js` still says in
+  a comment that two parts with one id make „a schedule row" ambiguous; no
+  schedule row exists since phase 2.
+
 ### Phase 7 — the owner's live pass [owner]
 
 New items from `[246.1]`, under `Teach` and `Home`, in the file's five-line

@@ -808,6 +808,12 @@ server's prompt, and `withoutQuestions` is gone. **A test generated from a
 fixture's rows goes with the row**: the worker counted two deleted tests and
 the full run was one short, because a case of `answer_cases.json` was the
 third.
+Then its phase 6, the words: the manual, `PGN-TUTORIAL-FORMAT.md`, the
+translation tool (a file with a question part is refused), the studio guide,
+the glossary (**Tutorial video**), the pricing doc (D5 as an open question),
+and 55 live-check items moved to the archive as superseded. **A label test
+proves a word exists, not that it is where the text says**: two manual pages
+had sent readers to a Home „Review" card that never showed their drills.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

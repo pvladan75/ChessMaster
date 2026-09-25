@@ -16,7 +16,7 @@ trenutno ima sva tri stanja istovremeno.
 |---|---|---|---|
 | **Glas u sobi** (Agora) | Agora, po minutu | `agora_seconds`, po korisniku | **ne** |
 | **AI komentar** i objašnjenje pozicije (Gemini `gemini-flash-latest`) | Google, po pozivu | kvota `ai_comments` | **da** — 10 / 500 / 2000 mesečno, uz 10 zahteva/min |
-| **MP4 izvoz** | naš CPU na dropletu (ffmpeg) | `mp4_renders`, `mp4_render_seconds` | **da** — samo plaćeni nalog |
+| **MP4 izvoz** | naš CPU na dropletu (ffmpeg) | `mp4_renders`, `mp4_render_seconds` | **da** — samo plaćeni nalog; od 25.9.2026 i jedini način da tutorijal stigne do učenika (odeljak 7, tačka 7) |
 | **Skener strana iz knjige** | naš CPU | `scanned_pages` | ne |
 | **Snimci časova** u `uploads/` | prostor na dropletu, **trajno** | ne meri se | ne |
 | **Mejlovi** (potvrda naloga, saglasnost roditelja) | SMTP provajder, po poruci | ne meri se | ne |
@@ -61,6 +61,12 @@ Sve gore je mesečno i prestaje kad korisnik prestane da radi. Snimci nisu:
 `uploads/` je jedina kopija dečjih glasova, gitignorisan, i **kod ga nikad ne
 briše**. MP4 izvozi jesu prolazni jer su obnovljivi, snimci nisu.
 
+**Izuzetak od 25.9.2026: film tutorijala.** Učenik dobija film, pa se film koji
+tutorijal imenuje više ne briše po isteku roka od 14 dana — ide tek kad se
+tutorijal obriše ili novi izvoz zameni stari (`docs/PLAN-TUTORIJAL-VIDEO.md`,
+D2). Jedan film po tutorijalu, izmereno 1,8–6,4 MB. To je prostor koji raste sa
+brojem tutorijala, ne sa brojem časova, i briše se zajedno sa tutorijalom.
+
 Znači: trener koji je otišao pre godinu dana i dalje košta svakog meseca, a taj
 trošak raste linearno sa svakim održanim časom u istoriji aplikacije. To je
 jedina stavka gde „koliko košta aktivan korisnik" nije cela slika.
@@ -94,9 +100,9 @@ stavka troši nešto što se plaća po upotrebi.
 - AI komentar poteza i objašnjenje pozicije **€**
 
 **Rad sa učenikom**
-- domaći zadaci, prilagođene zagonetke, lekcije u više koraka
+- domaći zadaci, vežbe (pozicija + zadatak), video tutorijala **€** (izvoz)
 - pregled urađenog, komentari, izveštaj za roditelja
-- ponavljanje u razmacima
+- ponavljanje grešaka i repertoara u razmacima
 - repertoar i vežbanje repertoara
 
 **Sam vežbač**
@@ -208,3 +214,9 @@ zajedno, i da rastom broja korisnika to postaje naš problem, a ne njihov.
 5. **Cene pretplate** — tek posle meseca merenja.
 6. **Priključiti `checkUserLimits`** pre nego što `ENABLE_LIMITS` ima ikakvog
    smisla.
+7. **Tutorijal za besplatan nalog.** Od 25.9.2026 učenik dobija samo film
+   tutorijala, a izvoz filma traži `mp4_export`, koji besplatan nalog nema —
+   pa trener na besplatnom nalogu **ne može da pošalje nijedan tutorijal**.
+   Prihvaćeno za sada, jer još niko ništa nije kupio
+   (`docs/PLAN-TUTORIJAL-VIDEO.md`, D5). Druga mogućnost je mala mesečna kvota
+   izvoza za besplatan nalog; odluka pada najkasnije uz prvu pravu kupovinu.

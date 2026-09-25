@@ -16,10 +16,14 @@ There is one file format — the body of `POST /lessons/save` — and two ways i
 | Good for | everything a person does | load tests, forty-part films |
 
 **Import it in the app.** The server stores a `pgn` as opaque text: a line that
-does not replay is written without complaint and shows up months later as a
-child getting a shorter lesson than the file holds. The import reads every line
-through the same parser the child's screen uses and says which part is wrong
-before anything is saved.
+does not replay is written without complaint and shows up later as a film with
+holes in it. The import reads every line through the same parser the studio and
+the film use, and says which part is wrong before anything is saved.
+
+**A tutorial only shows** (`docs/PLAN-TUTORIJAL-VIDEO.md`, 25.9.2026). It is the
+trainer's material for a video, and what a student receives is the video. There
+are no question parts any more: a file with one is refused, naming the part. A
+position a student should solve is an exercise, made in the app.
 
 ---
 
@@ -43,41 +47,14 @@ SHAPE
   "positionList": [ <step>, <step>, ... ]
 }
 
-A step is one of two kinds.
-
-A demonstration — a position and a line of moves with a sentence on each move:
+Every step is a demonstration — a position and a line of moves with a sentence
+on each move:
 
 {
   "title": "Part <n>",
   "fen": "<full FEN, six fields>",
   "kind": "show",
   "pgn": "<annotated PGN as one JSON string, newlines escaped as \n>"
-}
-
-A question — a position, a task, and the answer. IT HAS NO MOVES:
-
-{
-  "title": "Part <n>",
-  "fen": "<full FEN, six fields>",
-  "kind": "ask_move",
-  "instruction": "<what the student has to do, one sentence>",
-  "solutionSan": "<the single correct move in SAN>",
-  "pgn": ""
-}
-
-A multiple-choice question — a position, a task, and two to four answers, of
-which at least one is marked correct. IT ALSO HAS NO MOVES:
-
-{
-  "title": "Part <n>",
-  "fen": "<full FEN, six fields>",
-  "kind": "ask_choice",
-  "instruction": "<the question, one sentence>",
-  "choices": [
-    {"text": "<an answer in words>", "correct": true},
-    {"text": "<another answer>", "correct": false}
-  ],
-  "pgn": ""
 }
 
 Optional on any step: "blackOrientation": true draws the board from Black's
@@ -128,27 +105,19 @@ HARD RULES. Each of these makes the tutorial be refused or silently broken.
    Square brackets are for these two tags and nothing else: never write [ or ]
    in the words of a comment.
 
-9. A QUESTION CARRIES NO MOVES. A step with "kind": "ask_move" or
-   "kind": "ask_choice" must have "pgn": "". The app draws the line for the
-   student with a "Next move" button, so a question that carries its own answer
-   shows it, and the app refuses to save it. Put the answer in the NEXT step,
-   as a "show" step on the same FEN.
+9. EVERY STEP ONLY SHOWS. "kind" is always "show". Never write "ask_move",
+   "ask_choice", "instruction", "solutionSan", "acceptedSans" or "choices":
+   the tutorial becomes a video, and a file with a question in it is refused
+   whole. If a position is worth solving, say in the opening sentence what to
+   look for, and let the line show the answer.
 
-10. "solutionSan" MUST BE LEGAL IN THAT STEP'S OWN FEN, PLAYED BY THE SIDE THAT
-    IS TO MOVE THERE. If the answer is a black move, the FEN must say "b".
-    Replay it before you answer.
+10. NEVER WRITE AN "id" FIELD ON A STEP. The server mints those.
 
-11. "choices" IS TWO TO FOUR ANSWERS AND AT LEAST ONE OF THEM HAS
-    "correct": true. One answer, five answers, or none marked correct is
-    refused. Only "ask_choice" has choices; no other kind may carry them.
-
-12. NEVER WRITE AN "id" FIELD ON A STEP. The server mints those.
-
-13. Every "pgn" of a demonstration ends with a space and a *.
+11. Every "pgn" ends with a space and a *.
 
 SENTENCES
 
-Write a sentence on almost every move. Each one is read aloud to a child and
+Write a sentence on almost every move. Each one is read aloud in the video and
 drawn under the board: full sentences in plain words, 40 to 140 characters,
 no move notation inside the words unless you mean it to be spoken — "Bd5" is
 read out as "bishop d five".
@@ -167,12 +136,10 @@ BEFORE YOU ANSWER — do this silently, and output nothing about it:
      any move that does not play, and shorten the line if you are unsure.
   b. Check every + and every # against the position. Remove the ones you cannot
      prove.
-  c. Check every "solutionSan" the same way, including whose turn it is.
-  d. Read every question step and confirm its "pgn" is "".
-  e. Count the answers of every "ask_choice" and confirm one is correct.
-  f. Search your own output for [%cal and [%csl and confirm each one is inside
+  c. Confirm every step says "kind": "show" and nothing else asks.
+  d. Search your own output for [%cal and [%csl and confirm each one is inside
      a { } comment.
-  g. Confirm the JSON parses and no step has an "id".
+  e. Confirm the JSON parses and no step has an "id".
 
 Topic: <what the tutorial should teach>
 Level: <who it is for>
@@ -188,7 +155,7 @@ writes.
 
 # 2. A worked example, verified
 
-Read through `readTutorialJson` on 11.9.2026: three parts, **no problems**.
+Read through `readTutorialJson` on 25.9.2026: two parts, **no problems**.
 
 ```json
 {
@@ -206,27 +173,17 @@ Read through `readTutorialJson` on 11.9.2026: three parts, **no problems**.
     {
       "title": "Part 2",
       "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
-      "kind": "ask_move",
-      "blackOrientation": true,
-      "instruction": "Black to move. Develop a piece and attack the pawn on e4 at the same time.",
-      "solutionSan": "Nf6",
-      "pgn": ""
-    },
-    {
-      "title": "Part 3",
-      "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 0 3",
       "kind": "show",
       "blackOrientation": true,
-      "pgn": "{ Here is the answer, and what White tries next. [%csl Rf7] }\n3... Nf6 { The knight develops and attacks the pawn on e4, so White has no time for slow plans. [%cal Gf6e4] }\n4. Ng5 { White attacks f7 with a second piece. Two attackers against one defender is the arithmetic that wins material. [%cal Gg5f7,Gc4f7] [%csl Rf7] }\nd5 { The only move. Black blocks the diagonal by hitting back in the centre, and the game goes on. [%cal Gd5c4] }\n*"
+      "pgn": "{ Black to move. The best answer develops a piece and attacks the pawn on e4 at the same time. [%csl Rf7] }\n3... Nf6 { The knight develops and attacks the pawn on e4, so White has no time for slow plans. [%cal Gf6e4] }\n4. Ng5 { White attacks f7 with a second piece. Two attackers against one defender is the arithmetic that wins material. [%cal Gg5f7,Gc4f7] [%csl Rf7] }\nd5 { The only move. Black blocks the diagonal by hitting back in the centre, and the game goes on. [%cal Gd5c4] }\n*"
     }
   ]
 }
 ```
 
-Steps 2 and 3 are the shape rule 9 asks for: the question stands on a position,
-and the line that answers it is the part after it, on the same position. That is
-also what the studio's own „Traži potez na tabli" produces, so an imported
-tutorial and one written by hand come out the same shape.
+Part 2 starts on the position where Part 1 ended, turned to Black's side, and
+its opening sentence — the comment before the first move — is where the film
+says what to look for before the line shows it.
 
 ---
 
@@ -239,13 +196,13 @@ document. Thirteen had at least one of these. They are ordered by how often.
 |---|---|---|
 | A glyph glued to a move | `Kb6+-`, `Be8!+-`, `Rh2!=` | the move is not played; the rest of the line follows from the wrong position |
 | `+` on a move that gives no check | `Bd6+` where d6 does not attack the king | the same — refused like an illegal move |
-| A question carrying its own answer | `"kind": "ask_move"` with a `pgn` | the child sees the answer under „Sledeći potez"; the studio refuses to save it |
-| `solutionSan` illegal in its own FEN | `Rxe1#` with the FEN saying `w` | the whole tutorial is refused, 422 |
-| A line that does not replay | 12 of 17 moves impossible | stored as it is; the child gets what survived |
+| A line that does not replay | 12 of 17 moves impossible | stored as it is; the film gets what survived |
 | `[%cal]` outside the braces | `1. h4 [%cal Gh2h4] { … }` | every annotation is read as a move — 20 rejected moves in one step |
 | A piece that does not exist | `2c2n2` in the board field | the whole tutorial is refused |
 
-Two of them are worth a sentence each, because they are not obvious.
+Two more were about question parts — one carrying its own answer, and a
+`solutionSan` illegal in its own position — and went with the questions on
+25.9.2026. One of the rest is worth a sentence, because it is not obvious.
 
 **The check mark is part of the move.** Two chess libraries disagree here: the
 one used to *write* these files accepts `Bd6+` on a move that gives no check,
@@ -254,34 +211,25 @@ perfectly wherever it was generated and lose four moves in the app. That is why
 rule 4 says to write neither mark when in doubt: a move with no suffix is always
 accepted, and the app draws the check on the board anyway.
 
-**The side to move is half of the question.** Three of the four files that could
-not be saved at all asked for a black move from a position whose FEN said White
-to move. Nothing about the sentence or the instruction gives this away; only
-replaying the answer does.
-
 ---
 
 # 4. What the app says, and what it means
 
-The import reports per part, and it separates two things.
+The import reports per part — „Part 3: …" — and it separates two things.
 
 **Refused — nothing is written until it is fixed:**
 
 | The sentence | The cause |
 |---|---|
 | „the starting position cannot be read — …" | the `fen` is not a position |
-| „the solution … cannot be played in this position" | `solutionSan`, rule 10 |
-| „it asks for a move and gives no solution" | `ask_move` with no `solutionSan` |
-| „a multiple-choice question needs between two and four answers" | `choices` |
-| „none of the offered answers is marked as the correct one" | no `correct: true` |
-| „… is not a kind of step" | `kind` is not `show`, `ask_move` or `ask_choice` |
+| „it asks a question, and a tutorial only shows. Remove the part, or make the question an exercise." | `kind` is `ask_move` or `ask_choice`, rule 9 |
+| „… is not a kind of step" | `kind` is anything else but `show` |
 
 **Damaged — it would be stored, and it would be wrong:**
 
 | The sentence | The cause |
 |---|---|
 | „the line has N moves that cannot be played …" | rules 2, 3, 4, 8 |
-| „it asks for a move and carries the line that answers it" | rule 9 |
 
 A damaged file can still be opened in the studio and fixed there, which is what
 the single-file import is for. A refused one cannot be saved at all.
@@ -297,27 +245,26 @@ Per step, from `buildLessonStep`:
 | `fen` | **required**, validated by `chess.js`, refused with 422 if unloadable |
 | `title` | ≤ 200 characters, defaults to „Position" |
 | `pgn` | ≤ 100000 characters, stored opaquely, **not validated by the server** |
-| `kind` | `show`, `ask_move` or `ask_choice`; absent means `show`; an unknown value is refused rather than downgraded |
-| `instruction` | ≤ 500 characters — the task, drawn on the last beat of a question |
-| `blackOrientation` | boolean, and **absent is a third answer**: leave it out and the viewer works the side out from whose turn it is |
-| `id` | `[A-Za-z0-9_-]{1,16}`. **Never write one.** It names a schedule row and a recorded answer, so two tutorials carrying one id is a child's progress appearing in the wrong copy. The import drops it; a curl POST does not |
-| `solutionSan` | only for `ask_move`, and validated against that step's `fen` |
-| `acceptedSans` | up to 6 further correct moves, `ask_move` only |
-| `choices` | 2–4 of `{text, correct}`, `ask_choice` only, at least one `correct` |
+| `kind` | `show` only; absent means `show`. Anything else is refused with the whole save: „A part only shows a position and a line; a question is an exercise." |
+| `blackOrientation` | boolean, and **absent is a third answer**: leave it out and the studio and the film work the side out from whose turn it is |
+| `id` | `[A-Za-z0-9_-]{1,16}`. **Never write one.** The server mints it and refuses two parts with the same one. The import drops it; a curl POST does not |
+
+The task, solution and answer fields of the old question parts are no longer
+stored.
 
 On the tutorial itself: `title` (required), `description`, `tags` — the
 labels the trainer filters the saved list by, and the reason to write one or two
 even for a test file — and `language`.
 
 `language` is one of seven codes — `en`, `sr-Latn`, `sr-Cyrl`, `de`, `es`,
-`it`, `fr` — and it decides which voice reads the tutorial aloud: a Serbian
-(Latin) one is read by a Serbian voice, or a Croatian one where the device has
-no Serbian, and never by an English one (`docs/PLAN-JEZIK-GLASA.md`). Leave it
-out and the tutorial is read by the voice the reader chose in Settings, as every
-tutorial was before the field existed. **The server refuses any other code with
-the whole save**; the import drops one it cannot read, keeps the tutorial, and
-says so. `sr` alone is not a code — it does not say which script, and the two
-are read by different voices.
+`it`, `fr` — and it decides which voice the video export opens on: a Serbian
+(Latin) tutorial opens on a Serbian voice, never an English one
+(`docs/PLAN-JEZIK-GLASA.md`). Leave it out and the export opens on the voice
+chosen last time. Nothing in the app reads a tutorial aloud any more; only the
+film speaks. **The server refuses any other code with the whole save**; the
+import drops one it cannot read, keeps the tutorial, and says so. `sr` alone is
+not a code — it does not say which script, and the two are read by different
+voices.
 
 A `pgn` written for JSON needs no `[FEN]` header of its own: the step's `fen` is
 passed to the parser and wins over any header in the text.
@@ -327,7 +274,7 @@ passed to the parser and wins over any header in the text.
 | Rule | The reason in the code |
 |---|---|
 | Legal moves only | `parsePgn` **skips** a move it cannot play and counts it in `rejectedMoves`. Deliberate — a line must never come back silently shorter without somebody being told |
-| No variations | Parentheses parse and are stored, but a fork **stops** the narrated walk and the film: `beatsOf` and `tutorialVideoOf` follow first children, and the child gets a branch chooser instead of the rest of the lesson |
+| No variations | Parentheses parse and are stored, but the film follows only the first move at every fork (`beatsOf`, `tutorialVideoOf`), so a variation never appears in it |
 | A comment binds backwards | The parser attaches a comment to the node it is standing on, which is the move just played. Before move 1 that is the root — the only place a note about a still position can live, and the exporter writes it ahead of move one so „look at d5" can travel |
 | One `[%cal]`, one `[%csl]` | `parsePgnArrows` and `parsePgnSquares` use `firstMatch`, so a second group of the same kind is ignored — and `cleanPgnComment` strips every group from the words, so it vanishes rather than being read aloud |
 | 5 and 3 characters | A token of any other length is skipped rather than guessed at |
@@ -357,9 +304,8 @@ e5 { A sentence about this move. }
 ```
 
 Every rule in section 1 that is about the PGN string applies here too. A paste
-makes a **demonstration** and nothing else: the kind, the task, the offered
-answers and the recorded solution are fields of the step rather than of the
-line, and only the studio writes them. Headers must be on their own lines —
+sets the part's line and nothing else; its orientation is the studio's. Headers
+must be on their own lines —
 `parsePgn` strips them line by line, and one sharing a line with a move is not
 stripped.
 
@@ -388,7 +334,7 @@ Invoke-RestMethod "$api/lessons/save" -Method Post -ContentType 'application/jso
 It then appears under „Sačuvani tutorijali", opens in the studio, and exports to
 video like any other. **Nothing checks the lines on this path** — the server has
 no PGN reader — and an `id` written into a step is stored as it stands, so this
-is for files you do not intend a child to see.
+is for files nobody will make a film of for a student.
 
 ---
 
@@ -429,19 +375,21 @@ any other (section 4): „Import from a file", and the labels field there can ma
 the whole set, e.g. `sr`. `--tag sr` writes that label into the files instead.
 
 **`--code` marks every translated tutorial with its language** (section 5), so
-the app reads it with a voice for that language. Without it the field is
+the video export opens on a voice for that language. Without it the field is
 **removed**, not kept: a source that said `en` and was translated into Serbian
-would otherwise still say `en`, and be read aloud by an English voice — the one
+would otherwise still say `en`, and be filmed with an English voice — the one
 thing the language field exists to prevent.
+
+A source with a question part is **refused**, as the app's import refuses it,
+and the report names the part.
 
 **The model never sees a move.** `translate.py` pulls every piece of prose out
 of the tutorial into a flat list of `{id, text}` — the title, the description,
 each part's title (except a generated „Part 3", which the app shows in its own
-words and which would come back as a name it takes for the trainer's),
-instruction and answers, and the words of each `{ }` comment
-with its `[%cal]`/`[%csl]` taken out — and sends only that to `agy`, with
-`prompt.md` in front of it. The translations are written back into the same
-places. Moves, arrows, positions and which answer is right never leave the
+words and which would come back as a name it takes for the trainer's), and the
+words of each `{ }` comment with its `[%cal]`/`[%csl]` taken out — and sends
+only that to `agy`, with `prompt.md` in front of it. The translations are
+written back into the same places. Moves, arrows and positions never leave the
 script, and after writing it proves it: each part's `pgn` with the comments
 removed must be byte-identical to the source's, and every field that is not
 prose must be equal. Nothing in the script parses a move; the app has one PGN
@@ -476,13 +424,9 @@ two lines.
 
 Three things that are true and not the script's to fix:
 
-- **The app reads a tutorial aloud in English only.** `SpeechService.
-  preferredLanguages` is `['en']` since the English pivot, and it deliberately
-  asks for no other. It does not know what language a sentence is in, so a
-  Serbian tutorial's ▶ in the app is **read by an English voice** — the
-  wrong-language reading that rule was written to prevent, arriving by another
-  door. An exported film is different: the export sheet chooses its own voice,
-  and Azure has Serbian in both scripts.
+- **The app does not read a tutorial aloud.** Since 25.9.2026 only the film
+  speaks, and the export sheet chooses its voice; Azure has Serbian in both
+  scripts.
 - **A tutorial written in the studio has no file.** There is an import and no
   export, so the batch runs on files written outside the app, like the 27.
 - **The old `gemini` CLI no longer signs in** (Google moved individual accounts
