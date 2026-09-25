@@ -37,6 +37,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_video_expor
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_narration_screen.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_export_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -1966,11 +1967,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// What the strip labels: one of the three.
+  /// What the strip labels: one of the three, under the open part's own line
+  /// („Part 3 of 8 · continues from part 2").
   Widget _editorPanels() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        TutorialPartHeader(draft: _draft, onOpenPart: _selectSection),
+        const SizedBox(height: AppSpacing.xs),
         IndexedStack(
           index: _selectedTab,
           children: [
@@ -1991,6 +1995,10 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               // at all rather than drawn to do nothing.
               onInsertLine:
                   canSplitForLine(_draft.section) ? _insertLine : null,
+              // „Part 4 starts here · 18... h6" on a beat a later part goes
+              // back to, which opens that part.
+              partsStartingHere: partsStartingIn(_draft),
+              onOpenPart: _selectSection,
             ),
             AnalysisMoveTreeWidget(
               rootNode: _root,

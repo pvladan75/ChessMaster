@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
-import 'package:chess_app/features/tutorial_studio/services/step_tree.dart'
-    show endOfMainLine;
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
@@ -57,15 +56,6 @@ class TutorialSectionsPanel extends StatelessWidget {
   /// row rather than among the actions above, which have no pixel to spare at
   /// 840 dp, and so it names the part it acts on. Null draws nothing.
   final void Function(int index)? onTurn;
-
-  static bool _isJoined(TutorialSection prev, TutorialSection curr) {
-    final endFen = endOfMainLine(prev.root).fen;
-    final startFen = curr.root.fen;
-    return _fenKey(endFen) == _fenKey(startFen);
-  }
-
-  static String _fenKey(String fen) =>
-      fen.trim().split(RegExp(r'\s+')).take(4).join(' ');
 
   Future<void> _handleDelete(BuildContext context) async {
     if (draft.sections.length <= 1) {
@@ -222,77 +212,26 @@ class TutorialSectionsPanel extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             const Divider(height: 1),
             const SizedBox(height: AppSpacing.xs),
+            // The parts as a map (phase 3 of `docs/PLAN-MAPA-DELOVA.md`):
+            // how each opens is the film's own answer, `partOpeningsOf`, where
+            // this list once compared positions itself and knew only
+            // „continues".
             Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: draft.sections.length,
-                itemBuilder: (context, i) {
-                  final section = draft.sections[i];
-                  final isSelected = i == draft.selected;
-                  // The one function the wire uses too — see
-                  // [TutorialSection.toJson]. A row labelled from its index
-                  // over a stored title that says something else is batch 57's
-                  // finding, and computing the name once is the version of
-                  // that fix which cannot come apart.
-                  final label = section.label(i);
-                  final hasJoin = i > 0 &&
-                      _isJoined(draft.sections[i - 1], draft.sections[i]);
-
-                  return ListTile(
-                    dense: true,
-                    selected: isSelected,
-                    selectedTileColor: context.colors.surfaceRaised,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: AppRadii.roundedSm,
-                    ),
-                    leading: Icon(
-                      Icons.visibility_outlined,
-                      size: 18,
-                      color: isSelected
-                          ? context.colors.accent
-                          : context.colors.textSecondary,
-                    ),
-                    title: Text(
-                      label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: (isSelected ? AppText.bodyBold : AppText.body)
-                          .copyWith(
-                        color: isSelected
-                            ? context.colors.textPrimary
-                            : context.colors.textSecondary,
-                      ),
-                    ),
-                    trailing: (hasJoin || onTurn != null)
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (hasJoin)
-                                Tooltip(
-                                  message: 'Continues from previous part',
-                                  child: Icon(
-                                    Icons.link,
-                                    color: context.colors.accent,
-                                    size: 20,
-                                  ),
-                                ),
-                              if (onTurn != null)
-                                IconButton(
-                                  key: Key('turn-part-$i'),
-                                  visualDensity: VisualDensity.compact,
-                                  iconSize: 18,
-                                  tooltip: section.blackOrientation
-                                      ? 'Turn this part (Black at the bottom now)'
-                                      : 'Turn this part (White at the bottom now)',
-                                  icon: const Icon(Icons.screen_rotation_alt),
-                                  onPressed: () => onTurn!(i),
-                                ),
-                            ],
-                          )
-                        : null,
-                    onTap: () => onSelect(i),
-                  );
-                },
+              child: TutorialPartsMap(
+                draft: draft,
+                onSelect: onSelect,
+                trailing: onTurn == null
+                    ? null
+                    : (i) => IconButton(
+                          key: Key('turn-part-$i'),
+                          visualDensity: VisualDensity.compact,
+                          iconSize: 18,
+                          tooltip: draft.sections[i].blackOrientation
+                              ? 'Turn this part (Black at the bottom now)'
+                              : 'Turn this part (White at the bottom now)',
+                          icon: const Icon(Icons.screen_rotation_alt),
+                          onPressed: () => onTurn!(i),
+                        ),
               ),
             ),
           ],

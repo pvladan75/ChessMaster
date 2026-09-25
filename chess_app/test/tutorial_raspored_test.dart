@@ -78,6 +78,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -295,9 +296,10 @@ void main() {
 
       // The row is called by what the part says, since 7.9.2026 — and the
       // same sentence is in the field the trainer typed it into, so the finder
-      // has to name the row rather than the string.
+      // has to name the row rather than the string. The rows are the map's
+      // since phase 3 of `docs/PLAN-MAPA-DELOVA.md`, not `ListTile`s.
       final row = find.descendant(
-        of: find.byType(ListTile),
+        of: find.byType(TutorialPartsMap),
         matching: find.text('Šta beli postiže ovim potezom?'),
       );
       final partBefore = tester.getRect(row);

@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4075 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4091 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1905 with TEST_DATABASE_URL, 1747 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -845,6 +845,13 @@ after the continuation, reversed. And a door case that failed half way left its
 screen standing for the next one, which went red under a mutation that could
 not touch it — **close in `addTearDown`, or a neighbour's failure reads as a
 catch.**
+Then its phase 3 (→ **4091**, a full run; analyze the same 22): the parts as a
+map — rows in film order, lanes for how they join, the open part marked by a
+border, a ring and words. **A mutation that survives because the code cannot
+change an answer is a deletion, not a missing test**: the lanes held by passing
+edges are always already held by a marker, so the set that tracked them went.
+And a rendered look at the owner's window found what no gate asked: the panel
+there now shows two rows instead of three.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

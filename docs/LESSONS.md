@@ -8180,3 +8180,31 @@ ide u `addTearDown`, a svaki slučaj pravi svoj id lekcije.
 `UPDATE … position_list || $1` je jedna naredba, pa je dovoljno sve korake
 izgraditi pre pisanja. Mutacija koja tiho izbaci loš korak (polovično pisanje)
 pala je i na stubu i na pravoj bazi.
+
+## 26.9.2026 — Delovi kao mapa: faza 3
+
+Mapa delova. Aplikacija **4075 → 4091** (pun prolaz): +11
+`tutorial_part_map_test`, +5 `tutorial_parts_map_screen_test`; slučajevi u
+`tutorial_delovi_test` i `tutorial_raspored_test` prepisani (redovi više nisu
+`ListTile`, a znak spajanja je rečenica, ne ikonica). `analyze` isti 22 — pošto
+je uklonjen nekorišćen import koji je `analyze` prijavio kao **upozorenje**
+posle prvog punog prolaza. Pravilo 18 je platilo odmah.
+
+**Mutacija koja preživi jer kod ne može da promeni odgovor traži brisanje, ne
+test.** Skup „trake koje zauzimaju ivice koje prolaze" nikad nije menjao
+rezultat: ivica ide trakom svog cilja, pa svaka kasnija ivica preko istih
+redova prolazi i pored tog markera. Obrisan, sa obrazloženjem u komentaru.
+
+**Fixture za „dve ivice preko istog reda" nije imao dve takve ivice** — deo 3
+se vraćao na deo 2, susedni red. Nađeno tek kad je mutacija preživela i
+fixture pročitan ponovo.
+
+**`scrollUntilVisible` sa pozitivnim korakom skroluje samo nadole**; pomoćna
+funkcija koja traži redove redom mora prvo da se vrati na vrh.
+
+**Pogledaj ekran pre nego što kažeš da je vizuelna stvar gotova.** Snimak u
+Roboto fontu na vlasnikovom prozoru 1536 × 736 pokazao je da panel sad ima dva
+reda umesto tri — to nijedna kapija nije pitala. Snimak na telefonu je prvo
+„pokazao" da tap na red ne bira deo; red je bio ispod ekrana i tap nije
+pogodio ništa (upozorenje u izlazu). Nalaz iz testa se proverava pre nego što
+se veruje.

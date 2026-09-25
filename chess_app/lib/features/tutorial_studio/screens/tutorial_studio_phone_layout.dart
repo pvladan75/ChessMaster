@@ -439,17 +439,66 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   // ── Parts ────────────────────────────────────────────────────────────
 
   Widget _phonePartsTab() {
-    final sections = _c.draft.sections;
+    final selected = _c.draft.selected;
+    final last = _c.draft.sections.length - 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Align(alignment: Alignment.centerLeft, child: _phoneNewPartButton()),
         const SizedBox(height: AppSpacing.sm),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: sections.length,
-          itemBuilder: (context, i) => _phonePartRow(i, sections[i]),
+        // The open part's actions, above the map, as on the desktop. They
+        // were under every row until the map (phase 3 of
+        // `docs/PLAN-MAPA-DELOVA.md`): the lanes run through the gutter from
+        // one row to the next, and a row of six buttons under each part breaks
+        // every edge that crosses it. „Turn this part" stays on each row.
+        Wrap(
+          spacing: AppSpacing.xs,
+          children: [
+            IconButton(
+              tooltip: 'Move up',
+              icon: const Icon(Icons.arrow_upward),
+              onPressed: selected > 0
+                  ? () => _moveSection(selected, selected - 1)
+                  : null,
+            ),
+            IconButton(
+              tooltip: 'Move down',
+              icon: const Icon(Icons.arrow_downward),
+              onPressed: selected < last
+                  ? () => _moveSection(selected, selected + 1)
+                  : null,
+            ),
+            IconButton(
+              tooltip: 'Clone part',
+              icon: const Icon(Icons.copy),
+              onPressed: () => _cloneSection(selected),
+            ),
+            IconButton(
+              tooltip: 'Rename',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => _renameSection(selected),
+            ),
+            IconButton(
+              tooltip: 'Delete part',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: () => _removeSection(selected),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        TutorialPartsMap(
+          draft: _c.draft,
+          onSelect: _selectSection,
+          scrollable: false,
+          rowKey: (i) => Key('phone-part-$i'),
+          trailing: (i) => IconButton(
+            key: Key('turn-part-$i'),
+            tooltip: _c.draft.sections[i].blackOrientation
+                ? 'Turn this part (Black at the bottom now)'
+                : 'Turn this part (White at the bottom now)',
+            icon: const Icon(Icons.screen_rotation_alt),
+            onPressed: () => _turnPart(i),
+          ),
         ),
       ],
     );
@@ -464,94 +513,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
       icon: const Icon(Icons.add, size: 18),
       label: const Text('New demonstration'),
     );
-  }
-
-  /// One row of the list — icon, title, moves count, and the six
-  /// actions in a [Wrap] under it: a row of six 48 dp buttons beside the
-  /// title does not fit a 360 dp screen, which is why they are here rather
-  /// than as `ListTile.trailing`.
-  ///
-  /// **The actions sit outside the `ListTile`, not in its `subtitle`.** They
-  /// did once — `tester.tap` finds a widget by its key and taps its
-  /// *centre*, and a `ListTile` tall enough to hold a moves count and a
-  /// five-button `Wrap` puts that centre over the second button, „Clone
-  /// part". A tap meant to select part 0 cloned it instead, leaving the
-  /// trainer on a part they never asked for. Keeping the `ListTile` to the
-  /// leading icon, the title and the moves count keeps its centre over
-  /// something that only selects.
-  Widget _phonePartRow(int i, TutorialSection section) {
-    final count = _mainLineMoveCount(section);
-    final last = _c.draft.sections.length - 1;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ListTile(
-          key: Key('phone-part-$i'),
-          leading: const Icon(Icons.visibility_outlined),
-          title: Text(section.label(i)),
-          subtitle: Text('$count ${count == 1 ? 'move' : 'moves'}'),
-          selected: i == _c.draft.selected,
-          onTap: () => _selectSection(i),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(
-            left: AppSpacing.lg,
-            right: AppSpacing.sm,
-            bottom: AppSpacing.xs,
-          ),
-          child: Wrap(
-            spacing: AppSpacing.xs,
-            children: [
-              IconButton(
-                tooltip: 'Move up',
-                icon: const Icon(Icons.arrow_upward),
-                onPressed: i > 0 ? () => _moveSection(i, i - 1) : null,
-              ),
-              IconButton(
-                tooltip: 'Move down',
-                icon: const Icon(Icons.arrow_downward),
-                onPressed: i < last ? () => _moveSection(i, i + 1) : null,
-              ),
-              IconButton(
-                tooltip: 'Clone part',
-                icon: const Icon(Icons.copy),
-                onPressed: () => _cloneSection(i),
-              ),
-              IconButton(
-                tooltip: 'Rename',
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => _renameSection(i),
-              ),
-              IconButton(
-                key: Key('turn-part-$i'),
-                tooltip: section.blackOrientation
-                    ? 'Turn this part (Black at the bottom now)'
-                    : 'Turn this part (White at the bottom now)',
-                icon: const Icon(Icons.screen_rotation_alt),
-                onPressed: () => _turnPart(i),
-              ),
-              IconButton(
-                tooltip: 'Delete part',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _removeSection(i),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// The main line's length, in moves — [endOfMainLine] finds where it ends,
-  /// this counts the steps it took to get there.
-  int _mainLineMoveCount(TutorialSection section) {
-    var count = 0;
-    var node = section.root;
-    while (node.children.isNotEmpty) {
-      node = node.children.first;
-      count++;
-    }
-    return count;
   }
 }
 

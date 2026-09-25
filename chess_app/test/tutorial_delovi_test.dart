@@ -85,6 +85,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
@@ -177,9 +178,13 @@ void main() {
   /// typed it into, so `find.text` matches two widgets. Same family as batch
   /// 55's finder that stopped being unique once a second place for the string
   /// existed.
+  ///
+  /// Scoped to the map of parts since phase 3 of `docs/PLAN-MAPA-DELOVA.md`,
+  /// whose rows are not `ListTile`s — the same scope, the list of parts, by
+  /// the widget that draws it now.
   Future<void> tapRow(WidgetTester tester, String label) async {
     await tester.tap(find.descendant(
-      of: find.byType(ListTile),
+      of: find.byType(TutorialPartsMap),
       matching: find.text(label),
     ));
     await tester.pumpAndSettle();
@@ -321,7 +326,7 @@ void main() {
 
       expect(
           find.descendant(
-            of: find.byType(ListTile),
+            of: find.byType(TutorialPartsMap),
             matching: find.text('Rečenica koja se kopira.'),
           ),
           findsNWidgets(2),
@@ -374,25 +379,35 @@ void main() {
     });
   });
 
+  // Superseded 26.9.2026 by phase 3 of `docs/PLAN-MAPA-DELOVA.md`: the join
+  // was a link icon with the tooltip „Continues from previous part", worked
+  // out by the list itself (`_isJoined`). The map says it in words, from the
+  // film's own answer — and says „new board" where the board is reloaded,
+  // rather than saying nothing.
   group('the join mark', () {
+    String kindOf(WidgetTester tester, int index) =>
+        tester.widget<Text>(find.byKey(Key('part-kind-$index'))).data!;
+
     testWidgets('marks a part that continues the one before it',
         (tester) async {
       await open(tester);
       await play(tester, 'e2', 'e4');
       await addPart(tester);
 
-      expect(find.byTooltip('Continues from previous part'), findsOneWidget,
+      expect(kindOf(tester, 1), startsWith('2 · continues'),
           reason: 'the author cannot see which of their parts the child will '
               'experience as one board');
       await close(tester);
     });
 
-    testWidgets('and is absent where the board is reloaded', (tester) async {
+    testWidgets('and says where the board is reloaded to', (tester) async {
       await open(tester);
       await play(tester, 'e2', 'e4');
       await addPart(tester, continueFromEnd: false);
 
-      expect(find.byTooltip('Continues from previous part'), findsNothing);
+      // „New board" opens on the opening position, which part 1 already
+      // showed at its start — so the film goes back there, and says so.
+      expect(kindOf(tester, 1), startsWith('2 · back to the start of part 1'));
       await close(tester);
     });
   });
