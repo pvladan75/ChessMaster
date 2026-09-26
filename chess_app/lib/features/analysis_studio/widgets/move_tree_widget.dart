@@ -17,6 +17,13 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   final void Function(AnalysisNode node, {required bool earlier})?
       onMoveVariation;
 
+  /// What may move, and where „Promote" does anything, when the tree is a
+  /// view of something else — the tutorial's family of parts. Null asks the
+  /// tree itself.
+  final bool Function(AnalysisNode node, {required bool earlier})?
+      canMoveVariation;
+  final bool Function(AnalysisNode node)? promoteApplies;
+
   /// What the second menu item is called, when the caller knows better.
   ///
   /// "Delete this variation" is true on an analysis board, where every move is
@@ -49,6 +56,8 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     this.onPromoteNode,
     this.onDeleteNode,
     this.onMoveVariation,
+    this.canMoveVariation,
+    this.promoteApplies,
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
@@ -187,6 +196,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
                       onMoveVariation: widget.onMoveVariation,
+                      canMoveVariation: widget.canMoveVariation,
+                      promoteApplies: widget.promoteApplies,
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
@@ -260,6 +271,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
                       onMoveVariation: widget.onMoveVariation,
+                      canMoveVariation: widget.canMoveVariation,
+                      promoteApplies: widget.promoteApplies,
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
@@ -475,6 +488,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
         extraLabel: widget.extraLabel,
         onExtra: widget.onExtra,
         onMoveVariation: widget.onMoveVariation,
+        canMoveVariation: widget.canMoveVariation,
+        promoteApplies: widget.promoteApplies,
       ),
     );
   }

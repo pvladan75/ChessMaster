@@ -47,15 +47,20 @@ List<MoveTreeMenuItem> moveTreeMenuItems(
   String? Function(AnalysisNode node)? extraLabel,
   void Function(AnalysisNode node)? onExtra,
   void Function(AnalysisNode node, {required bool earlier})? onMoveVariation,
+  bool Function(AnalysisNode node, {required bool earlier})? canMoveVariation,
+  bool Function(AnalysisNode node)? promoteApplies,
 }) {
   final parent = node.parent;
   final extra = extraLabel?.call(node);
+  // A caller whose tree is a view of something else says itself what can move
+  // (the tutorial's family of parts); a plain tree asks the node's parent.
   bool can(bool earlier) =>
       onMoveVariation != null &&
-      parent != null &&
-      parent.canMoveVariation(node, earlier: earlier);
+      (canMoveVariation != null
+          ? canMoveVariation(node, earlier: earlier)
+          : parent != null && parent.canMoveVariation(node, earlier: earlier));
   return [
-    if (onPromoteNode != null)
+    if (onPromoteNode != null && (promoteApplies?.call(node) ?? true))
       MoveTreeMenuItem(
         key: const Key('move-menu-promote'),
         label: 'Promote to Main Line',

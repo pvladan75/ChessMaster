@@ -8284,3 +8284,25 @@ je to rekao pre nego što je išta napisano.
 **Mutacija koja ne kompajlira nije ulov** (pravilo 3): prva verzija
 „mrtvog Promote" je pala na null-bezbednosti; ponovljena je tako da prođe
 prevođenje i tek tada je pala na pravom slučaju.
+
+## 26.9.2026 — Redosled varijanti: faze 2 i 3
+
+Grane tutorijala. Aplikacija **4113 → 4129** (pun prolaz): +12
+`tutorial_branch_order_test`, +4 `tutorial_branch_screen_test`; tri slučaja koja
+su čitala `rootNode` kartice Tree kao koren otvorenog dela prepisana na njen
+aktivni potez. `analyze` isti 22.
+
+**Fixture u kome sve stoji jedno do drugog ne razlikuje „mesta koja su držali"
+od „jednog niza mesta".** U skici su sve susedne grane jedna do druge, pa je
+mutaciju „mesta kao jedan niz" uhvatio samo slučaj dopisan pre kruga mutacija —
+nova tabla između dve grane (pravilo 6).
+
+**Pogled na nešto drugo mora da kaže šta u njemu sme da se pomeri.** Stablo
+porodice delova je kopija; njegov „roditelj" ne zna ništa o delovima, pa meni
+sada prima dva pitanja od pozivaoca (`canMoveVariation`, `promoteApplies`)
+umesto da ih postavlja stablu.
+
+**Priručnik je pogrešno imenovao dugme, a čuvar je prolazio.** Stranica o
+Analizi je govorila „Set as main line" — natpis ekrana partije, ne Analize.
+Reč postoji u aplikaciji, pa čuvar natpisa ćuti; nađeno tek kad je pasus čitan
+naspram menija. Treći put ista lekcija.

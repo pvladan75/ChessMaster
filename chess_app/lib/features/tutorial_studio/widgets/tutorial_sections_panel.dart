@@ -27,6 +27,7 @@ class TutorialSectionsPanel extends StatelessWidget {
     this.onAddPartsFrom,
     this.onExtractParts,
     this.onTurn,
+    this.onRowMenu,
   });
 
   final TutorialDraft draft;
@@ -47,6 +48,9 @@ class TutorialSectionsPanel extends StatelessWidget {
   /// row rather than among the actions above, which have no pixel to spare at
   /// 840 dp, and so it names the part it acts on. Null draws nothing.
   final void Function(int index)? onTurn;
+
+  /// A row's menu — its branch moved among its siblings. Null: none.
+  final void Function(int index, Offset? at)? onRowMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -148,6 +152,7 @@ class TutorialSectionsPanel extends StatelessWidget {
               child: TutorialPartsMap(
                 draft: draft,
                 onSelect: onSelect,
+                onRowMenu: onRowMenu,
                 trailing: onTurn == null
                     ? null
                     : (i) => IconButton(

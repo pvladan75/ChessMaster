@@ -37,6 +37,9 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_video_expor
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_narration_screen.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_export_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_branches.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_tree.dart';
+import 'package:chess_app/features/analysis_studio/widgets/move_tree_menu.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_pgn_panel.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_sections_panel.dart';
@@ -663,6 +666,87 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// the narrated walk both follow first children, so which branch is main is
   /// a decision about the lesson rather than about how the tree is drawn.
   void _promoteNode(AnalysisNode node) => _c.promoteNode(node);
+
+  /// Opens part [part] unless it is open, through the same door a click on
+  /// its row takes (and so held back over unapplied PGN text). Answers
+  /// whether it is open now.
+  bool _openPart(int part) {
+    if (part != _draft.selected) _selectSection(part);
+    return _draft.selected == part;
+  }
+
+  /// The Tree tab: the open part's family as one tree — D6 of
+  /// `docs/PLAN-REDOSLED-GRANA.md`. A copy for display: every command is
+  /// taken back to the part and the move it was made from. A move that starts
+  /// a part hanging from a move moves that part's whole branch; a move inside
+  /// a part acts inside it, as the tab did before.
+  Widget _familyTree() {
+    final tree = tutorialTreeOf(_draft);
+
+    // Runs [act] on the original of [node], in its own part, opened first.
+    void inItsPart(AnalysisNode node, void Function(AnalysisNode o) act) {
+      final origin = tree.originOf(node);
+      if (origin == null || !_openPart(origin.part)) return;
+      act(origin.node);
+    }
+
+    bool isVariationInPart(AnalysisNode node) {
+      if (tree.branchAt(node, _draft) != null) return false;
+      final o = tree.originOf(node)?.node;
+      final parent = o?.parent;
+      return parent != null && parent.children.indexOf(o!) > 0;
+    }
+
+    return AnalysisMoveTreeWidget(
+      rootNode: tree.root,
+      activeNode: tree.shownAt(_current) ?? tree.root,
+      onSelectNode: (node) => inItsPart(node, _jumpTo),
+      onPromoteNode: (node) => inItsPart(node, _promoteNode),
+      // Only a variation inside one part: between parts, order is the only
+      // thing to change (D6).
+      promoteApplies: isVariationInPart,
+      onMoveVariation: (node, {required earlier}) {
+        final branch = tree.branchAt(node, _draft);
+        if (branch != null) {
+          _c.moveBranch(branch, earlier: earlier);
+          return;
+        }
+        inItsPart(node, (o) => _c.moveVariation(o, earlier: earlier));
+      },
+      canMoveVariation: (node, {required earlier}) {
+        final branch = tree.branchAt(node, _draft);
+        if (branch != null) {
+          return canMoveBranch(_draft, branch, earlier: earlier);
+        }
+        final o = tree.originOf(node)?.node;
+        final parent = o?.parent;
+        return parent != null && parent.canMoveVariation(o!, earlier: earlier);
+      },
+      onDeleteNode: (node) => inItsPart(node, _deleteNode),
+    );
+  }
+
+  /// A row of the map, long pressed or right clicked: its branch moved among
+  /// the branches that leave the same move — the phone's way in, having no
+  /// Tree tab, and the desktop's too. Nothing opens where nothing can move.
+  void _partRowMenu(int part, Offset? at) {
+    showMoveTreeMenu(
+      context,
+      at: at,
+      items: [
+        for (final earlier in [true, false])
+          if (canMoveBranch(_draft, part, earlier: earlier))
+            MoveTreeMenuItem(
+              key: Key(earlier ? 'move-menu-earlier' : 'move-menu-later'),
+              label:
+                  earlier ? moveVariationEarlierLabel : moveVariationLaterLabel,
+              icon: earlier ? Icons.move_up : Icons.move_down,
+              tone: (c) => c.colors.accent,
+              onSelected: () => _c.moveBranch(part, earlier: earlier),
+            ),
+      ],
+    );
+  }
 
   /// A move the board reported, dragged or tapped.
   ///
@@ -1881,6 +1965,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       onAddPartsFrom: _addPartsFromTutorial,
       onExtractParts: _extractPartsToNewTutorial,
       onTurn: _turnPart,
+      onRowMenu: _partRowMenu,
     );
   }
 
@@ -2196,15 +2281,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               partsStartingHere: partsStartingIn(_draft),
               onOpenPart: _selectSection,
             ),
-            AnalysisMoveTreeWidget(
-              rootNode: _root,
-              activeNode: _current,
-              onSelectNode: _jumpTo,
-              onPromoteNode: _promoteNode,
-              onMoveVariation: (node, {required earlier}) =>
-                  _c.moveVariation(node, earlier: earlier),
-              onDeleteNode: _deleteNode,
-            ),
+            _familyTree(),
             // Keyed by the tree it is showing: a new part, or a text that has
             // just been applied, is a different line and the field follows it.
             // Anything else — a move played, an arrow drawn — leaves the

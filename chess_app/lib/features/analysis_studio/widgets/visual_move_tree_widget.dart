@@ -57,6 +57,13 @@ class VisualMoveTreeWidget extends StatefulWidget {
   final void Function(AnalysisNode node, {required bool earlier})?
       onMoveVariation;
 
+  /// What may move, and where „Promote" does anything, when the tree is a
+  /// view of something else — the tutorial's family of parts. Null asks the
+  /// tree itself.
+  final bool Function(AnalysisNode node, {required bool earlier})?
+      canMoveVariation;
+  final bool Function(AnalysisNode node)? promoteApplies;
+
   /// What that item is called on this card — see `AnalysisMoveTreeWidget`.
   final String Function(AnalysisNode node)? deleteLabel;
 
@@ -94,6 +101,8 @@ class VisualMoveTreeWidget extends StatefulWidget {
     this.onPromoteNode,
     this.onDeleteNode,
     this.onMoveVariation,
+    this.canMoveVariation,
+    this.promoteApplies,
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
@@ -874,6 +883,8 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
         extraLabel: widget.extraLabel,
         onExtra: widget.onExtra,
         onMoveVariation: widget.onMoveVariation,
+        canMoveVariation: widget.canMoveVariation,
+        promoteApplies: widget.promoteApplies,
       ),
       moreTitle: 'Same position reached via:',
       more: [

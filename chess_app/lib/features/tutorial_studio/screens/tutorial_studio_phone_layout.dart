@@ -404,6 +404,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
         TutorialPartsMap(
           draft: _c.draft,
           onSelect: _selectSection,
+          onRowMenu: _partRowMenu,
           scrollable: false,
           rowKey: (i) => Key('phone-part-$i'),
           trailing: (i) => IconButton(

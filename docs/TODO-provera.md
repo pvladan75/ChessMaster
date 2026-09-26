@@ -8156,6 +8156,46 @@ odlazi na kraj spiska u alatu.
    izlazi nema strelicu. Zaglavlje otvorenog dela kaže „… in part 1".
    Potrebno: Windows.
 
+70. [ ] **Redosled varijanti u Analizi: desni klik i dugi pritisak.** [247.10]
+   O čemu se radi: Varijante su do sada stajale redom kojim su odigrane; sada
+   se pomeraju — „Move variation earlier / later" (`docs/PLAN-REDOSLED-GRANA.md`,
+   faza 1). Na Windowsu desni klik otvara meni kod pokazivača, na telefonu dugi
+   pritisak otvara list odozdo; isto u prikazu „Visual" i u prikazu „PGN".
+   Gde: `Analyse` → partija ili analiza sa bar dve varijante na istom potezu →
+   stablo (`Variation Tree`).
+   Uradi: Desni klik (telefon: dugi pritisak) na prvu varijantu →
+   `Move variation later`; zatim izvezi PGN ili sačuvaj analizu i otvori je
+   ponovo.
+   Treba da vidiš: Na prvoj varijanti nema „earlier", na poslednjoj nema
+   „later", na glavnoj liniji nema nijednog. Posle komande varijante su u novom
+   redu u stablu, u PGN-u i posle ponovnog otvaranja. Na Windowsu meni izlazi
+   pored kursora, ne odozdo.
+   Potrebno: Windows i telefon.
+
+71. [ ] **Tutorijal: kartica Tree crta ceo tutorijal i pomera grane.** [247.11]
+   O čemu se radi: Kartica `Tree` crta otvoreni deo sa svim povezanim delovima
+   kao jedno stablo; delovi koji izlaze iz istog poteza su njegove varijante.
+   Pomeranje varijante pomera ceo deo i sve što visi o njemu (faza 2).
+   Gde: `Teach` → tutorijal sa bar dva dela koja izlaze iz istog poteza (npr.
+   „proba 2") → deo 2 → kartica `Tree`.
+   Uradi: Desni klik na potez kojim počinje deo 4 (npr. `5... Bc5`) →
+   `Move variation earlier`; zatim klikni na potez nekog drugog dela u stablu.
+   Treba da vidiš: U stablu su potezi svih povezanih delova; posle komande taj
+   deo (sa svim svojim nastavcima) dolazi ranije u mapi i u filmu, a otvoreni
+   deo ostaje otvoren. Klik na potez drugog dela otvara taj deo na tom potezu.
+   Na potezu kojim deo počinje nema „Promote to Main Line". Jedan Ctrl+Z vraća.
+   Potrebno: Windows.
+
+72. [ ] **Tutorijal na telefonu: dugi pritisak na red mape pomera granu.** [247.12]
+   O čemu se radi: Telefon nema karticu `Tree`, pa je ista komanda na redu
+   mape (faza 2).
+   Gde: telefon, `Teach` → tutorijal kao u [247.11] → kartica `Parts`.
+   Uradi: Dugo pritisni red dela koji izlazi iz istog poteza kao još neki deo
+   → `Move variation earlier`.
+   Treba da vidiš: Deo i njegovi nastavci dolaze ranije u mapi; red koji ne
+   može nigde da se pomeri ne otvara meni.
+   Potrebno: telefon.
+
 ### Teach — Domaći i napredak učenika
 
 1. [ ] **`Send a video` na stranici učenika.** [246.7]

@@ -10,6 +10,8 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/services/draft_history.dart';
 import 'package:chess_app/features/tutorial_studio/services/section_split.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_branches.dart'
+    as branches;
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
 import 'package:chess_app/services/account_local_state.dart';
@@ -440,6 +442,16 @@ class TutorialDraftController extends ChangeNotifier {
     parent.removeChild(node);
     persist();
     notifyListeners();
+  }
+
+  /// Part [part]'s branch — the part and every part that hangs from it —
+  /// moved one place [earlier] or later among the branches that leave the
+  /// same move (phase 2 of `docs/PLAN-REDOSLED-GRANA.md`). The open part stays
+  /// open; one undo takes it back.
+  void moveBranch(int part, {required bool earlier}) {
+    if (!branches.moveBranch(_draft, part, earlier: earlier)) return;
+    _renumberGeneratedTitles();
+    _partChanged();
   }
 
   /// A variation inside the open part moved one place among its siblings —

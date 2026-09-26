@@ -384,7 +384,12 @@ void main() {
           ended.split(' ').take(2).join(' '),
           reason: 'the trainer was dropped somewhere else to start the next '
               'example, so show and ask cannot join');
-      expect(tree(tester).rootNode.children, isEmpty,
+      // Superseded 26.9.2026 by phase 2 of `docs/PLAN-REDOSLED-GRANA.md`: the
+      // Tree tab draws the open part's whole family — every part joined to it
+      // by hanging — so its root is the family's first part, not the open
+      // part's. What the tree says about the open part is its active move.
+      expect(tree(tester).activeNode.moveSan, 'e5');
+      expect(tree(tester).activeNode.children, isEmpty,
           reason: 'the new example inherited the previous one\'s moves');
       await close(tester);
     });

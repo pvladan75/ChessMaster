@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4113 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4129 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1905 with TEST_DATABASE_URL, 1747 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -872,7 +872,12 @@ to a tutorial's branches. **A picture answered what a test could not**: both
 rules were rendered and sent before anything was merged, and the owner chose
 from the pictures. Its phase 1 (→ **4113**): „Move variation earlier / later"
 in the one menu both views of every move tree now share — the graph and the
-notation had two copies, and they had drifted.
+notation had two copies, and they had drifted. Its phases 2–3 (→ **4129**):
+a tutorial's Tree tab draws the open part's whole family, and the command moves
+a part with everything that hangs from it; on a phone, from a map row. **A
+fixture where every pair stands side by side cannot tell „the places they
+held" from „one run of places"** — the case with a part between two branches
+was the only one to catch that mutation.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
