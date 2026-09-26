@@ -1,8 +1,8 @@
 # The order of variations — in every move tree, and between a tutorial's branches
 
 Written 26.9.2026 by the lead, on the owner's word. **D1–D6 answered by the
-owner the same day: all as recommended. D7 not answered yet** (it is the „leave
-it as it is" option, and no phase below touches the PGN tab). Follows
+owner the same day: all as recommended; D7 answered the same day too: the PGN
+tab stays as it is.** Follows
 `docs/PLAN-MAPA-DELOVA.md`, whose phases 0–5 are on `master`.
 
 ## 1. The request
@@ -100,7 +100,7 @@ hangs from it, directly or through others. Moving a branch moves all of them,
 in the order they had; parts that belong to neither of the two branches keep
 their places. That is the owner's „da se prebace i svi nastavci".
 
-## 4. Decisions — D1–D6 answered 26.9.2026: all as recommended; D7 open
+## 4. Decisions — D1–D7 answered 26.9.2026: all as recommended
 
 **D1. Where the command lives.** In the move tree's menu, in both of its views
 (one menu, so both views get it together). On a phone's tutorial studio, which
@@ -136,7 +136,10 @@ offered only on a variation inside one part (a tutorial saved before 26.9.2026);
 between parts, order is the only thing to change.
 
 **D7. The PGN tab of the tutorial is unchanged** — the open part as text, one
-line. The tree widget's own PGN view does get the command (D1).
+line. The tree widget's own PGN view does get the command (D1). *Owner,
+26.9.2026: „ne diramo to".* The whole family as text is already the Tree tab's
+notation view; editing it as one text would cost two sentences on one position
+and a reader that guesses part boundaries back (§7).
 
 ## 5. Where it is reached, platform by platform
 
