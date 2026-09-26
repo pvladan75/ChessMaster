@@ -146,6 +146,28 @@ class AnalysisNode {
     }
   }
 
+  /// Whether [child], a variation here, can move one place [earlier] (towards
+  /// the main line) or later. The main line itself never moves this way, and
+  /// nothing moves past it — only [promoteToMainLine] changes which line is
+  /// main (D4 of `docs/PLAN-REDOSLED-GRANA.md`).
+  bool canMoveVariation(AnalysisNode child, {required bool earlier}) {
+    final index = children.indexWhere((c) => c.id == child.id);
+    if (index < 1) return false;
+    return earlier ? index > 1 : index < children.length - 1;
+  }
+
+  /// Moves [child], a variation here, one place [earlier] or later among the
+  /// variations — the order the PGN writes them in, and the order they were
+  /// played in until now. Answers whether anything moved.
+  bool moveVariation(AnalysisNode child, {required bool earlier}) {
+    if (!canMoveVariation(child, earlier: earlier)) return false;
+    final index = children.indexWhere((c) => c.id == child.id);
+    final to = earlier ? index - 1 : index + 1;
+    children[index] = children[to];
+    children[to] = child;
+    return true;
+  }
+
   /// Removes a child variation node.
   void removeChild(AnalysisNode child) {
     children.removeWhere((c) => c.id == child.id);

@@ -442,6 +442,16 @@ class TutorialDraftController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// A variation inside the open part moved one place among its siblings —
+  /// only a part saved before 26.9.2026 still has one (D4 of
+  /// `docs/PLAN-MAPA-DELOVA.md`). One undo step; nothing when it cannot move.
+  void moveVariation(AnalysisNode node, {required bool earlier}) {
+    final parent = node.parent;
+    if (parent == null || !parent.moveVariation(node, earlier: earlier)) return;
+    persist();
+    notifyListeners();
+  }
+
   /// Makes a sideline the line the child walks.
   void promoteNode(AnalysisNode node) {
     final parent = node.parent;

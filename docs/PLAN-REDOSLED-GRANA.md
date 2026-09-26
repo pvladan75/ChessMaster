@@ -174,7 +174,30 @@ reworded, because the QA tool matches items by text.
 
 - **Gate:** the full run; the map files' cases as they stand on the branch.
 
-### Phase 1 — variations in any tree [implementer]
+### Phase 1 — variations in any tree [implementer] — done 26.9.2026
+
+**Built inline by the lead, on branch `redosled-grana-faza-1`.**
+`AnalysisNode.canMoveVariation` / `moveVariation`; `move_tree_menu.dart`, the
+one list of items (`moveTreeMenuItems`) and its two presentations
+(`showMoveTreeMenu`: a menu at the pointer when given the right click's
+position, else the sheet), used by the graph and the notation alike; Analysis
+saves the draft after a move of a variation, the tutorial's Tree tab writes one
+undo step (`TutorialDraftController.moveVariation`), the repertoire passes
+nothing. Gate `T/move_variation_order_test.dart` (10): order, bounds and the
+main line; the PGN and the saved tree follow; both views, a long press on
+Android and a right click on Windows, each with exactly the items that apply;
+no dead items without callbacks; Analysis's draft keeps the order. Full run
+**4113**, 1 skipped; analyze the same 22. Seven mutations, each red on the
+right case — one first failed to compile, which is not a catch, and was made
+null-safe. Rendered: the menu at the pointer on the desktop, the sheet on a
+phone.
+
+- **„Promote to Main Line" is still drawn on every move its callback exists
+  for**, the main line included: in the repertoire it means „your main move", a
+  server decision that does not follow the drawn order
+  (`repertoire_build_layout_test`), so it is not hidden by position. Only the
+  two new items depend on where the variation stands.
+
 
 - `AnalysisNode.moveVariation(child, {required bool earlier})`, pure: never past
   index 0 (D4), ids and subtrees untouched.

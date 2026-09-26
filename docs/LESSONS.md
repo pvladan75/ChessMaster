@@ -8264,3 +8264,23 @@ dve na četiri trake.
 **Vrh strelice se dokazuje kao putanja koju slikar crta**, jedina koju crta, pa
 je mutacija „strelice i na izlaznim linijama" oborila proveru odsustva na redu
 koji ima samo izlazne linije.
+
+## 26.9.2026 — Redosled varijanti: faza 1
+
+„Move variation earlier / later" u svakom stablu poteza. Aplikacija **4103 →
+4113** (pun prolaz, +10 `move_variation_order_test`). `analyze` isti 22.
+
+**Dve kopije jednog menija su se već razišle.** Notacija je crtala stavku samo
+kad je povratni poziv dat (nalaz od 7.9.2026), grafik uvek. Sada je jedan
+spisak i dva načina da se pokaže — meni kod pokazivača za desni klik, list
+odozdo za dugi pritisak.
+
+**Pravilo „crtaj samo gde nešto radi" nije isto što i „crtaj samo gde se
+položaj slaže".** „Promote to Main Line" na glavnoj liniji u analizi ne radi
+ništa, ali u repertoaru znači „moj glavni potez" — odluka servera koja ne prati
+nacrtani redosled. Skrivanje po položaju bi oborilo repertoar; test repertoara
+je to rekao pre nego što je išta napisano.
+
+**Mutacija koja ne kompajlira nije ulov** (pravilo 3): prva verzija
+„mrtvog Promote" je pala na null-bezbednosti; ponovljena je tako da prođe
+prevođenje i tek tada je pala na pravom slučaju.

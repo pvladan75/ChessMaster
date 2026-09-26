@@ -2201,6 +2201,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               activeNode: _current,
               onSelectNode: _jumpTo,
               onPromoteNode: _promoteNode,
+              onMoveVariation: (node, {required earlier}) =>
+                  _c.moveVariation(node, earlier: earlier),
               onDeleteNode: _deleteNode,
             ),
             // Keyed by the tree it is showing: a new part, or a text that has

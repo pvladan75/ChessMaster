@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:chess_app/features/analysis_studio/widgets/move_tree_menu.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -10,6 +11,11 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   final Function(AnalysisNode node) onSelectNode;
   final Function(AnalysisNode node)? onPromoteNode;
   final Function(AnalysisNode node)? onDeleteNode;
+
+  /// „Move variation earlier / later" — phase 1 of
+  /// `docs/PLAN-REDOSLED-GRANA.md`. Null draws neither, in both views.
+  final void Function(AnalysisNode node, {required bool earlier})?
+      onMoveVariation;
 
   /// What the second menu item is called, when the caller knows better.
   ///
@@ -42,6 +48,7 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     required this.onSelectNode,
     this.onPromoteNode,
     this.onDeleteNode,
+    this.onMoveVariation,
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
@@ -179,6 +186,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onSelectNode: widget.onSelectNode,
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
+                      onMoveVariation: widget.onMoveVariation,
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
@@ -251,6 +259,7 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
                       onNodeTapped: () => Navigator.pop(dialogContext),
                       onPromoteNode: widget.onPromoteNode,
                       onDeleteNode: widget.onDeleteNode,
+                      onMoveVariation: widget.onMoveVariation,
                       deleteLabel: widget.deleteLabel,
                       extraLabel: widget.extraLabel,
                       nodeLook: widget.nodeLook,
@@ -403,7 +412,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     return InkWell(
       onTap: () => widget.onSelectNode(node),
       onLongPress: () => _showNodeContextMenu(context, node),
-      onSecondaryTap: () => _showNodeContextMenu(context, node),
+      onSecondaryTapUp: (details) =>
+          _showNodeContextMenu(context, node, details.globalPosition),
       borderRadius: AppRadii.roundedXs,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
@@ -449,66 +459,23 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
     );
   }
 
-  void _showNodeContextMenu(BuildContext context, AnalysisNode node) {
-    // An empty sheet is the same lie as a dead menu item, one step further on.
-    if (widget.onPromoteNode == null &&
-        widget.onDeleteNode == null &&
-        widget.extraLabel?.call(node) == null) {
-      return;
-    }
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.colors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drawn only where they do something. A screen that takes this
-              // widget without the callbacks used to get the whole menu
-              // anyway: the tutorial studio showed "Delete This Variation",
-              // the trainer pressed it, the sheet closed and the move stayed —
-              // the recurring fault of this repository, in the form a user
-              // meets it. Found live on 7.9.2026.
-              if (widget.onPromoteNode != null)
-                ListTile(
-                  leading: Icon(Icons.star, color: ctx.colors.warning),
-                  title: Text('Promote to Main Line',
-                      style: TextStyle(color: ctx.colors.textPrimary)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    if (node.parent != null) {
-                      widget.onPromoteNode?.call(node);
-                    }
-                  },
-                ),
-              if (widget.onDeleteNode != null)
-                ListTile(
-                  leading: Icon(Icons.delete, color: ctx.colors.danger),
-                  title: Text(
-                      widget.deleteLabel?.call(node) ?? 'Delete this variation',
-                      style: TextStyle(color: ctx.colors.textPrimary)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    widget.onDeleteNode?.call(node);
-                  },
-                ),
-              if (widget.extraLabel?.call(node) != null)
-                ListTile(
-                  leading: Icon(Icons.call_split, color: ctx.colors.accent),
-                  title: Text(widget.extraLabel!.call(node)!,
-                      style: TextStyle(color: ctx.colors.textPrimary)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    widget.onExtra?.call(node);
-                  },
-                ),
-            ],
-          ),
-        );
-      },
+  /// The move's menu — the one list in `move_tree_menu.dart`, the graph's
+  /// too. At [at] (a right click) a menu at the pointer; without it (a long
+  /// press), a sheet. Items the caller gave nothing for are not drawn.
+  void _showNodeContextMenu(BuildContext context, AnalysisNode node,
+      [Offset? at]) {
+    showMoveTreeMenu(
+      context,
+      at: at,
+      items: moveTreeMenuItems(
+        node,
+        onPromoteNode: widget.onPromoteNode,
+        onDeleteNode: widget.onDeleteNode,
+        deleteLabel: widget.deleteLabel,
+        extraLabel: widget.extraLabel,
+        onExtra: widget.onExtra,
+        onMoveVariation: widget.onMoveVariation,
+      ),
     );
   }
 }
