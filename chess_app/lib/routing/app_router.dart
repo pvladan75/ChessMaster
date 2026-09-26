@@ -4,6 +4,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/services/crash_trail.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/screens/home_screen.dart';
@@ -47,14 +48,15 @@ import 'package:chess_app/screens/design_gallery_screen.dart';
 /// Screens are built from [SessionService] rather than from arguments passed
 /// by whoever navigated, so a cold-started deep link produces the same screen
 /// as an in-app tap.
-final GoRouter appRouter = GoRouter(
+final GoRouter appRouter = CrashTrail.instance.watched(GoRouter(
   initialLocation: AppRoutes.home,
   restorationScopeId: 'chess_app_router',
   routes: appRouteTable,
   errorBuilder: appRouteErrorBuilder,
   refreshListenable: SessionService.instance,
   redirect: expiredSessionRedirect,
-);
+  observers: [CrashTrail.instance.observer],
+));
 
 /// Where somebody goes when their session ended without them asking.
 ///

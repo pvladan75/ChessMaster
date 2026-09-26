@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:chess_app/core/build_info.dart';
+import 'package:chess_app/services/crash_trail.dart';
 
 class CrashBreadcrumbService {
   CrashBreadcrumbService._();
@@ -27,6 +28,9 @@ class CrashBreadcrumbService {
   }
 
   Future<void> recordError(Object error, StackTrace stack) async {
+    // First statement, before any await: a crash that follows this call by a
+    // frame or two must still find it on disk.
+    CrashTrail.instance.record('error ${error.runtimeType}');
     try {
       final file = await _logFile();
       final now = DateTime.now().toUtc().toIso8601String();

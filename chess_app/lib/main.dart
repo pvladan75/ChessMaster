@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:chess_app/app_binding.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
@@ -17,9 +18,13 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:chess_app/services/crash_breadcrumb_service.dart';
+import 'package:chess_app/services/crash_trail.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  AppBinding.ensureInitialized();
+
+  unawaited(CrashTrail.instance.init());
+  CrashTrail.instance.startTaps();
 
   FlutterError.onError = (details) {
     CrashBreadcrumbService.instance.recordFlutterError(details);

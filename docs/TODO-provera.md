@@ -8388,6 +8388,26 @@ odlazi na kraj spiska u alatu.
    prekida ili greške.
    Potrebno: Windows; debug build.
 
+2. [ ] **Detektor odbijenog čvora vidi isto što i motor.** [249.1]
+   O čemu se radi: Faze 1–2 plana `PLAN-FORENZIKA-PADA.md`. Aplikacija sama
+   primenjuje pravila Windows motora na svaku izmenu stabla pristupačnosti i
+   odbijen čvor upisuje u `crash_logs/trail.log` i `crash_logs/crash.log`; uz
+   to trag poslednjih 40 ruta i dodira. Kapija to dokazuje samo na fiksturama
+   — putanja ispod je u testu bila zelena u svakoj varijanti — pa ovo je
+   jedini dokaz da detektor radi na ekranu koji pada.
+   Gde: Release build sa fazama 1–2, pokrenut ovako (PowerShell), pa Teach →
+   `Preparation` → `Set up position` → FEN → `Set FEN Position` → nazad na
+   Home, ponovljeno, sa uključenim Narratorom ili tastaturom na dodir:
+   `Start-Process -FilePath "$env:LOCALAPPDATA\Mislisha\Mislisha.exe" -RedirectStandardError "$env:TEMP\mislisha-stderr.txt" -RedirectStandardOutput "$env:TEMP\mislisha-stdout.txt"`
+   Uradi: Ponavljaj dok motor ne odbije (ili dok aplikacija ne padne), pa
+   uporedi `%TEMP%\mislisha-stderr.txt` sa `crash_logs\crash.log` u folderu
+   podrške aplikacije (`%APPDATA%\rs.pejovic\Mislisha`).
+   Treba da vidiš: Svaki id iz redova `will not be in the tree` u stderr-u
+   stoji u nekom redu `semantics orphan [...]` istog pokretanja; i obrnuto,
+   nijedan red detektora bez para u stderr-u. `trail.log` (ili
+   `trail-previous.log` posle pada) imenuje ekrane i dodire pre toga.
+   Potrebno: Windows; release build; Narrator ili tastatura na dodir.
+
 ### Teach — Učenici, grupe i obaveštenja
 
 1. [ ] **Bedž na Teach imenuje šta čeka pregled, ne samo broj.** [177.6]
