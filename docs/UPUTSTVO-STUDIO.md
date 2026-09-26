@@ -110,6 +110,15 @@ imena otvorenog dela su „Rename", „Move up", „Move down", „Clone part" i
 „Delete part". Premeštanje može da promeni kako deo počinje: deo premešten
 iznad dela na koji se vraća postaje nova tabla.
 
+**Redosled grana** (od 26.9.2026, `docs/PLAN-REDOSLED-GRANA.md`). Kartica
+„Tree" crta otvoreni deo zajedno sa svim delovima koji su sa njim povezani, kao
+jedno stablo: delovi koji izlaze iz jednog poteza su varijante tog poteza,
+redom kojim ih film pušta. Desni klik na takav potez (na telefonu dugi pritisak
+na red u „Tutorial contents") → **„Move variation earlier"** ili **„Move
+variation later"**: deo se pomera zajedno sa svim delovima koji o njemu vise, a
+mapa i film prate. Strelice ↑ ↓ u zaglavlju i dalje pomeraju samo jedan deo.
+Isto („Move variation earlier / later") postoji i u stablu u Analizi.
+
 ## 3. Komentar, strelice i polja
 
 **Komentar pripada taktu i čita se pre poteza koji odlazi iz njega.** Redosled u

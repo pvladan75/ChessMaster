@@ -1797,6 +1797,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
               });
               _saveDraft();
             },
+            // Phase 1 of `docs/PLAN-REDOSLED-GRANA.md`: the order of the
+            // variations, kept as promote keeps the main line.
+            onMoveVariation: (node, {required earlier}) {
+              setState(() {
+                node.parent?.moveVariation(node, earlier: earlier);
+              });
+              _saveDraft();
+            },
             onDeleteNode: (node) {
               setState(() {
                 node.parent?.removeChild(node);

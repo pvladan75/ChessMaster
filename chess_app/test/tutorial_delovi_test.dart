@@ -225,12 +225,19 @@ void main() {
       await addPart(tester, continueFromEnd: false);
       await play(tester, 'd2', 'd4');
 
-      expect(tree(tester).rootNode.children.single.moveSan, 'd4');
+      // Superseded 26.9.2026 by phase 2 of `docs/PLAN-REDOSLED-GRANA.md`: the
+      // Tree tab draws the open part's whole family — every part joined to it
+      // by hanging — so its root is the family's first part, not the open
+      // part's. What the tree says about the open part is its active move.
+      expect(tree(tester).activeNode.moveSan, 'd4');
 
       await tapRow(tester, 'Prvi deo govori ovo.');
 
-      expect(tree(tester).rootNode.children.single.moveSan, 'e4',
+      // Part 1's start, whose line is 1. e4: not the d4 the tree stood on.
+      expect(tree(tester).activeNode.moveSan, isNull,
           reason: 'the tree stayed on the part that was open before');
+      expect(tree(tester).activeNode.children.map((n) => n.moveSan),
+          contains('e4'));
       expect(board(tester).controller.getFen().split(' ').first,
           openingFen.split(' ').first,
           reason: 'the board did not follow the part that was chosen');
@@ -264,7 +271,13 @@ void main() {
 
       expect(board(tester).controller.getFen().split(' ').take(2).join(' '),
           ended.split(' ').take(2).join(' '));
-      expect(tree(tester).rootNode.children, isEmpty);
+      // Superseded 26.9.2026 by phase 2 of `docs/PLAN-REDOSLED-GRANA.md`: the
+      // Tree tab draws the open part's whole family — every part joined to it
+      // by hanging — so its root is the family's first part, not the open
+      // part's. What the tree says about the open part is its active move.
+      // The new part stands where e5 is drawn, and has no moves of its own.
+      expect(tree(tester).activeNode.moveSan, 'e5');
+      expect(tree(tester).activeNode.children, isEmpty);
       await close(tester);
     });
 

@@ -174,7 +174,30 @@ reworded, because the QA tool matches items by text.
 
 - **Gate:** the full run; the map files' cases as they stand on the branch.
 
-### Phase 1 — variations in any tree [implementer]
+### Phase 1 — variations in any tree [implementer] — done 26.9.2026
+
+**Built inline by the lead, on branch `redosled-grana-faza-1`.**
+`AnalysisNode.canMoveVariation` / `moveVariation`; `move_tree_menu.dart`, the
+one list of items (`moveTreeMenuItems`) and its two presentations
+(`showMoveTreeMenu`: a menu at the pointer when given the right click's
+position, else the sheet), used by the graph and the notation alike; Analysis
+saves the draft after a move of a variation, the tutorial's Tree tab writes one
+undo step (`TutorialDraftController.moveVariation`), the repertoire passes
+nothing. Gate `T/move_variation_order_test.dart` (10): order, bounds and the
+main line; the PGN and the saved tree follow; both views, a long press on
+Android and a right click on Windows, each with exactly the items that apply;
+no dead items without callbacks; Analysis's draft keeps the order. Full run
+**4113**, 1 skipped; analyze the same 22. Seven mutations, each red on the
+right case — one first failed to compile, which is not a catch, and was made
+null-safe. Rendered: the menu at the pointer on the desktop, the sheet on a
+phone.
+
+- **„Promote to Main Line" is still drawn on every move its callback exists
+  for**, the main line included: in the repertoire it means „your main move", a
+  server decision that does not follow the drawn order
+  (`repertoire_build_layout_test`), so it is not hidden by position. Only the
+  two new items depend on where the variation stands.
+
 
 - `AnalysisNode.moveVariation(child, {required bool earlier})`, pure: never past
   index 0 (D4), ids and subtrees untouched.
@@ -192,7 +215,35 @@ reworded, because the QA tool matches items by text.
   Mutations: past the main line; „earlier" offered on the first; the order not
   saved; the graph's menu back to always-drawn.
 
-### Phase 2 — a tutorial's branches [implementer; the rule is the lead's]
+### Phase 2 — a tutorial's branches [implementer; the rule is the lead's] — done 26.9.2026
+
+**Built inline by the lead, on branch `redosled-grana-faza-1`.** The rule is
+`TS/services/tutorial_branches.dart` (`siblingsOf`, `branchOf`,
+`canMoveBranch`, `moveBranch`); the family view is `TS/services/tutorial_tree.dart`
+(`tutorialTreeOf`, copies keeping their originals' ids, `originOf`, `shownAt`,
+`branchAt`); `TutorialDraftController.moveBranch` is one undo step. The Tree tab
+draws the family and takes every command back to its part; a map row opens the
+branch menu on a long press or a right click — the phone's door, and the
+desktop's too, which D1 did not ask for (the same command, reversible). The
+shared menu gained two hooks for a tree that is a view of something else:
+`canMoveVariation` and `promoteApplies` (no „Promote" between parts, D6).
+
+Gate `T/tutorial_branch_order_test.dart` (12) and `T/tutorial_branch_screen_test.dart`
+(4). Full run **4129**, 1 skipped; analyze the same 22. Eight mutations, each
+red on the right case. **One of them — the two branches' places taken as one
+run instead of the places they held — was caught only by a case added before
+the round**: in the sketch every pair of sibling branches stands side by side,
+so a part standing between two branches had to be written in. Three older
+cases read the Tree tab's `rootNode` as the open part's and are rewritten
+openly to its active move, with a mutation (the tree's active move stuck at the
+root) that turns all three red. Rendered: the family in the graph, the menu at
+the pointer in the notation.
+
+- **A position-only part has no move of its own in the tree**, so it cannot be
+  reached there; the first move of the part after it stands for its branch
+  (`branchAt` climbs through it). A part that is only a position and has
+  nothing after it is moved with ↑ ↓ or from its map row.
+
 
 - `moveBranch(draft, part, {required bool earlier})`, pure, on `partMapOf`:
   siblings are the parts that hang from the same beat; a branch is §3's set;
@@ -213,7 +264,14 @@ reworded, because the QA tool matches items by text.
   instead of the branch; the order of a branch's own parts changed; a part of
   neither branch moved; the command offered before the owner part.
 
-### Phase 3 — the words [lead]
+### Phase 3 — the words [lead] — done 26.9.2026
+
+The manual (`analysis.html` — which named „Set as main line", a label of the
+game screen and not of Analysis, since before this plan; `write-a-tutorial.html`),
+`UPUTSTVO-STUDIO.md`, and live items **[247.10]–[247.12]**. The glossary needs
+nothing: „Variation" is its word. The label guards pass — which they did for
+the wrong „Set as main line" too.
+
 
 The manual, `UPUTSTVO-STUDIO.md`, the glossary (the label pair, if D2 is
 answered so), `STANJE-RADA.md`, live items.

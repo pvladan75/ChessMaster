@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:chess_app/features/analysis_studio/widgets/move_tree_menu.dart';
 import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/services.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -51,6 +52,18 @@ class VisualMoveTreeWidget extends StatefulWidget {
   final Function(AnalysisNode node)? onPromoteNode;
   final Function(AnalysisNode node)? onDeleteNode;
 
+  /// „Move variation earlier / later" — phase 1 of
+  /// `docs/PLAN-REDOSLED-GRANA.md`. Null draws neither.
+  final void Function(AnalysisNode node, {required bool earlier})?
+      onMoveVariation;
+
+  /// What may move, and where „Promote" does anything, when the tree is a
+  /// view of something else — the tutorial's family of parts. Null asks the
+  /// tree itself.
+  final bool Function(AnalysisNode node, {required bool earlier})?
+      canMoveVariation;
+  final bool Function(AnalysisNode node)? promoteApplies;
+
   /// What that item is called on this card — see `AnalysisMoveTreeWidget`.
   final String Function(AnalysisNode node)? deleteLabel;
 
@@ -87,6 +100,9 @@ class VisualMoveTreeWidget extends StatefulWidget {
     required this.onSelectNode,
     this.onPromoteNode,
     this.onDeleteNode,
+    this.onMoveVariation,
+    this.canMoveVariation,
+    this.promoteApplies,
     this.deleteLabel,
     this.extraLabel,
     this.onExtra,
@@ -782,10 +798,10 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
                     ? null
                     : () =>
                         _showNodeContextMenu(context, node, transpositionGroup),
-                onSecondaryTap: node.isRoot
+                onSecondaryTapUp: node.isRoot
                     ? null
-                    : () =>
-                        _showNodeContextMenu(context, node, transpositionGroup),
+                    : (details) => _showNodeContextMenu(context, node,
+                        transpositionGroup, details.globalPosition),
                 borderRadius: radius,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
@@ -849,85 +865,38 @@ class _VisualMoveTreeWidgetState extends State<VisualMoveTreeWidget> {
     );
   }
 
+  /// The move's menu — the one list in `move_tree_menu.dart`, with the other
+  /// ways to the same position as a second section. At [at] (a right click)
+  /// it is a menu at the pointer; without it (a long press), a sheet.
   void _showNodeContextMenu(BuildContext context, AnalysisNode node,
-      [List<AnalysisNode>? transpositionGroup]) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.colors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) {
-        final others = (transpositionGroup ?? const [])
-            .where((n) => n.id != node.id)
-            .toList();
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Icon(Icons.star, color: ctx.colors.warning),
-                title: Text('Promote to Main Line',
-                    style: AppText.bodyLarge
-                        .copyWith(color: ctx.colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (node.parent != null) {
-                    widget.onPromoteNode?.call(node);
-                  }
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete, color: ctx.colors.danger),
-                title: Text(
-                    widget.deleteLabel?.call(node) ?? 'Delete this variation',
-                    style: AppText.bodyLarge
-                        .copyWith(color: ctx.colors.textPrimary)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  widget.onDeleteNode?.call(node);
-                },
-              ),
-              if (widget.extraLabel?.call(node) != null)
-                ListTile(
-                  leading: Icon(Icons.call_split, color: ctx.colors.accent),
-                  title: Text(widget.extraLabel!.call(node)!,
-                      style: AppText.bodyLarge
-                          .copyWith(color: ctx.colors.textPrimary)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    widget.onExtra?.call(node);
-                  },
-                ),
-              if (others.isNotEmpty) ...[
-                Divider(color: ctx.colors.border, height: 1),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.lg, 10, AppSpacing.lg, AppSpacing.xs),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Same position reached via:',
-                      style: AppText.captionBold
-                          .copyWith(color: ctx.colors.textMuted),
-                    ),
-                  ),
-                ),
-                for (final other in others)
-                  ListTile(
-                    leading: Icon(Icons.call_split, color: ctx.colors.warning),
-                    title: Text(_movePathLabel(other),
-                        style: AppText.bodyLarge
-                            .copyWith(color: ctx.colors.textPrimary)),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      widget.onSelectNode(other);
-                    },
-                  ),
-              ],
-            ],
+      [List<AnalysisNode>? transpositionGroup, Offset? at]) {
+    final others =
+        (transpositionGroup ?? const []).where((n) => n.id != node.id).toList();
+    showMoveTreeMenu(
+      context,
+      at: at,
+      items: moveTreeMenuItems(
+        node,
+        onPromoteNode: widget.onPromoteNode,
+        onDeleteNode: widget.onDeleteNode,
+        deleteLabel: widget.deleteLabel,
+        extraLabel: widget.extraLabel,
+        onExtra: widget.onExtra,
+        onMoveVariation: widget.onMoveVariation,
+        canMoveVariation: widget.canMoveVariation,
+        promoteApplies: widget.promoteApplies,
+      ),
+      moreTitle: 'Same position reached via:',
+      more: [
+        for (final other in others)
+          MoveTreeMenuItem(
+            key: Key('move-menu-same-${other.id}'),
+            label: _movePathLabel(other),
+            icon: Icons.call_split,
+            tone: (c) => c.colors.warning,
+            onSelected: () => widget.onSelectNode(other),
           ),
-        );
-      },
+      ],
     );
   }
 }

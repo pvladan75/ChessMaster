@@ -33,6 +33,7 @@ class TutorialPartsMap extends StatefulWidget {
     this.trailing,
     this.scrollable = true,
     this.rowKey,
+    this.onRowMenu,
   });
 
   final TutorialDraft draft;
@@ -49,6 +50,10 @@ class TutorialPartsMap extends StatefulWidget {
 
   /// The key of row [index]; `part-row-<index>` when not given.
   final Key Function(int index)? rowKey;
+
+  /// A row long pressed, or right clicked at [at] — the branch's menu (phase 2
+  /// of `docs/PLAN-REDOSLED-GRANA.md`). Null: a row only selects.
+  final void Function(int index, Offset? at)? onRowMenu;
 
   /// Every row is this tall, so the gutter of one row meets the next without a
   /// gap and a lazily built list still draws every edge that crosses it.
@@ -139,6 +144,8 @@ class _TutorialPartsMapState extends State<TutorialPartsMap> {
         open: open,
         trailing: widget.trailing?.call(i),
         onTap: () => widget.onSelect(i),
+        onMenu:
+            widget.onRowMenu == null ? null : (at) => widget.onRowMenu!(i, at),
       );
     }
 
@@ -173,6 +180,7 @@ class _PartRow extends StatelessWidget {
     required this.open,
     required this.trailing,
     required this.onTap,
+    required this.onMenu,
   });
 
   final Key rowKey;
@@ -184,6 +192,7 @@ class _PartRow extends StatelessWidget {
   final bool open;
   final Widget? trailing;
   final VoidCallback onTap;
+  final void Function(Offset? at)? onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +203,9 @@ class _PartRow extends StatelessWidget {
       child: InkWell(
         key: rowKey,
         onTap: onTap,
+        onLongPress: onMenu == null ? null : () => onMenu!(null),
+        onSecondaryTapUp:
+            onMenu == null ? null : (d) => onMenu!(d.globalPosition),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
