@@ -8232,3 +8232,17 @@ pitao „Continue?" ispred svakog tapa. Zatvaranje ide u `addTearDown`.
 znakova je u kapiji meren u Robotu sa rezervom od petine; jednom je izmeren i
 u Segoe UI iz `C:\Windows\Fonts` (513 px u polju od 1034) i taj test je
 obrisan. Pravilo 8.
+
+## 26.9.2026 — Delovi kao mapa: faza 5
+
+Reči: priručnik, `UPUTSTVO-STUDIO.md`, `STANJE-RADA.md`, stavke
+[247.1]–[247.8]. Brojevi testova nepromenjeni.
+
+**Zeleni čuvar natpisa nije dokaz da je stranica tačna** — treći put.
+`manual_labels_test` je prolazio i pre izmene: „Tutorial title", „Labels" i
+„Language" postoje u aplikaciji, ali ne tamo gde je stranica govorila. Stranica
+se čita naspram ekrana, ne naspram spiska reči.
+
+**Putanja u stavci se proverava u kodu, ne po sećanju.** Prva verzija [247.7]
+je slala na `⋮`; vrata iz Analize su dugme „Use in a tutorial" i list ispod
+njega. Nađeno grep-om za natpis pre nego što je stavka otišla vlasniku.

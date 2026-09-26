@@ -24,13 +24,16 @@ navedeni onako kako stoje na ekranu — „Save tutorial", „Flow" i tako dalje
 njoj, i ono što je na njoj nacrtano. Takt nastaje sam od sebe — čim povučeš
 potez na tabli, dobio si sledeći takt.
 
-**Deo** (na ekranu *part*) je jedna celina: **jedna polazna pozicija i linija
-iz nje.** Deo ima onoliko taktova koliko poteza u njemu odigraš.
+**Deo** (na ekranu *part*) je jedna celina: **jedna polazna pozicija i jedna
+linija iz nje.** Deo ima onoliko taktova koliko poteza u njemu odigraš, i
+**nikad se ne grana**: film prolazi deo od prvog do poslednjeg takta, pa sledeći
+deo, i sve što je u delu vidi se u filmu (od 26.9.2026,
+`docs/PLAN-MAPA-DELOVA.md`).
 
 **Zlatno pravilo:**
 
-> Potezi se vuku na tabli. Nov deo se pravi **samo** kad se skače na drugu
-> poziciju.
+> Potezi se vuku na tabli. Nov deo počinje **samo** kad priča skoči na drugu
+> poziciju ili na drugu liniju.
 
 Ako za svaki potez praviš nov deo, radiš deset puta više posla, a film pokazuje
 deset tabli umesto jedne priče.
@@ -49,7 +52,21 @@ strelica je cela lekcija; takav deo se čuva sa svojim komentarom i oznakama.
 okreće samo taj deo („Turn this part"); dugme za okretanje table gore okreće
 sve delove.
 
-**Druga linija iz iste pozicije — „Insert a line here".** Primer: iz pozicije
+**Druga linija iz iste pozicije — odigraj drugi potez.** Vrati se na takt odakle
+hoćeš drugu liniju i **odigraj drugi potez na tabli**. Deo u kome si ostaje
+tačno kakav je bio, a odmah posle njega počinje nov deo: na toj poziciji, sa tvojim
+potezom kao linijom, i ti stojiš na njemu. U filmu dolazi posle prve linije, kao
+„Back to the position after …". Na dnu ekrana piše, na primer, „18... h6 starts
+part 4. The film shows it after part 3."
+
+Linija koja stigne **sa varijantama** — nalepljena u tab „PGN", preneta iz
+Analize ili uvezena iz fajla (JSON, PGN) — deli se na delove istim redom: do
+pozicije gde se linije razilaze, pa svaka sporedna linija redom kako stoji, pa
+stara linija dalje. Ništa se ne gubi i ništa se ne krije od filma. Tutorijali
+sačuvani pre 26.9.2026 koji u delu imaju varijantu ostaju kakvi su (film i dalje
+pokazuje samo glavnu liniju).
+
+**Presek na mestu — „Insert a line here".** Primer: iz pozicije
 `8/3k4/1n3b2/8/8/8/2PK4/2R5 w` demonstracija ide `1. Ra1 Kc6 2. Ra6 Bb2 3. c3
 Kb5`, a posle `Kc6` hoćeš da pokažeš i `2. Ra8 Bb2`. U panelu **„Flow"** stani
 na takt posle `Kc6`; na njegovoj kartici, pored „Delete this move", je ikonica
@@ -69,6 +86,26 @@ na kome stojiš, i samo u delu koji ima poteze. Pogrešan rez vraća jedan Ctrl+
 
 U filmu su prvi deo i nova linija jedna tabla; nastavak ponovo postavlja
 poziciju posle `Kc6`, kao kad se okrene strana.
+
+### Delovi kao mapa
+
+**„Tutorial contents"** je spisak delova redom kojim ih film pušta. Svaki red
+kaže broj dela i kako počinje — *new board* (nova tabla), *continues* (nastavlja
+prethodni) ili *back to after …* (vraća se na poziciju posle nekog poteza) — pa
+ime dela i njegove poteze u jednom redu. Levo je linija koja spaja delove:
+**puna** gde deo nastavlja prethodni, **isprekidana** gde se vraća na ranije
+viđenu poziciju. Nova tabla je **kvadrat**, svaki drugi deo **krug**. Deo koji
+pišeš ima okvir, prsten oko oznake i reči *you are here*. Ništa od toga ne zavisi
+od boje.
+
+Na širokom prozoru mapa ima svoju kolonu levo od table (kad pored table u punoj
+veličini ima mesta za nju); na manjem stoji iznad otvorenog dela. Iznad
+„Flow" otvoreni deo kaže gde stoji — „Part 4 of 8 · back to after 18. Rfe1 in
+part 3" — i „in part 3" otvara taj deo. U „Flow" takt na koji se neki kasniji
+deo vraća ima dugme „Part 4 starts here · 18... h6", koje otvara taj deo. Pored
+imena otvorenog dela su „Rename", „Move up", „Move down", „Clone part" i
+„Delete part". Premeštanje može da promeni kako deo počinje: deo premešten
+iznad dela na koji se vraća postaje nova tabla.
 
 ## 3. Komentar, strelice i polja
 
@@ -110,14 +147,21 @@ Format je standardni PGN, isti koji pišu Lichess i šahovski programi:
 * `{ … }` — komentar tog poteza;
 * `[%cal Gd2d4]` — strelica sa d2 na d4;
 * `[%csl Rd5]` — obojeno polje d5;
-* `( … )` — sporedna varijanta;
+* `( … )` — sporedna varijanta; posle „Apply" svaka postaje **poseban deo**
+  (odeljak 2), i piše „Applied as 3 parts: every side line is a part of its
+  own.";
 * više oznaka se odvaja zarezom: `[%cal Gd2d4,Rf1c4]`.
 
 **Slova boja:** `G` zelena · `R` crvena · `B` plava · `O` narandžasta ·
 `P` ljubičasta. (Nema žute.)
 
 **Kucanje ništa ne menja dok ne pritisneš „Apply".** Dok tekst nije primenjen,
-pored dugmeta piše „edited".
+pored dugmeta piše „edited" i stoji dugme **„Discard"**, koje tekst baca.
+Dok neprimenjen tekst čeka, studio **ne otvara drugi deo preko njega** — ni
+potezom koji bi počeo nov deo, ni klikom na drugi red, ni „New demonstration",
+„Clone part", „Delete part", „Insert a line here", „Position setup" ni Undo — i
+kaže: „Apply or discard the text in the PGN tab first." Ctrl+Z u tom polju
+tada vraća tvoje kucanje, a ne izmenu tutorijala.
 
 **Šta „Apply" odbija:**
 
@@ -149,8 +193,9 @@ kursor na taj potez i uključe crtanje **na tabli**.
 
 ## 5. Redosled rada i čuvanje
 
-1. **Naziv i jezik** („Language") — jezik odlučuje na kom glasu se otvara izvoz
-   videa (odeljak 6).
+1. **Naziv** — gore u traci prozora, klikni i kucaj. Ispod naziva su jezik i
+   oznake i **„Details…"**, koje otvara „Labels" i „Language" — jezik odlučuje
+   na kom glasu se otvara izvoz videa (odeljak 6).
 2. **„Position setup"** (ikonica klizača gore desno) ako deo ne počinje iz
    osnovne pozicije.
 3. Povuci poteze i piši komentare po taktovima.
@@ -174,8 +219,9 @@ sam čuva na računaru; kad sledeći put otvoriš nov tutorijal, pitaće te
 Ctrl+Shift+Z). Pamti se **100 poslednjih izmena**, dok je studio otvoren;
 zatvaranjem studija istorija se briše. Rečenica otkucana bez pauze je jedna
 izmena, ne slovo po slovo. Ctrl+Z radi i dok je kursor u polju za tekst — vraća
-poslednju izmenu tutorijala, bila to rečenica ili potez. Prelazak na drugi
-takt ili deo nije izmena.
+poslednju izmenu tutorijala, bila to rečenica ili potez — osim u tabu „PGN"
+dok u njemu čeka neprimenjen tekst (odeljak 4). Prelazak na drugi takt ili deo
+nije izmena.
 
 **„Discard changes"** (ikonica sata sa strelicom, pored Undo i Redo) vraća
 tutorijal na poslednju sačuvanu verziju. I to je jedna izmena, pa ako si
@@ -195,8 +241,9 @@ izmenama i to piše na dnu ekrana.
 
 ## 6. Jezik i glas videa
 
-**Tutorijal kaže na kom je jeziku, i to biraš ti.** Polje **„Language"** stoji u
-redu sa nazivom i oznakama: **„Not set"** ili jedan od sedam jezika — English,
+**Tutorijal kaže na kom je jeziku, i to biraš ti.** Polje **„Language"** je u
+prozoru **„Details…"** ispod naziva, gore u traci (na telefonu: „More" →
+„Details…"): **„Not set"** ili jedan od sedam jezika — English,
 Serbian (Latin), Serbian (Cyrillic), German, Spanish, Italian, French. Samo tih
 sedam, jer su to jezici čije poteze aplikacija ume da izgovori; jezik čiji bi
 potezi bili pročitani engleskim rečima se ne nudi.

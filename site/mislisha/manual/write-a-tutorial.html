@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Write a tutorial — Mislisha user manual</title>
-<meta name="description" content="How to write a tutorial in the Tutorial Studio: moves, comments, arrows, and saving it for its video.">
+<meta name="description" content="How to write a tutorial in the Tutorial Studio: moves, comments, arrows, its parts as a map, and saving it for its video.">
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -17,8 +17,8 @@ the board, what you say about each position, and what you draw on it.</p>
 
 <div class="note">
 The Tutorial Studio opens on a phone too, in a layout built for it. A long,
-many-part tutorial is still easiest to write on a wide screen, where the board,
-the tree and the fields for a position all sit in view together — but fixing a
+many-part tutorial is still easiest to write on a wide screen, where the map of
+its parts, the board and the open part all sit in view together — but fixing a
 comment or adding one part no longer has to wait for one.
 </div>
 
@@ -38,12 +38,13 @@ comment or adding one part no longer has to wait for one.
 <p>A <strong>beat</strong> is one moment: a position, what you say about it,
 and what is drawn on it. Every move you play on the board makes the next
 beat.</p>
-<p>A <strong>part</strong> is one line on one starting position. A part
-has as many beats as the moves you play in it.</p>
+<p>A <strong>part</strong> is <strong>one line</strong> on one starting
+position. The video walks each part from its first beat to its last, and then
+the next part, so a part never branches: everything in it is shown.</p>
 <p><strong>The rule that saves the most work:</strong> play the moves on the
-board, and start a new part only when you jump to another position. A part for
-every move is ten times the work, and the video shows ten boards instead of one
-story.</p>
+board, and let a new part begin only when the story jumps to another position
+or to a second line. A part for every move is ten times the work, and the video
+shows ten boards instead of one story.</p>
 
 <h2>Write a demonstration</h2>
 <ol>
@@ -55,11 +56,11 @@ story.</p>
 leaves it: the video shows the position, says what you wrote about it, and then
 the next move is played. Something to say „after a move" is the sentence of the
 next beat.</p>
-<p>The <span class="ui">Tree</span> tab shows the same line with its
-variations, and the <span class="ui">PGN</span> tab shows the part as text — and
-takes text in: paste an annotated game with its comments, arrows and coloured
-squares, and press <span class="ui">Apply</span>. The small icon on a beat's
-card, <span class="ui">Delete this move</span>, takes back the move that arrived
+<p>The <span class="ui">Tree</span> tab shows the same line as a tree, and the
+<span class="ui">PGN</span> tab shows the part as text — and takes text in:
+paste an annotated game with its comments, arrows and coloured squares, and
+press <span class="ui">Apply</span>. The small icon on a beat's card,
+<span class="ui">Delete this move</span>, takes back the move that arrived
 there, with everything after it.</p>
 
 <h2>Draw on the board</h2>
@@ -79,15 +80,42 @@ draw on it. A tutorial is made for its video, and a student is sent the video.
 If you want a student to find a move themselves, make that position an
 exercise — it can go into the same homework as the video.</p>
 
-<h2>Show another line from the same position</h2>
-<p>Your demonstration goes one way and you want to show a second line from the
-middle of it. In <span class="ui">Flow</span>, stand on the beat where the lines
-part, and press the branching icon on its card,
+<h2>Show a second line from the same position</h2>
+<p>Your demonstration goes one way and you want to show another move from the
+middle of it. Go back to that beat and <strong>play the other move on the
+board</strong>. The part you were in stays exactly as it was, and a new part
+begins right after it, on that position, with your move as its line — you are
+standing on it, ready to go on. In the video it comes after the first line, as
+„Back to the position after …".</p>
+<p>A line that arrives with side lines in it — pasted into the
+<span class="ui">PGN</span> tab, brought over from the Analysis Studio, or
+imported from a file — is made into parts the same way: up to the position
+where the lines part, then each side line, then the original line going on.
+Nothing in it is lost, and nothing in it is hidden from the video.</p>
+<p>To cut a part in two where you stand, press the branching icon on the
+beat's card in <span class="ui">Flow</span>,
 <span class="ui">Insert a line here</span>. The part becomes three: up to this
-beat, a new line from here — you are left on its first position, ready to play
-it — and the original continuation. Everything you wrote and drew stays where
-it was. If you had already played the second line as a variation, it becomes
-the new line by itself.</p>
+beat, a new line from here, and the original continuation.</p>
+
+<h2>The parts, as a map</h2>
+<p><span class="ui">Tutorial contents</span> lists the parts in the order the
+video plays them. Each row says the part's number and how it opens —
+<em>new board</em>, <em>continues</em>, or <em>back to after</em> a move — then
+its name and its moves on one line. On the left, a line joins the parts: solid
+where a part continues the one before it, dashed where it goes back to a
+position shown earlier. A new board is drawn as a square, every other part as
+a circle. The part you are writing has a border, a ring round its marker and
+the words <em>you are here</em>.</p>
+<p>On a wide window the map has a column of its own, left of the board; on a
+smaller one it sits above the open part. Above <span class="ui">Flow</span>,
+the open part says where it stands — its number, how it opens, and a link to
+the part it comes from. In <span class="ui">Flow</span>, a beat that a later
+part goes back to says so on its card, and a click opens that part.</p>
+<p>Beside the open part's name are <span class="ui">Rename</span>,
+<span class="ui">Move up</span>, <span class="ui">Move down</span>,
+<span class="ui">Clone part</span> and <span class="ui">Delete part</span>.
+Moving a part can change how it opens: a part moved above the one it goes back
+to becomes a new board.</p>
 
 <h2>Start the next example</h2>
 <p><span class="ui">New demonstration</span> asks
@@ -99,10 +127,19 @@ any other position, use <span class="ui">Position setup</span>, the sliders
 icon at the top.</p>
 
 <h2>Name it and say its language</h2>
-<p>Next to <span class="ui">Tutorial title</span> are
-<span class="ui">Labels</span>, which let you find a tutorial later, and
-<span class="ui">Language</span>. The language decides which voice narrates the
-video, and moves in your sentences are spoken in that language.</p>
+<p>The tutorial's name is at the top of the window: click it and type. Under it
+are its language and its labels, and <span class="ui">Details…</span>, which
+opens <span class="ui">Labels</span> — which let you find a tutorial later —
+and <span class="ui">Language</span>. The language decides which voice narrates
+the video, and moves in your sentences are spoken in that language.</p>
+
+<h2>Text you have not applied</h2>
+<p>Text typed in the <span class="ui">PGN</span> tab belongs to the open part
+until you press <span class="ui">Apply</span>. While it is waiting, the studio
+will not open another part over it — not by a move that would start a new
+part, a click on another row, or <span class="ui">Undo (Ctrl+Z)</span> — and
+says so. Press <span class="ui">Apply</span>, or
+<span class="ui">Discard</span> to throw the text away.</p>
 
 <h2>Check it, then save it</h2>
 <p>A tutorial is made for its video. To see how the video will look, open
@@ -120,7 +157,9 @@ tutorial needs a title.</p>
     <span class="ui">Redo (Ctrl+Y)</span> are the two arrows at the top. The
     studio remembers your last hundred changes for as long as it is open. A
     sentence typed without a pause is one change, not one per letter, and
-    <kbd>Ctrl</kbd>+<kbd>Z</kbd> works with the cursor in a text field too.</li>
+    <kbd>Ctrl</kbd>+<kbd>Z</kbd> works with the cursor in a text field too —
+    except over text in the <span class="ui">PGN</span> tab you have not
+    applied, where it undoes your typing instead.</li>
 <li><span class="ui">Discard changes</span>, beside them, goes back to the
     version you last saved — and is itself one undo away.</li>
 <li>Work in progress is kept on this computer. Open a saved tutorial that has
