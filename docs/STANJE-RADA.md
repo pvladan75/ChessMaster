@@ -194,7 +194,11 @@ kapija ne vidi**: da pravi motor prima oba commit-a — to je provera
 [249.2]: ista putanja, ista preusmerenja, i `mislisha-stderr.txt` mora biti
 **prazan** tamo gde `crash.log` ima red `— held back`.
 **Brojevi:** aplikacija 4179 → **4193**, pun prolaz bez ičega pored, 1
-preskočen; `analyze` isti 22.
+preskočen; `analyze` isti 22. **Prvo pokretanje uživo, 27.9. 00:10–00:12**
+(build ebb4e7da, stderr preusmeren): tri odlaska iz sobe preko duge kolone
+Biblioteke — dva reda `— held back` u `crash.log`, nijedan `Failed to update`
+u stderr-u motora, nijedan `hold-back failed`, aplikacija nije pala. Vlasnik
+štiklira [249.2] u alatu; grana `forenzika-pada-2` čeka njegovu reč za merge.
 
 **Otvoreno pitanje za vlasnika (27.9.2026, iz razgovora):** kad se pozicija
 iz Biblioteke stavi na tablu u Preparation, da li ide sama pozicija ili i

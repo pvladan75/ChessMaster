@@ -357,7 +357,13 @@ forgotten (4); the model's `commit` skipping the first commit (1, 6); the
 two commits. The model of the engine is the shadow's, written from the
 bridge's source at this SDK's revision, and it has been right about the two
 refusals it was compared with; the live pass [249.2] is where the engine
-itself says so.
+itself says so. **First live run, 27.9.2026 00:10–00:12** (build ebb4e7da,
+the redirect on): the owner left the room three times over its long Library
+column, the path that crashed the app five times the evening before;
+`crash.log` has two `— held back` lines (about two hundred old parents each,
+`inside 70 moving to 1` and `inside 28323 moving to 1`), the engine's stream
+has no `Failed to update` at all, no `hold-back failed` or `left a refusal`
+line, and the app stayed up. The owner ticks [249.2] in the QA tool.
 
 ## Phase 3 — the dump reader `[lead]`
 
