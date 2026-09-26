@@ -510,7 +510,22 @@ desktop layout. „Part 3 of 8" under the board.
   `sections-half`, `editor-half`, `authoring-pane`, `add-show` — not only the
   widget's name.
 
-### Phase 5 — the words [lead]
+### Phase 5 — the words [lead] — done 26.9.2026
+
+The manual's `write-a-tutorial.html` rewritten for a part as one line, the
+second move, side lines made into parts, the map, the title in the bar with
+„Details…", and unapplied PGN text; `manual_labels_test` green. **Its guard was
+green before the rewrite too** — „Tutorial title", „Labels" and „Language"
+still exist in the app, so the old page named real words for a screen that no
+longer had them where it said (the lesson of phase 6 of
+`PLAN-TUTORIJAL-VIDEO.md`, again). `UPUTSTVO-STUDIO.md` (§1, §2 with a new
+„Delovi kao mapa", §4, §5, §6); the glossary needs nothing — the screen says
+„Parts" and „Tutorial contents". `STANJE-RADA.md`; and `TODO-provera.md`
+items **[247.1]–[247.8]** under Teach → Tutorial studio, every label checked
+against `lib/` by hand, since no guard reads that file. [246.11]'s last
+sentence no longer holds for a second move; the item was not reworded (the QA
+tool matches items by text) — [247.1] says so.
+
 
 - `site/mislisha/manual/write-a-tutorial.html` quotes „Tutorial title" (twice)
   and „New demonstration": rewritten for the bar, the map and D1, and

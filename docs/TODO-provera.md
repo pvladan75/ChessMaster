@@ -58,7 +58,8 @@ Ono što većina stavki traži, jednom pre provere:
 
 Nova stavka (za sledeće sesije) ide u svoju oblast i pod svoj ekran — nov
 `###` ako ga nema — u istom obliku, sa sledećim slobodnim brojem u zagradi:
-[246.1], [246.2] … za prvu seriju posle 25.9.2026. Datum i plan idu u „O čemu
+[246.1], [246.2] … za prvu seriju posle 25.9.2026, [247.1] … za
+`docs/PLAN-MAPA-DELOVA.md` (26.9.2026). Datum i plan idu u „O čemu
 se radi". **Tekst stavke na koju je već odgovoreno u alatu se ne menja**: alat
 je prepoznaje po tekstu, pa izmenjena stavka postaje nova, a stari odgovor
 odlazi na kraj spiska u alatu.
@@ -8023,6 +8024,121 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Tabla i tab `Line` odu na prvi potez; potez sa komentarom
    nosi oblačić; tekući potez je uokviren. Ništa ne prelazi ivicu ekrana.
    Potrebno: telefon.
+
+61. [ ] **Drugi potez u delu pravi nov deo, i film ga pokazuje.** [247.1]
+   O čemu se radi: Do 26.9.2026 drugi potez iz iste pozicije ostajao je u istom
+   delu kao varijanta — sačuvan, vidljiv u `Tree`, a u filmu ga nije bilo
+   (`docs/PLAN-MAPA-DELOVA.md`, faza 1, D1). Sada deo ostaje kakav je, a odmah
+   posle njega počinje nov deo sa tim potezom. Zamenjuje poslednju rečenicu
+   stavke [246.11] („Svaki potez odigran na tabli ide u liniju dela") za potez
+   odigran tamo gde linija već ide dalje.
+   Gde: `Teach` → `New tutorial` → `Position setup` → `Paste FEN`.
+   Uradi: Postavi `r1b2rk1/p3qppp/2p2n2/2ppP3/2nP1B2/2P3P1/P1Q2PBP/R4RK1 w - - 0 17`,
+   odigraj `17. Bg5 Nxe5 18. Rfe1 cxd4`, vrati se na `18. Rfe1` i odigraj
+   `18... h6`, pa `19. Rxe5`. Sačuvaj i izvezi video (`Export video`).
+   Treba da vidiš: Posle `h6` na dnu piše „18... h6 starts part 2. The film
+   shows it after part 1."; prvi deo i dalje ima `cxd4`, drugi počinje posle
+   `18. Rfe1` sa `h6 Rxe5`. U videu posle `cxd4` dolazi „Back to the position
+   after 18. Rfe1" i zatim `18... h6 19. Rxe5`. Jedan Ctrl+Z vraća jedan deo.
+   Potrebno: Windows; backend pokrenut (za video).
+
+62. [ ] **Varijante iz PGN teksta i iz fajla postaju delovi.** [247.2]
+   O čemu se radi: Varijanta nalepljena u tab `PGN`, preneta iz Analize ili
+   uvezena iz fajla deli se na delove redom: do mesta račvanja, svaka sporedna
+   linija, pa stara linija dalje (faza 2, D2) — isti red koji je proveren
+   12.9.2026 za `Insert a line here` ([151.7] u arhivi).
+   Gde: `Teach` → `New tutorial` → tab `PGN`; i `Teach` → `Tutorials` →
+   `Import from a file`.
+   Uradi: U deo na poziciji `8/3k4/1n3b2/8/8/8/2PK4/2R5 w - - 0 1` nalepi
+   `1. Ra1 Kc6 2. Ra6 (2. Ra8 Bb2) Bb2 3. c3 Kb5 *` i pritisni `Apply`. Zatim
+   uvezi jedan tvoj PGN fajl koji ima varijante.
+   Treba da vidiš: „Applied as 3 parts: every side line is a part of its own.";
+   tri dela: `Ra1 Kc6`, `Ra8 Bb2`, `Ra6 Bb2 c3 Kb5`. Uvezena partija sa
+   varijantama ima po deo za svaku; komentari, strelice i oznake `!`/`??`
+   su na svojim potezima. Partija bez varijanti je i dalje jedan deo.
+   Potrebno: Windows; PGN fajl sa varijantama.
+
+63. [ ] **Mapa delova na tvom prozoru: svoja kolona levo od table.** [247.3]
+   O čemu se radi: Spisak delova je mapa (faze 3–4): red po delu redom kako ih
+   film pušta, a levo linija — puna gde deo nastavlja, isprekidana gde se
+   vraća; nova tabla je kvadrat, ostali krug. Na širokom prozoru mapa ima svoju
+   kolonu kad pored table u punoj veličini ima mesta (na visini tvog prozora od
+   širine 1504 px).
+   Gde: `Teach` → `Tutorials` → `Saved tutorials` → tutorijal sa više delova,
+   prozor preko celog ekrana.
+   Uradi: Otvori deo koji se vraća na raniju poziciju; zatim neki deo dole u
+   dugom spisku; smanji prozor dok mapa ne pređe desno.
+   Treba da vidiš: Mapa levo, tabla iste veličine kao pre; otvoreni deo ima
+   okvir, prsten oko oznake i reči „you are here" — raspoznaje se bez boje.
+   Red kaže „4 · back to after 18. Rfe1" i slično. Otvoreni deo je uvek u
+   vidu u spisku. Kad se prozor suzi, mapa ide desno iznad otvorenog dela, a
+   tabla se ne menja zbog nje.
+   Potrebno: Windows.
+
+64. [ ] **Mapa na telefonu, i akcije za otvoreni deo.** [247.4]
+   O čemu se radi: Kartica `Parts` na telefonu crta istu mapu. `Move up`,
+   `Move down`, `Clone part`, `Rename` i `Delete part` su sada jedan red iznad
+   mape i deluju na otvoreni deo, kao na Windowsu; ranije su bili ispod svakog
+   reda (faza 3). Brisanje sada pita i na telefonu (faza 4).
+   Gde: telefon, `Teach` → tutorijal sa više delova → kartica `Parts`.
+   Uradi: Dodirni treći deo, pomeri ga dole, obriši neki deo.
+   Treba da vidiš: Svi redovi se čitaju celi (broj, kako počinje, ime, potezi);
+   linije među redovima se ne prekidaju; dodir bira deo i tabla ga prati;
+   brisanje pita pre nego što obriše; dugme za okretanje je i dalje u svakom
+   redu.
+   Potrebno: telefon.
+
+65. [ ] **Naziv tutorijala u traci, oznake i jezik iza „Details…".** [247.5]
+   O čemu se radi: Naziv je bio polje od oko 155 px u redu sa oznakama i jezikom
+   („Broken Pawns a"); sada je gore u traci prozora, a ispod njega jezik,
+   oznake i `Details…` — isti prozor koji telefon ima iza `More` (faza 4).
+   Gde: `Teach` → `Tutorials` → `Saved tutorials` → tutorijal sa dugim
+   nazivom.
+   Uradi: Promeni naziv u traci; otvori `Details…`, promeni oznake i jezik,
+   `Done`; sačuvaj, zatvori, otvori ponovo.
+   Treba da vidiš: Naziv od 60 znakova se vidi ceo; red ispod naziva kaže nov
+   jezik i nove oznake čim se prozor zatvori; posle ponovnog otvaranja sve je
+   sačuvano. Na telefonu `More` → `Details…` otvara isti prozor.
+   Potrebno: Windows i telefon.
+
+66. [ ] **Neprimenjen tekst u tabu PGN se ne gubi.** [247.6]
+   O čemu se radi: Tekst otkucan u tabu `PGN` bez `Apply` nestajao je bez reči
+   kad bi se otvorio drugi deo — potezom koji pravi nov deo, klikom na drugi
+   red, dodavanjem, brisanjem ili Undo (odluke vlasnika 25.9.2026). Sada se to
+   zadrži i kaže, a pored `Apply` je `Discard`.
+   Gde: `Teach` → tutorijal sa dva dela → tab `PGN`.
+   Uradi: Otkucaj nešto u polju bez `Apply`; odigraj drugi potez tamo gde deo
+   već ide dalje; klikni drugi deo; pritisni Ctrl+Z u polju; pa `Discard` i
+   ponovo klikni drugi deo.
+   Treba da vidiš: Potez i klik se ne izvrše, tabla se vrati, a na dnu piše
+   „… Apply or discard the text in the PGN tab first."; Ctrl+Z u polju
+   vraća tvoje kucanje, ne potez; posle `Discard` klik otvara drugi deo.
+   Potrebno: Windows.
+
+67. [ ] **„Add this line to a tutorial…" sa varijantom dodaje više delova.** [247.7]
+   O čemu se radi: Linija iz Analize sa varijantom išla je kao jedan korak, pa
+   varijanta nije bila u filmu. Sada ide kao po deo za svaku liniju, u jednom
+   zahtevu — sve ili ništa (faza 2; ruta `POST /lessons/:id/steps` prima
+   `steps`).
+   Gde: `Analyse` → partija ili analiza sa varijantom → `Use in a tutorial` →
+   `Add this line to a tutorial…`.
+   Uradi: Izaberi tutorijal i `From start of line`; otvori taj tutorijal u
+   studiju.
+   Treba da vidiš: „Added to the tutorial as N parts: every side line is a part
+   of its own."; na kraju tutorijala N novih delova, redom kao u [247.2]; stara
+   partija u Analizi je nepromenjena.
+   Potrebno: Windows; backend pokrenut sa novim kodom.
+
+68. [ ] **„Part N starts here" u Flow i veza u zaglavlju dela.** [247.8]
+   O čemu se radi: Isprekidana linija u mapi ima dva kraja koja se mogu
+   kliknuti (faza 3): takt na koji se kasniji deo vraća i zaglavlje tog dela.
+   Gde: tutorijal iz [247.1] → prvi deo → tab `Flow`.
+   Uradi: Na kartici takta posle `18. Rfe1` klikni „Part 2 starts here ·
+   18... h6"; zatim u zaglavlju iznad `Flow` klikni „in part 1".
+   Treba da vidiš: Prvi klik otvara drugi deo (zaglavlje: „Part 2 of 2 · back to
+   after 18. Rfe1"); drugi vraća na prvi deo. Ispod table piše „Part 2 of 2",
+   pa „Part 1 of 2".
+   Potrebno: Windows.
 
 ### Teach — Domaći i napredak učenika
 
