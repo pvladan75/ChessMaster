@@ -119,9 +119,95 @@ nije u kapiji nego u proveri uživo.
    našlo grešku koju self-test nije mogao da vidi: `vswhere` vraća putanju sa
    razmacima („Program Files (x86)"), a izlaz je deljen po razmacima.
 
-Faza 2b (motor nikad ne vidi čvor bez roditelja, jer ga graditelj zadrži do
-ažuriranja u kome ga roditelj navodi) ostaje **vlasnikova odluka** — menja ono
-što se motoru kaže i traži popodne sa Narratorom pre nego što se poveruje.
+**Četvrti pad, 23:00:52, na buildu sa detektorom — i detektor je pogrešio.**
+Vlasnik je pad izazvao istom putanjom, sa preusmerenim stderr-om. Motor:
+`13051 will not be in the tree and is not the new root`, tri puta. Trag
+(`trail.log`) je uredno imenovao ekran i dodire — Home, „Set up position",
+dijalog, red skenirane knjige, „Back", `pop /room/:roomCode`, pad sekundu
+kasnije. Ali `crash.log` je imao **pet redova koje motor nije napisao**
+(`Node 2 is not marked for destruction, would be reparented to 1`, prvi šest
+sekundi posle starta na dodiru na Home) i **nijedan o 13051**. Uzrok, iz
+izvora mosta motora na reviziji ovog SDK-a
+(`shell/platform/common/accessibility_bridge.cc`, `CommitUpdates`): stablo ne
+može da premesti čvor u jednom ažuriranju, pa most **prvo** skine svako
+premešteno dete sa starog roditelja (`CreateRemoveReparentedNodesUpdate`,
+ažuriranje samih starih roditelja), pa **onda** primeni ažuriranje. Pravilo 3
+senke je bilo napisano po stringu iz binarnog fajla i računalo je svaki
+premeštaj čiji stari roditelj nije u ažuriranju kao odbijanje — a to je
+upravo slučaj koji most sam rešava. Pet lažnih redova je potrošilo jedan cap
+od pet, pa pravi red sekundu kasnije nije upisan. Isti izvor daje i oblik
+odbijanja iz linije 65 (13051): korak uklanjanja je ažuriranje starih
+roditelja, i jedan od njih može da bude **unutar podstabla koje isti korak
+otkida** — čvor gubi dete koje odlazi drugde, dok se ono u čemu on stoji
+istovremeno premešta; otkidanje spoljnog podstabla baci unutrašnjeg starog
+roditelja, i stablo za njega kaže „will not be in the tree".
+
+Ispravka (Fable, ista noć, grana `forenzika-pada-2`): `SemanticsShadow.judge`
+radi oba koraka mosta; red o čvoru kaže u kom koraku je odbijen i, za prvi
+korak, koje dete je izgubio i u čijem premeštanju je stajao (`semantics
+orphan [6] "…" while removing reparented: 6 lost 7 to 1, inside 5 moving to
+2`); tekstovi čvora se pamte u senci preko ažuriranja, jer stari roditelj ne
+mora biti u ažuriranju koje ga odbija; pravilo 3 važi samo za dete koje dva
+roditelja navode u istom ažuriranju; capovi su po vrsti (20 redova o čvoru
+bez roditelja, 10 ostalih), pa nijedno pravilo ne može da ućutka drugo.
+Kapija: slučaj „a node its parent still lists, taken by another" prepisan
+otvoreno (sad očekuje ništa, sa razlogom iznad), četiri nova slučaja za korak
+uklanjanja, dva za tekstove preko ažuriranja, slučaj koji puni oba capa. Sedam
+mutacija: pet uhvaćene, jedna inertna (stara grana pravila 3 posle koraka 1
+ne može da opali), jedna je prvo preživela dok slučaj capa nije napunio oba
+capa. **Brojevi posle ispravke:** aplikacija 4171 → **__COUNT__**, pun prolaz
+bez ičega pored; `analyze` isti 22. Provera [249.1] ostaje: isti build, ista
+putanja, i id iz `crash.log` mora biti id iz `mislisha-stderr.txt`.
+
+**Provera [249.1] prošla, 26.9. u 23:33.** Na buildu sa ispravljenim
+detektorom vlasnik je pad izazvao istom putanjom: motor je odbio čvor 27377,
+a red detektora u `crash.log` iz istog pokretanja ima 27377 u spisku. Red
+kaže i šta se desilo: pri `pop /room/:roomCode` celo podstablo sobe se
+premešta pod koren (`inside 14115 moving to 1`), a u istom ažuriranju oko
+dvesta redova Biblioteke u koloni sobe gubi po dete — stari roditelj unutar
+podstabla koje se premešta, upravo oblik iz koraka 1. Nijedna fikstura to nije
+mogla da vidi, jer su sve davale sobi praznu kolonu.
+
+**Faza 2b u kodu (Fable, 27.9.2026, na vlasnikovu reč).** Oblik nije jednog
+widgeta nego „bilo koja ruta sa dugom listom koja se skida", pa popravka po
+obliku ne bi zatvorila klasu. Graditelj čuva pune podatke svakog čvora
+(`NodeArgs`) i na `build()` motoru šalje plan senke umesto ažuriranja okvira:
+unutrašnji premeštaji (dete napušta starog roditelja koji stoji u podstablu
+koje se i samo premešta) dobijaju **svoj commit, prvi**, poslat pogledu pre
+nego što se `build()` vrati; svako podstablo koje stablo neće imati kad stigne
+drugi commit (premešteno — motor ga uništi u koraku 1 — zadržano, ili nikad
+poslato) **dopunjuje se iz keša**; čvor do koga ništa ne vodi se **zadržava**
+i šalje kad ga roditelj navede; dete navedeno dvaput navodi se jednom, dete
+koje dva roditelja traže ostaje kod novijeg; a gde keš ne može da dopuni, ide
+ažuriranje kakvo je došlo, uz red `semantics hold-back failed`. Dve činjenice
+o okviru su izmerene pre toga špijunom ispred graditelja: premešten čvor se
+ponovo kači, ne šalje, i njegovi nepromenjeni potomci se ne šalju; a `pop`
+sam po sebi ne premešta ništa — spoljni premeštaj u padu dolazi iz stabla
+aplikacije iznad rute, koje nijedna fikstura nema. Kapija
+`semantics_holdback_test`: plan na obliku pada, podstablo bez potomaka,
+zadržavanje i usvajanje, zaborav posle 60 ažuriranja, dupli i dvostruko
+traženi čvor; graditelj sa snimačem umesto pravog graditelja i špijunom na
+`sendEarly` (redosled commit-ova, ceo premešten podstablo, zadržan čvor,
+fallback, custom akcije); binding sa Flutterovim `Slider`-om (zadržan, bez
+`hold-back` reda). Devet mutacija, sve uhvaćene pravim slučajem. **Ono što
+kapija ne vidi**: da pravi motor prima oba commit-a — to je provera
+[249.2]: ista putanja, ista preusmerenja, i `mislisha-stderr.txt` mora biti
+**prazan** tamo gde `crash.log` ima red `— held back`.
+**Brojevi:** aplikacija 4179 → **4193**, pun prolaz bez ičega pored, 1
+preskočen; `analyze` isti 22. **Prvo pokretanje uživo, 27.9. 00:10–00:12**
+(build ebb4e7da, stderr preusmeren): tri odlaska iz sobe preko duge kolone
+Biblioteke — dva reda `— held back` u `crash.log`, nijedan `Failed to update`
+u stderr-u motora, nijedan `hold-back failed`, aplikacija nije pala. Vlasnik
+štiklira [249.2] u alatu; grana `forenzika-pada-2` čeka njegovu reč za merge.
+
+**Otvoreno pitanje za vlasnika (27.9.2026, iz razgovora):** kad se pozicija
+iz Biblioteke stavi na tablu u Preparation, da li ide sama pozicija ili i
+stablo poteza. Danas `_putOnBoard` u sobi učitava šta god unos nosi — deo
+tutorijala sa `fen` i `pgn` (i delovi postaju koračnik), poziciju ili sken sa
+`fen` i `pgn` koji ima. Predlog: po vrsti — deo tutorijala **sa linijom** (to
+je materijal), zadatak **samo pozicija** (linija je rešenje, na deljenoj tabli
+bi ga odala), pozicija i sken samo pozicija, a sačuvana analiza kroz druga
+vrata. Vlasnik odlučuje u razgovoru; on ne čita ovaj dokument.
 
 **Brojevi.** Aplikacija **4139 → 4171** (18 u `crash_trail_test`, 14 u
 `semantics_shadow_test`), pun prolaz bez ičega pored, 1 preskočen; `analyze`

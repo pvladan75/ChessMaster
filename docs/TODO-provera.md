@@ -8408,6 +8408,29 @@ odlazi na kraj spiska u alatu.
    `trail-previous.log` posle pada) imenuje ekrane i dodire pre toga.
    Potrebno: Windows; release build; Narrator ili tastatura na dodir.
 
+3. [ ] **Motor više ne odbija: soba sa dugom kolonom se skida bez pada.** [249.2]
+   O čemu se radi: Faza 2b plana `PLAN-FORENZIKA-PADA.md` (27.9.2026).
+   Graditelj motoru šalje plan senke umesto ažuriranja okvira — unutrašnji
+   premeštaji u svom commit-u prvo, premeštena i nedostajuća podstabla iz
+   keša, čvor bez roditelja zadržan — pa ono što je 26.9. u 23:33 srušilo
+   aplikaciju (odlazak iz Preparation sa oko dvesta redova u koloni
+   Biblioteke) više ne stiže do motora. Kapija dokazuje plan na modelu motora;
+   da pravi motor prima oba commit-a dokazuje samo ovo.
+   Gde: Isti release build, pokrenut sa preusmerenim stderr-om kao u [249.1],
+   pa Teach → `Preparation` (kolona Biblioteke sa mnogo redova) → učitaj
+   poziciju ili dve → strelica nazad na Home; ponovi bar pet puta. Zatim isto
+   sa Flutterovim dijalozima koji su 22.9. ostavljali čvor bez roditelja
+   (`Board view` iz table, `Playback speed` u stablu varijanti).
+   Uradi: Posle svake ture pogledaj `mislisha-stderr.txt` i `crash_logs\crash.log`.
+   Treba da vidiš: Aplikacija ne pada. `crash.log` ima redove `semantics
+   orphan [...] ... — held back` za svaki odlazak iz sobe (to je detektor koji
+   i dalje beleži šta bi motor odbio), a `mislisha-stderr.txt` **nema nijedan**
+   red `Failed to update ui::AXTree` — ni „will not be in the tree", ni
+   „hold-back failed", ni „left a refusal" u `crash.log`. Narrator/tastatura
+   posle odlaska iz sobe i dalje čitaju Home (stablo nije ostalo pokvareno).
+   Potrebno: Windows; release build sa fazom 2b; Narrator ili tastatura na
+   dodir.
+
 ### Teach — Učenici, grupe i obaveštenja
 
 1. [ ] **Bedž na Teach imenuje šta čeka pregled, ne samo broj.** [177.6]

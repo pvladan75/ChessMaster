@@ -8422,3 +8422,74 @@ varijanti.** Fikstura (stub Home, stub server koji odgovara `join_refused` i
 posle 1,2 s skida gornju rutu — dijalog) nema čvor koji bi odlazak iz sobe
 mogao da ostavi bez roditelja. Slučaj koji je zelen na kodu koji pada ne može
 da padne (pravilo 1), pa putanja nije ušla u kapiju nego u proveru uživo.
+
+**Detektor je prošao kapiju i 21 mutaciju, i na uređaju napisao pet redova
+koje motor nije, a nijedan koji jeste.** Četvrti pad te večeri (23:00:52) je
+bio na buildu sa detektorom; stderr motora je rekao `13051 will not be in the
+tree`, a `crash.log` je imao pet redova „not marked for destruction, would be
+reparented" — prvi šest sekundi posle starta, na običnom dodiru na Home — i
+nijedan red o 13051. Dve greške, jedna preko druge. **Pravilo 3 je bilo
+modelovano po stringu, ne po kodu**: most motora (`accessibility_bridge.cc`)
+premeštanje čvora obavlja sam, u koraku *pre* ažuriranja
+(`CreateRemoveReparentedNodesUpdate` skine premešteno dete sa starog
+roditelja), pa premeštaj čiji stari roditelj nije u ažuriranju nije odbijanje
+nego običan slučaj. I **jedan cap za sva pravila**: pet lažnih redova je
+potrošilo cap od pet, pa pravi red sekundu kasnije nije upisan. Izvor motora
+na tačnoj reviziji je dao i oblik odbijanja iz linije 65: korak uklanjanja je
+sam ažuriranje starih roditelja, i jedan od njih može da bude unutar podstabla
+koje isti korak otkida — motor za njega kaže „will not be in the tree". To je
+13051. Senka sada radi oba koraka, red kaže u kom koraku i šta je čvor izgubio
+i u čijem premeštanju je bio, tekstovi čvora se pamte preko ažuriranja (stari
+roditelj ne mora biti u ažuriranju koje ga odbija), a capovi su po vrsti (20 i
+10). **String iz binarnog fajla kaže koje poruke postoje; kod kaže kada se
+šalju** — pravilo napisano po stringu je pretpostavka, i mora da se sravni sa
+stderr-om motora iz istog pokretanja pre nego što uđe u dnevnik pada. I
+**cap koji dele pravila je cap koji pogrešno pravilo troši za tačno.**
+Mutacije druge runde: sedam, pet uhvaćene, jedna inertna (stara grana pravila
+3 posle koraka 1 ne može da opali), jedna je prvo preživela — slučaj capa je
+pisao 11 redova druge vrste i *jedan* čvor bez roditelja, pa je i zajednički
+brojač imao mesta; tek kad slučaj napuni oba capa, zajednički brojač pada.
+**Slučaj za dva capa mora da napuni oba.**
+
+## 27.9.2026 — Faza 2b: motor ne vidi ono što bi odbio
+
+Detektor je na prvom pravom pokretanju imenovao pad (27377 u stderr-u motora
+i u redu detektora iz istog pokretanja), i red je rekao oblik: odlazak iz
+sobe premešta celo njeno podstablo pod koren, dok dvesta redova Biblioteke u
+njemu gubi po dete. To nije oblik jednog widgeta, pa je vlasnik tražio 2b.
+
+**Dizajn se nije mogao napisati iz čitanja — dve činjenice su izmerene.**
+Špijun ispred graditelja: premešten čvor se ponovo kači i ne šalje, njegovi
+nepromenjeni potomci takođe ne; a `pop` rute sa redovima na dodir ne premešta
+ništa (redovi se pošalju sa blokiranim akcijama, i to je sve). Prva čini da
+zadržavanje samo čvora bez roditelja ne bi spaslo ni jedan premeštaj: motor
+podstablo uništi u koraku 1 i mora da ga sagradi iz ažuriranja u koraku 2 —
+graditelj mora da čuva pune podatke svakog čvora i da dopuni podstablo sam.
+Druga kaže da je spoljni premeštaj u padu iz stabla aplikacije iznad rute, i
+da nijedna fikstura koju smo imali ne može da ga vidi. **Kad se popravka
+oslanja na to šta okvir šalje, izmeri šta okvir šalje; tekst okvira to ne
+kaže.**
+
+**Graditelj može da pošalje dva commit-a.** Okvir pozove `build()` i predaje
+rezultat pogledu (`RenderView.updateSemantics` → `FlutterView.updateSemantics`)
+bez ikakvog dispose-a; graditelj u `build()` sme da pošalje prvi commit istom
+pozivu i da vrati drugi. Redosled je zagarantovan (jedan zadatak po commit-u
+na platformskoj niti). To je i mutacija 4 — commit poslat *posle* drugog —
+koju je slučaj sa špijunom na `sendEarly` uhvatio.
+
+**Dupli čvor u listi je popravljiv, i popravka je jeftinija od reda o
+njemu.** Prva verzija planera je propuštala dete navedeno dvaput; commit ga je
+i dalje odbijao, pa se za svako ažuriranje pisao drugi red i cap druge vrste
+se trošio duplo. Sad se navodi jednom, a dete koje dva roditelja traže ostaje
+kod novijeg. Slučaj koji je to našao je bio septembarski slučaj duplog
+deteta, koji je odjednom pisao dva reda — **stari slučaj koji promeni broj
+redova je nalaz, ne šum.**
+
+**Lista crvenih u mutacionom alatu je bila laž, verdikt nije.** Regex je hvatao
+i redove napretka, pa je svaki mutant „pao" na istim slučajevima; verdikt je
+bio iz izlaznog koda i tačan. Popravljen na obeleživač `[E]` i runda ponovo
+vođena: devet mutanata, svaki uhvaćen slučajem napisanim za njega. **Koji test
+je pao je podatak koji se čita iz obeleživača greške, ne iz imena testa u
+izlazu.**
+
+Brojevi: 4179 → 4193, `analyze` 22.
