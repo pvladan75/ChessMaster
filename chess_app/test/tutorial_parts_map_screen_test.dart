@@ -89,6 +89,10 @@ void main() {
   }
 
   Future<void> tapKey(WidgetTester tester, String key) async {
+    // Brought into view first, as a trainer scrolls to it: the editor below
+    // the part's header scrolls on its own at 840 × 700.
+    await tester.ensureVisible(find.byKey(Key(key)));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(Key(key)));
     await tester.pumpAndSettle();
   }

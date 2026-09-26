@@ -8208,3 +8208,27 @@ reda umesto tri — to nijedna kapija nije pitala. Snimak na telefonu je prvo
 „pokazao" da tap na red ne bira deo; red je bio ispod ekrana i tap nije
 pogodio ništa (upozorenje u izlazu). Nalaz iz testa se proverava pre nego što
 se veruje.
+
+## 26.9.2026 — Delovi kao mapa: faza 4
+
+Mapa u svojoj koloni, naslov u traci, zaglavlje otvorenog dela. Aplikacija
+**4091 → 4101** (pun prolaz): +9 `tutorial_map_column_test`, +1 u
+`tutorial_labels_test` (traka kaže oznake); ostalo prepisano, ništa obrisano.
+`analyze` isti 22, posle jednog novog `unnecessary_import` u sopstvenoj kapiji.
+
+**Konstanta iz plana je tvrdnja o kodu, i bila je netačna.** Plan je računao
+sa razmakom 16; `AppSpacing.md` je 12. Sve širine opsega pomerile su se za 12
+(kolona od 1504, ne od 1520). Nađeno jer je prepisan slučaj dao 404 px gde je
+trebalo 400 — višak od 4 px je pročitan, a ne zaokružen.
+
+**Isti naziv na dva mesta je isti propust po šesti put.** Ime otvorenog dela
+sad stoji i u mapi i u zaglavlju, pa je `find.text('Part 1')` našao dva u pet
+fajlova. Opseg je mapa — isti spisak, po vidžetu koji ga crta — ne slabiji
+tražilac. Prvi pad je povukao kaskadu u `tutorial_delovi_test`: ekran koji nije
+zatvoren upisao je nacrt posle `setUp`-a sledećeg slučaja, i novi studio je
+pitao „Continue?" ispred svakog tapa. Zatvaranje ide u `addTearDown`.
+
+**Font sa mašine se meri jednom, ručno, i ne ulazi u kapiju.** Naslov od 60
+znakova je u kapiji meren u Robotu sa rezervom od petine; jednom je izmeren i
+u Segoe UI iz `C:\Windows\Fonts` (513 px u polju od 1034) i taj test je
+obrisan. Pravilo 8.

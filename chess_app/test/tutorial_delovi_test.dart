@@ -127,6 +127,10 @@ void main() {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
+    // Closed even when the case fails half way: a screen left standing writes
+    // its draft after the next case's setUp has cleared the slot, and the next
+    // blank studio then asks „Continue?" in front of every tap.
+    addTearDown(() => tester.pumpWidget(const SizedBox.shrink()));
 
     await tester.pumpWidget(MaterialApp(
       home: TutorialStudioScreen(
@@ -199,13 +203,13 @@ void main() {
     testWidgets('every part is listed, numbered, by its name', (tester) async {
       await open(tester);
       expect(find.text('Tutorial contents'), findsOneWidget);
-      expect(find.text('Part 1'), findsOneWidget);
+      expect(inPartsMap('Part 1'), findsOneWidget);
 
       await play(tester, 'e2', 'e4');
       await addPart(tester);
 
-      expect(find.text('Part 1'), findsOneWidget);
-      expect(find.text('Part 2'), findsOneWidget);
+      expect(inPartsMap('Part 1'), findsOneWidget);
+      expect(inPartsMap('Part 2'), findsOneWidget);
       await close(tester);
     });
 
@@ -280,7 +284,7 @@ void main() {
       await tester.pumpAndSettle();
       await tapText(tester, 'Cancel');
 
-      expect(find.text('Part 2'), findsNothing);
+      expect(inPartsMap('Part 2'), findsNothing);
       await close(tester);
     });
   });
@@ -349,7 +353,7 @@ void main() {
       expect(find.text('Delete part'), findsOneWidget);
       await tapText(tester, 'Cancel');
 
-      expect(find.text('Part 2'), findsOneWidget);
+      expect(inPartsMap('Part 2'), findsOneWidget);
       await close(tester);
     });
 
@@ -360,8 +364,8 @@ void main() {
       await tapTooltip(tester, 'Delete part');
       await tapText(tester, 'Delete');
 
-      expect(find.text('Part 2'), findsNothing);
-      expect(find.text('Part 1'), findsOneWidget);
+      expect(inPartsMap('Part 2'), findsNothing);
+      expect(inPartsMap('Part 1'), findsOneWidget);
       await close(tester);
     });
 
@@ -374,7 +378,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('The last part cannot be deleted.'), findsOneWidget);
-      expect(find.text('Part 1'), findsOneWidget);
+      expect(inPartsMap('Part 1'), findsOneWidget);
       await close(tester);
     });
   });
@@ -412,3 +416,10 @@ void main() {
     });
   });
 }
+
+// „Part N" is looked for in the map of parts: since phase 4 of
+// `docs/PLAN-MAPA-DELOVA.md` the open part's name is also in its header,
+// so an unscoped finder matches two. The same list, by the widget that
+// draws it.
+Finder inPartsMap(String text) => find.descendant(
+    of: find.byType(TutorialPartsMap), matching: find.text(text));

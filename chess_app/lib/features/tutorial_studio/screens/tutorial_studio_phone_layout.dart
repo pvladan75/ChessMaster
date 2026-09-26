@@ -20,7 +20,8 @@ part of 'tutorial_studio_screen.dart';
 /// 20.9.2026 („U portret orjentaciji ne vide se label i jezik tutorijala"): a
 /// tutorial made on a phone had nothing the Library could find it by and no
 /// language to choose its voice. They are behind „More" → „Details…"
-/// ([_showDetails]) — the desktop's own two fields, not copies.
+/// ([_showDetails], which the desktop's bar opens too since phase 4 of
+/// `docs/PLAN-MAPA-DELOVA.md`) — the same two fields, not copies.
 extension _PhoneLayout on _TutorialStudioScreenState {
   Widget _buildPhone(BoxConstraints constraints) {
     final landscape = LandscapeBoardLayout.applies(context);
@@ -41,58 +42,6 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   }
 
   // ── the app bar ───────────────────────────────────────────────────────
-
-  /// Labels and language, in a sheet over the board: the phone's room belongs
-  /// to the board, and these two are set once per tutorial rather than read
-  /// while writing it.
-  ///
-  /// The fields are [_labelsField] and [_languageField] themselves — the
-  /// same controller and the same `_c` the desktop's row writes through, so
-  /// what is typed here is what a save sends, and a second opening shows it.
-  /// The sheet is not rebuilt by this screen's `setState`, so it listens to
-  /// `_c` on its own; without that the dropdown would keep showing the
-  /// language it opened with.
-  Future<void> _showDetails() {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          0,
-          AppSpacing.lg,
-          AppSpacing.lg + MediaQuery.viewInsetsOf(sheetContext).bottom,
-        ),
-        // Scrolls rather than overflows: a phone on its side with the
-        // keyboard up has less height than these four rows.
-        child: SingleChildScrollView(
-          child: ListenableBuilder(
-            listenable: _c,
-            builder: (_, __) => Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('Details', style: AppText.title),
-                const SizedBox(height: AppSpacing.sm),
-                _labelsField(),
-                const SizedBox(height: AppSpacing.md),
-                _languageField(),
-                const SizedBox(height: AppSpacing.sm),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(sheetContext).pop(),
-                    child: const Text('Done'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// The title, „Save" and everything the bar has no room for, behind
   /// [Key('phone-more')] — Undo, Redo, Discard changes,
@@ -439,52 +388,18 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   // ── Parts ────────────────────────────────────────────────────────────
 
   Widget _phonePartsTab() {
-    final selected = _c.draft.selected;
-    final last = _c.draft.sections.length - 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Align(alignment: Alignment.centerLeft, child: _phoneNewPartButton()),
         const SizedBox(height: AppSpacing.sm),
-        // The open part's actions, above the map, as on the desktop. They
-        // were under every row until the map (phase 3 of
-        // `docs/PLAN-MAPA-DELOVA.md`): the lanes run through the gutter from
-        // one row to the next, and a row of six buttons under each part breaks
-        // every edge that crosses it. „Turn this part" stays on each row.
-        Wrap(
-          spacing: AppSpacing.xs,
-          children: [
-            IconButton(
-              tooltip: 'Move up',
-              icon: const Icon(Icons.arrow_upward),
-              onPressed: selected > 0
-                  ? () => _moveSection(selected, selected - 1)
-                  : null,
-            ),
-            IconButton(
-              tooltip: 'Move down',
-              icon: const Icon(Icons.arrow_downward),
-              onPressed: selected < last
-                  ? () => _moveSection(selected, selected + 1)
-                  : null,
-            ),
-            IconButton(
-              tooltip: 'Clone part',
-              icon: const Icon(Icons.copy),
-              onPressed: () => _cloneSection(selected),
-            ),
-            IconButton(
-              tooltip: 'Rename',
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () => _renameSection(selected),
-            ),
-            IconButton(
-              tooltip: 'Delete part',
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _removeSection(selected),
-            ),
-          ],
-        ),
+        // The open part's actions, above the map — the same row the
+        // desktop's header draws ([_openPartActions]). They were under every
+        // row until the map (phase 3 of `docs/PLAN-MAPA-DELOVA.md`): the lanes
+        // run through the gutter from one row to the next, and a row of
+        // buttons under each part breaks every edge that crosses it. „Turn
+        // this part" stays on each row.
+        Wrap(spacing: AppSpacing.xs, children: _openPartActions()),
         const SizedBox(height: AppSpacing.xs),
         TutorialPartsMap(
           draft: _c.draft,

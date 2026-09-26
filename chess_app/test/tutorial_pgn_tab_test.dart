@@ -573,13 +573,12 @@ void main() {
         door: (t) => t.tap(find.byTooltip('Clone part')),
         lines: unchanged,
       ),
+      // Held back before the question since phase 4 of
+      // `docs/PLAN-MAPA-DELOVA.md` — the trainer is no longer asked to
+      // confirm a deletion that is then refused.
       'Delete part': (
         before: null,
-        door: (t) async {
-          await t.tap(find.byTooltip('Delete part'));
-          await t.pumpAndSettle();
-          await t.tap(find.widgetWithText(FilledButton, 'Delete'));
-        },
+        door: (t) => t.tap(find.byTooltip('Delete part')),
         lines: unchanged,
       ),
       'Add parts from a tutorial…': (

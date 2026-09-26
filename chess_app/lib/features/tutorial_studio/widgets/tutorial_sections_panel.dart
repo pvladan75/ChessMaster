@@ -24,10 +24,6 @@ class TutorialSectionsPanel extends StatelessWidget {
     required this.draft,
     required this.onSelect,
     required this.onAddShow,
-    required this.onMove,
-    required this.onClone,
-    required this.onRename,
-    required this.onRemove,
     this.onAddPartsFrom,
     this.onExtractParts,
     this.onTurn,
@@ -38,11 +34,6 @@ class TutorialSectionsPanel extends StatelessWidget {
 
   /// „Novi prikaz" — a new demonstration after this one.
   final VoidCallback onAddShow;
-
-  final void Function(int from, int to) onMove;
-  final void Function(int index) onClone;
-  final void Function(int index) onRename;
-  final void Function(int index) onRemove;
 
   /// „Add parts from a tutorial…" — another tutorial's parts, copied in here.
   /// Null draws nothing, the rule this panel already follows.
@@ -57,37 +48,8 @@ class TutorialSectionsPanel extends StatelessWidget {
   /// 840 dp, and so it names the part it acts on. Null draws nothing.
   final void Function(int index)? onTurn;
 
-  Future<void> _handleDelete(BuildContext context) async {
-    if (draft.sections.length <= 1) {
-      onRemove(draft.selected);
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete part'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      onRemove(draft.selected);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final canMoveUp = draft.selected > 0;
-    final canMoveDown = draft.selected < draft.sections.length - 1;
-
     return Material(
       color: context.colors.surface,
       borderRadius: AppRadii.roundedMd,
@@ -172,40 +134,6 @@ class TutorialSectionsPanel extends StatelessWidget {
                   onPressed: onAddShow,
                   icon: const Icon(Icons.visibility_outlined, size: 18),
                   label: const Text('New demonstration'),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Move up',
-                  icon: const Icon(Icons.arrow_upward),
-                  onPressed: canMoveUp
-                      ? () => onMove(draft.selected, draft.selected - 1)
-                      : null,
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Move down',
-                  icon: const Icon(Icons.arrow_downward),
-                  onPressed: canMoveDown
-                      ? () => onMove(draft.selected, draft.selected + 1)
-                      : null,
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Clone part',
-                  icon: const Icon(Icons.copy),
-                  onPressed: () => onClone(draft.selected),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Rename',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => onRename(draft.selected),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Delete part',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _handleDelete(context),
                 ),
               ],
             ),

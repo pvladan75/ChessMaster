@@ -130,6 +130,10 @@ class TutorialStudioScreen extends StatefulWidget {
     this.positionLibrary,
   });
 
+  /// The map's own column, left of the board, where the window has room for
+  /// it beside a board at full size — phase 4 of `docs/PLAN-MAPA-DELOVA.md`.
+  static const double mapColumnWidth = 380;
+
   final UserSession session;
 
   /// Why the screen is being opened — D4 of `docs/PLAN-STUDIO-REDIZAJN.md`.
@@ -816,12 +820,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     }
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Tutorial Studio',
-          overflow: TextOverflow.ellipsis,
-          maxLines: 1,
-          style: AppText.title,
-        ),
+        title: _titleInBar(),
         actions: [
           IconButton(
             key: const Key('tutorial-undo'),
@@ -907,6 +906,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 : constraints.maxWidth - AppSpacing.lg * 2;
 
             final board = _boardColumn(boardSize.toDouble());
+            // The map gets a column of its own left of the board **when the
+            // board keeps its size** — the room the board pane has beyond the
+            // board is the test, and the board's own formula is untouched, so
+            // no window makes the board smaller for the map's sake. Phase 4 of
+            // `docs/PLAN-MAPA-DELOVA.md`.
+            final mapBeside = wide &&
+                boardPaneWidth - boardSize >=
+                    TutorialStudioScreen.mapColumnWidth + AppSpacing.md;
             if (!wide) {
               // **The tab strip does not scroll.** The owner's report of
               // 12.9.2026: „Flow, tree i pgn kartice ne treba da se skrivaju
@@ -966,12 +973,20 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (mapBeside) ...[
+                    SizedBox(
+                      key: const Key('map-column'),
+                      width: TutorialStudioScreen.mapColumnWidth,
+                      child: _sectionsPanel(),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                  ],
                   Expanded(
                     key: const Key('board-pane'),
                     child: Center(child: SingleChildScrollView(child: board)),
                   ),
                   const SizedBox(width: AppSpacing.md),
-                  _authoringPaneWide(),
+                  _authoringPaneWide(mapInPane: !mapBeside),
                 ],
               ),
             );
@@ -1003,7 +1018,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           width: boardSize,
           child: MoveNavigationControls(
             cursor: _moveCursor(),
-            centerLabel: null,
+            centerLabel:
+                'Part ${_draft.selected + 1} of ${_draft.sections.length}',
             iconSize: 20,
             onFlipBoard: _flipBoard,
           ),
@@ -1019,6 +1035,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// calls [_chessBoard] straight through [BoardWithCoordinates] instead.
   Widget _boardCard(double boardSize) {
     return SizedBox(
+      key: const Key('board-card'),
       width: boardSize,
       height: boardSize,
       child: Card(
@@ -1659,16 +1676,115 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// Both halves of this screen need it and batch 58 arrived with the field —
   /// and the four lines of comment explaining it — copied into each. A widget
   /// written twice is a widget that gets fixed once.
-  Widget _titleField() {
-    return TextField(
-      key: const Key('tutorial-title'),
-      controller: _titleController,
-      decoration: const InputDecoration(labelText: 'Tutorial title'),
-      // Written into the draft rather than only held in the controller. The
-      // draft is what `TutorialDraftService` stores, so a title that lives only
-      // here comes back empty next time — with every part still in place, which
-      // is what made it invisible.
-      onChanged: _c.setTitle,
+  /// The tutorial's name where a window names what it holds, and under it
+  /// what the Details sheet holds, with the door to it — phase 4 of
+  /// `docs/PLAN-MAPA-DELOVA.md`. The name was a field in a row of the 460 px
+  /// pane shared with labels and language, about 155 px wide at every window,
+  /// and the owner's title read „Broken Pawns a".
+  Widget _titleInBar() {
+    final language =
+        TutorialLanguage.of(_draft.language)?.label ?? 'Language not set';
+    final labels = _draft.tags.isEmpty ? 'no labels' : _draft.tags.join(', ');
+    final quiet = AppText.caption.copyWith(color: context.colors.textSecondary);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          key: const Key('tutorial-title'),
+          controller: _titleController,
+          style: AppText.title,
+          decoration: const InputDecoration(
+            hintText: 'Tutorial title',
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
+          // Written into the draft rather than only held in the controller.
+          // The draft is what `TutorialDraftService` stores, so a title that
+          // lives only here comes back empty next time — with every part still
+          // in place, which is what made it invisible.
+          onChanged: _c.setTitle,
+        ),
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                '$language · $labels · ',
+                key: const Key('tutorial-summary'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: quiet,
+              ),
+            ),
+            InkWell(
+              key: const Key('tutorial-details'),
+              onTap: _showDetails,
+              child: Text(
+                'Details…',
+                style: quiet.copyWith(
+                  color: context.colors.textPrimary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Labels and language, in a sheet: set once per tutorial rather than read
+  /// while writing it. **One door for both layouts** — the phone's „More" →
+  /// „Details…", and on the desktop the „Details…" under the title in the bar
+  /// (phase 4 of `docs/PLAN-MAPA-DELOVA.md`), where they used to share one row
+  /// of the 460 px pane with the title.
+  ///
+  /// The fields are [_labelsField] and [_languageField] themselves — the
+  /// same controller and the same `_c` the desktop's row writes through, so
+  /// what is typed here is what a save sends, and a second opening shows it.
+  /// The sheet is not rebuilt by this screen's `setState`, so it listens to
+  /// `_c` on its own; without that the dropdown would keep showing the
+  /// language it opened with.
+  Future<void> _showDetails() {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          0,
+          AppSpacing.lg,
+          AppSpacing.lg + MediaQuery.viewInsetsOf(sheetContext).bottom,
+        ),
+        // Scrolls rather than overflows: a phone on its side with the
+        // keyboard up has less height than these four rows.
+        child: SingleChildScrollView(
+          child: ListenableBuilder(
+            listenable: _c,
+            builder: (_, __) => Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Details', style: AppText.title),
+                const SizedBox(height: AppSpacing.sm),
+                _labelsField(),
+                const SizedBox(height: AppSpacing.md),
+                _languageField(),
+                const SizedBox(height: AppSpacing.sm),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('Done'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1756,57 +1872,37 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   /// and the shortest window that lays out is unchanged. The cap keeps a large
   /// text scale from squeezing the title to nothing; at an ordinary scale it
   /// never binds.
-  Widget _headerFields() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 3, child: _titleField()),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(flex: 2, child: _labelsField()),
-        const SizedBox(width: AppSpacing.sm),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 220),
-          // An `isExpanded` dropdown asks for a bounded width, and a Row gives
-          // a child that is not flexible none — so it is sized to its widest
-          // entry first, and that width is what it gets.
-          child: IntrinsicWidth(child: _languageField()),
-        ),
-      ],
-    );
-  }
-
   /// The table of contents, wired to the screen that owns the draft.
   Widget _sectionsPanel() {
     return TutorialSectionsPanel(
       draft: _draft,
       onSelect: _selectSection,
       onAddShow: _addShowSection,
-      onMove: _moveSection,
-      onClone: _cloneSection,
-      onRename: _renameSection,
-      onRemove: _removeSection,
       onAddPartsFrom: _addPartsFromTutorial,
       onExtractParts: _extractPartsToNewTutorial,
       onTurn: _turnPart,
     );
   }
 
-  Widget _authoringPaneWide() {
+  /// The right pane: the open part, and — where the map has no column of its
+  /// own ([mapInPane]) — the map above it.
+  Widget _authoringPaneWide({required bool mapInPane}) {
     return SizedBox(
       key: const Key('authoring-pane'),
       width: 460,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _headerFields(),
           _narrationBanner(),
           const SizedBox(height: AppSpacing.sm),
-          Expanded(
-            key: const Key('sections-half'),
-            flex: 2,
-            child: _sectionsPanel(),
-          ),
-          const Divider(),
+          if (mapInPane) ...[
+            Expanded(
+              key: const Key('sections-half'),
+              flex: 2,
+              child: _sectionsPanel(),
+            ),
+            const Divider(),
+          ],
           Expanded(
             key: const Key('editor-half'),
             flex: 3,
@@ -1816,6 +1912,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                _openPartHeader(),
+                const SizedBox(height: AppSpacing.xs),
                 _editorTabs(),
                 const SizedBox(height: AppSpacing.xs),
                 Expanded(child: SingleChildScrollView(child: _editorPanels())),
@@ -1832,13 +1930,12 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _titleField(),
-        _labelsField(),
-        _languageField(),
         _narrationBanner(),
         const SizedBox(height: AppSpacing.md),
         _sectionsPanel(),
         const SizedBox(height: AppSpacing.md),
+        _openPartHeader(),
+        const SizedBox(height: AppSpacing.sm),
       ],
     );
   }
@@ -1967,14 +2064,113 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     );
   }
 
-  /// What the strip labels: one of the three, under the open part's own line
-  /// („Part 3 of 8 · continues from part 2").
+  /// The open part: „Part 3 of 8 · continues from part 2", its name, and what
+  /// can be done to it — above Flow, Tree and PGN in every desktop layout
+  /// (phase 4 of `docs/PLAN-MAPA-DELOVA.md`). The actions were in the contents
+  /// panel, acting on whichever row was selected; here they stand beside the
+  /// name of the part they act on.
+  Widget _openPartHeader() {
+    return Column(
+      key: const Key('open-part-header'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TutorialPartHeader(draft: _draft, onOpenPart: _selectSection),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _draft.section.label(_draft.selected),
+                key: const Key('open-part-name'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.bodyBold
+                    .copyWith(color: context.colors.textPrimary),
+              ),
+            ),
+            ..._openPartActions(compact: true),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Rename, move up, move down, clone and delete — for the open part, on the
+  /// desktop's header and on the phone's Parts tab alike. One list, so the two
+  /// layouts cannot come to offer different things.
+  List<Widget> _openPartActions({bool compact = false}) {
+    final selected = _draft.selected;
+    final last = _draft.sections.length - 1;
+    final density = compact ? VisualDensity.compact : null;
+    return [
+      IconButton(
+        visualDensity: density,
+        tooltip: 'Rename',
+        icon: const Icon(Icons.edit_outlined),
+        onPressed: () => _renameSection(selected),
+      ),
+      IconButton(
+        visualDensity: density,
+        tooltip: 'Move up',
+        icon: const Icon(Icons.arrow_upward),
+        onPressed:
+            selected > 0 ? () => _moveSection(selected, selected - 1) : null,
+      ),
+      IconButton(
+        visualDensity: density,
+        tooltip: 'Move down',
+        icon: const Icon(Icons.arrow_downward),
+        onPressed:
+            selected < last ? () => _moveSection(selected, selected + 1) : null,
+      ),
+      IconButton(
+        visualDensity: density,
+        tooltip: 'Clone part',
+        icon: const Icon(Icons.copy),
+        onPressed: () => _cloneSection(selected),
+      ),
+      IconButton(
+        visualDensity: density,
+        tooltip: 'Delete part',
+        icon: const Icon(Icons.delete_outline),
+        onPressed: _deleteOpenPart,
+      ),
+    ];
+  }
+
+  /// Asks first, unless there is nothing it could delete — the last part is
+  /// refused in a sentence by [_removeSection]. Held back over unapplied PGN
+  /// text **before** the question, not after the trainer has answered it.
+  Future<void> _deleteOpenPart() async {
+    final index = _draft.selected;
+    if (_draft.sections.length > 1) {
+      if (_heldForPgn(_otherPart)) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Delete part'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
+    _removeSection(index);
+  }
+
+  /// What the strip labels: one of the three.
   Widget _editorPanels() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TutorialPartHeader(draft: _draft, onOpenPart: _selectSection),
-        const SizedBox(height: AppSpacing.xs),
         IndexedStack(
           index: _selectedTab,
           children: [

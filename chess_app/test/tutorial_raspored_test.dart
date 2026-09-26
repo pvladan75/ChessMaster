@@ -243,10 +243,22 @@ void main() {
         narrowAuthoring,
         reason: 'the fields grew with the window; they are fixed',
       );
+      // Superseded in part 26.9.2026 by phase 4 of `docs/PLAN-MAPA-DELOVA.md`:
+      // at 1800 the board pane has room for the map beside a board at full
+      // size, so the map takes a column of its own (380 and the gap, measured
+      // from the layout rather than written down: `AppSpacing.md` is 12, not
+      // the 16 the plan assumed). The 400 px still arrive left of the
+      // authoring pane, all of them.
+      final mapColumn = find.byKey(const Key('map-column'));
+      expect(mapColumn, findsOneWidget,
+          reason: 'the case needs the column at 1800');
+      final column = tester.getTopLeft(pane('board-pane')).dx -
+          tester.getTopLeft(mapColumn).dx;
       expect(
-        wideBoard - narrowBoard,
+        wideBoard + column - narrowBoard,
         closeTo(400, 1),
-        reason: 'the 400 px the window gained did not all go to the board',
+        reason: 'the 400 px the window gained did not all go to the board and '
+            'the map',
       );
 
       await close(tester);
