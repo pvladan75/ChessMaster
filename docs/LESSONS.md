@@ -8422,3 +8422,31 @@ varijanti.** Fikstura (stub Home, stub server koji odgovara `join_refused` i
 posle 1,2 s skida gornju rutu — dijalog) nema čvor koji bi odlazak iz sobe
 mogao da ostavi bez roditelja. Slučaj koji je zelen na kodu koji pada ne može
 da padne (pravilo 1), pa putanja nije ušla u kapiju nego u proveru uživo.
+
+**Detektor je prošao kapiju i 21 mutaciju, i na uređaju napisao pet redova
+koje motor nije, a nijedan koji jeste.** Četvrti pad te večeri (23:00:52) je
+bio na buildu sa detektorom; stderr motora je rekao `13051 will not be in the
+tree`, a `crash.log` je imao pet redova „not marked for destruction, would be
+reparented" — prvi šest sekundi posle starta, na običnom dodiru na Home — i
+nijedan red o 13051. Dve greške, jedna preko druge. **Pravilo 3 je bilo
+modelovano po stringu, ne po kodu**: most motora (`accessibility_bridge.cc`)
+premeštanje čvora obavlja sam, u koraku *pre* ažuriranja
+(`CreateRemoveReparentedNodesUpdate` skine premešteno dete sa starog
+roditelja), pa premeštaj čiji stari roditelj nije u ažuriranju nije odbijanje
+nego običan slučaj. I **jedan cap za sva pravila**: pet lažnih redova je
+potrošilo cap od pet, pa pravi red sekundu kasnije nije upisan. Izvor motora
+na tačnoj reviziji je dao i oblik odbijanja iz linije 65: korak uklanjanja je
+sam ažuriranje starih roditelja, i jedan od njih može da bude unutar podstabla
+koje isti korak otkida — motor za njega kaže „will not be in the tree". To je
+13051. Senka sada radi oba koraka, red kaže u kom koraku i šta je čvor izgubio
+i u čijem premeštanju je bio, tekstovi čvora se pamte preko ažuriranja (stari
+roditelj ne mora biti u ažuriranju koje ga odbija), a capovi su po vrsti (20 i
+10). **String iz binarnog fajla kaže koje poruke postoje; kod kaže kada se
+šalju** — pravilo napisano po stringu je pretpostavka, i mora da se sravni sa
+stderr-om motora iz istog pokretanja pre nego što uđe u dnevnik pada. I
+**cap koji dele pravila je cap koji pogrešno pravilo troši za tačno.**
+Mutacije druge runde: sedam, pet uhvaćene, jedna inertna (stara grana pravila
+3 posle koraka 1 ne može da opali), jedna je prvo preživela — slučaj capa je
+pisao 11 redova druge vrste i *jedan* čvor bez roditelja, pa je i zajednički
+brojač imao mesta; tek kad slučaj napuni oba capa, zajednički brojač pada.
+**Slučaj za dva capa mora da napuni oba.**

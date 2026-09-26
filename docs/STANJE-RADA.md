@@ -119,6 +119,46 @@ nije u kapiji nego u proveri uživo.
    našlo grešku koju self-test nije mogao da vidi: `vswhere` vraća putanju sa
    razmacima („Program Files (x86)"), a izlaz je deljen po razmacima.
 
+**Četvrti pad, 23:00:52, na buildu sa detektorom — i detektor je pogrešio.**
+Vlasnik je pad izazvao istom putanjom, sa preusmerenim stderr-om. Motor:
+`13051 will not be in the tree and is not the new root`, tri puta. Trag
+(`trail.log`) je uredno imenovao ekran i dodire — Home, „Set up position",
+dijalog, red skenirane knjige, „Back", `pop /room/:roomCode`, pad sekundu
+kasnije. Ali `crash.log` je imao **pet redova koje motor nije napisao**
+(`Node 2 is not marked for destruction, would be reparented to 1`, prvi šest
+sekundi posle starta na dodiru na Home) i **nijedan o 13051**. Uzrok, iz
+izvora mosta motora na reviziji ovog SDK-a
+(`shell/platform/common/accessibility_bridge.cc`, `CommitUpdates`): stablo ne
+može da premesti čvor u jednom ažuriranju, pa most **prvo** skine svako
+premešteno dete sa starog roditelja (`CreateRemoveReparentedNodesUpdate`,
+ažuriranje samih starih roditelja), pa **onda** primeni ažuriranje. Pravilo 3
+senke je bilo napisano po stringu iz binarnog fajla i računalo je svaki
+premeštaj čiji stari roditelj nije u ažuriranju kao odbijanje — a to je
+upravo slučaj koji most sam rešava. Pet lažnih redova je potrošilo jedan cap
+od pet, pa pravi red sekundu kasnije nije upisan. Isti izvor daje i oblik
+odbijanja iz linije 65 (13051): korak uklanjanja je ažuriranje starih
+roditelja, i jedan od njih može da bude **unutar podstabla koje isti korak
+otkida** — čvor gubi dete koje odlazi drugde, dok se ono u čemu on stoji
+istovremeno premešta; otkidanje spoljnog podstabla baci unutrašnjeg starog
+roditelja, i stablo za njega kaže „will not be in the tree".
+
+Ispravka (Fable, ista noć, grana `forenzika-pada-2`): `SemanticsShadow.judge`
+radi oba koraka mosta; red o čvoru kaže u kom koraku je odbijen i, za prvi
+korak, koje dete je izgubio i u čijem premeštanju je stajao (`semantics
+orphan [6] "…" while removing reparented: 6 lost 7 to 1, inside 5 moving to
+2`); tekstovi čvora se pamte u senci preko ažuriranja, jer stari roditelj ne
+mora biti u ažuriranju koje ga odbija; pravilo 3 važi samo za dete koje dva
+roditelja navode u istom ažuriranju; capovi su po vrsti (20 redova o čvoru
+bez roditelja, 10 ostalih), pa nijedno pravilo ne može da ućutka drugo.
+Kapija: slučaj „a node its parent still lists, taken by another" prepisan
+otvoreno (sad očekuje ništa, sa razlogom iznad), četiri nova slučaja za korak
+uklanjanja, dva za tekstove preko ažuriranja, slučaj koji puni oba capa. Sedam
+mutacija: pet uhvaćene, jedna inertna (stara grana pravila 3 posle koraka 1
+ne može da opali), jedna je prvo preživela dok slučaj capa nije napunio oba
+capa. **Brojevi posle ispravke:** aplikacija 4171 → **__COUNT__**, pun prolaz
+bez ičega pored; `analyze` isti 22. Provera [249.1] ostaje: isti build, ista
+putanja, i id iz `crash.log` mora biti id iz `mislisha-stderr.txt`.
+
 Faza 2b (motor nikad ne vidi čvor bez roditelja, jer ga graditelj zadrži do
 ažuriranja u kome ga roditelj navodi) ostaje **vlasnikova odluka** — menja ono
 što se motoru kaže i traži popodne sa Narratorom pre nego što se poveruje.

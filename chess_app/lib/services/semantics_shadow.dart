@@ -5,39 +5,67 @@ import 'package:flutter/semantics.dart';
 
 import 'package:chess_app/services/crash_trail.dart';
 
-/// The Windows engine's own rules, in one class: an update the engine refuses
-/// leaves its tree broken from then on, and a few updates later — seconds or
-/// minutes, whenever the heap gives the page back — it reads freed memory and
-/// the app dies (`AccessibilityBridge::SetRoleFromFlutterUpdate`, the crashes
-/// of 20–22.9 and 26.9.2026). docs/PLAN-FORENZIKA-PADA.md, phase 2.
+/// The Windows engine's accessibility tree, shadowed in the app — phase 2 of
+/// `docs/PLAN-FORENZIKA-PADA.md`.
 ///
-/// The engine refuses an update for three reasons, and [refusalsOf] says each
-/// in the engine's own words (`ax_tree.cc`), so a line of ours can be put
-/// beside the engine's stderr and compared id for id:
+/// The engine (`shell/platform/common/accessibility_bridge.cc`) builds a
+/// `ui::AXTree` from what the framework sends, and refuses an update the tree
+/// cannot take. Once refused, the bridge keeps pointers into the update it has
+/// already freed, and a later commit reads them: the crashes of 20–22.9.2026
+/// and of 26.9.2026, all in `SetRoleFromFlutterUpdate`. The engine says why
+/// only on stderr, which an installed app has nowhere to send, and it names a
+/// node by an id nothing maps back to a widget afterwards. So the app applies
+/// the engine's rules to every update **before** handing it over, and writes
+/// what the engine would refuse, with the node's texts, into the trail and
+/// `crash.log` (`CrashTrail.recordLasting`).
 ///
-/// 1. `N will not be in the tree and is not the new root` — a node nothing
-///    in the resulting tree reaches from node 0. The one seen live
-///    (26.9.2026, 22:29:50, three times before the crash); [orphansOf].
-/// 2. `Node P has duplicate child id C` — one node lists a child twice.
-/// 3. `Node C is not marked for destruction, would be reparented to P` — a
-///    node its parent still lists after the update is listed by another
-///    parent too, from the tree or from the same update.
+/// **The engine commits in two steps**, and the model follows both:
 ///
-/// `test/move_tree_semantics_orphan_test.dart` carried a private copy of rule
-/// 1 (`_orphansAcross`) before this class existed; it now imports this one.
+/// 1. `CreateRemoveReparentedNodesUpdate`: a tree cannot move a node in one
+///    update, so every child that a node in the update lists while the tree
+///    still holds it under another parent is first taken **off its old
+///    parent**. That step is an update of the old parents alone, and it is
+///    refused when one of those old parents is itself inside a subtree that
+///    the same step detaches — removing the outer subtree throws away the
+///    inner old parent, and `ui::AXTree` answers „N will not be in the tree
+///    and is not the new root" for it. That is the refusal at line 65 of the
+///    bridge, the one the owner's stream showed on 26.9.2026 (node 13051).
+///    The bridge returns without clearing its pending list, which is the
+///    memory the crash then reads.
+/// 2. The update itself: a node the update carries that nothing in the
+///    resulting tree reaches is refused with the same words; a node listing
+///    the same child twice, and a child claimed by two parents within one
+///    update, are refused with the tree's other two messages.
+///
+/// What is **not** a refusal: a node moving to a new parent whose old parent
+/// is not in the update. Step 1 exists for exactly that, and a first draft of
+/// this class that called it one wrote five false alarms in one run on
+/// 26.9.2026 and spent the whole cap on them, so the real refusal a second
+/// later was never written.
 class SemanticsShadow {
+  /// id → children in traversal order, of every node the engine's tree holds.
   Map<int, List<int>> _tree = <int, List<int>>{};
 
-  /// Forgets the tree this shadow has kept, so the next update is judged from
-  /// nothing — a test's own reset, mirroring [OrphanWatch.resetForTest].
-  void reset() => _tree = <int, List<int>>{};
+  /// The last texts each node was sent with. Kept here rather than in the
+  /// builder because a step-1 orphan is an **old** parent, sent in some
+  /// earlier update, and the builder that carries the current update never
+  /// saw it.
+  final Map<int, NodeTexts> _texts = <int, NodeTexts>{};
 
-  /// Takes [update] into the kept tree and returns the ids it carried that
-  /// nothing in the resulting tree reaches (rule 1).
+  void reset() {
+    _tree = <int, List<int>>{};
+    _texts.clear();
+  }
+
+  void remember(int id, NodeTexts texts) => _texts[id] = texts;
+
+  NodeTexts? textsOf(int id) => _texts[id];
+
+  /// The ids the engine would refuse under the words „will not be in the tree
+  /// and is not the new root", in either step.
   List<int> orphansOf(Map<int, List<int>> update) => judge(update).orphans;
 
-  /// Takes [update] into the kept tree and returns every refusal the engine
-  /// would print for it, in its words: rules 2 and 3 first, then rule 1.
+  /// Every refusal, in the engine's own words.
   List<String> refusalsOf(Map<int, List<int>> update) {
     final verdict = judge(update);
     return [
@@ -47,18 +75,78 @@ class SemanticsShadow {
     ];
   }
 
-  /// One step of the engine's model: [update] is judged against the kept
-  /// tree, then merged into it, and only what node 0 reaches is kept — the
-  /// engine drops what it refused, so a later update cannot reach anything
-  /// through it. `others` holds rules 2 and 3 as the engine words them.
-  ({List<int> orphans, List<String> others}) judge(
-    Map<int, List<int>> update,
-  ) {
-    final others = <String>[];
+  /// Applies [update] the way the bridge commits it, and returns what it
+  /// would refuse: [orphans] under the tree's „will not be in the tree"
+  /// words, [others] as the tree's other messages; [step] names which of the
+  /// two commits refused (`'removing reparented'` or `'update'`), and [why]
+  /// says, for a step-1 orphan, which child left it and which moving subtree
+  /// held it.
+  ({
+    List<int> orphans,
+    List<String> others,
+    String step,
+    Map<int, String> why,
+  }) judge(Map<int, List<int>> update) {
     final parentOf = <int, int>{
       for (final entry in _tree.entries)
         for (final child in entry.value) child: entry.key,
     };
+
+    // Step 1 — take reparented children off their old parents.
+    final removed = <int, List<int>>{};
+    final moved = <int, ({int from, int to})>{};
+    for (final entry in update.entries) {
+      for (final child in entry.value) {
+        final old = parentOf[child];
+        if (old == null || old == entry.key) continue;
+        (removed[old] ??= List<int>.of(_tree[old] ?? const <int>[]))
+            .remove(child);
+        moved[child] = (from: old, to: entry.key);
+      }
+    }
+    if (removed.isNotEmpty) {
+      final afterRemoval = <int, List<int>>{..._tree, ...removed};
+      final reached = _reachable(afterRemoval);
+      final lost = [
+        for (final id in removed.keys)
+          if (!reached.contains(id)) id,
+      ];
+      if (lost.isNotEmpty) {
+        final why = <int, String>{};
+        for (final id in lost) {
+          final left = [
+            for (final m in moved.entries)
+              if (m.value.from == id) '${m.key} to ${m.value.to}',
+          ].join(', ');
+          // The moving subtree that held it: walk up the old tree to the first
+          // ancestor (itself included) that is on the move.
+          int? holder;
+          for (int? at = id; at != null; at = parentOf[at]) {
+            if (moved.containsKey(at)) {
+              holder = at;
+              break;
+            }
+          }
+          why[id] = 'lost $left'
+              '${holder == null ? '' : ', inside $holder moving to ${moved[holder]!.to}'}';
+        }
+        // The bridge returns here without touching its tree or clearing its
+        // pending list; nothing is kept from this update.
+        return (
+          orphans: lost,
+          others: const <String>[],
+          step: 'removing reparented',
+          why: why,
+        );
+      }
+      _tree = {
+        for (final entry in afterRemoval.entries)
+          if (reached.contains(entry.key)) entry.key: entry.value,
+      };
+    }
+
+    // Step 2 — the update itself.
+    final others = <String>[];
     final claimed = <int, int>{};
     for (final entry in update.entries) {
       final parent = entry.key;
@@ -75,26 +163,20 @@ class SemanticsShadow {
           continue;
         }
         claimed[child] = parent;
-        final old = parentOf[child];
-        if (old == null || old == parent) continue;
-        final stillListed =
-            (update[old] ?? _tree[old] ?? const <int>[]).contains(child);
-        if (stillListed) {
+        // Step 1 took the child off an old parent the update does not carry.
+        // An old parent the update **does** carry, and that still lists the
+        // child, puts it back — and then the tree is asked to move it.
+        final old = moved[child]?.from;
+        if (old != null &&
+            old != parent &&
+            (update[old]?.contains(child) ?? false)) {
           others.add('Node $child is not marked for destruction, '
               'would be reparented to $parent');
         }
       }
     }
-
     final merged = <int, List<int>>{..._tree, ...update};
-    final reached = <int>{};
-    final stack = <int>[0];
-    while (stack.isNotEmpty) {
-      final id = stack.removeLast();
-      final children = merged[id];
-      if (children == null || !reached.add(id)) continue;
-      stack.addAll(children);
-    }
+    final reached = _reachable(merged);
     final orphans = [
       for (final id in update.keys)
         if (!reached.contains(id)) id,
@@ -103,14 +185,35 @@ class SemanticsShadow {
       for (final entry in merged.entries)
         if (reached.contains(entry.key)) entry.key: entry.value,
     };
-    return (orphans: orphans, others: others);
+    // The update's own ids are spared: an orphan is by definition not in the
+    // tree, and its texts are what the line about it is made of.
+    _texts.removeWhere(
+      (id, _) => !_tree.containsKey(id) && !update.containsKey(id),
+    );
+    return (
+      orphans: orphans,
+      others: others,
+      step: 'update',
+      why: const <int, String>{},
+    );
+  }
+
+  static Set<int> _reachable(Map<int, List<int>> tree) {
+    final reached = <int>{};
+    final stack = <int>[0];
+    while (stack.isNotEmpty) {
+      final id = stack.removeLast();
+      final children = tree[id];
+      if (children == null || !reached.add(id)) continue;
+      stack.addAll(children);
+    }
+    return reached;
   }
 }
 
-/// One node's texts, as far as this builder is concerned — enough to name an
-/// orphan in the trail without carrying the rest of the update.
-class _NodeTexts {
-  const _NodeTexts(this.label, this.value, this.tooltip);
+/// What a node was last called: enough to recognise it in the trail.
+class NodeTexts {
+  const NodeTexts(this.label, this.value, this.tooltip);
   final String label;
   final String value;
   final String? tooltip;
@@ -119,33 +222,28 @@ class _NodeTexts {
       label.isNotEmpty || value.isNotEmpty || (tooltip?.isNotEmpty ?? false);
 }
 
-/// Forwards every call to a real [ui.SemanticsUpdateBuilder], while keeping
-/// enough of what it saw — each node's children and its label, value and
-/// tooltip — to ask [SemanticsShadow] whether this update orphans anything.
-///
-/// An orphan writes one line to [CrashTrail] **before** the real [build]
-/// returns the update the engine is about to refuse — a native crash can
-/// follow within the same frame, and nothing after this call is guaranteed to
-/// run. No test can see that ordering (a write after the real `build()` would
-/// still leave the same line on disk by the time anything reads it), so it is
-/// asserted here in prose instead: the write happens first because the value
-/// it is racing is the process staying alive, not another line of code.
+/// The builder the app hands the framework: forwards everything to the real
+/// one, and asks the shadow first.
 class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
   OrphanWatchingBuilder(this._real, this._shadow);
 
   final ui.SemanticsUpdateBuilder _real;
   final SemanticsShadow _shadow;
-
   final Map<int, List<int>> _children = <int, List<int>>{};
-  final Map<int, _NodeTexts> _texts = <int, _NodeTexts>{};
 
-  static const int _cap = 5;
-  static int _linesWritten = 0;
+  /// Two caps, one a kind, so that no line of one kind can silence the other:
+  /// on 26.9.2026 five lines of a rule that was wrong spent a single cap of
+  /// five before the refusal the engine actually made.
+  static const int orphanCap = 20;
+  static const int otherCap = 10;
+  static int _orphanLines = 0;
+  static int _otherLines = 0;
 
-  /// Resets the cap counter this class shares across every instance in the
-  /// process. `OrphanWatch.resetForTest` calls this.
   @visibleForTesting
-  static void resetCapForTest() => _linesWritten = 0;
+  static void resetCapForTest() {
+    _orphanLines = 0;
+    _otherLines = 0;
+  }
 
   @override
   void updateNode({
@@ -195,7 +293,7 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
     required String maxValue,
   }) {
     _children[id] = childrenInTraversalOrder.toList();
-    _texts[id] = _NodeTexts(label, value, tooltip);
+    _shadow.remember(id, NodeTexts(label, value, tooltip));
     _real.updateNode(
       id: id,
       flags: flags,
@@ -268,9 +366,9 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
       // text of its own (measured 26.9.2026: the node Flutter orphans for a
       // nested tooltip or a slider's overlay carries none) still gets a line,
       // by its ids alone — which is what the engine's stderr names too.
-      var chosen = _texts[orphans.first];
+      var chosen = _shadow.textsOf(orphans.first);
       for (final id in orphans) {
-        final texts = _texts[id];
+        final texts = _shadow.textsOf(id);
         if (texts != null && texts.hasAnyText) {
           chosen = texts;
           break;
@@ -279,27 +377,36 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
       final label = chosen?.label ?? '';
       final value = chosen?.value ?? '';
       final tooltip = chosen?.tooltip ?? '';
-      _say('semantics orphan $orphans "$label" "$value" "$tooltip"');
+      final why = [
+        for (final id in orphans)
+          if (verdict.why[id] != null) '$id ${verdict.why[id]}',
+      ].join('; ');
+      _sayOrphan('semantics orphan $orphans "$label" "$value" "$tooltip" '
+          'while ${verdict.step == 'update' ? 'updating' : verdict.step}'
+          '${why.isEmpty ? '' : ': $why'}');
     }
     for (final refusal in verdict.others) {
-      _say('semantics refused $refusal');
+      _sayOther('semantics refused $refusal');
     }
     return _real.build();
   }
 
-  /// Into the trail and into `crash.log`, which is not a ring: the crash may
-  /// come seconds or minutes after the refusal (docs/PLAN-FORENZIKA-PADA.md).
-  static void _say(String line) {
-    if (_linesWritten >= _cap) return;
-    _linesWritten++;
+  static void _sayOrphan(String line) {
+    if (_orphanLines >= orphanCap) return;
+    _orphanLines++;
+    CrashTrail.instance.recordLasting(line);
+  }
+
+  static void _sayOther(String line) {
+    if (_otherLines >= otherCap) return;
+    _otherLines++;
     CrashTrail.instance.recordLasting(line);
   }
 }
 
-/// Overrides [SemanticsBinding.createSemanticsUpdateBuilder] so every
-/// semantics update the app sends goes through [OrphanWatchingBuilder]. Costs
-/// nothing while no client has semantics on: the builder is created only
-/// when the owner asks for one.
+/// The app's binding is `WidgetsFlutterBinding with OrphanWatch`
+/// (`lib/app_binding.dart`); the gate's is the test binding with the same
+/// mixin, so what the gate proves is what the app runs.
 mixin OrphanWatch on SemanticsBinding {
   final SemanticsShadow _shadow = SemanticsShadow();
 
@@ -307,8 +414,6 @@ mixin OrphanWatch on SemanticsBinding {
   ui.SemanticsUpdateBuilder createSemanticsUpdateBuilder() =>
       OrphanWatchingBuilder(super.createSemanticsUpdateBuilder(), _shadow);
 
-  /// Resets the cap counter and the shadow this binding holds, so a test
-  /// starts the next case with neither.
   @visibleForTesting
   static void resetForTest() {
     OrphanWatchingBuilder.resetCapForTest();

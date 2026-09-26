@@ -138,19 +138,33 @@ cleared (7); the tooltip fallback removed (3, second case).
   `_orphansAcross` in `test/move_tree_semantics_orphan_test.dart` does today.
   That test imports it and deletes its copy; its case „the rule itself catches
   an orphan" becomes the class's own.
-- **Three rules, not one** (Fable, 26.9.2026, from the engine's strings).
-  `SemanticsShadow.refusalsOf(update)` returns the engine's own messages for
-  all three, in its wording, so a trail line can be compared with stderr
-  word for word:
-  1. `%d will not be in the tree and is not the new root` — the orphan,
-     which is `orphansOf` and tonight's crash;
+- **The engine commits in two steps, and the shadow follows both**
+  (corrected by Fable late on 26.9.2026, from the bridge's source at this
+  SDK's engine revision, after the first build of the detector wrote five
+  lines the engine never wrote and none that it did). `ui::AXTree` cannot
+  move a node in one update, so `AccessibilityBridge::CommitUpdates` first
+  applies `CreateRemoveReparentedNodesUpdate` — every child a node in the
+  update lists while the tree holds it under another parent is taken off
+  that old parent, in an update of the old parents alone — and only then the
+  update itself. `SemanticsShadow.judge(update)` does the same and returns
+  the engine's own words, so a trail line can be compared with stderr word
+  for word:
+  1. `%d will not be in the tree and is not the new root` — in **step 1**,
+     an old parent that sits inside a subtree the same step detaches (the
+     refusal at line 65 of the bridge; node 13051 on 26.9.2026 at 23:00,
+     three seconds before the crash); in **step 2**, a node the update
+     carries that nothing in the resulting tree reaches (the September
+     shapes). The line says which step, and for step 1 which child left the
+     node and which moving subtree held it.
   2. `Node %d has duplicate child id %d` — one node lists the same child
-     twice;
-  3. `Node %d is not marked for destruction, would be reparented to %d` — a
-     node its kept parent still lists after the update is listed by another
-     parent too (in the tree, or in the same update).
-  Only rule 1 has been seen; 2 and 3 are modelled because the same crash
-  follows any refusal.
+     twice.
+  3. `Node %d is not marked for destruction, would be reparented to %d` —
+     a child claimed by two parents **within one update**, or put back by an
+     old parent the update still carries. **Not** a move whose old parent is
+     absent from the update: step 1 exists for exactly that, and calling it
+     a refusal is what the first build did, five times in one run.
+  A step-1 refusal leaves the bridge's pending list uncleared, which is the
+  memory the crash then reads.
 - `OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder`: forwards every
   call to a real builder, records `id → children` and each node's label,
   value and tooltip, and in `build()` asks the shadow first. An orphan writes
@@ -159,8 +173,12 @@ cleared (7); the tooltip fallback removed (3, second case).
   through `CrashBreadcrumbService` with the route the trail last saw — the
   trail is a ring and the crash may come forty taps later (see the rules).
   Both synchronously, **before** the real `build()` returns the update the
-  engine will refuse. At most 5 such lines per process; after the first
-  refusal the engine's tree is broken anyway (22.9).
+  engine will refuse. **Two caps, one a kind**: 20 orphan lines and 10 of
+  the other rules per process, because on 26.9.2026 five lines of a rule
+  that was wrong spent a single cap of five before the refusal the engine
+  actually made. The node's texts are kept in the shadow across updates,
+  since a step-1 orphan is an old parent and may not be in the update that
+  refuses it.
 - `mixin OrphanWatch on SemanticsBinding` overrides
   `createSemanticsUpdateBuilder`; `class AppBinding = WidgetsFlutterBinding
   with OrphanWatch;` in `lib/app_binding.dart`, and `main()` calls
@@ -180,7 +198,9 @@ nothing otherwise. With a client on it is one DFS over the tree per update.
 2. The builder, driven through `ui.SemanticsUpdateBuilder`'s own
    `updateNode`: an orphan with a label, value and tooltip leaves one line,
    `semantics orphan [2] "Playback speed" "50%" "Speed"`.
-3. The cap: six orphans leave five lines, the sixth absent.
+3. The caps: twenty-one orphans leave twenty lines; eleven duplicate-child
+   updates leave ten `refused` lines and every one of the twenty orphan
+   lines after them is still written.
 4. Under `AutomatedTestWidgetsFlutterBinding with OrphanWatch`, semantics on,
    Flutter's own `Slider` opened in a dialog leaves one `semantics orphan
    [ids]` line in the trail, and the same line in `crash.log` (read
@@ -206,11 +226,22 @@ nothing otherwise. With a client on it is one DFS over the tree per update.
    two dialog cases of this gate assert the same silence.
 8. Rules 2 and 3, pure: `{0: [1, 1], 1: []}` gives `Node 0 has duplicate
    child id 1`; with `{0: [1, 2], 1: [3], 2: [], 3: []}` kept, `{2: [3]}`
-   gives `Node 3 is not marked for destruction, would be reparented to 2`,
-   and `{1: [], 2: [3]}` (the old parent lets go in the same update) gives
-   nothing; two parents claiming a new node in one update give rule 3 for
-   the second. Through the builder, a rule-2 or rule-3 update leaves a
-   `semantics refused <message>` line.
+   gives **nothing** (superseded 26.9.2026, evening: step 1 moves it), and
+   `{1: [3], 2: [3]}` gives `Node 3 is not marked for destruction, would be
+   reparented to 2`; two parents claiming a new node in one update give
+   rule 3 for the second. Through the builder, a rule-2 or rule-3 update
+   leaves a `semantics refused <message>` line.
+9. The remove step (`removing reparented nodes`): with `{0: [1, 2], 1: [5],
+   5: [6], 6: [7], 2: [], 7: []}` kept, the update `{2: [5], 5: [6], 6: [],
+   1: [7], 7: []}` (5 moves to 2, 7 moves from 6 to 1) refuses `[6]` in step
+   `removing reparented` with `why[6] == 'lost 7 to 1, inside 5 moving to
+   2'`; the moving node itself losing a child (`5: [7]` kept, `5: []` sent)
+   refuses `[5]`; a move with nothing lost inside it passes both steps and
+   the kept tree is the tree after the move; a refused removal keeps
+   nothing of the update. Through the builder the line reads `semantics
+   orphan [6] "Playback speed" "" "" while removing reparented: 6 lost 7 to
+   1, inside 5 moving to 2`, and a node the update does not carry is named
+   by the texts it was last sent with.
 
 **Not added to the gate: the owner's reproduction path.** Fable drove it
 under the September spy in every variant — settled and not, Android and
@@ -227,6 +258,16 @@ Mutations: the DFS starting from the update's keys instead of 0 (1 goes
 red); refused nodes kept in the tree (1, third case); the write moved after
 the real `build()` (inert — the order is a rule the test cannot see, and the
 comment says why); the label capture dropped (2); the cap removed (3).
+Second round, 26.9.2026 evening, after the two-step correction, seven
+mutants: step 1 skipped (9, both refusals, and both builder cases); the old
+branch of rule 3 restored (**inert** — step 1 has already taken the child
+off the old parent in the shadow's tree, so the branch can no longer fire;
+recorded, not chased); one counter for both caps, and one counter with the
+larger cap (3, which first survived until the case filled both caps);
+texts of the update's own ids pruned before the line is made (2, and the
+caps case); the moving subtree left out of `why` (9); a refused removal
+kept as the tree (9, fourth case); step 2 walking from every node instead
+of the root (9 and the Slider case).
 
 ### Phase 2b — hold an orphan back until a parent names it `[owner's decision]`
 

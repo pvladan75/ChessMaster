@@ -1,8 +1,8 @@
 // The gate of phase 2 of docs/PLAN-FORENZIKA-PADA.md: the app applies the
 // Windows engine's rule to every semantics update it sends, and writes a
 // trail line for an update the engine is about to refuse — before that update
-// leaves `build()`, because the crash of 26.9.2026 came one update after the
-// refusal.
+// leaves `build()`. The engine commits in two steps and the shadow follows
+// both (`SemanticsShadow`); the refusal of 26.9.2026 was in the first.
 //
 // The binding is the app's own mixin over the test binding, for the whole
 // file.
@@ -206,7 +206,15 @@ void main() {
           ['Node 0 has duplicate child id 1']);
     });
 
-    test('a node its parent still lists, taken by another', () {
+    // Superseded 26.9.2026, the evening it was written. The first draft called
+    // this a refusal, and one live run wrote it five times where the engine's
+    // own stream had nothing: the bridge takes a moved child off its old
+    // parent itself, in a step before the update
+    // (`CreateRemoveReparentedNodesUpdate`). A move whose old parent is not
+    // in the update is therefore the ordinary case, and refusing it spent the
+    // cap on noise before the real refusal a second later.
+    test('a node taken by another parent, its old one not in the update, moves',
+        () {
       final shadow = SemanticsShadow();
       expect(
           shadow.refusalsOf({
@@ -218,6 +226,24 @@ void main() {
           isEmpty);
       expect(
           shadow.refusalsOf({
+            2: [3],
+          }),
+          isEmpty);
+    });
+
+    test('a node its old parent still lists in the same update is refused', () {
+      // Step 1 took 3 off 1; the update then puts it back under 1 and under
+      // 2, and the tree is asked to move it — which it cannot do in one go.
+      final shadow = SemanticsShadow();
+      shadow.refusalsOf({
+        0: [1, 2],
+        1: [3],
+        2: [],
+        3: [],
+      });
+      expect(
+          shadow.refusalsOf({
+            1: [3],
             2: [3],
           }),
           ['Node 3 is not marked for destruction, would be reparented to 2']);
@@ -254,6 +280,104 @@ void main() {
             4: [],
           }),
           ['Node 4 is not marked for destruction, would be reparented to 2']);
+    });
+  });
+
+  // The refusal of 26.9.2026 (node 13051, line 65 of the bridge): the step
+  // that takes moved children off their old parents is itself an update, of
+  // the old parents alone, and one of them can be inside a subtree that the
+  // same step detaches.
+  group('removing reparented nodes', () {
+    test('an old parent inside a moving subtree will not be in the tree', () {
+      final shadow = SemanticsShadow();
+      shadow.refusalsOf({
+        0: [1, 2],
+        1: [5],
+        5: [6],
+        6: [7],
+        2: [],
+        7: [],
+      });
+      // 5 moves from 1 to 2; 7 moves from 6 to 1. Taking 5 off 1 throws the
+      // subtree under 5 away, and 6 — an old parent in the same step — with
+      // it.
+      final verdict = shadow.judge({
+        2: [5],
+        5: [6],
+        6: [],
+        1: [7],
+        7: [],
+      });
+      expect(verdict.orphans, [6]);
+      expect(verdict.step, 'removing reparented');
+      expect(verdict.why[6], 'lost 7 to 1, inside 5 moving to 2');
+      expect(verdict.others, isEmpty);
+    });
+
+    test('the moving node itself losing a child is the same shape', () {
+      final shadow = SemanticsShadow();
+      shadow.refusalsOf({
+        0: [1, 2],
+        1: [5],
+        5: [7],
+        2: [],
+        7: [],
+      });
+      final verdict = shadow.judge({
+        2: [5],
+        5: [],
+        1: [7],
+        7: [],
+      });
+      expect(verdict.orphans, [5]);
+      expect(verdict.why[5], 'lost 7 to 1, inside 5 moving to 2');
+    });
+
+    test('a move with nothing lost inside it passes both steps', () {
+      final shadow = SemanticsShadow();
+      shadow.refusalsOf({
+        0: [1, 2],
+        1: [5],
+        5: [6],
+        2: [],
+        6: [],
+      });
+      expect(
+          shadow.refusalsOf({
+            2: [5],
+            5: [6],
+          }),
+          isEmpty);
+      // And the tree the shadow keeps is the tree after the move.
+      expect(
+          shadow.refusalsOf({
+            6: [8],
+            8: [],
+          }),
+          isEmpty);
+    });
+
+    test('a refused removal keeps nothing of the update', () {
+      final shadow = SemanticsShadow();
+      shadow.refusalsOf({
+        0: [1, 2],
+        1: [5],
+        5: [7],
+        2: [],
+        7: [],
+      });
+      shadow.judge({
+        2: [5],
+        5: [],
+        1: [7],
+        7: [],
+      });
+      // The bridge returned early: 5 is still under 1, 7 still under 5.
+      expect(
+          shadow.refusalsOf({
+            5: [7]
+          }),
+          isEmpty);
     });
   });
 
@@ -296,19 +420,99 @@ void main() {
           contains('semantics refused Node 0 has duplicate child id 1'));
     });
 
-    test('no more than five lines a process', () {
+    test('an old parent in a moving subtree is named by the label it was sent',
+        () {
+      final shadow = SemanticsShadow();
+      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      _node(first, 0, [1, 2]);
+      _node(first, 1, [5]);
+      _node(first, 5, [6]);
+      _node(first, 6, [7], label: 'Playback speed');
+      _node(first, 2, []);
+      _node(first, 7, []);
+      first.build();
+      expect(orphanLines(), isEmpty);
+
+      // 6 lost a child, so the framework sends it again, texts and all.
+      final second = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      _node(second, 2, [5]);
+      _node(second, 5, [6]);
+      _node(second, 6, [], label: 'Playback speed');
+      _node(second, 1, [7]);
+      _node(second, 7, []);
+      second.build();
+      expect(orphanLines(), hasLength(1));
+      expect(
+          orphanLines().single,
+          endsWith('semantics orphan [6] "Playback speed" "" "" '
+              'while removing reparented: 6 lost 7 to 1, inside 5 moving to 2'));
+      expect(lastingLines(), [contains('semantics orphan [6]')]);
+    });
+
+    test('a node the update does not carry is named by the last texts it had',
+        () {
+      final shadow = SemanticsShadow();
+      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      _node(first, 0, [1, 2]);
+      _node(first, 1, [5]);
+      _node(first, 5, [7], tooltip: 'Speed');
+      _node(first, 2, []);
+      _node(first, 7, []);
+      first.build();
+
+      // 5 moves to 2 and loses 7 to 1, and the update happens not to carry
+      // 5's texts: the shadow remembers them from the update that did.
+      final second = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      _node(second, 2, [5]);
+      _node(second, 1, [7]);
+      _node(second, 7, []);
+      second.build();
+      expect(orphanLines(), [contains('semantics orphan [5] "" "" "Speed"')]);
+    });
+
+    test('no more than twenty orphan lines a process', () {
       final shadow = SemanticsShadow();
       final seed = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
       _node(seed, 0, []);
       seed.build();
-      for (var i = 0; i < 6; i++) {
+      for (var i = 0; i < OrphanWatchingBuilder.orphanCap + 1; i++) {
         final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
         _node(b, 100 + i, [], label: 'orphan $i');
         b.build();
       }
       final got = orphanLines();
-      expect(got, hasLength(5));
-      expect(got.any((l) => l.contains('orphan 5')), isFalse);
+      expect(got, hasLength(OrphanWatchingBuilder.orphanCap));
+      expect(
+          got.any(
+              (l) => l.contains('orphan ${OrphanWatchingBuilder.orphanCap}')),
+          isFalse);
+    });
+
+    test('lines of the other rules do not spend the orphan cap', () {
+      // 26.9.2026: five lines of a rule that was wrong used up one shared cap
+      // of five, and the refusal the engine actually made a second later was
+      // never written.
+      final shadow = SemanticsShadow();
+      final seed = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      _node(seed, 0, [1]);
+      _node(seed, 1, []);
+      seed.build();
+      for (var i = 0; i < OrphanWatchingBuilder.otherCap + 1; i++) {
+        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+        _node(b, 1, [2, 2]);
+        _node(b, 2, []);
+        b.build();
+      }
+      expect(refusedLines(), hasLength(OrphanWatchingBuilder.otherCap));
+      // Every orphan line the cap allows is still written after that — a
+      // shared counter would have spent half of them already.
+      for (var i = 0; i < OrphanWatchingBuilder.orphanCap; i++) {
+        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+        _node(b, 100 + i, [], label: 'the real one $i');
+        b.build();
+      }
+      expect(orphanLines(), hasLength(OrphanWatchingBuilder.orphanCap));
+      expect(orphanLines().last, contains('"the real one 19"'));
     });
   });
 
