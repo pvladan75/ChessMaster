@@ -8450,3 +8450,46 @@ Mutacije druge runde: sedam, pet uhvaćene, jedna inertna (stara grana pravila
 pisao 11 redova druge vrste i *jedan* čvor bez roditelja, pa je i zajednički
 brojač imao mesta; tek kad slučaj napuni oba capa, zajednički brojač pada.
 **Slučaj za dva capa mora da napuni oba.**
+
+## 27.9.2026 — Faza 2b: motor ne vidi ono što bi odbio
+
+Detektor je na prvom pravom pokretanju imenovao pad (27377 u stderr-u motora
+i u redu detektora iz istog pokretanja), i red je rekao oblik: odlazak iz
+sobe premešta celo njeno podstablo pod koren, dok dvesta redova Biblioteke u
+njemu gubi po dete. To nije oblik jednog widgeta, pa je vlasnik tražio 2b.
+
+**Dizajn se nije mogao napisati iz čitanja — dve činjenice su izmerene.**
+Špijun ispred graditelja: premešten čvor se ponovo kači i ne šalje, njegovi
+nepromenjeni potomci takođe ne; a `pop` rute sa redovima na dodir ne premešta
+ništa (redovi se pošalju sa blokiranim akcijama, i to je sve). Prva čini da
+zadržavanje samo čvora bez roditelja ne bi spaslo ni jedan premeštaj: motor
+podstablo uništi u koraku 1 i mora da ga sagradi iz ažuriranja u koraku 2 —
+graditelj mora da čuva pune podatke svakog čvora i da dopuni podstablo sam.
+Druga kaže da je spoljni premeštaj u padu iz stabla aplikacije iznad rute, i
+da nijedna fikstura koju smo imali ne može da ga vidi. **Kad se popravka
+oslanja na to šta okvir šalje, izmeri šta okvir šalje; tekst okvira to ne
+kaže.**
+
+**Graditelj može da pošalje dva commit-a.** Okvir pozove `build()` i predaje
+rezultat pogledu (`RenderView.updateSemantics` → `FlutterView.updateSemantics`)
+bez ikakvog dispose-a; graditelj u `build()` sme da pošalje prvi commit istom
+pozivu i da vrati drugi. Redosled je zagarantovan (jedan zadatak po commit-u
+na platformskoj niti). To je i mutacija 4 — commit poslat *posle* drugog —
+koju je slučaj sa špijunom na `sendEarly` uhvatio.
+
+**Dupli čvor u listi je popravljiv, i popravka je jeftinija od reda o
+njemu.** Prva verzija planera je propuštala dete navedeno dvaput; commit ga je
+i dalje odbijao, pa se za svako ažuriranje pisao drugi red i cap druge vrste
+se trošio duplo. Sad se navodi jednom, a dete koje dva roditelja traže ostaje
+kod novijeg. Slučaj koji je to našao je bio septembarski slučaj duplog
+deteta, koji je odjednom pisao dva reda — **stari slučaj koji promeni broj
+redova je nalaz, ne šum.**
+
+**Lista crvenih u mutacionom alatu je bila laž, verdikt nije.** Regex je hvatao
+i redove napretka, pa je svaki mutant „pao" na istim slučajevima; verdikt je
+bio iz izlaznog koda i tačan. Popravljen na obeleživač `[E]` i runda ponovo
+vođena: devet mutanata, svaki uhvaćen slučajem napisanim za njega. **Koji test
+je pao je podatak koji se čita iz obeleživača greške, ne iz imena testa u
+izlazu.**
+
+Brojevi: 4179 → 4193, `analyze` 22.

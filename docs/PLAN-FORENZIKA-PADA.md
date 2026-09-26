@@ -269,14 +269,95 @@ caps case); the moving subtree left out of `why` (9); a refused removal
 kept as the tree (9, fourth case); step 2 walking from every node instead
 of the root (9 and the Slider case).
 
-### Phase 2b — hold an orphan back until a parent names it `[owner's decision]`
+### Phase 2b — the engine never sees what it would refuse `[lead — built 27.9.2026]`
 
-The builder could keep an orphan node out of the update and send it in the
-first later update where a parent lists it, and the engine would never see
-a refusal. That prevents the whole class of crash, not one shape. It is not
-briefed: it changes what the engine is told, and it needs an afternoon with
-Narrator on Windows before it is believed. Phase 2's trail line names the
-shape for a fix per shape, which is what 22.9 did.
+Ordered by the owner on 26.9.2026 at night, once the detector had named the
+crash on its first live run (node 27377 in the engine's stream and in the
+detector's list of the same run; the trail: leaving the room, `pop
+/room/:roomCode`, with about two hundred Library rows in its column). The
+shape is not one widget's, it is **any route with a long list being popped**
+with an accessibility client on, so a fix per shape would not have closed it.
+
+**Two framework facts decided the design**, both measured with a spy in front
+of the builder on 26.9.2026:
+
+- a reparented node is re-attached, not re-sent, and its unchanged
+  descendants are not sent either — so a moved subtree does not arrive whole,
+  while the engine destroys it in step 1 and has to recreate it from the
+  update in step 2;
+- on a pop, every row is re-sent with its actions blocked, and that alone
+  moves nothing — the outer move in the crash (`14115 moving to 1`) comes
+  from the app's own tree above the route, which no fixture has.
+
+So the builder ([`OrphanWatchingBuilder`](../chess_app/lib/services/semantics_shadow.dart))
+keeps every node's last full data (`NodeArgs`, pruned to the tree and the
+held-back nodes) and, on `build()`, sends the engine the shadow's [`Plan`]
+instead of the framework's update:
+
+1. **Inner moves get a commit of their own, first.** A child leaving an old
+   parent that sits inside another moving subtree is exactly what the
+   engine's step 1 cannot take. Those old parents alone, with those children
+   dropped and nothing new, go to the view (`FlutterView.updateSemantics`,
+   the same call the framework makes) **before** `build()` returns; the tree
+   takes that while the outer subtree still stands.
+2. **Every subtree the tree will not hold when the second commit arrives is
+   supplied from the cache**: a moved one, a held-back one now listed, a
+   child never sent.
+3. **A node nothing reaches is held back** and sent from the cache the day a
+   parent lists it; its data is kept for 60 updates, then forgotten.
+4. **What the tree refuses outright and the app can repair, it repairs**: a
+   child listed twice is listed once; a child two parents claim in one commit
+   stays with the one that is not its old parent.
+5. Where the cache cannot supply a node, the framework's update goes **as it
+   came**, and a `semantics hold-back failed` line says so — never worse
+   than before.
+
+The raw update's refusal is still written to the trail and `crash.log` as
+before, with `— held back` at the end, so a live run compares with the
+engine's stream as [249.1] did: from now on the stream should be **empty**
+where the log has the line.
+
+#### Gate — `test/semantics_holdback_test.dart`
+
+1. The plan, pure, on the crash's shape (`{0: [1, 2], 1: [5], 5: [6], 6:
+   [7], 2: [], 7: []}` kept; `{2: [5], 5: [6], 6: [], 1: [7], 7: []}` sent):
+   `part1 == {6: []}`, `part2` carries 2, 5, 6, 1 and 7, nothing held,
+   planning leaves the tree as it was, and `commit` returns no refusal and
+   the tree after the move. The moving node itself losing a child (`5: [7]`
+   kept, `5: []` sent) gives `part1 == {5: []}`.
+2. A subtree moving without its descendants (`{1: [], 2: [5]}` over `1: [5],
+   5: [6]`) is supplied whole: `part2 == {1: [], 2: [5], 5: [6], 6: []}`,
+   `supplied` 5 and 6.
+3. A node nothing reaches (`{2: [3], 3: []}`) is held, `part2` empty, and
+   sent from the cache with its child when `{1: [2]}` arrives.
+4. A held node is forgotten after `SemanticsShadow.heldFor` updates, and
+   after that cannot be supplied.
+5. A child listed twice is listed once; two claimants become one, and the
+   moved child is supplied again.
+6. The builder, with a recording stand-in for the real builder and a spy on
+   `sendEarly`: the inner move's commit reaches the view **before** `build()`
+   returns and carries node 6 alone; the returned commit carries the rest;
+   the trail line ends `— held back`; a moved subtree reaches the engine
+   whole; an orphan is kept from the engine and sent once adopted; what the
+   cache cannot supply goes as it came, with its line; custom actions ride
+   with the commit the framework gets back.
+7. The binding (`AutomatedTestWidgetsFlutterBinding with OrphanWatch`):
+   Flutter's own `Slider` in a dialog leaves the line, `heldEver` is not
+   empty, and no `hold-back` line — every commit the engine got was one it
+   takes; `AppSlider` needs nothing held.
+
+Mutations, nine, each caught by the case written for it: inner moves treated
+as outer (1, 6); nothing supplied (2, 3, 5); held nodes sent anyway (3, 6,
+7); the first commit sent after the second is built (6); no fallback (6);
+duplicate children kept (5, and phase 2's cap case); held data never
+forgotten (4); the model's `commit` skipping the first commit (1, 6); the
+`— held back` suffix dropped (6, 7).
+
+**What the gate cannot see**, said plainly: that the real engine takes the
+two commits. The model of the engine is the shadow's, written from the
+bridge's source at this SDK's revision, and it has been right about the two
+refusals it was compared with; the live pass [249.2] is where the engine
+itself says so.
 
 ## Phase 3 — the dump reader `[lead]`
 

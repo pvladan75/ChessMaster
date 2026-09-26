@@ -384,13 +384,16 @@ void main() {
   group('the builder', () {
     test('an orphan leaves a line with its label, value and tooltip', () {
       final shadow = SemanticsShadow();
-      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(first, 0, [1]);
       _node(first, 1, []);
       first.build();
       expect(orphanLines(), isEmpty);
 
-      final second = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final second = OrphanWatchingBuilder(
+          ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(second, 1, []);
       _node(second, 2, [],
           label: 'Playback speed', value: '50%', tooltip: 'Speed');
@@ -409,7 +412,8 @@ void main() {
     test('a duplicate child leaves a refused line, in the trail and crash.log',
         () {
       final shadow = SemanticsShadow();
-      final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(b, 0, [1, 1]);
       _node(b, 1, []);
       b.build();
@@ -423,7 +427,8 @@ void main() {
     test('an old parent in a moving subtree is named by the label it was sent',
         () {
       final shadow = SemanticsShadow();
-      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(first, 0, [1, 2]);
       _node(first, 1, [5]);
       _node(first, 5, [6]);
@@ -434,7 +439,9 @@ void main() {
       expect(orphanLines(), isEmpty);
 
       // 6 lost a child, so the framework sends it again, texts and all.
-      final second = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final second = OrphanWatchingBuilder(
+          ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(second, 2, [5]);
       _node(second, 5, [6]);
       _node(second, 6, [], label: 'Playback speed');
@@ -445,14 +452,16 @@ void main() {
       expect(
           orphanLines().single,
           endsWith('semantics orphan [6] "Playback speed" "" "" '
-              'while removing reparented: 6 lost 7 to 1, inside 5 moving to 2'));
+              'while removing reparented: 6 lost 7 to 1, inside 5 moving to 2 '
+              '— held back'));
       expect(lastingLines(), [contains('semantics orphan [6]')]);
     });
 
     test('a node the update does not carry is named by the last texts it had',
         () {
       final shadow = SemanticsShadow();
-      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final first = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(first, 0, [1, 2]);
       _node(first, 1, [5]);
       _node(first, 5, [7], tooltip: 'Speed');
@@ -462,21 +471,26 @@ void main() {
 
       // 5 moves to 2 and loses 7 to 1, and the update happens not to carry
       // 5's texts: the shadow remembers them from the update that did.
-      final second = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final second = OrphanWatchingBuilder(
+          ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(second, 2, [5]);
       _node(second, 1, [7]);
       _node(second, 7, []);
       second.build();
       expect(orphanLines(), [contains('semantics orphan [5] "" "" "Speed"')]);
+      expect(orphanLines().single, endsWith('— held back'));
     });
 
     test('no more than twenty orphan lines a process', () {
       final shadow = SemanticsShadow();
-      final seed = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final seed = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(seed, 0, []);
       seed.build();
       for (var i = 0; i < OrphanWatchingBuilder.orphanCap + 1; i++) {
-        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+            sendEarly: (_) {});
         _node(b, 100 + i, [], label: 'orphan $i');
         b.build();
       }
@@ -493,12 +507,14 @@ void main() {
       // of five, and the refusal the engine actually made a second later was
       // never written.
       final shadow = SemanticsShadow();
-      final seed = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+      final seed = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+          sendEarly: (_) {});
       _node(seed, 0, [1]);
       _node(seed, 1, []);
       seed.build();
       for (var i = 0; i < OrphanWatchingBuilder.otherCap + 1; i++) {
-        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+            sendEarly: (_) {});
         _node(b, 1, [2, 2]);
         _node(b, 2, []);
         b.build();
@@ -507,7 +523,8 @@ void main() {
       // Every orphan line the cap allows is still written after that — a
       // shared counter would have spent half of them already.
       for (var i = 0; i < OrphanWatchingBuilder.orphanCap; i++) {
-        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder(), shadow);
+        final b = OrphanWatchingBuilder(ui.SemanticsUpdateBuilder.new, shadow,
+            sendEarly: (_) {});
         _node(b, 100 + i, [], label: 'the real one $i');
         b.build();
       }

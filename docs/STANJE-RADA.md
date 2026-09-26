@@ -159,9 +159,51 @@ capa. **Brojevi posle ispravke:** aplikacija 4171 → **__COUNT__**, pun prolaz
 bez ičega pored; `analyze` isti 22. Provera [249.1] ostaje: isti build, ista
 putanja, i id iz `crash.log` mora biti id iz `mislisha-stderr.txt`.
 
-Faza 2b (motor nikad ne vidi čvor bez roditelja, jer ga graditelj zadrži do
-ažuriranja u kome ga roditelj navodi) ostaje **vlasnikova odluka** — menja ono
-što se motoru kaže i traži popodne sa Narratorom pre nego što se poveruje.
+**Provera [249.1] prošla, 26.9. u 23:33.** Na buildu sa ispravljenim
+detektorom vlasnik je pad izazvao istom putanjom: motor je odbio čvor 27377,
+a red detektora u `crash.log` iz istog pokretanja ima 27377 u spisku. Red
+kaže i šta se desilo: pri `pop /room/:roomCode` celo podstablo sobe se
+premešta pod koren (`inside 14115 moving to 1`), a u istom ažuriranju oko
+dvesta redova Biblioteke u koloni sobe gubi po dete — stari roditelj unutar
+podstabla koje se premešta, upravo oblik iz koraka 1. Nijedna fikstura to nije
+mogla da vidi, jer su sve davale sobi praznu kolonu.
+
+**Faza 2b u kodu (Fable, 27.9.2026, na vlasnikovu reč).** Oblik nije jednog
+widgeta nego „bilo koja ruta sa dugom listom koja se skida", pa popravka po
+obliku ne bi zatvorila klasu. Graditelj čuva pune podatke svakog čvora
+(`NodeArgs`) i na `build()` motoru šalje plan senke umesto ažuriranja okvira:
+unutrašnji premeštaji (dete napušta starog roditelja koji stoji u podstablu
+koje se i samo premešta) dobijaju **svoj commit, prvi**, poslat pogledu pre
+nego što se `build()` vrati; svako podstablo koje stablo neće imati kad stigne
+drugi commit (premešteno — motor ga uništi u koraku 1 — zadržano, ili nikad
+poslato) **dopunjuje se iz keša**; čvor do koga ništa ne vodi se **zadržava**
+i šalje kad ga roditelj navede; dete navedeno dvaput navodi se jednom, dete
+koje dva roditelja traže ostaje kod novijeg; a gde keš ne može da dopuni, ide
+ažuriranje kakvo je došlo, uz red `semantics hold-back failed`. Dve činjenice
+o okviru su izmerene pre toga špijunom ispred graditelja: premešten čvor se
+ponovo kači, ne šalje, i njegovi nepromenjeni potomci se ne šalju; a `pop`
+sam po sebi ne premešta ništa — spoljni premeštaj u padu dolazi iz stabla
+aplikacije iznad rute, koje nijedna fikstura nema. Kapija
+`semantics_holdback_test`: plan na obliku pada, podstablo bez potomaka,
+zadržavanje i usvajanje, zaborav posle 60 ažuriranja, dupli i dvostruko
+traženi čvor; graditelj sa snimačem umesto pravog graditelja i špijunom na
+`sendEarly` (redosled commit-ova, ceo premešten podstablo, zadržan čvor,
+fallback, custom akcije); binding sa Flutterovim `Slider`-om (zadržan, bez
+`hold-back` reda). Devet mutacija, sve uhvaćene pravim slučajem. **Ono što
+kapija ne vidi**: da pravi motor prima oba commit-a — to je provera
+[249.2]: ista putanja, ista preusmerenja, i `mislisha-stderr.txt` mora biti
+**prazan** tamo gde `crash.log` ima red `— held back`.
+**Brojevi:** aplikacija 4179 → **4193**, pun prolaz bez ičega pored, 1
+preskočen; `analyze` isti 22.
+
+**Otvoreno pitanje za vlasnika (27.9.2026, iz razgovora):** kad se pozicija
+iz Biblioteke stavi na tablu u Preparation, da li ide sama pozicija ili i
+stablo poteza. Danas `_putOnBoard` u sobi učitava šta god unos nosi — deo
+tutorijala sa `fen` i `pgn` (i delovi postaju koračnik), poziciju ili sken sa
+`fen` i `pgn` koji ima. Predlog: po vrsti — deo tutorijala **sa linijom** (to
+je materijal), zadatak **samo pozicija** (linija je rešenje, na deljenoj tabli
+bi ga odala), pozicija i sken samo pozicija, a sačuvana analiza kroz druga
+vrata. Vlasnik odlučuje u razgovoru; on ne čita ovaj dokument.
 
 **Brojevi.** Aplikacija **4139 → 4171** (18 u `crash_trail_test`, 14 u
 `semantics_shadow_test`), pun prolaz bez ičega pored, 1 preskočen; `analyze`

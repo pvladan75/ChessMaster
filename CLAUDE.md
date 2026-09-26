@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4179 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4193 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL (derived), 1772 without (measured)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -919,7 +919,19 @@ exist; the code says when** — the shadow now follows
 `CreateRemoveReparentedNodesUpdate` and the update as two steps, names for a
 step-1 orphan what it lost and which move held it, and caps each kind on
 its own (→ **4179**, a full run with nothing else running; analyze the
-same 22).
+same 22). That corrected detector then named the crash on its first live run
+(27377 in the engine's stream and in its own line: leaving the room moves
+its whole subtree under the root while two hundred Library rows inside it
+lose a child), and phase 2b followed on the owner's word (→ **4193**):
+the builder keeps every node's full data, gives inner moves a commit of
+their own **before** `build()` returns, supplies every moved or missing
+subtree from its cache, holds back what nothing reaches, and where it cannot
+supply sends the update as it came and says so. **A moved subtree does not
+arrive whole** — the framework re-attaches it and sends only what changed
+(measured) — so holding orphans back alone would have saved nothing; and
+**measure what the framework sends before designing on it.** Live check
+[249.2]: the engine's stream must be empty where `crash.log` says
+`— held back`.
 Two gate lessons: the plan promised the orphan line would carry the slider's
 value, and **measured, the orphaned node has no text at all** — a case that
 could not pass; and my own gate did not compile, because `dart:ui`'s

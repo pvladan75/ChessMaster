@@ -5,8 +5,8 @@ import 'package:flutter/semantics.dart';
 
 import 'package:chess_app/services/crash_trail.dart';
 
-/// The Windows engine's accessibility tree, shadowed in the app — phase 2 of
-/// `docs/PLAN-FORENZIKA-PADA.md`.
+/// The Windows engine's accessibility tree, shadowed in the app — phases 2 and
+/// 2b of `docs/PLAN-FORENZIKA-PADA.md`.
 ///
 /// The engine (`shell/platform/common/accessibility_bridge.cc`) builds a
 /// `ui::AXTree` from what the framework sends, and refuses an update the tree
@@ -14,52 +14,86 @@ import 'package:chess_app/services/crash_trail.dart';
 /// already freed, and a later commit reads them: the crashes of 20–22.9.2026
 /// and of 26.9.2026, all in `SetRoleFromFlutterUpdate`. The engine says why
 /// only on stderr, which an installed app has nowhere to send, and it names a
-/// node by an id nothing maps back to a widget afterwards. So the app applies
-/// the engine's rules to every update **before** handing it over, and writes
-/// what the engine would refuse, with the node's texts, into the trail and
-/// `crash.log` (`CrashTrail.recordLasting`).
+/// node by an id nothing maps back to a widget afterwards.
 ///
 /// **The engine commits in two steps**, and the model follows both:
 ///
 /// 1. `CreateRemoveReparentedNodesUpdate`: a tree cannot move a node in one
 ///    update, so every child that a node in the update lists while the tree
 ///    still holds it under another parent is first taken **off its old
-///    parent**. That step is an update of the old parents alone, and it is
-///    refused when one of those old parents is itself inside a subtree that
-///    the same step detaches — removing the outer subtree throws away the
-///    inner old parent, and `ui::AXTree` answers „N will not be in the tree
-///    and is not the new root" for it. That is the refusal at line 65 of the
-///    bridge, the one the owner's stream showed on 26.9.2026 (node 13051).
-///    The bridge returns without clearing its pending list, which is the
-///    memory the crash then reads.
+///    parent**, and its subtree destroyed. That step is an update of the old
+///    parents alone, and it is refused when one of those old parents is
+///    itself inside a subtree the same step detaches — removing the outer
+///    subtree throws away the inner old parent, and `ui::AXTree` answers
+///    „N will not be in the tree and is not the new root" for it. That is the
+///    refusal at line 65 of the bridge, the one the owner's stream showed on
+///    26.9.2026 (nodes 13051 and 27377: leaving the room, whose subtree moved
+///    under the root while two hundred Library rows inside it each lost a
+///    child).
 /// 2. The update itself: a node the update carries that nothing in the
 ///    resulting tree reaches is refused with the same words; a node listing
 ///    the same child twice, and a child claimed by two parents within one
-///    update, are refused with the tree's other two messages.
+///    update, are refused with the tree's other two messages. And a moved
+///    subtree, destroyed in step 1, has to be **recreated from the update** —
+///    which the framework does not fill: a reparented node is re-attached,
+///    not re-sent, and its unchanged descendants are not sent either
+///    (measured 26.9.2026 with a spy in front of the builder).
 ///
-/// What is **not** a refusal: a node moving to a new parent whose old parent
-/// is not in the update. Step 1 exists for exactly that, and a first draft of
-/// this class that called it one wrote five false alarms in one run on
-/// 26.9.2026 and spent the whole cap on them, so the real refusal a second
-/// later was never written.
+/// **Phase 2b — the engine never sees what it would refuse.** The builder the
+/// app hands the framework ([OrphanWatchingBuilder]) keeps every node's last
+/// full data ([NodeArgs]) and, on `build()`, asks the shadow for a [Plan]:
+///
+/// - inner moves — a child leaving an old parent that sits inside another
+///   moving subtree — go into a **first commit of their own**, sent to the
+///   view before the update returns: the old parents alone, with those
+///   children dropped and nothing new, which the tree takes while the outer
+///   subtree still stands;
+/// - every moved subtree, and every child a node lists that the tree does not
+///   hold, is **supplied whole from the cache** in the second commit;
+/// - a node nothing reaches is **held back**, and sent from the cache the day
+///   a parent lists it.
+///
+/// What the raw update would have been refused for is still written to the
+/// trail and `crash.log`, marked as held back, so a live run can be compared
+/// with the engine's own stream. Where the cache cannot supply a node the
+/// builder sends the framework's update untouched and says so: never worse
+/// than before.
 class SemanticsShadow {
   /// id → children in traversal order, of every node the engine's tree holds.
   Map<int, List<int>> _tree = <int, List<int>>{};
 
-  /// The last texts each node was sent with. Kept here rather than in the
+  /// The last full data each node was sent with. Kept here rather than in the
   /// builder because a step-1 orphan is an **old** parent, sent in some
-  /// earlier update, and the builder that carries the current update never
-  /// saw it.
-  final Map<int, NodeTexts> _texts = <int, NodeTexts>{};
+  /// earlier update, and because a moved or held-back node is re-sent from
+  /// here.
+  final Map<int, NodeArgs> _args = <int, NodeArgs>{};
+
+  /// Nodes held back, with the update count at which they were held. A held
+  /// node is adopted within a frame or two (the September shapes) or never;
+  /// after [heldFor] updates its data goes.
+  final Map<int, int> _held = <int, int>{};
+  int _updates = 0;
+  static const int heldFor = 60;
 
   void reset() {
     _tree = <int, List<int>>{};
-    _texts.clear();
+    _args.clear();
+    _held.clear();
+    _updates = 0;
   }
 
-  void remember(int id, NodeTexts texts) => _texts[id] = texts;
+  void remember(int id, NodeArgs args) => _args[id] = args;
 
-  NodeTexts? textsOf(int id) => _texts[id];
+  NodeTexts? textsOf(int id) {
+    final a = _args[id];
+    return a == null ? null : NodeTexts(a.label, a.value, a.tooltip);
+  }
+
+  @visibleForTesting
+  Map<int, List<int>> get tree => Map.unmodifiable(_tree);
+
+  @visibleForTesting
+  Set<int> get heldIds => _held.keys.toSet();
 
   /// The ids the engine would refuse under the words „will not be in the tree
   /// and is not the new root", in either step.
@@ -80,29 +114,24 @@ class SemanticsShadow {
   /// words, [others] as the tree's other messages; [step] names which of the
   /// two commits refused (`'removing reparented'` or `'update'`), and [why]
   /// says, for a step-1 orphan, which child left it and which moving subtree
-  /// held it.
-  ({
-    List<int> orphans,
-    List<String> others,
-    String step,
-    Map<int, String> why,
-  }) judge(Map<int, List<int>> update) {
-    final parentOf = <int, int>{
-      for (final entry in _tree.entries)
-        for (final child in entry.value) child: entry.key,
-    };
+  /// held it. With [dryRun] the tree is left as it was.
+  Verdict judge(Map<int, List<int>> update, {bool dryRun = false}) {
+    final before = dryRun ? Map<int, List<int>>.of(_tree) : null;
+    final verdict = _judge(update);
+    if (before != null) _tree = before;
+    return verdict;
+  }
+
+  Verdict _judge(Map<int, List<int>> update) {
+    final parentOf = _parents(_tree);
 
     // Step 1 — take reparented children off their old parents.
     final removed = <int, List<int>>{};
-    final moved = <int, ({int from, int to})>{};
-    for (final entry in update.entries) {
-      for (final child in entry.value) {
-        final old = parentOf[child];
-        if (old == null || old == entry.key) continue;
-        (removed[old] ??= List<int>.of(_tree[old] ?? const <int>[]))
-            .remove(child);
-        moved[child] = (from: old, to: entry.key);
-      }
+    final moved = _moves(update, parentOf);
+    for (final m in moved.entries) {
+      (removed[m.value.from] ??=
+              List<int>.of(_tree[m.value.from] ?? const <int>[]))
+          .remove(m.key);
     }
     if (removed.isNotEmpty) {
       final afterRemoval = <int, List<int>>{..._tree, ...removed};
@@ -118,21 +147,13 @@ class SemanticsShadow {
             for (final m in moved.entries)
               if (m.value.from == id) '${m.key} to ${m.value.to}',
           ].join(', ');
-          // The moving subtree that held it: walk up the old tree to the first
-          // ancestor (itself included) that is on the move.
-          int? holder;
-          for (int? at = id; at != null; at = parentOf[at]) {
-            if (moved.containsKey(at)) {
-              holder = at;
-              break;
-            }
-          }
+          final holder = _movingHolder(id, parentOf, moved);
           why[id] = 'lost $left'
               '${holder == null ? '' : ', inside $holder moving to ${moved[holder]!.to}'}';
         }
         // The bridge returns here without touching its tree or clearing its
         // pending list; nothing is kept from this update.
-        return (
+        return Verdict(
           orphans: lost,
           others: const <String>[],
           step: 'removing reparented',
@@ -185,18 +206,185 @@ class SemanticsShadow {
       for (final entry in merged.entries)
         if (reached.contains(entry.key)) entry.key: entry.value,
     };
-    // The update's own ids are spared: an orphan is by definition not in the
-    // tree, and its texts are what the line about it is made of.
-    _texts.removeWhere(
-      (id, _) => !_tree.containsKey(id) && !update.containsKey(id),
-    );
-    return (
+    return Verdict(
       orphans: orphans,
       others: others,
       step: 'update',
       why: const <int, String>{},
     );
   }
+
+  /// Phase 2b: what to send the engine instead of [update], so that it
+  /// refuses nothing. Leaves the tree as it was; [commit] applies a plan.
+  Plan plan(Map<int, List<int>> update) {
+    final parentOf = _parents(_tree);
+    final moved = _moves(update, parentOf);
+
+    // Inner moves: the old parent stands inside another moving subtree (or
+    // is one). Their removal is the engine's step 1 on this update, and it
+    // would throw the old parent away with the outer subtree — so they get a
+    // commit of their own, first, while everything still stands.
+    final inner = <int>{
+      for (final m in moved.entries)
+        if (_movingHolder(m.value.from, parentOf, moved, excluding: m.key) !=
+            null)
+          m.key,
+    };
+    final part1 = <int, List<int>>{};
+    for (final c in inner) {
+      final q = moved[c]!.from;
+      (part1[q] ??= List<int>.of(_tree[q] ?? const <int>[])).remove(c);
+    }
+    // The tree after that first commit: the dropped children's subtrees are
+    // gone.
+    var tree1 = <int, List<int>>{..._tree, ...part1};
+    if (part1.isNotEmpty) {
+      final reached1 = _reachable(tree1);
+      tree1 = {
+        for (final e in tree1.entries)
+          if (reached1.contains(e.key)) e.key: e.value,
+      };
+    }
+    // The engine's own step 1 on the second commit: the remaining moves,
+    // whose old parents are outside every moving subtree.
+    final parentOf1 = _parents(tree1);
+    var tree2 = Map<int, List<int>>.of(tree1);
+    for (final m in moved.entries) {
+      if (inner.contains(m.key)) continue;
+      final from = parentOf1[m.key];
+      if (from == null || from == m.value.to) continue;
+      tree2[from] = List<int>.of(tree2[from]!)..remove(m.key);
+    }
+    final reached2 = _reachable(tree2);
+    tree2 = {
+      for (final e in tree2.entries)
+        if (reached2.contains(e.key)) e.key: e.value,
+    };
+
+    // The second commit: the update, plus every subtree the tree will not
+    // hold when it arrives — a moved one (destroyed in step 1), a held-back
+    // one now listed, a child never sent — from the cache. First the two
+    // things the tree refuses outright and the app can repair: a child listed
+    // twice is listed once, and a child two parents claim in one commit
+    // stays with the one that is not its old parent (the framework's newer
+    // word), or with the first to list it.
+    final part2 = <int, List<int>>{
+      for (final e in update.entries) e.key: e.value.toSet().toList(),
+    };
+    final claimants = <int, List<int>>{};
+    for (final e in part2.entries) {
+      for (final c in e.value) {
+        (claimants[c] ??= <int>[]).add(e.key);
+      }
+    }
+    for (final e in claimants.entries) {
+      if (e.value.length < 2) continue;
+      final old = moved[e.key]?.from;
+      final keep =
+          e.value.firstWhere((p) => p != old, orElse: () => e.value.first);
+      for (final p in e.value) {
+        if (p != keep) part2[p] = List<int>.of(part2[p]!)..remove(e.key);
+      }
+    }
+    final supplied = <int>[];
+    final failed = <int>[];
+    final work = <int>[...update.keys];
+    final seen = <int>{};
+    while (work.isNotEmpty) {
+      final id = work.removeLast();
+      if (!seen.add(id)) continue;
+      for (final child in part2[id] ?? const <int>[]) {
+        if (part2.containsKey(child)) {
+          work.add(child);
+          continue;
+        }
+        if (tree2.containsKey(child)) continue;
+        final cached = _args[child];
+        if (cached == null) {
+          failed.add(child);
+          continue;
+        }
+        part2[child] = cached.children;
+        supplied.add(child);
+        work.add(child);
+      }
+    }
+    // Held back: what nothing in the resulting tree reaches.
+    final merged = <int, List<int>>{...tree2, ...part2};
+    final reached = _reachable(merged);
+    final held = [
+      for (final id in part2.keys)
+        if (!reached.contains(id)) id,
+    ];
+    for (final id in held) {
+      part2.remove(id);
+      supplied.remove(id);
+    }
+    return Plan(
+      part1: part1,
+      part2: part2,
+      held: held,
+      supplied: supplied,
+      failed: failed,
+      moved: moved.keys.toList(),
+    );
+  }
+
+  /// Applies a plan the way the engine will take it, both commits in order,
+  /// and keeps the cache to what the tree and the held-back nodes need.
+  /// Returns what the engine would still refuse — nothing, if the plan is
+  /// right.
+  List<String> commit(Plan plan) {
+    _updates++;
+    final refusals = <String>[
+      if (plan.part1.isNotEmpty) ...refusalsOf(plan.part1),
+      ...refusalsOf(plan.part2),
+    ];
+    for (final id in plan.held) {
+      _held[id] = _updates;
+    }
+    _held.removeWhere(
+      (id, at) => _tree.containsKey(id) || _updates - at > heldFor,
+    );
+    _args.removeWhere(
+      (id, _) => !_tree.containsKey(id) && !_held.containsKey(id),
+    );
+    return refusals;
+  }
+
+  Map<int, ({int from, int to})> _moves(
+    Map<int, List<int>> update,
+    Map<int, int> parentOf,
+  ) {
+    final moved = <int, ({int from, int to})>{};
+    for (final entry in update.entries) {
+      for (final child in entry.value) {
+        final old = parentOf[child];
+        if (old == null || old == entry.key) continue;
+        moved[child] = (from: old, to: entry.key);
+      }
+    }
+    return moved;
+  }
+
+  /// The moving subtree that holds [id] in the old tree: the first node on
+  /// the way up (itself included) that is on the move.
+  int? _movingHolder(
+    int id,
+    Map<int, int> parentOf,
+    Map<int, ({int from, int to})> moved, {
+    int? excluding,
+  }) {
+    for (int? at = id; at != null; at = parentOf[at]) {
+      if (at != excluding && moved.containsKey(at)) return at;
+    }
+    return null;
+  }
+
+  static Map<int, int> _parents(Map<int, List<int>> tree) => {
+        for (final entry in tree.entries)
+          for (final child in entry.value) child: entry.key,
+      };
 
   static Set<int> _reachable(Map<int, List<int>> tree) {
     final reached = <int>{};
@@ -211,6 +399,44 @@ class SemanticsShadow {
   }
 }
 
+/// What the engine would refuse an update for.
+class Verdict {
+  const Verdict({
+    required this.orphans,
+    required this.others,
+    required this.step,
+    required this.why,
+  });
+  final List<int> orphans;
+  final List<String> others;
+  final String step;
+  final Map<int, String> why;
+}
+
+/// What to send instead: [part1] first (old parents alone, children dropped),
+/// then [part2] (the update with every needed subtree supplied and every
+/// unreachable node held back). [failed] names children the cache could not
+/// supply; a plan with any is not usable.
+class Plan {
+  const Plan({
+    required this.part1,
+    required this.part2,
+    required this.held,
+    required this.supplied,
+    required this.failed,
+    required this.moved,
+  });
+  final Map<int, List<int>> part1;
+  final Map<int, List<int>> part2;
+  final List<int> held;
+  final List<int> supplied;
+  final List<int> failed;
+  final List<int> moved;
+
+  bool get changesAnything =>
+      part1.isNotEmpty || held.isNotEmpty || supplied.isNotEmpty;
+}
+
 /// What a node was last called: enough to recognise it in the trail.
 class NodeTexts {
   const NodeTexts(this.label, this.value, this.tooltip);
@@ -222,14 +448,186 @@ class NodeTexts {
       label.isNotEmpty || value.isNotEmpty || (tooltip?.isNotEmpty ?? false);
 }
 
-/// The builder the app hands the framework: forwards everything to the real
-/// one, and asks the shadow first.
-class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
-  OrphanWatchingBuilder(this._real, this._shadow);
+/// Everything one `updateNode` call carries, kept so a node can be sent
+/// again from the app's side.
+class NodeArgs {
+  const NodeArgs({
+    required this.id,
+    required this.flags,
+    required this.actions,
+    required this.maxValueLength,
+    required this.currentValueLength,
+    required this.textSelectionBase,
+    required this.textSelectionExtent,
+    required this.platformViewId,
+    required this.scrollChildren,
+    required this.scrollIndex,
+    required this.traversalParent,
+    required this.scrollPosition,
+    required this.scrollExtentMax,
+    required this.scrollExtentMin,
+    required this.rect,
+    required this.identifier,
+    required this.label,
+    required this.labelAttributes,
+    required this.value,
+    required this.valueAttributes,
+    required this.increasedValue,
+    required this.increasedValueAttributes,
+    required this.decreasedValue,
+    required this.decreasedValueAttributes,
+    required this.hint,
+    required this.hintAttributes,
+    required this.tooltip,
+    required this.textDirection,
+    required this.transform,
+    required this.hitTestTransform,
+    required this.children,
+    required this.childrenInHitTestOrder,
+    required this.additionalActions,
+    required this.headingLevel,
+    required this.linkUrl,
+    required this.role,
+    required this.controlsNodes,
+    required this.validationResult,
+    required this.hitTestBehavior,
+    required this.inputType,
+    required this.locale,
+    required this.minValue,
+    required this.maxValue,
+  });
 
-  final ui.SemanticsUpdateBuilder _real;
+  final int id;
+  final SemanticsFlags flags;
+  final int actions;
+  final int maxValueLength;
+  final int currentValueLength;
+  final int textSelectionBase;
+  final int textSelectionExtent;
+  final int platformViewId;
+  final int scrollChildren;
+  final int scrollIndex;
+  final int? traversalParent;
+  final double scrollPosition;
+  final double scrollExtentMax;
+  final double scrollExtentMin;
+  final Rect rect;
+  final String identifier;
+  final String label;
+  final List<StringAttribute>? labelAttributes;
+  final String value;
+  final List<StringAttribute>? valueAttributes;
+  final String increasedValue;
+  final List<StringAttribute>? increasedValueAttributes;
+  final String decreasedValue;
+  final List<StringAttribute>? decreasedValueAttributes;
+  final String hint;
+  final List<StringAttribute>? hintAttributes;
+  final String? tooltip;
+  final TextDirection? textDirection;
+  final Float64List transform;
+  final Float64List hitTestTransform;
+  final List<int> children;
+  final List<int> childrenInHitTestOrder;
+  final Int32List additionalActions;
+  final int headingLevel;
+  final String? linkUrl;
+  final SemanticsRole role;
+  final List<String>? controlsNodes;
+  final SemanticsValidationResult validationResult;
+  final ui.SemanticsHitTestBehavior hitTestBehavior;
+  final ui.SemanticsInputType inputType;
+  final ui.Locale? locale;
+  final String minValue;
+  final String maxValue;
+
+  /// Sends this node into [b], with [childrenOverride] in place of its own
+  /// children when a commit needs some of them dropped.
+  void replayInto(ui.SemanticsUpdateBuilder b, {List<int>? childrenOverride}) {
+    final kids = childrenOverride ?? children;
+    final hit = childrenOverride == null
+        ? childrenInHitTestOrder
+        : [
+            for (final c in childrenInHitTestOrder)
+              if (kids.contains(c)) c,
+          ];
+    b.updateNode(
+      id: id,
+      flags: flags,
+      actions: actions,
+      maxValueLength: maxValueLength,
+      currentValueLength: currentValueLength,
+      textSelectionBase: textSelectionBase,
+      textSelectionExtent: textSelectionExtent,
+      platformViewId: platformViewId,
+      scrollChildren: scrollChildren,
+      scrollIndex: scrollIndex,
+      traversalParent: traversalParent ?? -1,
+      scrollPosition: scrollPosition,
+      scrollExtentMax: scrollExtentMax,
+      scrollExtentMin: scrollExtentMin,
+      rect: rect,
+      identifier: identifier,
+      label: label,
+      labelAttributes: labelAttributes ?? const <StringAttribute>[],
+      value: value,
+      valueAttributes: valueAttributes ?? const <StringAttribute>[],
+      increasedValue: increasedValue,
+      increasedValueAttributes:
+          increasedValueAttributes ?? const <StringAttribute>[],
+      decreasedValue: decreasedValue,
+      decreasedValueAttributes:
+          decreasedValueAttributes ?? const <StringAttribute>[],
+      hint: hint,
+      hintAttributes: hintAttributes ?? const <StringAttribute>[],
+      tooltip: tooltip ?? '',
+      textDirection: textDirection,
+      transform: transform,
+      hitTestTransform: hitTestTransform,
+      childrenInTraversalOrder: Int32List.fromList(kids),
+      childrenInHitTestOrder: Int32List.fromList(hit),
+      additionalActions: additionalActions,
+      headingLevel: headingLevel,
+      linkUrl: linkUrl ?? '',
+      role: role,
+      controlsNodes: controlsNodes,
+      validationResult: validationResult,
+      hitTestBehavior: hitTestBehavior,
+      inputType: inputType,
+      locale: locale,
+      minValue: minValue,
+      maxValue: maxValue,
+    );
+  }
+}
+
+/// A custom action, kept until the commit it belongs to is built.
+class _CustomAction {
+  const _CustomAction(this.id, this.label, this.hint, this.overrideId);
+  final int id;
+  final String? label;
+  final String? hint;
+  final int overrideId;
+}
+
+/// The builder the app hands the framework: records everything, and on
+/// `build()` sends the engine what the shadow planned instead.
+class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
+  OrphanWatchingBuilder(
+    this._newReal,
+    this._shadow, {
+    required this.sendEarly,
+  });
+
+  /// Makes a real builder — one for each commit.
+  final ui.SemanticsUpdateBuilder Function() _newReal;
   final SemanticsShadow _shadow;
+
+  /// Hands the first commit to the view, before the second is returned.
+  final void Function(ui.SemanticsUpdate update) sendEarly;
+
   final Map<int, List<int>> _children = <int, List<int>>{};
+  final List<_CustomAction> _actions = <_CustomAction>[];
 
   /// Two caps, one a kind, so that no line of one kind can silence the other:
   /// on 26.9.2026 five lines of a rule that was wrong spent a single cap of
@@ -239,10 +637,16 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
   static int _orphanLines = 0;
   static int _otherLines = 0;
 
+  /// The last plan built, and every id ever held back, for the gate.
+  static Plan? lastPlan;
+  static final List<int> heldEver = <int>[];
+
   @visibleForTesting
   static void resetCapForTest() {
     _orphanLines = 0;
     _otherLines = 0;
+    lastPlan = null;
+    heldEver.clear();
   }
 
   @override
@@ -292,54 +696,55 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
     required String minValue,
     required String maxValue,
   }) {
-    _children[id] = childrenInTraversalOrder.toList();
-    _shadow.remember(id, NodeTexts(label, value, tooltip));
-    _real.updateNode(
-      id: id,
-      flags: flags,
-      actions: actions,
-      maxValueLength: maxValueLength,
-      currentValueLength: currentValueLength,
-      textSelectionBase: textSelectionBase,
-      textSelectionExtent: textSelectionExtent,
-      platformViewId: platformViewId,
-      scrollChildren: scrollChildren,
-      scrollIndex: scrollIndex,
-      traversalParent: traversalParent ?? -1,
-      scrollPosition: scrollPosition,
-      scrollExtentMax: scrollExtentMax,
-      scrollExtentMin: scrollExtentMin,
-      rect: rect,
-      identifier: identifier,
-      label: label,
-      labelAttributes: labelAttributes ?? const <StringAttribute>[],
-      value: value,
-      valueAttributes: valueAttributes ?? const <StringAttribute>[],
-      increasedValue: increasedValue,
-      increasedValueAttributes:
-          increasedValueAttributes ?? const <StringAttribute>[],
-      decreasedValue: decreasedValue,
-      decreasedValueAttributes:
-          decreasedValueAttributes ?? const <StringAttribute>[],
-      hint: hint,
-      hintAttributes: hintAttributes ?? const <StringAttribute>[],
-      tooltip: tooltip ?? '',
-      textDirection: textDirection,
-      transform: transform,
-      hitTestTransform: hitTestTransform,
-      childrenInTraversalOrder: childrenInTraversalOrder,
-      childrenInHitTestOrder: childrenInHitTestOrder,
-      additionalActions: additionalActions,
-      headingLevel: headingLevel,
-      linkUrl: linkUrl ?? '',
-      role: role,
-      controlsNodes: controlsNodes,
-      validationResult: validationResult,
-      hitTestBehavior: hitTestBehavior,
-      inputType: inputType,
-      locale: locale,
-      minValue: minValue,
-      maxValue: maxValue,
+    final kids = childrenInTraversalOrder.toList();
+    _children[id] = kids;
+    _shadow.remember(
+      id,
+      NodeArgs(
+        id: id,
+        flags: flags,
+        actions: actions,
+        maxValueLength: maxValueLength,
+        currentValueLength: currentValueLength,
+        textSelectionBase: textSelectionBase,
+        textSelectionExtent: textSelectionExtent,
+        platformViewId: platformViewId,
+        scrollChildren: scrollChildren,
+        scrollIndex: scrollIndex,
+        traversalParent: traversalParent,
+        scrollPosition: scrollPosition,
+        scrollExtentMax: scrollExtentMax,
+        scrollExtentMin: scrollExtentMin,
+        rect: rect,
+        identifier: identifier,
+        label: label,
+        labelAttributes: labelAttributes,
+        value: value,
+        valueAttributes: valueAttributes,
+        increasedValue: increasedValue,
+        increasedValueAttributes: increasedValueAttributes,
+        decreasedValue: decreasedValue,
+        decreasedValueAttributes: decreasedValueAttributes,
+        hint: hint,
+        hintAttributes: hintAttributes,
+        tooltip: tooltip,
+        textDirection: textDirection,
+        transform: transform,
+        hitTestTransform: hitTestTransform,
+        children: kids,
+        childrenInHitTestOrder: childrenInHitTestOrder.toList(),
+        additionalActions: additionalActions,
+        headingLevel: headingLevel,
+        linkUrl: linkUrl,
+        role: role,
+        controlsNodes: controlsNodes,
+        validationResult: validationResult,
+        hitTestBehavior: hitTestBehavior,
+        inputType: inputType,
+        locale: locale,
+        minValue: minValue,
+        maxValue: maxValue,
+      ),
     );
   }
 
@@ -350,16 +755,58 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
     String? hint,
     int overrideId = -1,
   }) =>
-      _real.updateCustomAction(
-        id: id,
-        label: label,
-        hint: hint,
-        overrideId: overrideId,
-      );
+      _actions.add(_CustomAction(id, label, hint, overrideId));
 
   @override
   ui.SemanticsUpdate build() {
-    final verdict = _shadow.judge(_children);
+    // What the engine would have refused, said first — that is the trail's
+    // job, whatever happens next.
+    final raw = _shadow.judge(_children, dryRun: true);
+    _sayRaw(raw);
+
+    final plan = _shadow.plan(_children);
+    lastPlan = plan;
+    heldEver.addAll(plan.held);
+    if (plan.failed.isNotEmpty) {
+      // Never worse than before: the framework's own update, untouched.
+      _sayOther('semantics hold-back failed, cache lacks ${plan.failed}; '
+          'the update goes as it came');
+      _shadow.judge(_children);
+      return _replay(_children, actions: _actions);
+    }
+    if (plan.part1.isNotEmpty) {
+      sendEarly(_replay(plan.part1));
+    }
+    final update = _replay(plan.part2, actions: _actions);
+    final still = _shadow.commit(plan);
+    if (still.isNotEmpty) {
+      _sayOther('semantics hold-back left a refusal: ${still.join('; ')}');
+    }
+    return update;
+  }
+
+  ui.SemanticsUpdate _replay(
+    Map<int, List<int>> nodes, {
+    List<_CustomAction> actions = const [],
+  }) {
+    final b = _newReal();
+    for (final entry in nodes.entries) {
+      final args = _shadow._args[entry.key];
+      if (args == null) continue;
+      args.replayInto(b, childrenOverride: entry.value);
+    }
+    for (final a in actions) {
+      b.updateCustomAction(
+        id: a.id,
+        label: a.label,
+        hint: a.hint,
+        overrideId: a.overrideId,
+      );
+    }
+    return b.build();
+  }
+
+  void _sayRaw(Verdict verdict) {
     final orphans = verdict.orphans;
     if (orphans.isNotEmpty) {
       // The first orphan that has any text names the line; an orphan with no
@@ -383,12 +830,11 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
       ].join('; ');
       _sayOrphan('semantics orphan $orphans "$label" "$value" "$tooltip" '
           'while ${verdict.step == 'update' ? 'updating' : verdict.step}'
-          '${why.isEmpty ? '' : ': $why'}');
+          '${why.isEmpty ? '' : ': $why'} — held back');
     }
     for (final refusal in verdict.others) {
       _sayOther('semantics refused $refusal');
     }
-    return _real.build();
   }
 
   static void _sayOrphan(String line) {
@@ -412,7 +858,14 @@ mixin OrphanWatch on SemanticsBinding {
 
   @override
   ui.SemanticsUpdateBuilder createSemanticsUpdateBuilder() =>
-      OrphanWatchingBuilder(super.createSemanticsUpdateBuilder(), _shadow);
+      OrphanWatchingBuilder(
+        () => super.createSemanticsUpdateBuilder(),
+        _shadow,
+        // The same view the framework hands its own update to
+        // (`RenderView.updateSemantics`): the app has one.
+        sendEarly: (update) => ui.PlatformDispatcher.instance.implicitView
+            ?.updateSemantics(update),
+      );
 
   @visibleForTesting
   static void resetForTest() {
