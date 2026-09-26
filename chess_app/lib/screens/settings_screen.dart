@@ -625,6 +625,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // saved-position count are facts about the account, and this is
               // the screen about the account.
               AccountStatsCard(session: widget.session),
+              // A signed-in account's month, on its own screen: the plan's
+              // limits and everything metered without one. A guest has no
+              // account for the server to have counted.
+              if (!widget.session.isGuest)
+                Card(
+                  shape:
+                      RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
+                  child: ListTile(
+                    key: const Key('open-usage'),
+                    leading:
+                        Icon(Icons.data_usage, color: context.colors.accent),
+                    title: const Text('Usage this month'),
+                    subtitle: const Text(
+                        'What your account has used, and your plan\'s '
+                        'monthly limits.'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push(AppRoutes.usage),
+                  ),
+                ),
 
               const SizedBox(height: AppSpacing.xxl),
               Text('STOCKFISH ENGINE',

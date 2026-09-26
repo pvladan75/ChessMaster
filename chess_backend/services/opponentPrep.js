@@ -71,7 +71,9 @@ function policyFrom(env = process.env) {
 /// `null` is not "allowed". A floor that cannot be checked is a floor that is
 /// not enforced, so the caller below refuses rather than waving it through —
 /// the alternative is a guard that opens itself whenever the network is down.
-async function lookupRating(handle, { fetchImpl, baseUrl, pacer, perfTypes }) {
+async function lookupRating(handle, {
+  fetchImpl, baseUrl, pacer, perfTypes, onRequest = null,
+}) {
   let res;
   try {
     res = await pacer.spaced(() => fetchImpl(
@@ -98,6 +100,11 @@ async function lookupRating(handle, { fetchImpl, baseUrl, pacer, perfTypes }) {
     throw new OpponentPrepUnavailable(`Lichess responded with ${res.status}.`, {
       reason: 'network', status: 502,
     });
+  }
+  // One answered request to Lichess's user API, counted for the day
+  // (services/providerUsage.js). A hook that throws is not this lookup's fault.
+  if (typeof onRequest === 'function') {
+    try { onRequest(); } catch { /* counted or not, the lookup goes on */ }
   }
 
   const body = await res.json();
@@ -129,6 +136,9 @@ function createOpponentPrep({
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   ratingOf = null,
+  // Called once per rating looked up on Lichess. Null by default; the route
+  // that builds the real one hands it the day counter.
+  onRequest = null,
 } = {}) {
   if (!pool) throw new TypeError('createOpponentPrep requires a pool');
   if (!importer) throw new TypeError('createOpponentPrep requires an importer');
@@ -136,7 +146,7 @@ function createOpponentPrep({
   const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
   const rating = ratingOf
     || ((handle, perfTypes) => lookupRating(handle, {
-      fetchImpl, baseUrl, pacer, perfTypes,
+      fetchImpl, baseUrl, pacer, perfTypes, onRequest,
     }));
 
   /// How many different people this account has already pulled today.

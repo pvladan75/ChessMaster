@@ -33,6 +33,7 @@ const {
   createPacer, MIN_REQUEST_GAP_MS, RATE_LIMIT_COOLDOWN_MS,
 } = require('./lichessPacing');
 const { sharedOpeningBook } = require('./openingBook');
+const logger = require('./logger');
 
 const DEFAULT_CLOUD_EVAL_URL = process.env.LICHESS_CLOUD_EVAL_URL
   || 'https://lichess.org/api/cloud-eval';
@@ -183,10 +184,25 @@ function createOpeningJudge({
   // Injected so the tests can spend a minute without waiting one.
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  // Called once per cloud evaluation that went out and was answered, never
+  // for a cache hit. Null by default so a test's judge reports to nobody; the
+  // server wires the counter (services/providerUsage.js) through
+  // `setOnRequest`. It can neither fail nor delay a verdict.
+  onRequest = null,
 } = {}) {
   // Asked for on the first question rather than at construction, so that
   // requiring this module never decides which file the server reads.
   const readBook = () => book ?? sharedOpeningBook();
+
+  let reportRequest = onRequest;
+  function report() {
+    if (typeof reportRequest !== 'function') return;
+    try {
+      reportRequest();
+    } catch (err) {
+      logger.warn(`[OPENING-JUDGE] Brojač zahteva je pukao (${err.message}); nastavljam.`);
+    }
+  }
 
   // Two caches rather than one: a verdict is about a move, an evaluation about
   // a position. The book is not cached here — it is a file on this disk, and a
@@ -244,6 +260,7 @@ function createOpeningJudge({
         );
       }
       requests += 1;
+      report();
       return await res.json();
     } catch (err) {
       if (err instanceof OpeningJudgeUnavailable) throw err;
@@ -535,6 +552,9 @@ function createOpeningJudge({
       // gone quiet instead of leaving it to be guessed.
       blockedForMs: pacer.blockedForMs(),
     }),
+    /// Replaces the request hook. For the one shared instance, which is built
+    /// when this module loads and cannot be handed a pool then.
+    setOnRequest: (fn) => { reportRequest = typeof fn === 'function' ? fn : null; },
     clear: () => {
       verdicts.clear(); evals.clear();
       requests = 0; hits = 0; pacer.reset();

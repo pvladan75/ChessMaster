@@ -186,8 +186,23 @@ function createTablebase({
   localUrl = LOCAL_URL,
   localTimeoutMs = 3000,
   log = logger,
+  // Called once per request that went out and was answered — `'lichess'` or
+  // `'local'` — and never for a cache hit. Null by default so a test's client
+  // reports to nobody; the server wires the counter (services/providerUsage.js)
+  // through `setOnRequest` once at startup. It can neither fail nor delay a
+  // probe: a throw is logged, and nothing awaits it.
+  onRequest = null,
 } = {}) {
   const cache = new Map();
+  let reportRequest = onRequest;
+  function report(kind) {
+    if (typeof reportRequest !== 'function') return;
+    try {
+      reportRequest(kind);
+    } catch (err) {
+      log.warn(`[TABLEBASE] Brojač zahteva je pukao (${err.message}); nastavljam.`);
+    }
+  }
   // Two children on the same position, or one child whose client retried, must
   // not become two requests to a donated service.
   const inFlight = new Map();
@@ -242,6 +257,7 @@ function createTablebase({
         throw new TablebaseUnavailable(`Tablebase responded with ${res.status}.`);
       }
       requests += 1;
+      report('lichess');
       return await res.json();
     } finally {
       clearTimeout(timer);
@@ -261,6 +277,7 @@ function createTablebase({
       const data = await res.json();
       if (!data || typeof data.category !== 'string') throw new Error('no category');
       localRequests += 1;
+      report('local');
       return data;
     } catch (err) {
       localMisses += 1;
@@ -336,6 +353,9 @@ function createTablebase({
     /// background walk over hundreds of games and should simply wait. Deciding
     /// that here would force one answer on both.
     blockedForMs: () => pacer.blockedForMs(),
+    /// Replaces the request hook. For the one shared instance, which is built
+    /// when this module loads and cannot be handed a pool then.
+    setOnRequest: (fn) => { reportRequest = typeof fn === 'function' ? fn : null; },
     stats: () => ({
       cached: cache.size,
       requests,

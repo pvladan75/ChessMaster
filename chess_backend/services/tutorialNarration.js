@@ -47,6 +47,9 @@ async function narrateFilm({
   // Absent means one a second, which is what every film was before captions
   // could be drawn four times a second.
   fps = 1,
+  // Handed straight to `speakBeats`: what reached the voice provider, for the
+  // route to meter against the trainer's account.
+  onSynthesised = null,
 }) {
   // Narration is inside the render queue with the drawing, so a client that has
   // already gone must not be synthesised for either — a twenty-five beat
@@ -73,7 +76,7 @@ async function narrateFilm({
   // thing the voice id already tells us.
   const clips = await tts.speakBeats(
     captions.map((text) => spokenMoves(text, voice)),
-    { voice, signal },
+    { voice, signal, onSynthesised },
   );
   // Between the two long phases. Synthesis of a whole tutorial is the longest
   // stretch of a narrated export, and the track that follows it is written into

@@ -47,8 +47,16 @@ const { repertoireDiff } = require('../services/repertoireArchive');
 const { playerProfile } = require('../services/playerProfile');
 
 const archiveDeletion = require('../services/archiveDeletion');
-const importer = createArchiveImporter({ pool });
-const prep = createOpponentPrep({ pool, importer });
+const { PROVIDER, providerHook } = require('../services/providerUsage');
+// Each Lichess request these two send is counted for the day
+// (`provider_requests`), so the status report can say how hard this server
+// leans on a donated service.
+const importer = createArchiveImporter({
+  pool, onRequest: providerHook(pool, PROVIDER.LICHESS_GAMES),
+});
+const prep = createOpponentPrep({
+  pool, importer, onRequest: providerHook(pool, PROVIDER.LICHESS_USER),
+});
 
 /// One call to the model, or a throw. Everything about *whether* the answer may
 /// be shown lives in `prepNarrative`; this only knows how to ask.

@@ -114,6 +114,7 @@ because it is the verb and the tab is a verb.
 | Tabla | **Board** |
 | Nalog | **Account** |
 | Pretplata | **Subscription** |
+| Potrošnja naloga (mesečna) | **Usage** — Settings → „Usage this month" (26.9.2026): the plan, its monthly limits and everything metered without one, as the server counted it |
 
 ## Who the interface talks to
 

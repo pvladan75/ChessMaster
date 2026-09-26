@@ -7,6 +7,8 @@
 // 3. empty `events` → 400, nothing written to `exports/`;
 // 4. `seconds` over 3600 → clamped, not refused;
 // 5. metering booked after a successful render, and not after a failed one;
+// 5b. a cloud voice's characters are booked the moment they are spoken, and
+//    stay booked when the film then fails — the provider billed them either way;
 // 6. the job's outcome names the file that was written, and the progress route
 //    hands out a link to it.
 //
@@ -158,6 +160,9 @@ async function run({
   // film is settled — the only moment a test can act between the two. Added
   // with item 5.
   onAccepted = null,
+  // What the fake narration reports as spoken by the voice provider, handed to
+  // the route's `onSynthesised` exactly as `speakBeats` would. Null: nothing.
+  synthesised = null,
 } = {}) {
   const queries = [];
   const notices = [];
@@ -177,6 +182,7 @@ async function run({
 
   tutorialNarration.narrateFilm = async (opts) => {
     narrateCalls.push(opts);
+    if (synthesised && typeof opts.onSynthesised === 'function') opts.onSynthesised(synthesised);
     if (narrateError) throw narrateError;
     if (narrateResult) return narrateResult;
     return {
@@ -457,6 +463,46 @@ test('5. metering booked after a successful render, and not after a failed one',
 
   const failedRenders = failed.queries.filter((q) => /INSERT INTO usage_counters/i.test(q.text));
   assert.equal(failedRenders.length, 0, 'must NOT book metering when render fails');
+});
+
+test('5b. a cloud voice\'s characters are booked when spoken, and stay booked when the film then fails', async () => {
+  const spoken = { provider: 'azure', characters: 2400, sentences: 3 };
+  const narrated = (body) => ({ ...body, narrate: true, voice: 'en-US-JennyNeural' });
+  const body = {
+    events: VALID_EVENTS, seconds: 4, title: 'Slaba polja u centru', resolution: '720p', boardTheme: 'wood',
+  };
+
+  const success = await run({ body: narrated(body), synthesised: spoken });
+  assert.equal(success.outcome.status, 'done');
+  const booked = success.queries.filter(
+    (q) => /INSERT INTO usage_counters/i.test(q.text) && q.values[1] === 'tts_azure_characters'
+  );
+  assert.equal(booked.length, 1, 'one row for the provider the voice came from');
+  assert.equal(booked[0].values[0], 4, 'booked to the trainer who exported');
+  assert.equal(booked[0].values[3], 2400, 'the characters the provider was sent, not the film\'s length');
+
+  // Azure has already billed the sentences; the clips sit in the cache for the
+  // next try. Unbooking them would say the month cost less than it did.
+  const failed = await run({
+    body: narrated(body), synthesised: spoken, renderError: new Error('Render process crashed'),
+  });
+  assert.equal(failed.outcome.status, 'failed');
+  const stillBooked = failed.queries.filter(
+    (q) => /INSERT INTO usage_counters/i.test(q.text) && q.values[1] === 'tts_azure_characters'
+  );
+  assert.equal(stillBooked.length, 1, 'the characters stay booked after a failed render');
+  assert.equal(
+    failed.queries.filter((q) => /INSERT INTO usage_counters/i.test(q.text) && q.values[1] === METRIC.MP4_RENDERS).length,
+    0, 'while the render itself, which made nothing, is not',
+  );
+
+  // And a film nobody narrated books no characters at all.
+  const silent = await run({ body });
+  assert.equal(silent.outcome.status, 'done');
+  assert.equal(
+    silent.queries.filter((q) => /tts_.*_characters/.test(String(q.values && q.values[1]))).length,
+    0,
+  );
 });
 
 test('6. the job\'s outcome names the file that was written, and the progress route hands out a link to it', async () => {

@@ -17,6 +17,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-sig
 const lessonsRouter = require('../routes/lessons');
 const tts = require('../services/tts');
 const { sampleFor, SAMPLES } = require('../services/spokenMoves');
+const { pool } = require('../db');
 
 function sampleRouteStack() {
   const layer = lessonsRouter.stack.find(
@@ -29,7 +30,15 @@ function sampleRouteStack() {
 async function runSample({ voice = 'en-US-JennyNeural', offered, spoken } = {}) {
   const originalVoices = tts.voices;
   const originalSpeak = tts.speak;
+  const originalQuery = pool.query;
   const asked = [];
+  // The meter's writes, so a test can say what a sample cost — and no query
+  // reaches a database that this test never has.
+  const queries = [];
+  pool.query = async (text, values) => {
+    queries.push({ text, values });
+    return { rows: [], rowCount: 0 };
+  };
 
   tts.voices = async () => (offered === undefined
     ? [{ id: 'en-US-JennyNeural' }, { id: 'sr-Latn-RS-NicholasNeural' }]
@@ -54,11 +63,14 @@ async function runSample({ voice = 'en-US-JennyNeural', offered, spoken } = {}) 
   const handlers = sampleRouteStack();
   try {
     await handlers[handlers.length - 1](req, res);
+    // The meter is not awaited by the route; let its write land before reading.
+    await new Promise((resolve) => setImmediate(resolve));
   } finally {
     tts.voices = originalVoices;
     tts.speak = originalSpeak;
+    pool.query = originalQuery;
   }
-  return { res, asked };
+  return { res, asked, queries };
 }
 
 test('the sample is spoken by the voice that was asked for', async () => {
@@ -116,4 +128,38 @@ test('a voice that produces nothing says so rather than sending an empty file', 
   assert.equal(res.statusCode, 503);
   assert.match(res.body.error, /log/, 'and where to look');
   assert.equal(res.sent, null);
+});
+
+test('a sample the provider actually spoke is metered by its characters; a cached one is not', async () => {
+  // The same sentence is pressed again the moment a trainer compares two
+  // voices, and Azure bills only the first time it is sent.
+  const sentence = sampleFor('en-US-JennyNeural');
+  const spoken = { path: 'D:/clip.wav', seconds: 2, cached: false, provider: 'azure', characters: sentence.length };
+
+  const first = await runSample({ spoken });
+  assert.equal(first.res.statusCode, 200, 'the sample is served');
+  const booked = first.queries.filter(
+    (q) => /INSERT INTO usage_counters/i.test(q.text) && q.values[1] === 'tts_azure_characters'
+  );
+  assert.equal(booked.length, 1);
+  assert.equal(booked[0].values[0], 4, 'to the account that asked');
+  assert.equal(booked[0].values[3], sentence.length, 'the characters the provider was sent');
+
+  const again = await runSample({ spoken: { ...spoken, cached: true, characters: 0 } });
+  assert.equal(again.res.statusCode, 200);
+  assert.equal(
+    again.queries.filter((q) => /INSERT INTO usage_counters/i.test(q.text)).length, 0,
+    'a cached clip cost nothing and books nothing',
+  );
+});
+
+test('a voice the metric table does not know is still served — the meter cannot fail the sample', async () => {
+  // A fifth provider added to services/tts without a metric of its own is a
+  // gap in the meter, not a reason to answer 500 to a trainer auditioning it.
+  const { res, queries } = await runSample({
+    spoken: { path: 'D:/clip.wav', seconds: 2, cached: false, provider: 'elevenlabs', characters: 40 },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.equal(res.sent, 'D:/clip.wav');
+  assert.equal(queries.filter((q) => /INSERT INTO usage_counters/i.test(q.text)).length, 0);
 });

@@ -1215,6 +1215,24 @@ async function initDB(target = pool) {
     `);
     logger.info('Verified database table: usage_counters');
 
+    // provider_requests — how many requests this whole server sent a service
+    // that is free to it but rate-limited by its owner (Lichess) or paid for
+    // in CPU (our own tablebase), per provider per UTC day. Not per account:
+    // a homework judged here, a review asked from a phone and a room's drill
+    // all reach the same service, and only some of those calls know whose
+    // they are. services/providerUsage.js is the one writer.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS provider_requests (
+        id SERIAL PRIMARY KEY,
+        provider VARCHAR(50) NOT NULL,
+        day DATE NOT NULL,
+        requests INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (provider, day)
+      );
+    `);
+    logger.info('Verified database table: provider_requests');
+
 
     // Create the repertoire tables — what a student has decided to play.
     //
