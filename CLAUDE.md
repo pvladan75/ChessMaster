@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4193 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4197 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL (derived), 1772 without (measured)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -931,7 +931,16 @@ arrive whole** — the framework re-attaches it and sends only what changed
 (measured) — so holding orphans back alone would have saved nothing; and
 **measure what the framework sends before designing on it.** Live check
 [249.2]: the engine's stream must be empty where `crash.log` says
-`— held back`.
+`— held back`. Twenty minutes into that check the app crashed on Home: the
+model had refused the draft (`hold-back left a refusal: 104`) and the draft
+was sent anyway. Fuzzing the planner found the fault in three rounds — the
+first commit carried old parents inside subtrees the same commit dropped —
+and the draft is now **verified before it is sent**, on a copy, by the model
+`commit` runs; a refused draft goes as it came and is kept aside as
+`unsettled-*.json` (→ **4197**). **A check after the send is a log; the
+check before the send is the guard.** And **fuzz an algorithm over trees
+before reasoning about it for an hour** — the random-tree property is the
+gate, hand fixtures are shapes.
 Two gate lessons: the plan promised the orphan line would carry the slider's
 value, and **measured, the orphaned node has no text at all** — a case that
 could not pass; and my own gate did not compile, because `dart:ui`'s

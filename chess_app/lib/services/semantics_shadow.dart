@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -216,7 +217,42 @@ class SemanticsShadow {
 
   /// Phase 2b: what to send the engine instead of [update], so that it
   /// refuses nothing. Leaves the tree as it was; [commit] applies a plan.
+  ///
+  /// The draft is **verified against the model the engine is held to**
+  /// ([judge], on a copy) before it is called a plan. On 27.9.2026 at 00:29
+  /// a draft was sent while that model refused it, and the engine refused
+  /// it in the same words (nodes 104 and 37 on Home); a draft the model
+  /// refuses is never sent now ([Plan.verified]) — the framework's update
+  /// goes as it came and the whole of it is kept aside for replay. What made
+  /// that draft wrong was the first commit carrying old parents inside
+  /// subtrees the same commit dropped; found by fuzzing, fixed in [_draft],
+  /// and on 4000 random trees the draft has settled every time since, so
+  /// nothing reshapes it here — a draft the model refuses is a shape to
+  /// learn from, not to patch blind.
   Plan plan(Map<int, List<int>> update) {
+    final candidate = _draft(update);
+    final copy = clone();
+    if (candidate.part1.isNotEmpty) {
+      final first = copy.judge(candidate.part1);
+      final refused = _words(first);
+      if (refused != null) return candidate.unsettled('first commit: $refused');
+    }
+    final second = copy.judge(candidate.part2);
+    final refused = _words(second);
+    if (refused != null) return candidate.unsettled('second commit: $refused');
+    return candidate.settled();
+  }
+
+  static String? _words(Verdict v) {
+    if (v.orphans.isEmpty && v.others.isEmpty) return null;
+    return [
+      ...v.others,
+      for (final id in v.orphans)
+        '$id will not be in the tree and is not the new root',
+    ].join('; ');
+  }
+
+  Plan _draft(Map<int, List<int>> update) {
     final parentOf = _parents(_tree);
     final moved = _moves(update, parentOf);
 
@@ -235,6 +271,18 @@ class SemanticsShadow {
       final q = moved[c]!.from;
       (part1[q] ??= List<int>.of(_tree[q] ?? const <int>[])).remove(c);
     }
+    // An old parent inside a subtree another entry of the first commit
+    // drops needs no drop of its own — the outer drop takes its subtree, and
+    // the tree would refuse it as gone.
+    part1.removeWhere((q, _) {
+      var below = q;
+      for (var at = parentOf[q]; at != null; at = parentOf[at]) {
+        final dropped = part1[at];
+        if (dropped != null && !dropped.contains(below)) return true;
+        below = at;
+      }
+      return false;
+    });
     // The tree after that first commit: the dropped children's subtrees are
     // gone.
     var tree1 = <int, List<int>>{..._tree, ...part1};
@@ -327,7 +375,19 @@ class SemanticsShadow {
       supplied: supplied,
       failed: failed,
       moved: moved.keys.toList(),
+      movedFrom: {for (final m in moved.entries) m.key: m.value.from},
     );
+  }
+
+  /// A copy with the same tree and cache, for judging a plan without
+  /// touching this one.
+  SemanticsShadow clone() {
+    final copy = SemanticsShadow();
+    copy._tree = {
+      for (final e in _tree.entries) e.key: List<int>.of(e.value),
+    };
+    copy._args.addAll(_args);
+    return copy;
   }
 
   /// Applies a plan the way the engine will take it, both commits in order,
@@ -425,6 +485,9 @@ class Plan {
     required this.supplied,
     required this.failed,
     required this.moved,
+    required this.movedFrom,
+    this.verified = false,
+    this.refusal,
   });
   final Map<int, List<int>> part1;
   final Map<int, List<int>> part2;
@@ -433,8 +496,41 @@ class Plan {
   final List<int> failed;
   final List<int> moved;
 
+  /// Every moved child → the parent the tree held it under.
+  final Map<int, int> movedFrom;
+
+  /// The model of the engine took both commits. A plan that is not verified
+  /// is never sent; the framework's update goes as it came instead.
+  final bool verified;
+
+  /// What the model still refused, when [verified] is false.
+  final String? refusal;
+
   bool get changesAnything =>
       part1.isNotEmpty || held.isNotEmpty || supplied.isNotEmpty;
+
+  Plan settled() => Plan(
+        part1: part1,
+        part2: part2,
+        held: held,
+        supplied: supplied,
+        failed: failed,
+        moved: moved,
+        movedFrom: movedFrom,
+        verified: true,
+      );
+
+  Plan unsettled(String refusal) => Plan(
+        part1: part1,
+        part2: part2,
+        held: held,
+        supplied: supplied,
+        failed: failed,
+        moved: moved,
+        movedFrom: movedFrom,
+        verified: false,
+        refusal: refusal,
+      );
 }
 
 /// What a node was last called: enough to recognise it in the trail.
@@ -767,10 +863,16 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
     final plan = _shadow.plan(_children);
     lastPlan = plan;
     heldEver.addAll(plan.held);
-    if (plan.failed.isNotEmpty) {
-      // Never worse than before: the framework's own update, untouched.
-      _sayOther('semantics hold-back failed, cache lacks ${plan.failed}; '
-          'the update goes as it came');
+    if (plan.failed.isNotEmpty || !plan.verified) {
+      // Never worse than before: the framework's own update, untouched — and
+      // the whole of it kept aside, so the shape that could not be settled
+      // can be replayed.
+      _sayOther(plan.failed.isNotEmpty
+          ? 'semantics hold-back failed, cache lacks ${plan.failed}; '
+              'the update goes as it came'
+          : 'semantics hold-back could not settle: ${plan.refusal}; '
+              'the update goes as it came');
+      _keepAside(plan);
       _shadow.judge(_children);
       return _replay(_children, actions: _actions);
     }
@@ -783,6 +885,24 @@ class OrphanWatchingBuilder implements ui.SemanticsUpdateBuilder {
       _sayOther('semantics hold-back left a refusal: ${still.join('; ')}');
     }
     return update;
+  }
+
+  static int _asides = 0;
+
+  /// The tree, the update and the plan, as JSON beside the log.
+  void _keepAside(Plan plan) {
+    if (_asides >= 3) return;
+    _asides++;
+    String keys(Map<int, List<int>> m) => jsonEncode({
+          for (final e in m.entries) '${e.key}': e.value,
+        });
+    CrashTrail.instance.recordAside(
+      'unsettled-${DateTime.now().toUtc().millisecondsSinceEpoch}.json',
+      '{"tree": ${keys(_shadow._tree)}, "update": ${keys(_children)}, '
+          '"part1": ${keys(plan.part1)}, "part2": ${keys(plan.part2)}, '
+          '"held": ${jsonEncode(plan.held)}, "failed": ${jsonEncode(plan.failed)}, '
+          '"refusal": ${jsonEncode(plan.refusal)}}\n',
+    );
   }
 
   ui.SemanticsUpdate _replay(

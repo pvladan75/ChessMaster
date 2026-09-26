@@ -8493,3 +8493,30 @@ je pao je podatak koji se čita iz obeleživača greške, ne iz imena testa u
 izlazu.**
 
 Brojevi: 4179 → 4193, `analyze` 22.
+
+**Nacrt koji model odbije ne sme da ode motoru — a otišao je.** Dvadeset
+minuta posle prvog prolaza 2b, pad na Home: `crash.log` je imao „hold-back
+left a refusal: 104", motor je odbio 104 na liniji 114. Provera posle slanja
+je dnevnik, ne čuvar; provera pre slanja je čuvar. Sad nacrt sudi kopija senke
+istim modelom kao `commit`, i odbijen nacrt ne ide — ažuriranje ide kakvo je
+došlo, a ceo oblik se čuva kao `unsettled-*.json`. **Kad model ima šta da
+kaže o planu, pita se pre, ne posle.**
+
+**Fuzz je našao za tri kruga ono što rasuđivanje nije za sat.** Iz reda u
+dnevniku oblik se nije dao rekonstruisati; nasumična stabla i nasumične
+prepravke (premeštaji, brisanja, novi čvorovi, čvor ažuriran i obrisan u istom
+kadru) kroz pravi planer dali su tri slučaja odmah, i najmanji je rekao grešku:
+prvi commit je nosio stare roditelje unutar podstabala koja isti commit otkida.
+Fuzzer je ostao u kapiji (4000 stabala, fiksno seme) — **za algoritam nad
+stablima, svojstvo nad nasumičnim stablima je kapija; tri ručne fiksture su
+tri oblika.**
+
+**Petlja koju ništa ne vežba se briše, ne dokumentuje.** Prekrajanje odbijenog
+nacrta (premeštaji u prvi commit, odbijeni čvorovi zadržani) je bilo napisano
+pre nego što je izostavljanje ušlo u nacrt; sa izostavljanjem su tri mutanta
+petlje preživela. Ostala je jedna provera i fallback, a preživeli mutant
+„provera preskočena" je zapisana granica: kapija nema nacrt koji model odbija.
+**Preživeli mutant ili dobije slučaj, ili kod ode, ili se granica zapiše —
+nikad se ne ostavi bez odgovora.**
+
+Brojevi: 4193 → 4197, `analyze` 22.

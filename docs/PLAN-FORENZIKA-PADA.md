@@ -311,6 +311,26 @@ instead of the framework's update:
 5. Where the cache cannot supply a node, the framework's update goes **as it
    came**, and a `semantics hold-back failed` line says so — never worse
    than before.
+6. **The draft is verified before it is a plan** (added 27.9.2026 after the
+   crash of 00:29, below): both commits are judged on a copy of the shadow by
+   the same model `commit` runs, and a draft that model refuses is never
+   sent — the update goes as it came, a `semantics hold-back could not
+   settle` line says why, and the tree, the update and the draft are kept
+   beside the log as `unsettled-<ms>.json` for replay.
+
+**The crash of 27.9.2026 at 00:29**, twenty minutes into the first live run:
+on Home, ids 37–104, the engine refused at line 114 (the second commit) and
+`crash.log` had, just before, `semantics hold-back left a refusal: 104 will
+not be in the tree` — the model had refused the draft and the draft went out
+anyway. Fuzzing the planner with random trees found the fault in three
+rounds: **the first commit carried old parents inside subtrees the same
+commit dropped**, which the tree refuses as gone. An old parent inside a
+dropped subtree needs no drop of its own, the outer drop takes it; that
+omission is in `_draft` now, and on 4000 random trees the draft settles
+every time. A loop that reshaped a refused draft (moves to the first commit,
+refused nodes held) was written and taken out again: with the omission in
+place nothing exercised it, three mutants of it survived, and a draft the
+model refuses is a shape to learn from, not to patch blind.
 
 The raw update's refusal is still written to the trail and `crash.log` as
 before, with `— held back` at the end, so a live run compares with the
@@ -345,6 +365,14 @@ where the log has the line.
    Flutter's own `Slider` in a dialog leaves the line, `heldEver` is not
    empty, and no `hold-back` line — every commit the engine got was one it
    takes; `AppSlider` needs nothing held.
+8. (27.9.2026) The fuzzer's three shapes as fixtures — the smallest, a
+   rotation in which 1 drops 2 while 2 and 4 drop children of their own,
+   must give `part1 == {1: []}` — and **4000 random trees** with random
+   rebuilds (moves, drops, new nodes, a node updated and dropped in one
+   frame): every draft the cache can supply is verified and commits clean,
+   at least 3000 of them planned. The fallback: a shadow stand-in that calls
+   every second draft unsettled makes the builder send the update as it
+   came, write `could not settle`, and keep the `unsettled-*.json` aside.
 
 Mutations, nine, each caught by the case written for it: inner moves treated
 as outer (1, 6); nothing supplied (2, 3, 5); held nodes sent anyway (3, 6,
@@ -352,6 +380,15 @@ as outer (1, 6); nothing supplied (2, 3, 5); held nodes sent anyway (3, 6,
 duplicate children kept (5, and phase 2's cap case); held data never
 forgotten (4); the model's `commit` skipping the first commit (1, 6); the
 `— held back` suffix dropped (6, 7).
+
+Second round of mutants (27.9.2026): the omission rule removed (caught by
+the fuzzer's fixtures); an unverified draft sent anyway, and a settled draft
+called unsettled (both caught through the stand-in); **the verification
+skipped altogether — survived**, and it is the gate's stated limit: the gate
+holds no draft the model refuses, since the omission rule settles every
+tree the fuzzer makes, so the guard's trigger cannot be produced and the
+guard is held only through the stand-in. The next `unsettled-*.json` from a
+live run is the fixture that would close it.
 
 **What the gate cannot see**, said plainly: that the real engine takes the
 two commits. The model of the engine is the shadow's, written from the

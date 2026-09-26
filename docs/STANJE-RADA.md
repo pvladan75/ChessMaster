@@ -197,8 +197,30 @@ kapija ne vidi**: da pravi motor prima oba commit-a — to je provera
 preskočen; `analyze` isti 22. **Prvo pokretanje uživo, 27.9. 00:10–00:12**
 (build ebb4e7da, stderr preusmeren): tri odlaska iz sobe preko duge kolone
 Biblioteke — dva reda `— held back` u `crash.log`, nijedan `Failed to update`
-u stderr-u motora, nijedan `hold-back failed`, aplikacija nije pala. Vlasnik
-štiklira [249.2] u alatu; grana `forenzika-pada-2` čeka njegovu reč za merge.
+u stderr-u motora, nijedan `hold-back failed`, aplikacija nije pala.
+**Pa pad u 00:29, dvadeset minuta kasnije**, na Home (čvorovi 37–104): motor
+je odbio na liniji 114 (drugi commit), a `crash.log` je tren pre imao
+`semantics hold-back left a refusal: 104 will not be in the tree` — model je
+nacrt odbio, a nacrt je ipak poslat. Fuzz planera nasumičnim stablima je u
+tri kruga našao grešku: prvi commit je nosio stare roditelje unutar podstabala
+koja isti commit otkida, a stablo ih odbija kao nestale. Stari roditelj
+unutar otkinutog podstabla ne treba svoj drop — spoljni ga odnese; to je sad
+u `_draft`, na 4000 nasumičnih stabala nacrt se sredi svaki put. Nacrt se
+**proverava pre nego što postane plan** (oba commit-a sudi kopija senke istim
+modelom kao `commit`); nacrt koji model odbije se ne šalje — ažuriranje ide
+kakvo je došlo, red `could not settle` kaže zašto, a stablo, ažuriranje i
+nacrt se čuvaju pored dnevnika kao `unsettled-<ms>.json` za ponavljanje.
+Petlja koja bi odbijen nacrt prekrajala je napisana i izbačena: sa izostavljanjem
+ništa je nije koristilo, tri mutanta su preživela. Kapija: tri oblika iz
+fuzzera kao fiksture, 4000 nasumičnih stabala, zamena senke koja tera
+fallback. Mutanti: izostavljanje uklonjeno — uhvaćeno; neproveren nacrt
+poslat, sređen nacrt proglašen nesređenim — uhvaćeni; **provera preskočena —
+preživela**, i to je zapisana granica kapije (nema nacrta koji model odbija;
+sledeći `unsettled-*.json` sa uređaja je fikstura koja to zatvara).
+**Brojevi:** aplikacija 4193 → **4197**, pun prolaz bez ičega pored, 1
+preskočen; `analyze` isti 22. Provera [249.2] ponovo: ista putanja i, pošto
+je pad bio na Home, i prelazi između tabova; stderr prazan, nema `could not
+settle`. Sve na `master`.
 
 **Otvoreno pitanje za vlasnika (27.9.2026, iz razgovora):** kad se pozicija
 iz Biblioteke stavi na tablu u Preparation, da li ide sama pozicija ili i
@@ -207,7 +229,11 @@ tutorijala sa `fen` i `pgn` (i delovi postaju koračnik), poziciju ili sken sa
 `fen` i `pgn` koji ima. Predlog: po vrsti — deo tutorijala **sa linijom** (to
 je materijal), zadatak **samo pozicija** (linija je rešenje, na deljenoj tabli
 bi ga odala), pozicija i sken samo pozicija, a sačuvana analiza kroz druga
-vrata. Vlasnik odlučuje u razgovoru; on ne čita ovaj dokument.
+vrata. **Odlučeno 27.9.2026:** deo tutorijala sa linijom; zadatak i pozicija
+samo pozicija. **Nije urađeno** — vlasnik menja i druge stvari u Preparation i
+hoće jedno celovito rešenje u novom planu, u novom razgovoru. Mesto izmene je
+`_putOnBoard` u `chess_game_screen.dart` (dva poziva `loadLessonPosition(...,
+entry.pgn)` za poziciju i sken; deo tutorijala ostaje kakav je).
 
 **Brojevi.** Aplikacija **4139 → 4171** (18 u `crash_trail_test`, 14 u
 `semantics_shadow_test`), pun prolaz bez ičega pored, 1 preskočen; `analyze`

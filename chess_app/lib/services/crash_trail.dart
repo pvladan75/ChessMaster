@@ -123,6 +123,19 @@ class CrashTrail {
     } catch (_) {}
   }
 
+  /// A whole file beside the log, for what one line cannot hold — the update
+  /// the engine's model could not settle (phase 2b), kept so the next
+  /// session can replay it. Synchronous and silent, like the rest.
+  void recordAside(String name, String content) {
+    try {
+      final support = _support;
+      if (support == null) return;
+      File('${support.path}${Platform.pathSeparator}$_dirName'
+              '${Platform.pathSeparator}$name')
+          .writeAsStringSync(content, flush: true);
+    } catch (_) {}
+  }
+
   /// [record], and the same line appended to `crash_logs/crash.log` with the
   /// route the trail last saw — for what must outlive the ring: the trail
   /// keeps 40 lines, and a crash can come many taps after the line that

@@ -10,6 +10,7 @@
 // nodes 13051 and 27377 in the engine's stream) and the September orphan
 // (a node arriving before the parent that lists it).
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -160,6 +161,18 @@ class _Recorder extends Fake implements ui.SemanticsUpdateBuilder {
 
   @override
   ui.SemanticsUpdate build() => ui.SemanticsUpdateBuilder().build();
+}
+
+/// A shadow whose model refuses every second commit once told to — the
+/// builder's fallback cannot be reached through the real planner.
+class _RefusingShadow extends SemanticsShadow {
+  bool refuseFromNow = false;
+
+  @override
+  Plan plan(Map<int, List<int>> update) {
+    final real = super.plan(update);
+    return refuseFromNow ? real.unsettled('forced by the gate') : real;
+  }
 }
 
 /// One framework update through the builder: [nodes] as the framework sends
@@ -380,6 +393,151 @@ void main() {
       expect(shadow.tree[2], [3]);
     });
 
+    // Found by fuzzing on 27.9.2026, after a plan drafted by rules alone was
+    // sent and the engine refused it (00:29, nodes 104 and 37 on Home): the
+    // first commit carried old parents inside subtrees the same commit
+    // dropped.
+    test('an old parent inside a subtree the first commit drops is omitted',
+        () {
+      final shadow = _shadowWith({
+        0: [1],
+        1: [2],
+        2: [3, 4],
+        3: <int>[],
+        4: [5],
+        5: <int>[],
+      });
+      final plan = _plan(shadow, {
+        0: [3, 5, 2],
+        3: <int>[],
+        5: [1, 4],
+        1: <int>[],
+        2: <int>[],
+        4: <int>[],
+      });
+      expect(plan.verified, isTrue, reason: plan.refusal);
+      expect(
+          plan.part1,
+          {
+            1: <int>[],
+          },
+          reason: '2 and 4 are inside what 1 drops');
+      expect(shadow.commit(plan), isEmpty);
+      expect(shadow.tree[0], [3, 5, 2]);
+      expect(shadow.tree[5], [1, 4]);
+    });
+
+    test('the other two shapes the fuzzer found settle too', () {
+      final a = _shadowWith({
+        0: [1, 2, 3],
+        1: <int>[],
+        2: [4],
+        3: [5, 8, 10],
+        4: [6],
+        5: <int>[],
+        6: [7],
+        7: <int>[],
+        8: [9],
+        9: <int>[],
+        10: <int>[],
+      });
+      final planA = _plan(a, {
+        0: [6],
+        6: [2, 10, 9],
+        2: [4, 1, 3],
+        4: <int>[],
+        1: [7],
+        3: <int>[],
+        7: [100],
+        100: <int>[],
+        8: <int>[],
+      });
+      expect(planA.verified, isTrue, reason: planA.refusal);
+      expect(a.commit(planA), isEmpty);
+      expect(planA.held, contains(8),
+          reason: 'updated and dropped in one frame');
+
+      final b = _shadowWith({
+        0: [1, 2, 5],
+        1: [3],
+        2: [4],
+        3: [10],
+        4: [9],
+        5: [6, 7],
+        6: <int>[],
+        7: [8],
+        8: <int>[],
+        9: <int>[],
+        10: <int>[],
+      });
+      final planB = _plan(b, {
+        0: [8],
+        8: [5],
+        5: [4, 7, 6, 9],
+        4: [1],
+        7: <int>[],
+        6: [2],
+        2: [3],
+        1: <int>[],
+        3: <int>[],
+      });
+      expect(planB.verified, isTrue, reason: planB.refusal);
+      expect(b.commit(planB), isEmpty);
+    });
+
+    test('every plan over 4000 random trees is one the model takes', () {
+      // The class, not three shapes: random trees, random rebuilds (moves,
+      // drops, new nodes, a node updated and dropped in one frame), and
+      // every plan the cache can supply must be verified and commit clean.
+      final rng = Random(7);
+      var planned = 0;
+      for (var round = 0; round < 4000; round++) {
+        final n = 4 + rng.nextInt(9);
+        final tree = <int, List<int>>{0: []};
+        for (var id = 1; id < n; id++) {
+          tree[rng.nextInt(id)]!.add(id);
+          tree[id] = [];
+        }
+        final shadow = _shadowWith(tree);
+        final ids = tree.keys.toList();
+        final newTree = <int, List<int>>{0: []};
+        final alive = <int>[0];
+        final shuffled = ids.where((i) => i != 0).toList()..shuffle(rng);
+        for (final id in shuffled) {
+          if (rng.nextInt(6) == 0) continue;
+          newTree[alive[rng.nextInt(alive.length)]]!.add(id);
+          newTree[id] = [];
+          alive.add(id);
+        }
+        for (var k = 0; k < rng.nextInt(3); k++) {
+          newTree[alive[rng.nextInt(alive.length)]]!.add(100 + k);
+          newTree[100 + k] = [];
+          alive.add(100 + k);
+        }
+        final update = <int, List<int>>{};
+        for (final e in newTree.entries) {
+          final old = tree[e.key];
+          if (old == null ||
+              old.join(',') != e.value.join(',') ||
+              rng.nextInt(4) == 0) {
+            update[e.key] = e.value;
+          }
+        }
+        for (final id in ids) {
+          if (!newTree.containsKey(id) && rng.nextInt(3) == 0) update[id] = [];
+        }
+        if (update.isEmpty) continue;
+        final plan = _plan(shadow, update);
+        if (plan.failed.isNotEmpty) continue;
+        planned++;
+        expect(plan.verified, isTrue,
+            reason: 'round $round: $tree then $update — ${plan.refusal}');
+        expect(shadow.commit(plan), isEmpty,
+            reason: 'round $round: $tree then $update');
+      }
+      expect(planned, greaterThan(3000));
+    });
+
     test('a child the cache never saw cannot be supplied', () {
       final shadow = _shadowWith({
         0: [1],
@@ -514,6 +672,44 @@ void main() {
         1: [2],
         2: <int>[],
       });
+    });
+
+    test('a plan the model refuses is never sent; the update goes as it came',
+        () {
+      // Forced by a shadow whose model refuses everything after a point: the
+      // gate cannot make the real planner fail to settle (that is what the
+      // random-tree case proves), so the fallback is driven by a stand-in.
+      final shadow = _RefusingShadow();
+      final seed = builder(shadow);
+      _send(seed, {
+        0: [1],
+        1: <int>[],
+      });
+      seed.build();
+      shadow.refuseFromNow = true;
+      final b = builder(shadow);
+      _send(b, {
+        1: [2],
+        2: <int>[],
+      });
+      b.build();
+      expect(order, isEmpty, reason: 'nothing sent early');
+      expect(
+          made.last.nodes,
+          {
+            1: [2],
+            2: <int>[],
+          },
+          reason: 'the framework\'s update, untouched');
+      expect(lines('hold-back'), [contains('could not settle')]);
+      final aside =
+          Directory('${support.path}${Platform.pathSeparator}crash_logs')
+              .listSync()
+              .where((f) => f.path.contains('unsettled-'))
+              .toList();
+      expect(aside, hasLength(1), reason: 'the update is kept aside');
+      expect(File(aside.single.path).readAsStringSync(),
+          allOf(contains('"update"'), contains('"tree"')));
     });
 
     test('what the cache cannot supply goes as it came, and says so', () {
