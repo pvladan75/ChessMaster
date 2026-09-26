@@ -25,6 +25,8 @@ class TutorialFlowPanel extends StatelessWidget {
     required this.onCommentChanged,
     this.onDelete,
     this.onInsertLine,
+    this.partsStartingHere = const {},
+    this.onOpenPart,
   });
 
   final AnalysisNode root;
@@ -48,6 +50,14 @@ class TutorialFlowPanel extends StatelessWidget {
   /// no line to cut.
   final VoidCallback? onInsertLine;
 
+  /// The later parts that go back to a beat of this one, by the beat's node
+  /// id — drawn on that beat as „Part 4 starts here · 18... h6". Phase 3 of
+  /// `docs/PLAN-MAPA-DELOVA.md`: the other end of the map's dashed edge.
+  final Map<String, List<({int part, String move})>> partsStartingHere;
+
+  /// Opens part [index] (0-based). Null draws no chip.
+  final void Function(int index)? onOpenPart;
+
   @override
   Widget build(BuildContext context) {
     final beats = beatsOf(root, current);
@@ -65,6 +75,8 @@ class TutorialFlowPanel extends StatelessWidget {
             onCommentChanged: onCommentChanged,
             onDelete: onDelete,
             onInsertLine: onInsertLine,
+            partsStartingHere: partsStartingHere[beats[i].node.id] ?? const [],
+            onOpenPart: onOpenPart,
           ),
         ],
       ],
@@ -80,6 +92,8 @@ class _BeatCard extends StatefulWidget {
     required this.onCommentChanged,
     this.onDelete,
     this.onInsertLine,
+    this.partsStartingHere = const [],
+    this.onOpenPart,
   });
 
   final TutorialBeat beat;
@@ -87,6 +101,8 @@ class _BeatCard extends StatefulWidget {
   final void Function(AnalysisNode, String) onCommentChanged;
   final void Function(AnalysisNode)? onDelete;
   final VoidCallback? onInsertLine;
+  final List<({int part, String move})> partsStartingHere;
+  final void Function(int index)? onOpenPart;
 
   @override
   State<_BeatCard> createState() => _BeatCardState();
@@ -236,6 +252,31 @@ class _BeatCardState extends State<_BeatCard> {
                 },
                 onChanged: (val) => widget.onCommentChanged(beat.node, val),
               ),
+              if (widget.onOpenPart != null &&
+                  widget.partsStartingHere.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    for (final later in widget.partsStartingHere)
+                      ActionChip(
+                        key: Key('part-starts-here-${later.part + 1}'),
+                        avatar: const Icon(Icons.subdirectory_arrow_right,
+                            size: 16),
+                        label: Text(
+                          later.move.isEmpty
+                              ? 'Part ${later.part + 1} starts here'
+                              : 'Part ${later.part + 1} starts here · '
+                                  '${later.move}',
+                          style: AppText.body
+                              .copyWith(color: context.colors.textPrimary),
+                        ),
+                        onPressed: () => widget.onOpenPart!(later.part),
+                      ),
+                  ],
+                ),
+              ],
               if (beat.branches.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.xs),
                 Wrap(

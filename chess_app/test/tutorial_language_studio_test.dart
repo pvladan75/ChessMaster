@@ -108,18 +108,38 @@ void main() {
     return api;
   }
 
+  // Labels and language are behind „Details…" under the title in the bar since
+  // phase 4 of `docs/PLAN-MAPA-DELOVA.md` (they shared a row of the 460 px pane
+  // with the title before) — the phone's sheet, now both layouts' one door.
+  // What these cases assert is unchanged; they open the sheet to reach it.
   final dropdown = find.byKey(const Key('tutorial-language'));
 
+  Future<void> openDetails(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('tutorial-details')));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> closeDetails(WidgetTester tester) async {
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+  }
+
   /// What the closed dropdown says it holds.
-  String? shown(WidgetTester tester) =>
-      tester.widget<DropdownButton<String?>>(dropdown).value;
+  Future<String?> shown(WidgetTester tester) async {
+    await openDetails(tester);
+    final value = tester.widget<DropdownButton<String?>>(dropdown).value;
+    await closeDetails(tester);
+    return value;
+  }
 
   Future<void> pick(WidgetTester tester, String label) async {
+    await openDetails(tester);
     await tester.tap(dropdown);
     await tester.pumpAndSettle();
     // The closed button draws its entries too; the open menu's is the last.
     await tester.tap(find.text(label).last);
     await tester.pumpAndSettle();
+    await closeDetails(tester);
   }
 
   Future<void> save(WidgetTester tester) async {
@@ -131,7 +151,8 @@ void main() {
     final api = await open(tester, row(language: null));
 
     await pick(tester, 'Serbian (Latin)');
-    expect(shown(tester), 'sr-Latn', reason: 'the button says what was picked');
+    expect(await shown(tester), 'sr-Latn',
+        reason: 'the button says what was picked');
     await save(tester);
 
     expect(api.saves.single['language'], 'sr-Latn');
@@ -156,7 +177,7 @@ void main() {
 
     // Asked of the button's value, not of its text: a closed dropdown builds
     // every entry and shows one, so „German" is found whichever is chosen.
-    expect(shown(tester), 'de');
+    expect(await shown(tester), 'de');
 
     await save(tester);
     expect(api.saves.single['language'], 'de',
@@ -183,7 +204,7 @@ void main() {
       // said" — that would clear a language set on another device.
       final api = await open(tester, row());
 
-      expect(shown(tester), isNull);
+      expect(await shown(tester), isNull);
       await pick(tester, 'Not set');
       await save(tester);
 
@@ -198,7 +219,7 @@ void main() {
     // and overwriting it would lose what that server knew.
     final api = await open(tester, row(language: 'pt'));
 
-    expect(shown(tester), isNull);
+    expect(await shown(tester), isNull);
     await save(tester);
 
     expect(api.saves.single['language'], 'pt');
@@ -221,7 +242,7 @@ void main() {
 
     final api = await open(tester, row(language: 'de', id: id));
 
-    expect(shown(tester), 'fr');
+    expect(await shown(tester), 'fr');
     await save(tester);
     expect(api.saves.single['language'], 'fr');
   });
@@ -234,8 +255,6 @@ void main() {
         await open(tester, row(language: null), size: const Size(700, 1000));
 
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(dropdown);
-    await tester.pumpAndSettle();
     await pick(tester, 'Spanish');
     await tester.tap(find.text('Save tutorial'));
     await tester.pumpAndSettle();

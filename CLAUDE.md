@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4075 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4101 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1905 with TEST_DATABASE_URL, 1747 without
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -845,6 +845,24 @@ after the continuation, reversed. And a door case that failed half way left its
 screen standing for the next one, which went red under a mutation that could
 not touch it — **close in `addTearDown`, or a neighbour's failure reads as a
 catch.**
+Then its phase 3 (→ **4091**, a full run; analyze the same 22): the parts as a
+map — rows in film order, lanes for how they join, the open part marked by a
+border, a ring and words. **A mutation that survives because the code cannot
+change an answer is a deletion, not a missing test**: the lanes held by passing
+edges are always already held by a marker, so the set that tracked them went.
+And a rendered look at the owner's window found what no gate asked: the panel
+there now shows two rows instead of three.
+Then its phase 4 (→ **4101**, a full run; analyze the same 22 — after one new
+`unnecessary_import` in the lead's own gate was caught and removed): the map in
+its own column left of the board wherever the board keeps its size, the title
+in the bar with „Details…" under it, the open part's header with its actions.
+**A constant from the plan is a claim about the code, and it was wrong**:
+`AppSpacing.md` is 12, not the 16 the plan's arithmetic used, so every band
+width moved by 12 (the column from 1504, not 1520) — found because a rewritten
+case summed to 404 px where 400 were due, and a 4 px surplus was read rather
+than rounded away. The 60-character title measured in Roboto in the gate, and
+once by hand in Segoe UI from the machine (513 px in 1034) — not committed,
+because a font read from the machine is a test of the machine.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

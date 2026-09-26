@@ -45,6 +45,7 @@ import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_scree
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/account_local_state.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 
 const String openingFen =
     'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -137,7 +138,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Opozicija'), findsWidgets);
-      expect(find.text('Nedovršen deo'), findsOneWidget);
+      expect(inPartsMap('Nedovršen deo'), findsOneWidget);
     });
 
     testWidgets('backing out leaves the unfinished tutorial where it was',
@@ -209,7 +210,7 @@ void main() {
       await open(tester, TutorialEntry.saved(lesson(12, 'Opozicija')));
 
       expect(find.text('Opozicija'), findsWidgets);
-      expect(find.text('Uvod'), findsOneWidget);
+      expect(inPartsMap('Uvod'), findsOneWidget);
     });
 
     testWidgets('a draft of a different tutorial is left alone',
@@ -221,7 +222,7 @@ void main() {
 
       expect(find.text('Nedovršen deo'), findsNothing,
           reason: 'another tutorial’s unsaved work was opened as this one');
-      expect(find.text('Uvod'), findsOneWidget);
+      expect(inPartsMap('Uvod'), findsOneWidget);
       expect(find.text('Continue'), findsNothing,
           reason: 'a draft of a different tutorial is not this trainer’s '
               'business right now, so it is not a question either');
@@ -232,7 +233,7 @@ void main() {
       await storeDraft(lessonId: 12, title: 'Opozicija');
       await open(tester, TutorialEntry.saved(lesson(12, 'Opozicija')));
 
-      expect(find.text('Nedovršen deo'), findsOneWidget,
+      expect(inPartsMap('Nedovršen deo'), findsOneWidget,
           reason: 'the trainer’s unsaved edits to this very tutorial were '
               'thrown away');
     });
@@ -267,3 +268,9 @@ void main() {
     });
   });
 }
+
+// A part's name is looked for in the map of parts: since phase 4 of
+// `docs/PLAN-MAPA-DELOVA.md` the open part's name is also in its header, so an
+// unscoped finder matches two. The same list, by the widget that draws it.
+Finder inPartsMap(String text) => find.descendant(
+    of: find.byType(TutorialPartsMap), matching: find.text(text));

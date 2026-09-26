@@ -28,6 +28,7 @@ import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 
 class _RecordingApi extends LessonApiService {
   _RecordingApi._(this.saves, http.Client client)
@@ -166,7 +167,7 @@ void main() {
 
     // Stored as „Deo 2", as tutorials were before 11.9.2026, and listed in
     // the app's own words.
-    await tester.tap(find.text('Part 2'));
+    await tester.tap(inPartsMap('Part 2'));
     await tester.pumpAndSettle();
 
     final sent = await save(tester, api);
@@ -384,3 +385,10 @@ void main() {
     });
   });
 }
+
+// „Part N" is looked for in the map of parts: since phase 4 of
+// `docs/PLAN-MAPA-DELOVA.md` the open part's name is also in its header,
+// so an unscoped finder matches two. The same list, by the widget that
+// draws it.
+Finder inPartsMap(String text) => find.descendant(
+    of: find.byType(TutorialPartsMap), matching: find.text(text));

@@ -8180,3 +8180,55 @@ ide u `addTearDown`, a svaki slučaj pravi svoj id lekcije.
 `UPDATE … position_list || $1` je jedna naredba, pa je dovoljno sve korake
 izgraditi pre pisanja. Mutacija koja tiho izbaci loš korak (polovično pisanje)
 pala je i na stubu i na pravoj bazi.
+
+## 26.9.2026 — Delovi kao mapa: faza 3
+
+Mapa delova. Aplikacija **4075 → 4091** (pun prolaz): +11
+`tutorial_part_map_test`, +5 `tutorial_parts_map_screen_test`; slučajevi u
+`tutorial_delovi_test` i `tutorial_raspored_test` prepisani (redovi više nisu
+`ListTile`, a znak spajanja je rečenica, ne ikonica). `analyze` isti 22 — pošto
+je uklonjen nekorišćen import koji je `analyze` prijavio kao **upozorenje**
+posle prvog punog prolaza. Pravilo 18 je platilo odmah.
+
+**Mutacija koja preživi jer kod ne može da promeni odgovor traži brisanje, ne
+test.** Skup „trake koje zauzimaju ivice koje prolaze" nikad nije menjao
+rezultat: ivica ide trakom svog cilja, pa svaka kasnija ivica preko istih
+redova prolazi i pored tog markera. Obrisan, sa obrazloženjem u komentaru.
+
+**Fixture za „dve ivice preko istog reda" nije imao dve takve ivice** — deo 3
+se vraćao na deo 2, susedni red. Nađeno tek kad je mutacija preživela i
+fixture pročitan ponovo.
+
+**`scrollUntilVisible` sa pozitivnim korakom skroluje samo nadole**; pomoćna
+funkcija koja traži redove redom mora prvo da se vrati na vrh.
+
+**Pogledaj ekran pre nego što kažeš da je vizuelna stvar gotova.** Snimak u
+Roboto fontu na vlasnikovom prozoru 1536 × 736 pokazao je da panel sad ima dva
+reda umesto tri — to nijedna kapija nije pitala. Snimak na telefonu je prvo
+„pokazao" da tap na red ne bira deo; red je bio ispod ekrana i tap nije
+pogodio ništa (upozorenje u izlazu). Nalaz iz testa se proverava pre nego što
+se veruje.
+
+## 26.9.2026 — Delovi kao mapa: faza 4
+
+Mapa u svojoj koloni, naslov u traci, zaglavlje otvorenog dela. Aplikacija
+**4091 → 4101** (pun prolaz): +9 `tutorial_map_column_test`, +1 u
+`tutorial_labels_test` (traka kaže oznake); ostalo prepisano, ništa obrisano.
+`analyze` isti 22, posle jednog novog `unnecessary_import` u sopstvenoj kapiji.
+
+**Konstanta iz plana je tvrdnja o kodu, i bila je netačna.** Plan je računao
+sa razmakom 16; `AppSpacing.md` je 12. Sve širine opsega pomerile su se za 12
+(kolona od 1504, ne od 1520). Nađeno jer je prepisan slučaj dao 404 px gde je
+trebalo 400 — višak od 4 px je pročitan, a ne zaokružen.
+
+**Isti naziv na dva mesta je isti propust po šesti put.** Ime otvorenog dela
+sad stoji i u mapi i u zaglavlju, pa je `find.text('Part 1')` našao dva u pet
+fajlova. Opseg je mapa — isti spisak, po vidžetu koji ga crta — ne slabiji
+tražilac. Prvi pad je povukao kaskadu u `tutorial_delovi_test`: ekran koji nije
+zatvoren upisao je nacrt posle `setUp`-a sledećeg slučaja, i novi studio je
+pitao „Continue?" ispred svakog tapa. Zatvaranje ide u `addTearDown`.
+
+**Font sa mašine se meri jednom, ručno, i ne ulazi u kapiju.** Naslov od 60
+znakova je u kapiji meren u Robotu sa rezervom od petine; jednom je izmeren i
+u Segoe UI iz `C:\Windows\Fonts` (513 px u polju od 1034) i taj test je
+obrisan. Pravilo 8.

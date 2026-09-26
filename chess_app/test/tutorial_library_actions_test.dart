@@ -33,6 +33,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_library_card.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 
 import 'support/shelf_over_lessons.dart';
 
@@ -317,7 +318,10 @@ void main() {
     await tester.tap(find.text('Opozicija'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tutorial Studio'), findsOneWidget,
+    // The studio's bar says the tutorial's name since phase 4 of
+    // `docs/PLAN-MAPA-DELOVA.md`, not „Tutorial Studio"; the screen itself is
+    // what opened.
+    expect(find.byType(TutorialStudioScreen), findsOneWidget,
         reason: 'the actions were added beside opening, not in front of it');
   });
 }

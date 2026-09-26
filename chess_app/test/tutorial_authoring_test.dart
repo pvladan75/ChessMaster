@@ -116,6 +116,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_servi
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_flow_panel.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 
 /// Every request the screen made, and what was in it.
 ///
@@ -354,15 +355,15 @@ void main() {
     testWidgets('the examples are numbered as they are written',
         (tester) async {
       await open(tester);
-      expect(find.text('Part 1'), findsOneWidget);
-      expect(find.text('Part 2'), findsNothing);
+      expect(inPartsMap('Part 1'), findsOneWidget);
+      expect(inPartsMap('Part 2'), findsNothing);
 
       await play(tester, 'e2', 'e4');
       await addPart(tester);
 
-      expect(find.text('Part 1'), findsOneWidget,
+      expect(inPartsMap('Part 1'), findsOneWidget,
           reason: 'the example just committed left the list');
-      expect(find.text('Part 2'), findsOneWidget);
+      expect(inPartsMap('Part 2'), findsOneWidget);
       await close(tester);
     });
 
@@ -523,3 +524,10 @@ void main() {
     });
   });
 }
+
+// „Part N" is looked for in the map of parts: since phase 4 of
+// `docs/PLAN-MAPA-DELOVA.md` the open part's name is also in its header,
+// so an unscoped finder matches two. The same list, by the widget that
+// draws it.
+Finder inPartsMap(String text) => find.descendant(
+    of: find.byType(TutorialPartsMap), matching: find.text(text));

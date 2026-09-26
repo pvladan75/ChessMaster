@@ -110,7 +110,13 @@ enum PartEntry {
 
 /// How a part opens, and — on a return — the move that arrived at the position
 /// the last time the film showed it.
-typedef PartOpening = ({PartEntry entry, String? afterMove});
+///
+/// [from] is the stop the part hangs from: the one before it when it
+/// continues, the most recent stop that showed its position when it returns,
+/// null on a new board. The film reads nothing from it; the map of the parts
+/// does (`partMapOf`), so that the two cannot disagree about which beat a
+/// part goes back to.
+typedef PartOpening = ({PartEntry entry, String? afterMove, int? from});
 
 /// How each part of [stops] opens. Entry `i` is set exactly when `stops[i]`
 /// opens a part, and null on every beat inside one.
@@ -138,21 +144,21 @@ List<PartOpening?> partOpeningsOf(List<FilmBeat> stops) {
     final fen = stops[i].beat.node.fen;
 
     if (i > 0 && MoveTree.samePosition(stops[i - 1].beat.node.fen, fen)) {
-      out[i] = (entry: PartEntry.continues, afterMove: null);
+      out[i] = (entry: PartEntry.continues, afterMove: null, from: i - 1);
       continue;
     }
 
-    var shownBefore = false;
+    int? matched;
     String? named;
     for (var j = i - 1; j >= 0; j--) {
       if (!MoveTree.samePosition(stops[j].beat.node.fen, fen)) continue;
-      shownBefore = true;
+      matched ??= j;
       named ??= stops[j].beat.arrivedLabel;
       if (named != null) break;
     }
-    out[i] = shownBefore
-        ? (entry: PartEntry.returns, afterMove: named)
-        : (entry: PartEntry.fresh, afterMove: null);
+    out[i] = matched != null
+        ? (entry: PartEntry.returns, afterMove: named, from: matched)
+        : (entry: PartEntry.fresh, afterMove: null, from: null);
   }
   return out;
 }

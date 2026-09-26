@@ -376,7 +376,36 @@ The plan's first description, kept for the record:
   `fromLesson` and `appendStep` in `APP` — because a door the table missed is
   the ninth-file lesson.
 
-### Phase 3 — the map [implementer]
+### Phase 3 — the map [implementer] — done 26.9.2026
+
+**Built inline by the lead, on branch `mapa-delova-faza-3`.** `partMapOf`
+(`TS/services/tutorial_part_map.dart`) over `partOpeningsOf`, which now keeps
+the stop it matched (`from`); `TutorialPartsMap` and `TutorialPartHeader`
+(`TS/widgets/tutorial_parts_map.dart`); the chip in Flow (`partsStartingIn`).
+The map replaces the rows of the contents panel and of the phone's Parts tab;
+`_isJoined` and `_fenKey` are gone. Gate: `T/tutorial_part_map_test.dart` (11)
+and `T/tutorial_parts_map_screen_test.dart` (5, the phone case measured in
+Roboto). Full run **4091**, 1 skipped; analyze the same 22.
+
+- **The lane rule is simpler than written above.** „No earlier edge uses the
+  lane" needs no bookkeeping: an edge runs down its target's lane, so any later
+  edge over the same rows passes that target's marker, which already holds the
+  lane. The set built for it survived its mutation and was deleted.
+- **The phone's Parts tab changed how its actions are reached** — the lead's
+  call, reversible: Move up / down, Clone, Rename and Delete act on the open
+  part from one row above the map, as on the desktop; they were under every
+  row, which breaks every edge that crosses it. „Turn this part" stays on each
+  row.
+- **„New board" on a blank tutorial says „back to the start of part 1"**, since
+  it opens on the opening position part 1 already showed — the film's own
+  answer; the old list showed no link there and said nothing.
+- **Seen, not only tested** (rendered with Roboto): at 360 × 640 every row
+  reads whole. **At the owner's 1536 × 736 the contents panel shows two rows**,
+  where the old 48 px rows fitted about three — a row now carries its number,
+  its entry, its name and its moves in 68 px. Phase 4's column left of the
+  board is the answer; phase 3 alone is a small step back at that window.
+- Eleven mutations of the rest, each red on the right case.
+
 
 - `partMapOf(TutorialDraft)` in `TS/services/`, pure: per part the entry
   (`fresh` / `continues` / `returns`), the part and **beat** it hangs from, the
@@ -414,7 +443,41 @@ The plan's first description, kept for the record:
     not overflow;
   - `_isJoined` and `_fenKey` gone (a grep in the gate's report, not a test).
 
-### Phase 4 — the screen and the title [lead writes the gate, implementer builds]
+### Phase 4 — the screen and the title [lead writes the gate, implementer builds] — done 26.9.2026
+
+**Built inline by the lead, on branch `mapa-delova-faza-3`** (with phase 3,
+merged together on the owner's word). The map's column (`map-column`, 380)
+left of the board when `boardPane − board ≥ 380 + AppSpacing.md`; the board's
+formula untouched. The title in the bar (`_titleInBar`, key `tutorial-title`)
+with „English · labels · Details…" under it, opening the one `_showDetails`
+sheet, moved out of the phone file; the desktop's header row and the narrow
+layout's three fields are gone. The open part's header (`_openPartHeader`:
+its line, its name, and rename ↑ ↓ clone delete from `_openPartActions`, the
+list the phone's Parts tab now draws too) above Flow / Tree / PGN in every
+desktop layout. „Part 3 of 8" under the board.
+
+- **`AppSpacing.md` is 12, not 16.** The board pane is `W − 496`, the column
+  needs 392 beside the board, and at the owner's body height of 736 the
+  column appears from **1504** (1503 is one short) — found when a rewritten
+  case came out 404 px where 400 were due.
+- **Two calls of the lead's, reversible:** „Turn this part" stays on each row
+  rather than moving into the header (the phone already had it there, and
+  tests tap it per row); and delete now asks first on the phone too, since both
+  layouts share one list of actions. The PGN guard now stands **before** that
+  question rather than after it.
+- **Seen**, rendered in Roboto: at 1536 × 736 all eight parts of the sketch in
+  the column, board 616, the title whole. At 1366 × 768 the map stays in the
+  pane and shows about two and a half rows before it scrolls — no worse than
+  phase 3, not better; a small window's limit.
+- Gate `T/tutorial_map_column_test.dart` (9); `tutorial_phone_details_test`
+  unchanged and green. Churn as named: `_delovi`, `_authoring`,
+  `_orientation`, `_tri_akcije`, `_entry` (a part's name is now also in its
+  header, so „Part N" is looked for in the map), `_labels` and
+  `_language_studio` (through Details), `_raspored` (the 400 px now arrive as
+  board pane plus the column — rewritten openly), `_library_actions` (the bar
+  no longer says „Tutorial Studio"), `_pgn_tab` (delete is held before its
+  question). Seven mutations, each red on the right case.
+
 
 - The map gets a column left of the board **when the board keeps its size**:
   when the board pane minus the board is at least 380 + 16. Otherwise it stays

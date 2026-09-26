@@ -124,11 +124,27 @@ void main() {
   }
 
   group('the studio', () {
+    // Labels and language are behind „Details…" under the title in the bar since
+    // phase 4 of `docs/PLAN-MAPA-DELOVA.md` (they shared a row of the 460 px pane
+    // with the title before) — the phone's sheet, now both layouts' one door.
+    // What these cases assert is unchanged; they open the sheet to reach it.
+    Future<void> openDetails(WidgetTester tester) async {
+      await tester.tap(find.byKey(const Key('tutorial-details')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> closeDetails(WidgetTester tester) async {
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+    }
+
     testWidgets('sends the labels that were typed into it', (tester) async {
       final api = await open(tester, savedLesson());
 
+      await openDetails(tester);
       await tester.enterText(
           find.byKey(const Key('tutorial-labels')), 'endgame, rook');
+      await closeDetails(tester);
       await tester.tap(find.text('Save tutorial'));
       await tester.pumpAndSettle();
 
@@ -142,6 +158,7 @@ void main() {
       // further along: a value the screen does not draw is a value the next
       // save writes its default over.
       await open(tester, savedLesson(tags: ['endgame', 'rook']));
+      await openDetails(tester);
 
       // Scoped to the field by key rather than searched for across the
       // screen: the hint is a comma-separated pair too, and a `widgetWithText`
@@ -151,6 +168,22 @@ void main() {
       final field =
           tester.widget<TextField>(find.byKey(const Key('tutorial-labels')));
       expect(field.controller?.text, 'endgame, rook');
+      await close(tester);
+    });
+
+    testWidgets('the bar says them, beside the language', (tester) async {
+      await open(tester, savedLesson(tags: ['endgame', 'rook']));
+      expect(
+          tester.widget<Text>(find.byKey(const Key('tutorial-summary'))).data,
+          contains('endgame, rook'));
+
+      await openDetails(tester);
+      await tester.enterText(find.byKey(const Key('tutorial-labels')), 'pawns');
+      await closeDetails(tester);
+      expect(
+          tester.widget<Text>(find.byKey(const Key('tutorial-summary'))).data,
+          contains('pawns'),
+          reason: 'the bar kept saying what the tutorial no longer is');
       await close(tester);
     });
 
@@ -173,7 +206,9 @@ void main() {
       // the server treats an explicit empty list differently from silence.
       final api = await open(tester, savedLesson(tags: ['endgame']));
 
+      await openDetails(tester);
       await tester.enterText(find.byKey(const Key('tutorial-labels')), '  ');
+      await closeDetails(tester);
       await tester.tap(find.text('Save tutorial'));
       await tester.pumpAndSettle();
 

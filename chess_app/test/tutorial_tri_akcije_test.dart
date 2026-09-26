@@ -25,6 +25,7 @@ import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_scree
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 
 class _RecordingApi extends LessonApiService {
   _RecordingApi._(this.saves, http.Client client)
@@ -124,7 +125,7 @@ void main() {
       await type(tester, 'example-sentence', 'Zauzimamo centar.');
 
       expect(find.text('Zauzimamo centar.'), findsWidgets);
-      expect(find.text('Part 1'), findsNothing);
+      expect(inPartsMap('Part 1'), findsNothing);
 
       await close(tester);
     });
@@ -153,7 +154,7 @@ void main() {
       await tester.tap(find.text('Save').last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Uvod'), findsOneWidget);
+      expect(inPartsMap('Uvod'), findsOneWidget);
 
       final parts = await save(tester, api);
       expect(parts.single['title'], 'Uvod');
@@ -177,7 +178,7 @@ void main() {
       await open(tester);
       await play(tester, 'e2', 'e4');
 
-      expect(find.text('Part 1'), findsOneWidget,
+      expect(inPartsMap('Part 1'), findsOneWidget,
           reason: 'the fallback is the one place that word is still read');
 
       await close(tester);
@@ -216,3 +217,10 @@ void main() {
     });
   });
 }
+
+// „Part N" is looked for in the map of parts: since phase 4 of
+// `docs/PLAN-MAPA-DELOVA.md` the open part's name is also in its header,
+// so an unscoped finder matches two. The same list, by the widget that
+// draws it.
+Finder inPartsMap(String text) => find.descendant(
+    of: find.byType(TutorialPartsMap), matching: find.text(text));

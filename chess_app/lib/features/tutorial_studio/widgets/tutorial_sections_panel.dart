@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
-import 'package:chess_app/features/tutorial_studio/services/step_tree.dart'
-    show endOfMainLine;
+import 'package:chess_app/features/tutorial_studio/widgets/tutorial_parts_map.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
@@ -25,10 +24,6 @@ class TutorialSectionsPanel extends StatelessWidget {
     required this.draft,
     required this.onSelect,
     required this.onAddShow,
-    required this.onMove,
-    required this.onClone,
-    required this.onRename,
-    required this.onRemove,
     this.onAddPartsFrom,
     this.onExtractParts,
     this.onTurn,
@@ -39,11 +34,6 @@ class TutorialSectionsPanel extends StatelessWidget {
 
   /// „Novi prikaz" — a new demonstration after this one.
   final VoidCallback onAddShow;
-
-  final void Function(int from, int to) onMove;
-  final void Function(int index) onClone;
-  final void Function(int index) onRename;
-  final void Function(int index) onRemove;
 
   /// „Add parts from a tutorial…" — another tutorial's parts, copied in here.
   /// Null draws nothing, the rule this panel already follows.
@@ -58,46 +48,8 @@ class TutorialSectionsPanel extends StatelessWidget {
   /// 840 dp, and so it names the part it acts on. Null draws nothing.
   final void Function(int index)? onTurn;
 
-  static bool _isJoined(TutorialSection prev, TutorialSection curr) {
-    final endFen = endOfMainLine(prev.root).fen;
-    final startFen = curr.root.fen;
-    return _fenKey(endFen) == _fenKey(startFen);
-  }
-
-  static String _fenKey(String fen) =>
-      fen.trim().split(RegExp(r'\s+')).take(4).join(' ');
-
-  Future<void> _handleDelete(BuildContext context) async {
-    if (draft.sections.length <= 1) {
-      onRemove(draft.selected);
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete part'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
-      onRemove(draft.selected);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final canMoveUp = draft.selected > 0;
-    final canMoveDown = draft.selected < draft.sections.length - 1;
-
     return Material(
       color: context.colors.surface,
       borderRadius: AppRadii.roundedMd,
@@ -183,116 +135,31 @@ class TutorialSectionsPanel extends StatelessWidget {
                   icon: const Icon(Icons.visibility_outlined, size: 18),
                   label: const Text('New demonstration'),
                 ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Move up',
-                  icon: const Icon(Icons.arrow_upward),
-                  onPressed: canMoveUp
-                      ? () => onMove(draft.selected, draft.selected - 1)
-                      : null,
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Move down',
-                  icon: const Icon(Icons.arrow_downward),
-                  onPressed: canMoveDown
-                      ? () => onMove(draft.selected, draft.selected + 1)
-                      : null,
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Clone part',
-                  icon: const Icon(Icons.copy),
-                  onPressed: () => onClone(draft.selected),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Rename',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: () => onRename(draft.selected),
-                ),
-                IconButton(
-                  visualDensity: VisualDensity.compact,
-                  tooltip: 'Delete part',
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _handleDelete(context),
-                ),
               ],
             ),
             const SizedBox(height: AppSpacing.xs),
             const Divider(height: 1),
             const SizedBox(height: AppSpacing.xs),
+            // The parts as a map (phase 3 of `docs/PLAN-MAPA-DELOVA.md`):
+            // how each opens is the film's own answer, `partOpeningsOf`, where
+            // this list once compared positions itself and knew only
+            // „continues".
             Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: draft.sections.length,
-                itemBuilder: (context, i) {
-                  final section = draft.sections[i];
-                  final isSelected = i == draft.selected;
-                  // The one function the wire uses too — see
-                  // [TutorialSection.toJson]. A row labelled from its index
-                  // over a stored title that says something else is batch 57's
-                  // finding, and computing the name once is the version of
-                  // that fix which cannot come apart.
-                  final label = section.label(i);
-                  final hasJoin = i > 0 &&
-                      _isJoined(draft.sections[i - 1], draft.sections[i]);
-
-                  return ListTile(
-                    dense: true,
-                    selected: isSelected,
-                    selectedTileColor: context.colors.surfaceRaised,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: AppRadii.roundedSm,
-                    ),
-                    leading: Icon(
-                      Icons.visibility_outlined,
-                      size: 18,
-                      color: isSelected
-                          ? context.colors.accent
-                          : context.colors.textSecondary,
-                    ),
-                    title: Text(
-                      label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: (isSelected ? AppText.bodyBold : AppText.body)
-                          .copyWith(
-                        color: isSelected
-                            ? context.colors.textPrimary
-                            : context.colors.textSecondary,
-                      ),
-                    ),
-                    trailing: (hasJoin || onTurn != null)
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (hasJoin)
-                                Tooltip(
-                                  message: 'Continues from previous part',
-                                  child: Icon(
-                                    Icons.link,
-                                    color: context.colors.accent,
-                                    size: 20,
-                                  ),
-                                ),
-                              if (onTurn != null)
-                                IconButton(
-                                  key: Key('turn-part-$i'),
-                                  visualDensity: VisualDensity.compact,
-                                  iconSize: 18,
-                                  tooltip: section.blackOrientation
-                                      ? 'Turn this part (Black at the bottom now)'
-                                      : 'Turn this part (White at the bottom now)',
-                                  icon: const Icon(Icons.screen_rotation_alt),
-                                  onPressed: () => onTurn!(i),
-                                ),
-                            ],
-                          )
-                        : null,
-                    onTap: () => onSelect(i),
-                  );
-                },
+              child: TutorialPartsMap(
+                draft: draft,
+                onSelect: onSelect,
+                trailing: onTurn == null
+                    ? null
+                    : (i) => IconButton(
+                          key: Key('turn-part-$i'),
+                          visualDensity: VisualDensity.compact,
+                          iconSize: 18,
+                          tooltip: draft.sections[i].blackOrientation
+                              ? 'Turn this part (Black at the bottom now)'
+                              : 'Turn this part (White at the bottom now)',
+                          icon: const Icon(Icons.screen_rotation_alt),
+                          onPressed: () => onTurn!(i),
+                        ),
               ),
             ),
           ],
