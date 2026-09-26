@@ -320,6 +320,25 @@ class PartGutterPainter extends CustomPainter {
         ..drawCircle(centre, _markerSize / 2, body)
         ..drawCircle(centre, _markerSize / 2, edge);
     }
+    // **Which way an edge goes**, the owner's question of 26.9.2026: a line
+    // that enters a part ends in an arrowhead pointing into its marker, so a
+    // marker with a line above and a line below says which one it came by.
+    // A path, and the only path this painter draws.
+    final head = Paint()
+      ..color = line
+      ..style = PaintingStyle.fill;
+    for (final run in gutter.arriving) {
+      final x = laneX(run.lane);
+      final tip = mid - _markerSize / 2 - (gutter.open ? 4 : 1);
+      canvas.drawPath(
+        Path()
+          ..moveTo(x, tip)
+          ..lineTo(x - 4, tip - 6)
+          ..lineTo(x + 4, tip - 6)
+          ..close(),
+        head,
+      );
+    }
     if (gutter.open) {
       final ring = Paint()
         ..color = marker

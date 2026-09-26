@@ -127,6 +127,14 @@ The sketch's eight parts, which are also the map's fixture in phase 3:
 | 7 | continues 6 | 0 | `7 · continues` |
 | 8 | new board | 0 | `8 · new board` |
 
+**Superseded in part, 26.9.2026, on the owner's word** (phase 0 of
+`PLAN-REDOSLED-GRANA.md`): a part that goes back hangs from **the move its row
+names**, not from the last part that showed the position — parts 5 and 6 hang
+from 16... Nc4 in part 1 — and every line ends in an arrowhead at the part it
+leads to. The rows' words are unchanged; the lanes are now 0, 0, 0, 1, 2, 3, 3,
+0. The owner asked for it after reading his own tutorial as a chain 2 → 3 → 4
+and not being able to tell which way its dashed lines went.
+
 ## 4. Decisions — answered by the owner 25.9.2026: all as recommended
 
 **D1. A second move inside a part starts a new part — right after the open one.**

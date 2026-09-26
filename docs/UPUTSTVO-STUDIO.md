@@ -94,7 +94,10 @@ kaže broj dela i kako počinje — *new board* (nova tabla), *continues* (nasta
 prethodni) ili *back to after …* (vraća se na poziciju posle nekog poteza) — pa
 ime dela i njegove poteze u jednom redu. Levo je linija koja spaja delove:
 **puna** gde deo nastavlja prethodni, **isprekidana** gde se vraća na ranije
-viđenu poziciju. Nova tabla je **kvadrat**, svaki drugi deo **krug**. Deo koji
+viđenu poziciju. Svaka linija se završava **strelicom** na delu u koji vodi,
+a isprekidana linija polazi baš **od poteza na koji se deo vraća** — tri dela
+koja odgovaraju na isti potez izlaze iz tog poteza, svaki u svojoj traci (od
+26.9.2026). Nova tabla je **kvadrat**, svaki drugi deo **krug**. Deo koji
 pišeš ima okvir, prsten oko oznake i reči *you are here*. Ništa od toga ne zavisi
 od boje.
 
