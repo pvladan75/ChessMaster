@@ -8360,3 +8360,65 @@ u logu, uzorak stiže; slučaj sa provajderom `elevenlabs` je crven bez čuvara.
 paketa dok je pun prolaz aplikacije radio pored njega dala su po dva pada;
 treće, iste minute, nula — pravilo 19, ponovo: broj se meri kad ništa drugo ne
 radi, i onda je 1772.
+
+## 26.9.2026 — Pad sa čitačem ekrana, drugi put, i šta pad ostavlja za sobom
+
+Instalirana aplikacija (build od 26.9. u 18:48, Flutter 3.47.5) pala je u
+21:25:47 i ponovo u 22:01:54, posle četiri dana bez pada od popravke od 22.9.
+Fable je dump pročitao u roku od sata; plan `PLAN-FORENZIKA-PADA.md`, pa
+faze 1–2 (trag i detektor) predate implementeru, a faza 3 (čitač dumpa) i
+dokumenti kod leada.
+
+**Traži se funkcija, ne offset.** Offset je `0x3cf3a`, ne `0x3ce3a` kao 22.9 —
+nov motor, ista funkcija
+(`AccessibilityBridge::SetRoleFromFlutterUpdate+0x4`, iz `ConvertFlutterUpdate`
+← `CommitUpdates`). Pretraga Event Loga po poznatom offsetu bi javila „stari
+pad se nije vratio", a vratio se dva puta. Adresa je činjenica o jednom buildu;
+ime funkcije je činjenica o kvaru.
+
+**„Popravljeno" je važilo za dva oblika, ne za klasu.** 22.9 su uklonjena dva
+oblika koja Flutter šalje kao čvor bez roditelja; motor i dalje ruši proces na
+prvom sledećem, a uzvodno nije popravljeno. Četiri čista dana su bila dokaz da
+ta dva oblika više ne okidaju, ne da ništa ne okida. A okidač trećeg niko ne
+zna, jer **na uređaju ništa nije zapisalo ekran ni poslednji dodir** — zato je
+plan o tragu, ne o popravci.
+
+**Tvrdnja o tome šta će red sadržati se meri pre nego što postane slučaj
+kapije.** Plan je tražio da red o čvoru bez roditelja kod Flutterovog
+`Slider`-a u dijalogu nosi vrednost klizača. Izmereno: čvor koji Flutter tu
+ostavi bez roditelja (id 7) nema ni oznaku, ni vrednost, ni tooltip; `50%` je
+na bratu koji stiže, ispravno okačen, u sledećem ažuriranju. Takav slučaj
+kapije ne bi mogao da prođe ni na ispravnom kodu (pravilo 1, s druge strane).
+Oznaka se sada proverava kroz sam graditelj, a red u dijalogu po id-jevima.
+
+**Trag koji prepiše sam sebe pri sledećem pokretanju ne postoji kad zatreba.**
+Plan je trag zamislio kao prsten od 40 redova koji se prepisuje; posle pada
+vlasnik pokrene aplikaciju da ga pročita, i prva ruta novog pokretanja prepiše
+trag pada. Trag zatečen pri pokretanju sada ide u `trail-previous.log`.
+
+**Self-test koji zameni spoljni svet ne vidi oblik spoljnog sveta.** Čitač
+dumpa je prošao self-test i osam mutacija, a prvo pravo pokretanje nije našlo
+`dumpbin`: `vswhere` vraća putanju sa razmacima („Program Files (x86)"), a
+izlaz je bio deljen po razmacima. Self-test zamenjuje učitavanje oznaka, pa
+tu liniju nikad ne izvrši. Alat se smatra gotovim tek posle pokretanja na
+pravom dumpu — to je i faza plana tražila.
+
+**Razmak između odbijanja i pada nije svojstvo kvara.** Dump od 21:25 je
+čitao adresu koja više nije mapirana, pa je izgledalo da su odbijanje i pad
+minutima razmaknuti; u 22:29:50 je stderr motora pokazao odbijanje tri
+sekunde pre pada. Oba su tačna: motor čita oslobođenu memoriju tiho sve dok
+heap ne vrati stranicu, i tek tada proces pada. Trag zato ne sme da
+pretpostavi ni „odmah" ni „kasnije" — red o odbijanju ide i u `crash.log`,
+koji nije prsten.
+
+**Motor je sam govorio sve vreme, samo ga niko nije slušao.** Release build
+ispisuje odbijanje na stderr, a instalirana aplikacija pokrenuta iz menija ga
+baca. Pokrenuta sa `Start-Process -RedirectStandardError`, rekla je id čvora.
+To je i referenca za detektor iz faze 2: njegovi id-jevi i motorovi, iz istog
+pokretanja, moraju biti isti.
+
+**Putanja koja pouzdano ruši aplikaciju uživo bila je zelena u testu, u svakoj
+varijanti.** Fikstura (stub Home, stub server koji odgovara `join_refused` i
+posle 1,2 s skida gornju rutu — dijalog) nema čvor koji bi odlazak iz sobe
+mogao da ostavi bez roditelja. Slučaj koji je zelen na kodu koji pada ne može
+da padne (pravilo 1), pa putanja nije ušla u kapiju nego u proveru uživo.

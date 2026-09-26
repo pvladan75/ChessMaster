@@ -8,6 +8,7 @@ import 'package:chess_app/features/analysis_studio/services/analysis_draft_servi
 import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/services/app_logger.dart';
+import 'package:chess_app/services/crash_trail.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/local_puzzle_service.dart';
 
@@ -41,6 +42,11 @@ import 'package:chess_app/services/local_puzzle_service.dart';
 /// Both of those stay visible to the next account on the same device, which is
 /// a known and deliberate hole: a thing seen is recoverable, a thing deleted is
 /// not.
+///
+/// **The crash trail goes with the account too** (docs/PLAN-FORENZIKA-PADA.md,
+/// phase 1): a tapped label can be a student's name, so `CrashTrail.forget`
+/// is a guarded step here like the rest, clearing the file and the ring in
+/// memory alike — a line recorded before the wipe must not survive it.
 ///
 /// **Guest work is adopted, not thrown away.** Analysing without signing in and
 /// then signing in carries the tree into the account — that is the same person
@@ -95,6 +101,7 @@ abstract final class AccountLocalState {
       ('tutorial draft', TutorialDraftService.instance.clear),
       ('active room', GameSessionService.instance.clear),
       ('solved local puzzles', LocalPuzzleService.instance.forgetSolved),
+      ('crash trail', CrashTrail.instance.forget),
     ]) {
       try {
         await step.$2();

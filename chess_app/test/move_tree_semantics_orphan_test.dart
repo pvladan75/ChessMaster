@@ -36,6 +36,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/services/lesson_recording_api.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/services/semantics_shadow.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
@@ -123,29 +124,18 @@ class _Spy extends Fake implements ui.SemanticsUpdateBuilder {
   }
 }
 
-/// The engine's view of the tree, fed update by update. Returns, per update
-/// that broke the rule, the ids it carried that nothing in the resulting tree
-/// leads to.
+/// The engine's view of the tree, fed update by update, through the shared
+/// rules ([SemanticsShadow]). Returns, per update the engine would refuse,
+/// what it would print — all three rules, so a screen that is clean here is
+/// clean of every refusal the engine knows, not only of orphans.
 List<String> _orphansAcross(List<Map<int, List<int>>> updates) {
-  var tree = <int, List<int>>{};
+  final shadow = SemanticsShadow();
   final problems = <String>[];
   for (var i = 0; i < updates.length; i++) {
-    final merged = {...tree, ...updates[i]};
-    final reached = <int>{};
-    final stack = [0];
-    while (stack.isNotEmpty) {
-      final id = stack.removeLast();
-      if (!merged.containsKey(id) || !reached.add(id)) continue;
-      stack.addAll(merged[id]!);
+    final refusals = shadow.refusalsOf(updates[i]);
+    if (refusals.isNotEmpty) {
+      problems.add('update $i: $refusals');
     }
-    final orphans = updates[i].keys.where((id) => !reached.contains(id));
-    if (orphans.isNotEmpty) {
-      problems.add('update $i: ${orphans.toList()}');
-    }
-    tree = {
-      for (final e in merged.entries)
-        if (reached.contains(e.key)) e.key: e.value,
-    };
   }
   return problems;
 }
@@ -237,7 +227,7 @@ void main() {
         // 2 arrives, but 1 still lists nothing.
         {1: [], 2: []},
       ]),
-      ['update 1: [2]'],
+      ['update 1: [2 will not be in the tree and is not the new root]'],
     );
     expect(
       _orphansAcross([

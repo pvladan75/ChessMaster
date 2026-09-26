@@ -16,12 +16,12 @@ some countries), so many users are minors, which decides several rules below.
 | `docs/` | Handoff and planning docs — read `STANJE-RADA.md` first |
 | `deploy/` | Server provisioning scripts, idempotent, run as root |
 | `puzzles/` | One-off import tooling and datasets, not part of the app |
-| `tools/` | Reusable tooling run by hand, not part of the app — `tutorial_translate/` translates tutorial files through `agy` (`docs/PGN-TUTORIAL-FORMAT.md`, section 9) |
+| `tools/` | Reusable tooling run by hand, not part of the app — `tutorial_translate/` translates tutorial files through `agy` (`docs/PGN-TUTORIAL-FORMAT.md`, section 9); `crashdump/read_dump.py` names the function a Windows minidump died in, from the SDK's engine PDB, and refuses when the engine differs |
 
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4139 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4171 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL (derived), 1772 without (measured)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -895,7 +895,30 @@ lazy list stands where the thing would be drawn**: a guest case that scrolled
 to the bottom and found no row let „draw it for guests too" survive, because
 the row was never built — it now asserts with the card above and the header
 below both on screen.
-Phase 6 of
+Then the screen-reader crash came back (→ **4171**, a full run with nothing
+else running; analyze the same 22 infos; backend unchanged): the build of
+26.9.2026 died three times that evening, **the same function**
+(`AccessibilityBridge::SetRoleFromFlutterUpdate+0x4`) at a **new offset**
+(`0x3cf3a`, not `0x3ce3a` — new engine), so a search of the Event Log by the
+old offset would have said it never came back: **look for the function, not
+the address.** The trigger was unknown because nothing on the device recorded
+the screen; the engine's own stderr, kept by starting the app with
+`Start-Process -RedirectStandardError`, then printed the refusal (`17626 will
+not be in the tree and is not the new root`) three seconds before the third.
+`docs/PLAN-FORENZIKA-PADA.md`: a trail of the last 40 routes and taps written
+**synchronously** (`CrashTrail`, the last run's kept as
+`trail-previous.log`), the engine's three refusal rules applied to every
+semantics update in the engine's words (`SemanticsShadow`, `AppBinding`),
+each refusal also appended to `crash.log`, and `tools/crashdump/read_dump.py`.
+Two gate lessons: the plan promised the orphan line would carry the slider's
+value, and **measured, the orphaned node has no text at all** — a case that
+could not pass; and my own gate did not compile, because `dart:ui`'s
+`updateNode` demands arguments the framework's override leaves optional — the
+worker stopped rather than edit it, as the brief says. **The gate proves the
+detector on fixtures only**: the owner's crashing path was green under the
+same rule in every widget-test variant, so phase 2 is settled by the live
+pass, whose first item is the detector's ids against the engine's stderr from
+one run. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

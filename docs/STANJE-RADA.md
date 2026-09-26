@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **26.9.2026** — najnovije je „Merenje potrošnje API servisa, i ekran „Usage this month"" (u kodu, provera uživo — stavke [248.1]–[248.4]), pa „Redosled varijanti i grana tutorijala" (`PLAN-REDOSLED-GRANA.md`; D1–D7 odgovoreni po preporuci; **faze 0–3 u kodu** — ostaje provera uživo [247.9]–[247.12]), pa „Delovi tutorijala kao mapa, i deo kao jedna linija" (`PLAN-MAPA-DELOVA.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke [247.1]–[247.8]), pa „Tutorijal služi samo za video" (`PLAN-TUTORIJAL-VIDEO.md`; faze 0, 2, 3 i 4 u kodu 25.9.2026, provera uživo — stavke [246.1]–[246.15]), pa „Spisak za proveru uživo preuređen" (odmah ispod: `TODO-provera.md` po mestu u aplikaciji, svaka stavka sa putanjom; tri nalaza koji traže posao), pa „Zagonetke iz partije, faza 1b: tutorijal na pravilu greške“ (u kodu, provera uživo — stavka 245), pa „Zagonetke iz partije, faza 1t: naše tablebase tabele“ (u kodu, provera uživo — stavka 244), pa „Zagonetke iz partije, faza 3: pregled piše komentare“ (u kodu, provera uživo — stavka 243), pa „Pravilo greške, navike u otvaranju i odgovori engine-a na disku“ (odmah ispod; `PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 0 izmerena i faza 1.1 u kodu, `PLAN-MOJE-PARTIJE.md` §9.1–9.4 u kodu — provera uživo, stavke 237–239), pa „Zagonetke iz partije: pre greške, jedan jasan odgovor, i zašto“ (plan napisan 23.9.2026), pa „Knjiga čiji font nemamo čita se kao slike“ (faza 3h plana `PLAN-SKENER-SLIKE.md`, u kodu, provera uživo — stavka 236; sa njom i sve knjige u fontu `DiagramTTFritz`), pa „Materijal: pozicije, zadaci i zagonetke — jedan model, tri glagola" (plan `PLAN-MATERIJAL.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke 231–235), pa „Pozicija bez strane na potezu se ne koristi dok se ne pita" (u kodu, provera uživo — stavka 230), pa „Dijagrami kao slike: deljena kalibracija" (faza 3g, u kodu, provera uživo — stavka 229), pa „Dijagrami kao slike: prvo kalibracija, pa strane" (faza 3f, u kodu, provera uživo — stavka 228), pa „Dijagrami kao slike: kalibraciju bira trener" (faza 3e, u kodu, provera uživo — stavka 227), pa „Dijagrami kao slike: faza 3 — ekrani" (u kodu, provera uživo — stavka 225), pa „Dijagrami kao slike: faza 2 — čitanje sa kalibracijom" (`POST /scans/images`, u kodu; aplikacija ga još ne zove — faza 3), pa „Dijagrami kao slike: faza 1 — table isečene na serveru", pa „Dijagrami kao slike: faza 0 izmerena" (ništa u aplikaciji, čeka odluku vlasnika — §7 plana `PLAN-SKENER-SLIKE.md`), pa „Skener na Teach, i plan za dijagrame koji su slike" (kartica u kodu, provera uživo — stavka 224; `PLAN-SKENER-SLIKE.md` napisan, ništa u kodu), pa „Jedna sesija na dupli klik, jedna kopija aplikacije na Windowsu" (stavka 223), pa „Brisanje snimka" (stavka 222), pa „Taktički i pozicioni motivi — samo za AI" (u kodu, provera uživo — stavka 221), pa „Pad na Windowsu sa čitačem ekrana" (u kodu, pad proveren uživo — stavka 220), pa „Sesija uživo: plan reorganizacije" (faza 1 u kodu, provera uživo — stavka 219), pa „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **26.9.2026** — najnovije je „Pad sa čitačem ekrana, drugi put: šta pad ostavlja za sobom" (`PLAN-FORENZIKA-PADA.md`; faze 1–3 u kodu, provera uživo otvorena — prva stavka: id-jevi detektora naspram stderr-a motora), pa „Merenje potrošnje API servisa, i ekran „Usage this month"" (u kodu, provera uživo — stavke [248.1]–[248.4]), pa „Redosled varijanti i grana tutorijala" (`PLAN-REDOSLED-GRANA.md`; D1–D7 odgovoreni po preporuci; **faze 0–3 u kodu** — ostaje provera uživo [247.9]–[247.12]), pa „Delovi tutorijala kao mapa, i deo kao jedna linija" (`PLAN-MAPA-DELOVA.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke [247.1]–[247.8]), pa „Tutorijal služi samo za video" (`PLAN-TUTORIJAL-VIDEO.md`; faze 0, 2, 3 i 4 u kodu 25.9.2026, provera uživo — stavke [246.1]–[246.15]), pa „Spisak za proveru uživo preuređen" (odmah ispod: `TODO-provera.md` po mestu u aplikaciji, svaka stavka sa putanjom; tri nalaza koji traže posao), pa „Zagonetke iz partije, faza 1b: tutorijal na pravilu greške“ (u kodu, provera uživo — stavka 245), pa „Zagonetke iz partije, faza 1t: naše tablebase tabele“ (u kodu, provera uživo — stavka 244), pa „Zagonetke iz partije, faza 3: pregled piše komentare“ (u kodu, provera uživo — stavka 243), pa „Pravilo greške, navike u otvaranju i odgovori engine-a na disku“ (odmah ispod; `PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 0 izmerena i faza 1.1 u kodu, `PLAN-MOJE-PARTIJE.md` §9.1–9.4 u kodu — provera uživo, stavke 237–239), pa „Zagonetke iz partije: pre greške, jedan jasan odgovor, i zašto“ (plan napisan 23.9.2026), pa „Knjiga čiji font nemamo čita se kao slike“ (faza 3h plana `PLAN-SKENER-SLIKE.md`, u kodu, provera uživo — stavka 236; sa njom i sve knjige u fontu `DiagramTTFritz`), pa „Materijal: pozicije, zadaci i zagonetke — jedan model, tri glagola" (plan `PLAN-MATERIJAL.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke 231–235), pa „Pozicija bez strane na potezu se ne koristi dok se ne pita" (u kodu, provera uživo — stavka 230), pa „Dijagrami kao slike: deljena kalibracija" (faza 3g, u kodu, provera uživo — stavka 229), pa „Dijagrami kao slike: prvo kalibracija, pa strane" (faza 3f, u kodu, provera uživo — stavka 228), pa „Dijagrami kao slike: kalibraciju bira trener" (faza 3e, u kodu, provera uživo — stavka 227), pa „Dijagrami kao slike: faza 3 — ekrani" (u kodu, provera uživo — stavka 225), pa „Dijagrami kao slike: faza 2 — čitanje sa kalibracijom" (`POST /scans/images`, u kodu; aplikacija ga još ne zove — faza 3), pa „Dijagrami kao slike: faza 1 — table isečene na serveru", pa „Dijagrami kao slike: faza 0 izmerena" (ništa u aplikaciji, čeka odluku vlasnika — §7 plana `PLAN-SKENER-SLIKE.md`), pa „Skener na Teach, i plan za dijagrame koji su slike" (kartica u kodu, provera uživo — stavka 224; `PLAN-SKENER-SLIKE.md` napisan, ništa u kodu), pa „Jedna sesija na dupli klik, jedna kopija aplikacije na Windowsu" (stavka 223), pa „Brisanje snimka" (stavka 222), pa „Taktički i pozicioni motivi — samo za AI" (u kodu, provera uživo — stavka 221), pa „Pad na Windowsu sa čitačem ekrana" (u kodu, pad proveren uživo — stavka 220), pa „Sesija uživo: plan reorganizacije" (faza 1 u kodu, provera uživo — stavka 219), pa „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,104 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Pad sa čitačem ekrana, drugi put: šta pad ostavlja za sobom — 26.9.2026, `PLAN-FORENZIKA-PADA.md`, faze 1–3 u kodu, ostaje provera uživo ([249.1])
+
+**Simptom.** Instalirana aplikacija (build od 26.9.2026. u 18:48, Flutter
+3.47.5, motor od 17.9) pala je dva puta iste večeri — u 21:25:47 i u 22:01:54 —
+posle četiri dana bez pada od popravke od 22.9 (odeljak „Pad na Windowsu sa
+čitačem ekrana" niže). Event Log: `flutter_windows.dll`, `0xc0000005`, offset
+**`0x3cf3a`** — ne `0x3ce3a` kao ranije, jer je motor nov. Pretraga Event Loga
+po starom offsetu ne bi našla nijedan od dva pada.
+
+**Šta dump kaže.** Obe minidump datoteke (`%LOCALAPPDATA%\CrashDumps\Mislisha.exe.13448.dmp` i `.11900.dmp`) imenuju **istu funkciju**:
+`flutter::AccessibilityBridge::SetRoleFromFlutterUpdate+0x4`, pozvanu iz
+`ConvertFlutterUpdate` ← `CommitUpdates`, čitanje oslobođene memorije. Dakle
+ista klasa kvara kao 22.9: motor je odbio čvor bez roditelja, a sledeće
+ažuriranje je čitalo ono što je odbijanje ostavilo. Uzvodno i dalje otvoreno
+(flutter/flutter#190357). **Okidač nije poznat**: `AppSlider` i uklonjeni
+tooltip u tooltipu su u ovom buildu, pa je ovo treći oblik koji niko nije
+video — a na uređaju ništa nije zabeležilo ekran ni poslednji dodir. UI
+Automation klijent postoji: `TextInputHost` (tastatura na dodir) radi od
+24.9. Vlasnik se nije sećao šta je radio.
+
+**Treći pad, u 22:29:50, i motor rečima.** Fable je pokrenuo instaliranu
+aplikaciju sa preusmerenim stderr-om, a vlasnik je pad izazvao namerno —
+putanja koja ga pouzdano daje je: Preparation → „Set up position" → FEN →
+„Set FEN Position" → nazad na Home, ponovljeno. Tri sekunde pre pada motor
+je tri puta ispisao svoje odbijanje:
+
+```
+[ERROR:flutter/shell/platform/common/accessibility_bridge.cc(65)] Failed to update ui::AXTree, error: 17626 will not be in the tree and is not the new root
+```
+
+To je prvo od tri pravila motora (čvor bez roditelja), baš ono koje
+`SemanticsShadow` modeluje; 17626 je id semantičkog čvora iz okvira, isti koji
+vidi graditelj iz faze 2. Na toj putanji su odbijanje i pad tri sekunde
+razmaknuti; u dumpu od 21:25 izgledalo je da su minuti. Oba su tačna —
+razmak određuje trenutak kad heap vrati stranicu. Ista putanja vođena kroz
+septembarskog špijuna u testu (svaka varijanta: sa i bez smirivanja, Android
+i Windows, jedno do tri učitavanja, semantika uključena u četiri različita
+trenutka) bila je **zelena** — nedostaje fikstura, ne pravilo, pa putanja
+nije u kapiji nego u proveri uživo.
+
+**Šta je urađeno.** Plan od tri faze, da sledeći pad sam kaže svoj uzrok:
+
+1. **Trag** (`lib/services/crash_trail.dart`): poslednjih 40 događaja —
+   ruta, gurnut/skinut ekran, dodir sa imenom onoga što je dodirnuto, greška —
+   upisano u `crash_logs/trail.log` **sinhrono**, u trenutku događaja, jer
+   nativni pad ubija proces pre Darta. Trag prethodnog pokretanja se čuva kao
+   `trail-previous.log`, da prvo pokretanje posle pada ne pregazi trag pada
+   (dodao lead; plan to nije imao). Ide sa nalogom kao i nacrti.
+2. **Detektor čvora bez roditelja** (`lib/services/semantics_shadow.dart`,
+   `lib/app_binding.dart`): aplikacija primenjuje pravilo Windows stabla na
+   svako ažuriranje koje šalje, i odbijeni čvor upiše u trag pre nego što
+   ažuriranje ode motoru. Pravilo je sada na jednom mestu; kapija
+   `move_tree_semantics_orphan_test` ga uvozi umesto svoje kopije.
+3. **Čitač dumpa** (`tools/crashdump/read_dump.py`, Python bez zavisnosti) —
+   **u kodu**: `python tools/crashdump/read_dump.py` čita najnoviji dump,
+   ispisuje izuzetak, registre i stek, i imenuje funkcije iz PDB-a motora iz
+   SDK-a na PATH-u — **samo ako se PE vreme i veličina DLL-a slažu sa
+   modulom u dumpu**, inače odbije (SDK se menja češće nego instalirana
+   aplikacija). Oznake iz `dumpbin /disasm` se prave jednom po motoru (oko 7
+   sekundi na ovoj mašini) i čuvaju u `%TEMP%`. `--self-test` gradi sintetički
+   dump i izlazi sa 0; osam mutacija, sve uhvaćene. Prvo pravo pokretanje je
+   našlo grešku koju self-test nije mogao da vidi: `vswhere` vraća putanju sa
+   razmacima („Program Files (x86)"), a izlaz je deljen po razmacima.
+
+Faza 2b (motor nikad ne vidi čvor bez roditelja, jer ga graditelj zadrži do
+ažuriranja u kome ga roditelj navodi) ostaje **vlasnikova odluka** — menja ono
+što se motoru kaže i traži popodne sa Narratorom pre nego što se poveruje.
+
+**Brojevi.** Aplikacija **4139 → 4171** (18 u `crash_trail_test`, 14 u
+`semantics_shadow_test`), pun prolaz bez ičega pored, 1 preskočen; `analyze`
+isti 22. Dvadeset jedna mutacija, sve uhvaćene pravim slučajem (jedna je prvo
+preživela — ograničenje bafera pre `init`, jer `init` ionako skrati ono što
+upiše; slučaj sada gleda sam bafer). Backend nije diran. **Kapija dokazuje
+detektor na fiksturama, ne na ekranu koji pada**: vlasnikova putanja je u
+svakoj varijanti testa bila zelena pod istim pravilom, pa fazu 2 zatvara tek
+provera uživo. A to što pravila 2 i 3 ćute na septembarskim ekranima dokaz je
+da nema lažne uzbune tamo, ne da će ih uhvatiti gde motor odbija.
+
+Na Fableovu reč, detektor modeluje **sva tri** pravila motora (čvor bez
+roditelja; `Node %d has duplicate child id %d`; `Node %d is not marked for
+destruction, would be reparented to %d`), rečima motora, a red o odbijenom
+čvoru ide i u `crash.log`, jer je trag prsten od 40 redova a pad može doći
+kasnije.
+
+**Otvoreno.** Provera uživo, kad faze 1–2 budu u release buildu. Aplikacija
+se pokreće tako da stderr motora ostane:
+
+```powershell
+Start-Process -FilePath "$env:LOCALAPPDATA\Mislisha\Mislisha.exe" -RedirectStandardError "$env:TEMP\mislisha-stderr.txt" -RedirectStandardOutput "$env:TEMP\mislisha-stdout.txt"
+```
+
+pa putanja iznad, sa uključenim Narratorom ili tastaturom na dodir. Treba da
+vidiš: `crash_logs/trail.log` (ili `trail-previous.log` posle pada) imenuje
+ekrane i dodire, i **svaki id iz `will not be in the tree` redova u
+`mislisha-stderr.txt` stoji u nekom `semantics orphan [...]` redu istog
+pokretanja**, u tragu i u `crash.log`. Odbijanje koje detektor nije zapisao je
+rupa u pravilu; red detektora koji motor nije ispisao je lažna uzbuna.
 
 ## Merenje potrošnje API servisa, i ekran „Usage this month" — 26.9.2026, u kodu, ostaje provera uživo ([248.1]–[248.4])
 
