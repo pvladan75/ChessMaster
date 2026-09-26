@@ -9156,6 +9156,25 @@ odlazi na kraj spiska u alatu.
    ocenjuje dok sajt nije objavljen.
    Potrebno: Windows i telefon; internet.
 
+9. [ ] **`Usage this month` pokazuje plan, limite i sve što je izbrojano za nalog.** [248.4]
+   O čemu se radi: Prvi ekran u aplikaciji koji nalogu pokazuje njegovu
+   mesečnu potrošnju — plan (Free / Premium / Pro / Club), od kog datuma se
+   broji, mesečne limite kao „iskorišćeno / limit" (ili „No limit"), i ono što
+   nema limit: glas u sesijama u minutima, izvezene videe, minute renderovanog
+   videa, naraciju u znakovima, skenirane strane i AI tokene. Brojevi su
+   serverovi, isti na svakom uređaju; cena se ne prikazuje. Gost nema ovaj
+   red.
+   Gde: `Settings` → odeljak `ACCOUNT` → red `Usage this month` (ispod kartice
+   `Account statistics`).
+   Uradi: Otvori red na prijavljenom nalogu koji je ovog meseca nešto radio
+   (izvoz videa, skeniranje, domaći). Zatim ugasi server i pritisni `Try again`
+   na ekranu.
+   Treba da vidiš: Kartice `Plan`, `Monthly limits` (ako plan ima limite) i
+   `Also counted` sa brojevima koji odgovaraju `node tools/status/status.js`
+   za taj nalog; bez servera — „Could not load your usage." i dugme `Try
+   again`, koje posle ponovnog paljenja servera učita brojeve.
+   Potrebno: server; Windows ili telefon.
+
 ### Podešavanja i izgled — Cela aplikacija
 
 1. [ ] **Reč „studio” se sreće samo u imenu „Tutorial studio”** [131.5]
@@ -9621,6 +9640,52 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: U logu nema pune adrese, samo identifikator naloga (u
    razvoju: kod uz maskiranu adresu oblika „p***@domen“).
    Potrebno: server; server.
+
+12. [ ] **Izgovoreni znakovi Azure glasa se knjiže nalogu koji izvozi.** [248.1]
+   O čemu se radi: Do 26.9.2026 broj znakova poslatih Azure Speech-u nije merio
+   niko, a Azure ih naplaćuje. Sada se, čim glas izgovori rečenice koje nisu
+   bile u kešu, njihov broj upisuje u `usage_counters` kao
+   `tts_azure_characters` za nalog koji izvozi — i ostaje upisan i ako crtanje
+   filma posle toga padne. Rečenica koja je već u kešu ne knjiži se ponovo.
+   Gde: `Teach` → `Tutorials` → `Saved tutorials` → (tutorijal) → `Export
+   video`, sa uključenom naracijom (server sa `TTS_PROVIDER=azure`); pa `node
+   tools/status/status.js` iz korena repozitorijuma.
+   Uradi: Izvezi film sa naracijom jednom, pa pokreni status alat; izvezi isti
+   film još jednom, pa ponovo pokreni alat.
+   Treba da vidiš: Posle prvog izvoza red `tts_azure_characters` u „Metered
+   this month" i red „Azure Speech N / 500,000 chars"; posle drugog izvoza
+   istog filma broj se ne menja (sve rečenice su u kešu).
+   Potrebno: server; Azure ključ u `.env`; Windows.
+
+13. [ ] **Zahtevi ka Lichess-u i našim tablicama broje se po danu.** [248.2]
+   O čemu se radi: Nova tabela `provider_requests` (provajder, dan, broj) —
+   tablebase Lichess-a, naše lokalne tablice, cloud-eval, tok partija pri
+   uvozu i pogled na protivnika. Server je upisuje sam pri svakom stvarno
+   poslatom i odgovorenom zahtevu; keš pogodak se ne broji. Tabelu pravi
+   `initDB`, pa server treba jednom restartovati posle spajanja.
+   Gde: server (restart posle spajanja); `Analyse` → `Analysis` → „Review
+   entire game" na partiji sa završnicom do 7 figura, ili `Practise` →
+   završnice; pa `node tools/status/status.js`.
+   Uradi: Restartuj server. Pokreni pregled partije sa završnicom (ili
+   nekoliko poteza drila završnica), pa pokreni status alat.
+   Treba da vidiš: Odeljak „Free services this month (provider_requests)" sa
+   redom `lichess_tablebase` i/ili `local_tablebase` i brojem „N this month,
+   N today"; ako lokalne tablice rade (pokreni.ps1 [5]), pozicije do 5 figura
+   idu u `local_tablebase`.
+   Potrebno: server; restart servera.
+
+14. [ ] **Status alat pokazuje i prethodne mesece.** [248.3]
+   O čemu se radi: Da bi „mesec dana merenja" (`CENA-I-PRETPLATA.md`, §5)
+   mogao da se pročita kao mesec, `tools/status/status.js` ispisuje i zbir po
+   metrici za pet prethodnih meseci iz `usage_counters` (odeljak „Previous
+   months").
+   Gde: koren repozitorijuma — `node tools/status/status.js` (čita
+   `chess_backend/.env`).
+   Uradi: Pokreni alat.
+   Treba da vidiš: Odeljak „Previous months (usage_counters, per metric)" sa
+   redovima oblika `2026-08  mp4_renders  N` — ili rečenicu da u prethodnih
+   pet meseci nema ničega.
+   Potrebno: server (baza).
 
 ### Server i alati — Arhiva partija i izveštaji
 

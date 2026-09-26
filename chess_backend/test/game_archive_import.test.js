@@ -348,3 +348,19 @@ test('rows are written in batches, with every column bound', async () => {
     assert.match(insert.text, /ON CONFLICT \(user_id, source, external_id, subject\) DO NOTHING/);
   }
 });
+
+test('the one stream Lichess opened for a run is counted once, and a refused run counts nothing', async () => {
+  // services/providerUsage.js keeps the day's count; the importer only has to
+  // say when a stream was actually opened — after Lichess answered, never for
+  // a 404 or a 429, which opened nothing.
+  let opened = 0;
+  const { importer } = importerOver(fakeDb(), ARCHIVE, { onRequest: () => { opened += 1; } });
+  const { finished } = await importer.start({ userId: 5, subject: 'subjekat' });
+  await finished;
+  assert.equal(opened, 1);
+
+  const refused = importerOver(fakeDb(), '', { status: 429, onRequest: () => { opened += 1; } });
+  const run = await refused.importer.start({ userId: 5, subject: 'subjekat' });
+  await assert.rejects(run.finished, (err) => err.reason === 'rate-limited');
+  assert.equal(opened, 1, 'a refusal opened no stream');
+});

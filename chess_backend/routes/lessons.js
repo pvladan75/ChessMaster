@@ -8,7 +8,9 @@ const { pool } = require('../db');
 const { accountLimiter } = require('../middleware/accountLimiter');
 const { authenticateToken, signDownloadToken } = require('../middleware/auth');
 const { requireEntitlement } = require('../middleware/entitlements');
-const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
+const {
+  ENT, METRIC, recordUsage, ttsCharactersMetric,
+} = require('../services/entitlementService');
 const videoRenderer = require('../videoRenderer');
 const { acceptedTrainersOf } = require('../services/relationshipService');
 const { buildLessonStep, buildLessonSteps } = require('../services/lessonSteps');
@@ -174,6 +176,17 @@ router.get('/tts/sample', authenticateToken, async (req, res) => {
     const clip = await tts.speak({ text: sampleFor(voice), voice });
     if (!clip) {
       return res.status(503).json({ error: 'The voice produced nothing. The server log says why.' });
+    }
+    // A sample the provider actually spoke is billed like a film's sentence;
+    // one it had cached cost nothing. The sample is served whatever the meter
+    // did: `recordUsage` never throws, and a provider the metric table does
+    // not know is a log line, not a 500 — do the thing, then say it.
+    if (clip.cached === false && clip.characters > 0) {
+      try {
+        recordUsage(pool, req.user.id, ttsCharactersMetric(clip.provider), clip.characters);
+      } catch (meterErr) {
+        logger.warn(`[TTS] the sample was spoken and not metered: ${meterErr.message}`);
+      }
     }
 
     res.set('Content-Type', 'audio/wav');
@@ -897,6 +910,13 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           // The same rate the renderer will draw at, so the plan rounds a beat
           // up to the next frame rather than to the next whole second.
           fps,
+          // Metered the moment the voice provider has spoken, not once the
+          // film is done: Azure bills the characters whether or not ffmpeg
+          // then finishes, and the clips stay in the cache for the next try.
+          // `recordUsage` never throws, and nothing here waits on it.
+          onSynthesised: ({ provider, characters }) => {
+            recordUsage(pool, req.user.id, ttsCharactersMetric(provider), characters);
+          },
         });
         if (narrated) {
           if (narrated.events) renderEvents = narrated.events;

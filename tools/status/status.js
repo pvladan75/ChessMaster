@@ -34,7 +34,9 @@ backendRequire('dotenv').config({ path: path.join(BACKEND, '.env') });
 
 const { Pool } = backendRequire('pg');
 const { buildSslConfig } = backendRequire('./db.js');
-const { METRIC, UNIT_COSTS, ENTITLING_STATUSES } = backendRequire('./services/entitlementService.js');
+const {
+  METRIC, UNIT_COSTS, ENTITLING_STATUSES, ttsCharactersMetric,
+} = backendRequire('./services/entitlementService.js');
 
 const TIMEOUT_MS = 10000;
 
@@ -149,7 +151,47 @@ async function database() {
       'DeepSeek tutorials',
       `${fmt(used[METRIC.AI_TUTORIALS] || 0)} tutorials, ${fmt(used[METRIC.AI_TUTORIAL_TOKENS] || 0)} tokens`
     );
-    row('Azure Speech', `not metered by the app — F0 allows ${fmt(FREE.azureNeuralChars)} chars/month`);
+    // Only what the provider actually spoke: a sentence already in the cache
+    // is never sent again, and never counted again.
+    const azureChars = used[ttsCharactersMetric('azure')] || 0;
+    row(
+      'Azure Speech',
+      `${fmt(azureChars)} / ${fmt(FREE.azureNeuralChars)} chars  (${pct(azureChars, FREE.azureNeuralChars)}), ` +
+        `${fmt(FREE.azureNeuralChars - azureChars)} left of F0`
+    );
+
+    // --- the donated services, which have no bill and a rate limit instead
+    section('Free services this month (provider_requests)');
+    try {
+      const providers = await pool.query(
+        `SELECT provider,
+                COALESCE(SUM(requests) FILTER (WHERE day = CURRENT_DATE), 0)::bigint AS today,
+                SUM(requests)::bigint AS month
+           FROM provider_requests
+          WHERE day >= date_trunc('month', CURRENT_DATE)::date
+          GROUP BY provider ORDER BY provider`
+      );
+      if (providers.rows.length === 0) row('(no request counted yet this month)', '');
+      for (const r of providers.rows) {
+        row(r.provider, `${fmt(r.month)} this month, ${fmt(r.today)} today`);
+      }
+    } catch (err) {
+      // The table is created by the server's initDB; a server that has not been
+      // restarted since it was added has nothing to show here yet.
+      row('!! provider_requests', `${err.message} — restart the server once`);
+    }
+
+    // --- the trend, so a month of measuring can be read as a month
+    section('Previous months (usage_counters, per metric)');
+    const history = await pool.query(
+      `SELECT to_char(period_start, 'YYYY-MM') AS month, metric, SUM(used)::bigint AS used
+         FROM usage_counters
+        WHERE period_start >= (date_trunc('month', CURRENT_DATE) - INTERVAL '5 months')::date
+          AND period_start < date_trunc('month', CURRENT_DATE)::date
+        GROUP BY 1, 2 ORDER BY 1 DESC, 2`
+    );
+    if (history.rows.length === 0) row('(nothing recorded in the five months before this one)', '');
+    for (const r of history.rows) row(`${r.month}  ${r.metric}`, fmt(r.used));
 
     // --- what the app is doing
     section('Accounts');

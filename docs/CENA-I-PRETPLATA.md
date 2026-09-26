@@ -15,18 +15,27 @@ trenutno ima sva tri stanja istovremeno.
 | stavka | ko naplaćuje | kako se meri danas | ograničeno? |
 |---|---|---|---|
 | **Glas u sobi** (Agora) | Agora, po minutu | `agora_seconds`, po korisniku | **ne** |
-| **AI komentar** i objašnjenje pozicije (Gemini `gemini-flash-latest`) | Google, po pozivu | kvota `ai_comments` | **da** — 10 / 500 / 2000 mesečno, uz 10 zahteva/min |
+| **AI komentar** i objašnjenje pozicije (Gemini) | Google, po pozivu | kvota `ai_comments` | **da** — 10 / 500 / 2000 mesečno, uz 10 zahteva/min. **Relikt** (vlasnik, 26.9.2026): Gemini se više ne koristi, a dvoja vrata još stoje — „Generate AI comment" u Analizi i „Ask" u repertoaru; brišu se u sledećoj turi pojednostavljenja |
+| **Reči tutorijala i pregleda** (DeepSeek) | DeepSeek, po tokenu | `ai_tutorial_tokens`, `ai_review_tokens` (ukupni tokeni pokušaja) uz kvote `ai_tutorials`, `ai_review_words` | **da** — 30 / 100 / bez granice |
+| **Naracija filma** (Azure Speech) | Azure, po znaku | od 26.9.2026 `tts_azure_characters`, po korisniku — samo rečenice koje su stvarno poslate (keš pogodak se ne plaća ni ne broji), knjiži se u trenutku izgovora, ne posle crtanja | ne |
 | **MP4 izvoz** | naš CPU na dropletu (ffmpeg) | `mp4_renders`, `mp4_render_seconds` | **da** — samo plaćeni nalog; od 25.9.2026 i jedini način da tutorijal stigne do učenika (odeljak 7, tačka 7) |
 | **Skener strana iz knjige** | naš CPU | `scanned_pages` | ne |
 | **Snimci časova** u `uploads/` | prostor na dropletu, **trajno** | ne meri se | ne |
 | **Mejlovi** (potvrda naloga, saglasnost roditelja) | SMTP provajder, po poruci | ne meri se | ne |
 | **Droplet i baza** | fiksno mesečno, bez obzira na upotrebu | — | — |
-| Lichess (baza otvaranja, sud o potezu, tablice), ChessDB, `stockfish.online`, uvoz sa chess.com | besplatno, ali uz tuđe uslove i ograničenje brzine | ne meri se | ne |
+| Lichess sa servera (tablice do 7 figura, cloud-eval suda o potezu, tok partija pri uvozu, pogled na protivnika) i naše lokalne tablice | besplatno, ali uz tuđe uslove i ograničenje brzine; lokalne tablice su naš CPU | od 26.9.2026 `provider_requests` — po provajderu i danu, ne po nalogu, jer domaći suđen na serveru ne zna čiji je zahtev | ne |
+| Pozivi **iz aplikacije direktno** — Lichess cloud-eval i `stockfish.online` u onlajn režimu motora, uvoz partija sa chess.com i Lichessa, Lichess tablebase kad server nije dostižan | besplatno, tuđi uslovi | **ne meri se** — server ih ne vidi; merilo bi se tek kad bi išli kroz server | ne |
 
 Cene po jedinici nisu u kodu nego u `.env` (`USAGE_UNIT_COSTS`), pa promena
 cenovnika kod provajdera nije izmena koda. Izveštaj `getUsageReport` množi
 izmerene količine tim cenama i odgovara na jedino pitanje od koga cena pretplate
 sme da počne: **koliko košta jedan aktivan trener mesečno.**
+
+**Gde se to čita** (od 26.9.2026): `node tools/status/status.js` — ovaj mesec po
+metrici sa procenom troška, Azure znakovi naspram F0 dozvole, `provider_requests`
+za mesec i dan, i pet prethodnih meseci po metrici, da bi se „mesec dana
+merenja" (§5) pročitao kao mesec. Nalog svoju potrošnju vidi u aplikaciji:
+Settings → Account → „Usage this month" (plan, limiti, sve izbrojano — bez cene).
 
 ---
 
@@ -35,11 +44,13 @@ sme da počne: **koliko košta jedan aktivan trener mesečno.**
 **Mereno i ograničeno** — AI komentari, MP4 izvoz. Ovde je lanac ceo:
 `requireQuota` / `requireEntitlement` odbije, `recordUsage` zabeleži.
 
-**Mereno, neograničeno** — glas i skener. Zna se koliko je potrošeno i koliko
-je koštalo, ali niko ne može da bude zaustavljen. Za glas je to najskuplja
-stavka koja se ne kontroliše.
+**Mereno, neograničeno** — glas, skener, i od 26.9.2026 naracija (Azure znakovi)
+i zahtevi ka Lichess-u. Zna se koliko je potrošeno i koliko je koštalo, ali niko
+ne može da bude zaustavljen. Za glas je to najskuplja stavka koja se ne
+kontroliše.
 
-**Ni mereno ni ograničeno** — prostor za snimke i mejlovi.
+**Ni mereno ni ograničeno** — prostor za snimke, mejlovi, i pozivi koje
+aplikacija šalje tuđim servisima direktno (poslednji red tabele u §1).
 
 **Napisano, nepriključeno, pa obrisano** — `limitsService.js` je nosio model
 besplatnog naloga (**5 soba mesečno**, 20 lekcija, bez MP4) i funkciju

@@ -114,6 +114,11 @@ abstract final class AppRoutes {
   /// row in Settings — and a path is what both can name.
   static const String shortcuts = '/shortcuts';
 
+  /// What the account has used this month, and its plan's limits. A place
+  /// rather than a card in Settings because it is two requests and their
+  /// own error state, which a row in a long list is the wrong home for.
+  static const String usage = '/usage';
+
   /// Correcting the stated year of birth. The gate itself is not a route — it
   /// draws over the whole app until it is answered — but the answer has to stay
   /// reachable afterwards: somebody who typed 2017 instead of 1997 must not be

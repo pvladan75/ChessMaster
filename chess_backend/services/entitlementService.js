@@ -55,6 +55,24 @@ const METRIC = {
   AI_REVIEW_TOKENS: 'ai_review_tokens',
 };
 
+/// The voices a narrated film can be spoken by, as `services/tts/index.js`
+/// names them. Each has its own characters metric, because the bill is per
+/// provider: Azure charges per character, piper and Windows cost this machine's
+/// CPU and nothing else, and a month that switched provider half way must not
+/// price piper's sentences at Azure's rate.
+const TTS_PROVIDERS = ['azure', 'google', 'piper', 'windows'];
+
+/// The metric under which a provider's synthesised characters are counted:
+/// `tts_azure_characters` and so on. Only sentences that actually reached the
+/// provider count — a cached clip is never paid for twice.
+function ttsCharactersMetric(provider) {
+  const name = String(provider || '').trim().toLowerCase();
+  if (!TTS_PROVIDERS.includes(name)) {
+    throw new RangeError(`Unknown narration provider: ${provider}`);
+  }
+  return `tts_${name}_characters`;
+}
+
 /// Metered features. -1 means unmetered.
 ///
 /// Assignments are metered rather than locked on the free tier deliberately: a
@@ -221,6 +239,7 @@ function loadUnitCosts() {
     [METRIC.MP4_RENDERS]: 0,
     [METRIC.AI_TUTORIAL_TOKENS]: 0,
     [METRIC.AI_REVIEW_TOKENS]: 0,
+    ...Object.fromEntries(TTS_PROVIDERS.map((p) => [ttsCharactersMetric(p), 0])),
   };
   const raw = process.env.USAGE_UNIT_COSTS;
   if (!raw) return defaults;
@@ -359,6 +378,8 @@ module.exports = {
   TIERS,
   ENT,
   METRIC,
+  TTS_PROVIDERS,
+  ttsCharactersMetric,
   UNIT_COSTS,
   QUOTAS,
   TIER_ENTITLEMENTS,

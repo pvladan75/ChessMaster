@@ -8306,3 +8306,57 @@ umesto da ih postavlja stablu.
 Analizi je govorila „Set as main line" — natpis ekrana partije, ne Analize.
 Reč postoji u aplikaciji, pa čuvar natpisa ćuti; nađeno tek kad je pasus čitan
 naspram menija. Treći put ista lekcija.
+
+## 26.9.2026 — Merenje potrošnje API servisa, i ekran „Usage this month"
+
+Vlasnikov dogovor stariji od nivoa naloga: pratiti kako on sam troši spoljne
+servise, da bi model naplate imao broj. Backend **1747 → 1772** bez baze (20 u
+`api_usage_metering.test.js`, slučaj 5b izvoza, dva slučaja uzorka glasa, tok
+uvoza, i jedan `sources_compile` za nov fajl); aplikacija **4129 → 4139**
+(`usage_screen_test`, 10). `analyze` isti 22. Dvanaest mutacija na serveru,
+sve uhvaćene; šest u aplikaciji, jedna preživela.
+
+**Odsustvo u lenjoj listi tvrdi se tamo gde bi stvar stajala, ne na dnu
+liste.** Slučaj za gosta je odvukao Settings do kraja, našao red priručnika i
+tvrdio da reda „Usage this month" nema — a `ListView` gradi samo ono što je u
+prozoru, pa je red, koji stoji na sredini liste, bio *nesagrađen*, ne
+*odsutan*. Mutacija „crtaj ga i gostu" je preživela. Sada slučaj dovede karticu
+naloga iznad i zaglavlje motora ispod u isti prozor, pa red između njih mora
+biti sagrađen ako postoji (pravilo 5, u novom odelu: „cela ekrana" u lenjoj
+listi znači „ceo prozor oko mesta").
+
+**Merenje se knjiži kad provajder naplati, ne kad posao uspe.** Render se
+knjiži posle uspešnog crtanja (test 5 izvoza, od ranije), jer neuspeo render
+nikog ne košta. Azure znakovi se knjiže u trenutku izgovora, iz `finally`, jer
+je Azure naplatio i kad ffmpeg posle padne — a klipovi ostaju u kešu, pa
+sledeći pokušaj ne plaća ništa. Dva pravila, dva trenutka, u istom fajlu.
+
+**Brojač koji ne zna čiji je zahtev ide po danu, ne po nalogu.**
+`usage_counters` je po nalogu i mesecu, jer odgovara na „koliko košta jedan
+trener"; `provider_requests` je po provajderu i danu, jer domaći suđen na
+serveru, pregled sa telefona i dril u sobi stižu do istog Lichess-a i samo neki
+od tih poziva znaju čiji su. Provlačenje naloga kroz šest pozivalaca dva
+servisa bi dalo broj koji i dalje ne odgovara na pitanje tog brojača.
+
+**Servis koji dobija kuku podrazumevano ne javlja nikome.** `onRequest = null`
+u fabrici, `setOnRequest` na deljenoj instanci, `server.js` priključi jednom
+posle `initDB`. Da je fabrika sama tražila `db`, svaki test koji gradi
+tablebase sa lažnim `fetch`-om bi pokušao upis u bazu koje nema — i čekao
+timeout konekcije umesto da padne.
+
+**`sources_compile.test.js` broji i nov fajl.** Pun prolaz je dao 1771 kad je
+zbir novih slučajeva bio 23: svaki nov izvorni fajl na serveru donosi jedan
+test koji ga kompajlira. Razlika od jedan je pronađena tek poređenjem četiri
+promenjena test-fajla na obe grane (79 → 102, dakle +23), a ne sabiranjem
+`test(` po fajlu. Poslednji slučaj — čuvar uzorka glasa — doneo je 1772.
+
+**Merač ne sme da obori ono što meri, ni kad je sam pogrešan.** Ruta uzorka
+glasa je zvala `ttsCharactersMetric(clip.provider)`, koja za nepoznat
+provajder baca `RangeError` — dakle peti glas dodat u `services/tts` bez svoje
+metrike bi trenera koji ga isprobava dočekao sa 500. Poziv je u `try`, greška
+u logu, uzorak stiže; slučaj sa provajderom `elevenlabs` je crven bez čuvara.
+
+**Dva pada od 1772 pod opterećenjem, nula bez njega.** Dva merenja backend
+paketa dok je pun prolaz aplikacije radio pored njega dala su po dva pada;
+treće, iste minute, nula — pravilo 19, ponovo: broj se meri kad ništa drugo ne
+radi, i onda je 1772.

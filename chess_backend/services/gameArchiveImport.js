@@ -202,9 +202,17 @@ function createArchiveImporter({
   cooldownMs = RATE_LIMIT_COOLDOWN_MS,
   now = () => Date.now(),
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  // Called once per archive stream Lichess opened for us (services/
+  // providerUsage.js counts it). Null by default so a test's importer reports
+  // to nobody; it can neither fail nor delay an import.
+  onRequest = null,
 } = {}) {
   if (!pool) throw new TypeError('createArchiveImporter requires a pool');
   const pacer = createPacer({ minGapMs, cooldownMs, now, sleep });
+  function reportRequest() {
+    if (typeof onRequest !== 'function') return;
+    try { onRequest(); } catch { /* counted or not, the import goes on */ }
+  }
 
   /// A run that outlived its process is failed rather than left running, so the
   /// next attempt is not blocked by a job nobody is doing.
@@ -368,6 +376,7 @@ function createArchiveImporter({
         `Lichess responded with ${res.status}.`, { reason: 'network', status: 502 },
       );
     }
+    reportRequest();
     return { res, done: () => clearTimeout(timer) };
   }
 

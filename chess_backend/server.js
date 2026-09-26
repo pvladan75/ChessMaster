@@ -45,6 +45,8 @@ const { cleanupOldExports } = require('./services/retentionService');
 const renderJobs = require('./services/renderJobs');
 const { refreshStoredReplies } = require('./services/repertoireDrillService');
 const { openingJudge } = require('./services/openingJudgeService');
+const { tablebase } = require('./services/tablebaseService');
+const { wireProviderMeters } = require('./services/providerUsage');
 const { createOpponentPrep } = require('./services/opponentPrep');
 const { createArchiveImporter } = require('./services/gameArchiveImport');
 const { corsVerdict, parseAllowedOrigins } = require('./services/corsPolicy');
@@ -542,6 +544,12 @@ io.on('connection', (socket) => {
 async function startServer() {
   try {
     await initDB();
+
+    // The two shared Lichess clients are built when their modules load, before
+    // any pool exists; they count their requests into `provider_requests` from
+    // here on. Wired before the port opens, so no request goes uncounted.
+    wireProviderMeters({ pool, tablebase, openingJudge });
+
     server.listen(PORT, () => {
       logger.info(`Server is listening on port ${PORT}`);
     });

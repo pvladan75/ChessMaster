@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4129 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4139 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1905 with TEST_DATABASE_URL, 1747 without
+cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL (derived), 1772 without (measured)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -878,6 +878,23 @@ a part with everything that hangs from it; on a phone, from a map row. **A
 fixture where every pair stands side by side cannot tell „the places they
 held" from „one run of places"** — the case with a part between two branches
 was the only one to catch that mutation.
+Then the meter for the owner's own API use, on his word of 26.9.2026 (→
+**4139**, a full run in a worktree; backend → **1772** measured without a
+database, 1930 with it derived): a cloud voice's characters booked to the
+trainer **the moment they are spoken** (`onSynthesised`, told from a `finally`
+so an aborted film still pays for what it made — Azure has billed either way,
+and the clips wait in the cache), every request this server sends Lichess or
+its own tablebase counted per provider per UTC day (`provider_requests`,
+because a homework judged here cannot say whose call it was; the services take
+a hook that is nobody by default and `server.js` wires it once), the status
+tool reading both beside the five previous months, and „Usage this month" in
+Settings — the account's plan, limits and counters on one screen, a counter it
+has no words for shown rather than dropped. Gemini is a relic on the owner's
+word; its two doors stay for the next deletion batch. **An absence claim in a
+lazy list stands where the thing would be drawn**: a guest case that scrolled
+to the bottom and found no row let „draw it for guests too" survive, because
+the row was never built — it now asserts with the card above and the header
+below both on screen.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
