@@ -8246,3 +8246,21 @@ se čita naspram ekrana, ne naspram spiska reči.
 **Putanja u stavci se proverava u kodu, ne po sećanju.** Prva verzija [247.7]
 je slala na `⋮`; vrata iz Analize su dugme „Use in a tutorial" i list ispod
 njega. Nađeno grep-om za natpis pre nego što je stavka otišla vlasniku.
+
+## 26.9.2026 — Povratak visi o potezu koji imenuje; strelice
+
+Faza 0 plana `PLAN-REDOSLED-GRANA.md`. Aplikacija **4101 → 4103** (pun
+prolaz): +1 lepeza iz jednog poteza (`tutorial_part_map_test`), +1 vrh strelice
+(`tutorial_parts_map_screen_test`); tri slučaja koja su držala staro pravilo
+prepisana otvoreno. `analyze` isti 22.
+
+**Pravilo koje je tačno i nečitko je i dalje nečitko.** Stari izvor povratka —
+„poslednji deo koji je pokazao poziciju" — bio je dosledan i testiran, a vlasnik
+je na svom tutorijalu video lanac 2 → 3 → 4 i nije znao u kom smeru idu linije.
+Odgovor su dale slike, ne testovi: obe varijante su nacrtane pre spajanja, i
+izbor je napravljen gledanjem. Cena je izmerena i rečena unapred: skica ide sa
+dve na četiri trake.
+
+**Vrh strelice se dokazuje kao putanja koju slikar crta**, jedina koju crta, pa
+je mutacija „strelice i na izlaznim linijama" oborila proveru odsustva na redu
+koji ima samo izlazne linije.

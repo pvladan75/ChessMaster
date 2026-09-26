@@ -59,22 +59,29 @@ void main() {
       ]);
     });
 
-    test('each hangs from the part and beat §3 names', () {
+    test('each hangs from the move it names', () {
+      // The owner's word of 26.9.2026, after looking at the chain 2 → 3 → 4 on
+      // his own tutorial: a return hangs from **the move it names** („back to
+      // after 16... Nc4" hangs from 16... Nc4 in part 1), not from the most
+      // recent part that showed the position. It supersedes the source and
+      // lane columns of §3's table; its rows' words are unchanged.
       expect(map.entries.map((e) => e.from), [
         null,
         (part: 0, beat: 1),
         (part: 1, beat: 0),
         (part: 2, beat: 3), // 18. Rfe1, in the middle of part 3
-        (part: 2, beat: 0), // the start of part 3
-        (part: 4, beat: 0), // the start of part 5, the last to show it
+        (part: 0, beat: 1), // 16... Nc4, the last move of part 1
+        (part: 0, beat: 1), // the same move
         (part: 5, beat: 2),
         null,
       ]);
     });
 
-    test('the lanes of §3', () {
-      expect(map.entries.map((e) => e.lane), [0, 0, 0, 1, 0, 0, 0, 0]);
-      expect(map.laneCount, 2);
+    test('the lanes: each return beside the markers it passes', () {
+      // Parts 5 and 6 leave part 1 and pass the markers of parts 2 to 4 (and
+      // 5), so each takes the next free lane; part 7 continues part 6 in its.
+      expect(map.entries.map((e) => e.lane), [0, 0, 0, 1, 2, 3, 3, 0]);
+      expect(map.laneCount, 4);
       _holdsTheLaneRule(map);
     });
 
@@ -89,6 +96,37 @@ void main() {
         '18. Qe2 Re8 19. Re1',
         '1. d4 d5 2. c4 c6 3. Nc3 Nf6',
       ]);
+    });
+  });
+
+  group('returns to one move fan out from it', () {
+    // The owner's tutorial „proba 2", 26.9.2026: three answers to 5. c3. Each
+    // hangs from 5. c3 in part 1, rather than each from the one before it —
+    // the chain he could not read the direction of.
+    test('every one hangs from the move, each in its own lane', () {
+      final after = fenAfter(
+          standardStart, '1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3');
+      final map = partOf2([
+        partOf(
+            standardStart, '1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. b4 Bxb4 5. c3 *'),
+        partOf(after, '5... Be7 *'),
+        partOf(after, '5... Ba5 *'),
+        partOf(after, '5... Bc5 *'),
+      ]);
+      expect(map.entries.map((e) => e.rowText), [
+        '1 · new board',
+        '2 · continues',
+        '3 · back to after 5. c3',
+        '4 · back to after 5. c3',
+      ]);
+      expect(map.entries.map((e) => e.from), [
+        null,
+        (part: 0, beat: 9),
+        (part: 0, beat: 9),
+        (part: 0, beat: 9),
+      ]);
+      expect(map.entries.map((e) => e.lane), [0, 0, 1, 2]);
+      _holdsTheLaneRule(map);
     });
   });
 
@@ -175,18 +213,27 @@ void main() {
     });
 
     test('a continuation is solid and a return dashed', () {
+      final first = map.gutterOf(0, open: false);
+      expect(
+          first.leaving,
+          unorderedEquals([
+            (lane: 0, dashed: false), // part 2 continues it
+            (lane: 2, dashed: true), // part 5 goes back to 16... Nc4
+            (lane: 3, dashed: true), // and so does part 6
+          ]));
       final third = map.gutterOf(2, open: false);
       expect(third.arriving, [(lane: 0, dashed: false)]);
-      expect(
-          third.leaving,
-          unorderedEquals([
-            (lane: 1, dashed: true), // to part 4, into its middle
-            (lane: 0, dashed: true), // to part 5, back to its start
-          ]));
+      expect(third.leaving, [(lane: 1, dashed: true)],
+          reason: 'only part 4 goes back into part 3');
       final fourth = map.gutterOf(3, open: false);
       expect(fourth.markerLane, 1);
       expect(fourth.arriving, [(lane: 1, dashed: true)]);
-      expect(fourth.through, [(lane: 0, dashed: true)]);
+      expect(
+          fourth.through,
+          unorderedEquals([
+            (lane: 2, dashed: true),
+            (lane: 3, dashed: true),
+          ]));
     });
 
     test('only the open part is drawn open', () {

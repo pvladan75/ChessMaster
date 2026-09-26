@@ -8140,6 +8140,22 @@ odlazi na kraj spiska u alatu.
    pa „Part 1 of 2".
    Potrebno: Windows.
 
+69. [ ] **Povratak visi o potezu koji imenuje, a strelica kaže smer.** [247.9]
+   O čemu se radi: Na vlasnikovo pitanje od 26.9.2026 („nije mi jasan smer"):
+   deo koji se vraća sada visi o potezu koji njegov red imenuje („back to after
+   5. c3" izlazi iz 5. c3), a ne o poslednjem delu koji je pokazao tu poziciju;
+   svaka linija se završava strelicom na delu u koji vodi
+   (`docs/PLAN-REDOSLED-GRANA.md`, faza 0). Menja crtež iz [247.3], ne reči u
+   redovima.
+   Gde: `Teach` → `Tutorials` → `Saved tutorials` → tutorijal sa više
+   odgovora na isti potez (npr. „proba 2").
+   Uradi: Pogledaj mapu levo od table; otvori deo koji se vraća.
+   Treba da vidiš: Delovi 2, 3 i 4 izlaze iz dela 1, iz 5. c3 — 2 punom
+   linijom, 3 i 4 isprekidanom, svaki u svojoj traci; nema lanca 2 → 3 → 4.
+   Svaka linija ima vrh strelice tamo gde ulazi u deo; linija koja iz dela
+   izlazi nema strelicu. Zaglavlje otvorenog dela kaže „… in part 1".
+   Potrebno: Windows.
+
 ### Teach — Domaći i napredak učenika
 
 1. [ ] **`Send a video` na stranici učenika.** [246.7]

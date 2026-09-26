@@ -115,6 +115,25 @@ void main() {
     });
   });
 
+  testWidgets('a line that enters a part ends in an arrowhead into it',
+      (tester) async {
+    // The owner's question of 26.9.2026: with a line above a marker and a line
+    // below it, which way does each go? The one that arrives says so. The
+    // arrowhead is the only path the painter draws.
+    await open(tester, sketchDraft(), const Size(1600, 1400));
+    for (final (row, arrives) in [
+      (0, false),
+      (1, true),
+      (3, true),
+      (7, false)
+    ]) {
+      await gutterOf(tester, row);
+      final painted = tester.renderObject(find.byKey(Key('part-gutter-$row')));
+      expect(painted, arrives ? (paints..path()) : isNot(paints..path()),
+          reason: 'row ${row + 1}');
+    }
+  });
+
   group('across a dashed edge', () {
     /// Part 1 is a line; parts 2–30 are boards of their own, except part 27,
     /// which goes back to after 1. e4 in part 1.
