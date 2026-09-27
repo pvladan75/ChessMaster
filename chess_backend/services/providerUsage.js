@@ -24,6 +24,9 @@ const PROVIDER = Object.freeze({
   LICHESS_CLOUD_EVAL: 'lichess_cloud_eval',
   LICHESS_GAMES: 'lichess_games',
   LICHESS_USER: 'lichess_user',
+  // Not free: Groq bills by the hour of sound. Counted here as well as per
+  // account, because a day's requests is what its rate limit is measured in.
+  GROQ_STT: 'groq_stt',
 });
 
 const KNOWN = new Set(Object.values(PROVIDER));

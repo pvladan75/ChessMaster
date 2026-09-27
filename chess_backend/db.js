@@ -501,6 +501,25 @@ async function initDB(target = pool) {
         shared_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (recording_id, student_id)
       );
+
+      -- What speech to text heard in a recording (phase 7 of
+      -- docs/PLAN-PRIPREMA.md). One per recording, replaced when it is heard
+      -- again. sentences is [{startMs, endMs, text, heard}]: text is the
+      -- trainer's, corrected by hand; heard and the times are the vendor's
+      -- and never change. words keeps every word as it was heard, with its
+      -- times. Created only, never altered: a server starting on this file
+      -- adds the table and touches nothing else.
+      CREATE TABLE IF NOT EXISTS recording_transcripts (
+        recording_id INTEGER PRIMARY KEY REFERENCES session_recordings(id) ON DELETE CASCADE,
+        language VARCHAR(10) NOT NULL,
+        vendor VARCHAR(20) NOT NULL,
+        model VARCHAR(60) NOT NULL,
+        duration_ms INTEGER NOT NULL,
+        sentences JSONB NOT NULL,
+        words JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     logger.info('Verified database table: session_recordings');
 

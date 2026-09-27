@@ -175,6 +175,21 @@ Biblioteku u fioci.
 
 **ODAKLE DALJE — posle 27.9.2026:**
 
+**Faza 7 (govor u tekst) je izgrađena, ocenjena i spojena u `master`
+27.9.2026** i poslata na `origin`: aplikacija **4828** (1 preskočen), server
+**1829** bez baze i **1988** sa bazom, analiza istih 22. Groq
+`whisper-large-v3` sluša snimak iz Preparation (`STT_PROVIDER=groq`), prepis
+stoji pored table u plejeru, rečenica pomera snimak, ispravka menja tekst a
+nikad vreme. Vlasnik je 27.9 izabrao veliki model (2 od 185 reči pogrešno
+naspram 10), samo latinicu, brojanje bez limita, i Opus posle merenja.
+„Proba 5" (bolji mikrofon) ima vrh −3,3 dBFS — tihi snimci su bili
+mikrofoni, ne Windows; nalaz je zatvoren. Stavke za proveru uživo
+`[250.14]`–`[250.18]`. **D9 i dalje važi**: na dropletu `STT_PROVIDER`
+ostaje prazan dok politika privatnosti ne navede Groq. **Sledeće**: faza 8
+(snimak postaje tutorijal), kojoj treba odgovor na Q2 (da li ispravljen
+tekst zadržava trenerov glas).
+
+
 1. **Faze 1–4 su u `master` i na `origin`** (27.9.2026). Ekran je gotov;
    sledeće je vlasnikova provera uživo.
 2. **Provera uživo faza 1–4**: stavke `[250.1]`–`[250.9]`, posle spajanja i

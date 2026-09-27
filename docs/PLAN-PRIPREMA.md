@@ -1089,6 +1089,86 @@ The random-tree property is the gate; hand fixtures are shapes
 
 ### Phase 7 — speech to text, and the transcript on the recording [lead: schema and route; implementer: the panel]
 
+**Where it stands, 27.9.2026.** The server half is built and measured on
+branch `priprema-faza-7` (`7c9bff06`): backend **1829** without a database
+(1784 + 45), **1988** with a throwaway cluster (which makes the 1942 before
+it a measured number too). Sixteen mutations, each red on its own case —
+two of them only after the lead's gate was fixed: a wait for the vendor with
+no deadline hung the file (rule 9), and so hid the real-database case from
+the host mutation. The app's gate is `docs/gates/replay_transcript_test.dart`
+(24 cases, one of them a loop over three window sizes), its brief
+`docs/briefs/BRIEF-PRIPREMA-FAZA7.md`.
+
+**The app's half, built and graded the same day** (implementer, then the
+lead): the model, one client over the three routes, the panel beside the
+board from 840 wide, in the sideways column on a phone on its side, and in a
+sheet above the controls upright; „Recordings transcribed" in Usage this
+month. App **4828 passed, 1 skipped** (4796 + 26 of the gate + 6 of the
+worker's), analyze the same 22 infos. Twelve mutations, each red on its case.
+
+The worker stopped on two faults of the lead's gate, rightly: canned answers
+with no charset (package:http encodes a string body as latin1, and the
+fixtures' ć, č, š are not latin1), and `hitTestable()` on the board, which no
+screen can satisfy — the marks' `CustomPaint` lies over it and takes every
+hit. **Grading then found two faults the gate could not see, both by
+rendering the real screen with a transcript longer than the gate's four
+sentences**: the list asked for a fixed 420 px, so at 900 x 700 the panel
+overflowed by 31 px (a release build clips „Transcribe again…" away) and at
+1536 x 792 it showed half its sentences over empty space; and upright the
+sheet lay over the control deck, which holds the only button that closes it.
+The list now takes the column's height where it has one, the sheet is a layer
+of the board's area (the board shrinks, whole, to 45%), the opener is an icon
+in the controls' row, and the gate has three more checks, each watched red.
+
+**D17. The owner's answers of 27.9.2026**, after the lead measured both
+models against his own correction of „proba 4" (`proba4.groq.corrected.json`,
+185 words, two sentences changed):
+
+- **`whisper-large-v3`**, not turbo: 2 of 185 words wrong against 10, read
+  through each model's word list. Each model's segment text is worse than its
+  own words (6 against 2), so the server builds sentences from the words, as
+  phase 5's script did.
+- **Serbian in Latin only.** `sr-Cyrl` is not offered: the vendor writes
+  Latin, and Latin does not turn into Cyrillic without loss. A Cyrillic
+  tutorial comes from translation (phase 9).
+- **Q3: whoever may record may transcribe**, counted and not limited:
+  `stt_groq_seconds` per account, `groq_stt` per day. A limit is the pricing
+  document's to set.
+- **Opus, measured on his word**: „proba 4" sent once more as Ogg Opus at 32
+  kbit/s came back with the same 2 words wrong, at 527 KB against FLAC's
+  1.92 MB. So every recording is sent as Opus — 7 MB for the longest allowed
+  (30 minutes), under Groq's 25 MB whatever the microphone. One recording.
+
+**„Proba 5"** (27.9.2026, Windows, a better microphone): loudest sample
+**−3.3 dBFS**, where the earlier Windows takes peaked at −20 to −26. The
+quiet recordings were the microphones, not the capture — §5's open finding
+is closed. Heard as Opus: 20 sentences, 5 of them ending up to 480 ms past
+the next one's start, no Cyrillic; not corrected, so how well it was heard
+is not known.
+
+**The gate's rule on times, changed from the plan's words.** „A transcript
+whose times run backwards or past the end of the audio is refused" would
+refuse every recording: in all five, a sentence's end runs up to 480 ms past
+the next one's start, a word's start steps back by up to 260 ms, and in
+„proba 4" the last sentence ends 60 ms after the sound. What is refused is a
+sentence that **starts** before the one it follows, one that ends before it
+starts, and anything more than 1 s past the sound; an end within that second
+is brought back to the sound. All six real answers pass, and give exactly
+phase 5's sentences.
+
+**The lead's, stated so they can be overruled**: no vocabulary hint is sent
+(none was measured, and a list changes what is heard); Q4's rule is the
+server's (`latinOf`, one way); Q5 — „Transcribe" holds its button and not the
+player, because the answer takes seconds; hearing a recording again replaces
+the transcript and its corrections, after the app asks; a sentence may be
+emptied (the vendor invents words over silence); only the host reads the
+transcript, a student it is shared with does not; the table is
+`recording_transcripts`, created and never altered, so a server starting on
+it adds one table and touches nothing else. **D9 stands**: `STT_PROVIDER`
+stays empty on the droplet until the privacy policy names Groq.
+
+*As planned:*
+
 `BE/services/stt/` with a provider switch shaped like the voices',
 `STT_PROVIDER` and its keys in `.env.example`. The sound is compressed in a
 child process and the original is never touched. A recording's row gains its

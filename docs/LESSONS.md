@@ -8773,3 +8773,52 @@ window and the tap missed.
 Nine mutations, each red on the right case; one survived first (the bare-board
 check reading the first sentence only, the lead's own fix) and got its case.
 
+
+## 27.9.2026 — Preparation, phase 7: speech to text on a recording (→ 4828; backend → 1829 / 1988)
+
+The server half by the lead, the player's panel by the implementer.
+4796 + 26 of the gate + 6 of the worker's = **4828**, measured in the
+worktree with nothing else running (a first run was stopped and thrown away:
+two `find /` scans the worker had left behind were still loading the
+machine). Backend 1784 + 45 = **1829** without a database; **1988** with a
+throwaway cluster, which makes the 1942 before it measured rather than
+derived (1988 − 46).
+
+**The owner's correction decided the model.** His hand-corrected transcript
+of one recording (185 words) put `whisper-large-v3` at 2 wrong and turbo at
+10 — and each model's segment text below its own word list (6 against 2), so
+sentences are built from the words. Opus at 32 kbit/s was heard exactly as
+FLAC, at a quarter of the size, so there is one format and no fallback path.
+
+**Measure the vendor's untidiness before writing the rule that judges it.**
+The plan said a transcript whose times run backwards or past the end is
+refused. On all five of the owner's recordings a sentence's end runs up to
+480 ms past the next one's start, a word steps back up to 260 ms, and one
+last sentence ended 60 ms after the sound. Applied as written, the rule
+refuses every recording. What is refused is what cannot be real — a start
+before the sentence it follows, an end before its own start, anything over
+1 s past the sound — and all six real answers pass and give phase 5's
+sentences exactly.
+
+**A wait with no deadline hid a mutation.** Removing the host check made the
+fake pool refuse the query, the vendor was never asked, and the lock case's
+`while (vendor.asked.length === 0)` spun until the file timed out — before
+the real-database case, the one that sees that mutation, could run. Rule 9,
+in the lead's own test.
+
+**The worker stopped on two faults of the lead's gate, rightly.**
+`package:http` encodes a string body as latin1 unless a charset is named, so
+canned answers carrying ć, č, š threw inside the gate's own fake; and
+`hitTestable()` on the board cannot pass on any screen, because the marks'
+`CustomPaint` lies over it and `hitTestSelf` answers true.
+
+**A rendered look found what the gate passed.** The gate's four sentences fit
+everywhere. Twelve, rendered with real fonts: the list asked for a fixed
+420 px, so at 900 x 700 the panel overflowed by 31 px (a release build clips
+the button away) and at 1536 x 792 half the column was empty; and upright on
+a phone the sheet lay over the control deck, which holds the only button that
+closes it. Both were given cases watched red first. Rule 6 again: **a fixture
+shorter than the real thing cannot fail** — a transcript has dozens of
+sentences, not four. And the worker's own long-list case had passed by luck:
+it scrolled until the last row was *built*, which a list does in its cache
+band below the edge, not until it was *visible*.

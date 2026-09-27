@@ -73,6 +73,21 @@ function ttsCharactersMetric(provider) {
   return `tts_${name}_characters`;
 }
 
+/// The services that hear a recording (`services/stt/index.js`), each with a
+/// seconds metric of its own for the same reason the voices have one: the bill
+/// is per provider, and per hour of sound (phase 7 of docs/PLAN-PRIPREMA.md).
+const STT_PROVIDERS = ['groq'];
+
+/// `stt_groq_seconds`: the recording's length, counted for every attempt
+/// that reached the provider — it bills the attempt, refused answers included.
+function sttSecondsMetric(provider) {
+  const name = String(provider || '').trim().toLowerCase();
+  if (!STT_PROVIDERS.includes(name)) {
+    throw new RangeError(`Unknown speech-to-text provider: ${provider}`);
+  }
+  return `stt_${name}_seconds`;
+}
+
 /// Metered features. -1 means unmetered.
 ///
 /// Assignments are metered rather than locked on the free tier deliberately: a
@@ -240,6 +255,7 @@ function loadUnitCosts() {
     [METRIC.AI_TUTORIAL_TOKENS]: 0,
     [METRIC.AI_REVIEW_TOKENS]: 0,
     ...Object.fromEntries(TTS_PROVIDERS.map((p) => [ttsCharactersMetric(p), 0])),
+    ...Object.fromEntries(STT_PROVIDERS.map((p) => [sttSecondsMetric(p), 0])),
   };
   const raw = process.env.USAGE_UNIT_COSTS;
   if (!raw) return defaults;
@@ -380,6 +396,8 @@ module.exports = {
   METRIC,
   TTS_PROVIDERS,
   ttsCharactersMetric,
+  STT_PROVIDERS,
+  sttSecondsMetric,
   UNIT_COSTS,
   QUOTAS,
   TIER_ENTITLEMENTS,
