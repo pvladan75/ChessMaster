@@ -11,8 +11,9 @@
 library;
 
 import 'package:flutter/foundation.dart';
+import 'dart:async' show unawaited;
 import 'dart:convert' show utf8;
-import 'dart:io' show File, Platform;
+import 'dart:io' show Directory, File, Platform;
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
@@ -20,6 +21,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter_chess_board/flutter_chess_board.dart' hide Color;
 import 'package:go_router/go_router.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
@@ -43,6 +45,16 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/preparation/services/preparation_engine.dart';
 import 'package:chess_app/features/preparation/services/preparation_layout.dart';
+import 'package:chess_app/features/tutorial_studio/services/lesson_take.dart';
+import 'package:chess_app/features/tutorial_studio/services/narration_take.dart'
+    show
+        NarrationStart,
+        NarrationState,
+        PcmSource,
+        WavFileSink,
+        narrationClockOf,
+        narrationFallbackMaxMs;
+import 'package:chess_app/features/tutorial_studio/services/record_pcm_source.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -50,6 +62,8 @@ import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/fen_legality.dart';
+import 'package:chess_app/services/lesson_recording_api.dart';
+import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
@@ -83,6 +97,9 @@ class PreparationScreen extends StatefulWidget {
     this.scannerApi,
     this.exerciseApi,
     this.onOpenInAnalysis,
+    this.lessonRecordingApi,
+    this.pcmSourceFactory,
+    this.lessonTakeDir,
   });
 
   final UserSession userSession;
@@ -118,6 +135,19 @@ class PreparationScreen extends StatefulWidget {
   /// „Open in Analysis": handed a copy of the whole tree. The screen pushes
   /// Analysis itself when nothing is given.
   final void Function(AnalysisNode tree)? onOpenInAnalysis;
+
+  // The seams of phase 3, fixed by the lead so the gate
+  // (`test/preparation_recording_test.dart`) compiles. Named as the room's
+  // are; each is built by the screen itself where it is not given.
+
+  /// Whether this account may record and for how long, and the upload.
+  final LessonRecordingApi? lessonRecordingApi;
+
+  /// The microphone.
+  final PcmSource Function()? pcmSourceFactory;
+
+  /// Where a take is kept until the server has it.
+  final Future<Directory> Function()? lessonTakeDir;
 
   @override
   State<PreparationScreen> createState() => _PreparationScreenState();
@@ -162,6 +192,11 @@ class _PreparationScreenState extends State<PreparationScreen>
   int _activePartIndex = 0;
 
   ValueListenable<TickerModeData>? _shown;
+
+  // ── recording a lesson here (phase 3) ────────────────────────────────
+  /// The take while one is running, and where its file is. Null otherwise.
+  LessonTake? _take;
+  String? _takePath;
 
   @override
   void initState() {
@@ -237,6 +272,11 @@ class _PreparationScreenState extends State<PreparationScreen>
     _phoneTabs.dispose();
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _engine.detach();
+    // A take still open at this point was neither stopped nor discarded — the
+    // pop guard makes that rare — and it is closed rather than left holding
+    // its file.
+    _take?.removeListener(_onTakeChanged);
+    unawaited(_take?.cancel());
     super.dispose();
   }
 
@@ -252,6 +292,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(node.fen);
+    _stampMoveLanded(node);
   }
 
   void _playMove(String from, String to, String promotion) {
@@ -276,6 +317,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(played.fen);
+    _stampMovePlayed(_currentNode, from, to);
   }
 
   void _promoteNode(AnalysisNode node) {
@@ -296,14 +338,20 @@ class _PreparationScreenState extends State<PreparationScreen>
   void _deleteNode(AnalysisNode node) {
     final parent = node.parent;
     if (parent == null) return;
+    var cursorMoved = false;
     setState(() {
       final cursorFallsUnder = _isDescendantOf(_currentNode, node);
       parent.removeChild(node);
       if (cursorFallsUnder) {
         _currentNode = parent;
         _boardController.loadFen(parent.fen);
+        cursorMoved = true;
       }
     });
+    // A deleted variation that took the cursor with it: the cursor lands on
+    // the move already in the tree, exactly as the strip or the keyboard
+    // would land it there.
+    if (cursorMoved) _stampMoveLanded(parent);
   }
 
   void _moveVariation(AnalysisNode node, {required bool earlier}) {
@@ -339,6 +387,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(root.fen);
+    _stampInit();
   }
 
   /// Loads [fen] as a new root, as the room does from an engine line's
@@ -370,6 +419,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(read.root.fen);
+    _stampInit();
     if (read.rejectedMoves > 0) {
       final n = read.rejectedMoves;
       AppFeedback.warning(context,
@@ -814,6 +864,10 @@ class _PreparationScreenState extends State<PreparationScreen>
         _openInAnalysis();
       case 'settings':
         _openSettings();
+      case 'part-prev':
+        _prevPart();
+      case 'part-next':
+        _nextPart();
     }
   }
 
@@ -912,7 +966,7 @@ class _PreparationScreenState extends State<PreparationScreen>
     // The first tap of an arrow changes neither list but must still repaint:
     // the board draws the square it will be drawn from, which is the only
     // thing telling the trainer their tap was heard.
-    _annotation.tap(
+    final changed = _annotation.tap(
       square,
       arrows: _currentNode.arrows,
       squares: _currentNode.squares,
@@ -920,6 +974,7 @@ class _PreparationScreenState extends State<PreparationScreen>
           _annotation.rangeMode || HardwareKeyboard.instance.isShiftPressed,
     );
     setState(() {});
+    if (changed) _stampArrowChange();
   }
 
   void _clearMarks() {
@@ -927,7 +982,10 @@ class _PreparationScreenState extends State<PreparationScreen>
       arrows: _currentNode.arrows,
       squares: _currentNode.squares,
     );
-    if (changed) setState(() {});
+    if (changed) {
+      setState(() {});
+      _stampArrowChange();
+    }
   }
 
   void _undoMark() {
@@ -944,10 +1002,353 @@ class _PreparationScreenState extends State<PreparationScreen>
     }
     if (changed) {
       setState(() {});
+      _stampArrowChange();
     } else {
       AppFeedback.info(context, 'No mark to undo.');
     }
   }
+
+  // ── recording a lesson here (phase 3 of docs/PLAN-PRIPREMA.md) ───────
+  //
+  // Reused as it is from `docs/PLAN-SESIJA.md`'s phase 5b.3, the room's own
+  // recording: `LessonTake`, `WavFileSink`, `RecordPcmSource`,
+  // `narrationClockOf`, `narrationFallbackMaxMs` and `LessonRecordingApi`.
+  // The order is the room's and it is the point: the server is asked first
+  // (`permit()`), a refusal is said and the microphone is never opened; then
+  // the file, then the microphone.
+  //
+  // The timeline is stamped from the one place each kind of change already
+  // goes through — `_setNewRoot` and `_loadPart` for a new board (`init`),
+  // `_jumpTo` and `_deleteNode`'s fallback for the cursor landing on a move
+  // already in the tree (`move`), `_playMove` for a move played (`move`), and
+  // the three functions above that change what is drawn on the board
+  // (`arrow_drawn`) — so a door added later that goes through one of them
+  // cannot forget to stamp it.
+
+  LessonRecordingApi get _lessonRecordingApi =>
+      widget.lessonRecordingApi ??
+      LessonRecordingApi(authToken: widget.userSession.token);
+
+  /// True from a tap on „Record" until the take exists or was refused.
+  bool _preparingTake = false;
+
+  bool get _isRecordingLesson =>
+      _take != null && _take!.state != NarrationState.stopped;
+
+  /// Stamps a board event on the take, at this point in the audio. A no-op
+  /// while nothing is being recorded, which is what lets every door onto the
+  /// board call it without asking first.
+  void _markLesson(String type, Map<String, dynamic> data) {
+    _take?.mark(type, data);
+  }
+
+  Map<String, dynamic> _marksOf(AnalysisNode node) => {
+        if (node.arrows.isNotEmpty)
+          'arrows': [
+            for (final a in node.arrows)
+              {'from': a.from, 'to': a.to, 'color': a.colorCode},
+          ],
+        if (node.squares.isNotEmpty)
+          'squares': [
+            for (final s in node.squares)
+              {'square': s.square, 'color': s.colorCode},
+          ],
+      };
+
+  /// The board as it stands: the cursor's own position, the whole tree under
+  /// the root as PGN, and the cursor's own marks where it has any. Used both
+  /// for the `init` event `_startLessonRecording` opens a take with, and for
+  /// every `init` stamped afterwards — `_setNewRoot` and `_loadPart` always
+  /// leave the cursor on the root they just put on the board, so the same
+  /// snapshot answers both without asking twice what „the board" means.
+  Map<String, dynamic> _boardSnapshot() => {
+        'fen': _currentNode.fen,
+        'pgn': PgnExporterService.exportToPgn(_rootNode),
+        ..._marksOf(_currentNode),
+      };
+
+  void _stampInit() => _markLesson('init', _boardSnapshot());
+
+  void _stampMoveLanded(AnalysisNode node) =>
+      _markLesson('move', {'fen': node.fen, ..._marksOf(node)});
+
+  void _stampMovePlayed(AnalysisNode node, String from, String to) =>
+      _markLesson(
+          'move', {'fen': node.fen, 'from': from, 'to': to, ..._marksOf(node)});
+
+  /// Every change of the marks on the board in front of the trainer — drawn,
+  /// removed, „Undo", „Clear" — writes both lists whole, always, so the
+  /// player never has to guess which one changed.
+  void _stampArrowChange() => _markLesson('arrow_drawn', {
+        'arrows': [
+          for (final a in _currentNode.arrows)
+            {'from': a.from, 'to': a.to, 'color': a.colorCode},
+        ],
+        'squares': [
+          for (final s in _currentNode.squares)
+            {'square': s.square, 'color': s.colorCode},
+        ],
+      });
+
+  void _onTakeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<Directory> _defaultLessonTakeDir() async {
+    final support = await getApplicationSupportDirectory();
+    return Directory('${support.path}${Platform.pathSeparator}lessons');
+  }
+
+  /// Asks the server first — whether this account may record, and for how
+  /// long — and only then opens the microphone. A refusal said after half an
+  /// hour of talking is the one this order exists to prevent.
+  Future<void> _startLessonRecording() async {
+    // The take does not exist until the server has answered and its folder
+    // is known, so a second tap in that time is refused by this and not by
+    // the take.
+    if (_take != null || _preparingTake) return;
+    _preparingTake = true;
+    final LessonTake take;
+    try {
+      final permit = await _lessonRecordingApi.permit();
+      if (!mounted) return;
+      if (!permit.allowed) {
+        AppFeedback.warning(context, permit.reason ?? 'You may not record.');
+        return;
+      }
+      final dir = await (widget.lessonTakeDir ?? _defaultLessonTakeDir)();
+      if (!mounted) return;
+      dir.createSync(recursive: true);
+      final path = '${dir.path}${Platform.pathSeparator}'
+          'lesson-${DateTime.now().millisecondsSinceEpoch}.wav';
+      take = LessonTake(
+        source: (widget.pcmSourceFactory ?? RecordPcmSource.new)(),
+        sink: WavFileSink(path),
+        maxMs: permit.maxMs ?? narrationFallbackMaxMs,
+      )..addListener(_onTakeChanged);
+      setState(() {
+        _take = take;
+        _takePath = path;
+      });
+    } finally {
+      _preparingTake = false;
+    }
+    unawaited(take.done.then(_onTakeDone));
+    final NarrationStart started;
+    try {
+      started = await take.start(opening: _boardSnapshot());
+    } catch (e) {
+      _forgetTake();
+      if (mounted) {
+        AppFeedback.error(context, 'The microphone could not start: $e');
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (started == NarrationStart.noPermission) {
+      _forgetTake();
+      AppFeedback.warning(context,
+          'The app may not use the microphone. Allow it in the system settings.');
+    }
+  }
+
+  void _forgetTake() {
+    _take?.removeListener(_onTakeChanged);
+    final path = _takePath;
+    if (mounted) {
+      setState(() {
+        _take = null;
+        _takePath = null;
+      });
+    } else {
+      _take = null;
+      _takePath = null;
+    }
+    if (path != null) {
+      final file = File(path);
+      if (file.existsSync()) file.deleteSync();
+    }
+  }
+
+  /// Whatever ended the take — Stop, the cap, or Discard (null).
+  Future<void> _onTakeDone(LessonRecording? recording) async {
+    if (!mounted) return;
+    final path = _takePath;
+    if (recording == null || path == null) {
+      _forgetTake();
+      return;
+    }
+    if (recording.stoppedAtCap) {
+      AppFeedback.info(context,
+          'Recording stopped at the limit of one recording. It is kept.');
+    }
+    final title = await _askLessonTitle();
+    if (!mounted) return;
+    if (title == null) {
+      _forgetTake();
+      return;
+    }
+    await _uploadLesson(recording, path, title);
+  }
+
+  Future<String?> _askLessonTitle() {
+    final controller = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Save the recording'),
+        content: TextField(
+          key: const Key('lesson-title-field'),
+          controller: controller,
+          autofocus: true,
+          maxLength: 255,
+          decoration: const InputDecoration(labelText: 'Title'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Discard'),
+          ),
+          ElevatedButton(
+            key: const Key('lesson-save'),
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isNotEmpty) Navigator.pop(ctx, text);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Sends the take, and keeps it on this device until the server says 201 —
+  /// it is the only copy of a voice.
+  Future<void> _uploadLesson(
+      LessonRecording recording, String path, String title) async {
+    while (mounted) {
+      final result = await _lessonRecordingApi.upload(
+        audioPath: path,
+        title: title,
+        events: recording.events,
+        durationMs: recording.durationMs,
+      );
+      if (!mounted) return;
+      if (result.ok) {
+        _forgetTake();
+        AppFeedback.success(
+            context, 'Recording saved. It is under Recordings.');
+        return;
+      }
+      final again = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('The recording was not saved'),
+          content: Text(result.error ?? 'The recording could not be uploaded.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Discard'),
+            ),
+            ElevatedButton(
+              key: const Key('lesson-upload-retry'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      );
+      if (again != true) {
+        _forgetTake();
+        return;
+      }
+    }
+  }
+
+  /// The clock (and, in its last minute, „N s left") beside a shape that is
+  /// not only a colour — the owner is colourblind — a dot recording, bars
+  /// paused. The same widget sits in the bar's actions on the wide bar and
+  /// takes over the title on a phone held upright, where 360 px hold either
+  /// it or a tutorial's part label, not both.
+  Widget _recordingIndicator() {
+    final take = _take!;
+    final colors = context.colors;
+    final paused = take.state == NarrationState.paused;
+    final remaining = take.remainingMs;
+    return Row(
+      key: const Key('prep-recording'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(paused ? Icons.pause : Icons.fiber_manual_record,
+            color: colors.danger, size: 16),
+        const SizedBox(width: AppSpacing.xs),
+        Text(narrationClockOf(take.positionMs),
+            style: AppText.bodyBold.copyWith(color: colors.danger)),
+        if (remaining < 60000) ...[
+          const SizedBox(width: AppSpacing.xs),
+          Flexible(
+            child: Text(
+              '${(remaining / 1000).ceil().clamp(0, 60)} s left',
+              overflow: TextOverflow.ellipsis,
+              style: AppText.caption.copyWith(color: colors.warning),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// The three things a trainer may do to a running take, at every width.
+  List<Widget> _recordingControls() {
+    final take = _take!;
+    final paused = take.state == NarrationState.paused;
+    final colors = context.colors;
+    return [
+      IconButton(
+        key: const Key('lesson-recording-pause'),
+        icon: Icon(paused ? Icons.play_arrow : Icons.pause),
+        tooltip: paused ? 'Resume' : 'Pause',
+        onPressed: paused ? take.resume : take.pause,
+      ),
+      IconButton(
+        key: const Key('lesson-recording-stop'),
+        icon: Icon(Icons.stop, color: colors.danger),
+        tooltip: 'Stop and save',
+        onPressed: take.stop,
+      ),
+      IconButton(
+        key: const Key('lesson-recording-discard'),
+        icon: const Icon(Icons.delete_outline),
+        tooltip: 'Discard',
+        onPressed: take.cancel,
+      ),
+    ];
+  }
+
+  /// ⋮ while a take runs: what puts something on the board, and nothing that
+  /// keeps — „Save as…" and its five doors give way while a lesson is being
+  /// recorded. A tutorial's part is walked from here too where 360 px do not
+  /// hold both it and the recording's own clock in the title.
+  List<PopupMenuEntry<String>> _recordingMoreMenuItems() => [
+        ..._boardMenuItems(),
+        if (_activeParts != null) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<String>(
+            key: const Key('prep-part-prev'),
+            value: 'part-prev',
+            enabled: _activePartIndex > 0,
+            child: const Text('Previous part'),
+          ),
+          PopupMenuItem<String>(
+            key: const Key('prep-part-next'),
+            value: 'part-next',
+            enabled: _activePartIndex + 1 < _activeParts!.length,
+            child: const Text('Next part'),
+          ),
+        ],
+      ];
 
   // ── the shape ─────────────────────────────────────────────────────────
 
@@ -962,74 +1363,151 @@ class _PreparationScreenState extends State<PreparationScreen>
   /// board-and-panels rule, which is what phase 1's tests already pump).
   bool get _wideBar => Breakpoints.isWide(context);
 
+  Widget _barTitle(bool wideBar, bool recording) {
+    if (recording && !wideBar) return _recordingIndicator();
+    if (_activeParts != null) return _partNavBar();
+    return const Text('Preparation', overflow: TextOverflow.ellipsis);
+  }
+
+  List<Widget> _barActions(bool wideBar, bool recording) {
+    if (!recording) {
+      if (wideBar) {
+        return [
+          TextButton(
+            key: const Key('prep-library'),
+            onPressed: _toggleLibrary,
+            child: const Text('Library'),
+          ),
+          PopupMenuButton<String>(
+            key: const Key('prep-board-menu'),
+            onSelected: _onMenuAction,
+            itemBuilder: (_) => _boardMenuItems(),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text('Board'),
+            ),
+          ),
+          PopupMenuButton<String>(
+            key: const Key('prep-save-menu'),
+            onSelected: _onMenuAction,
+            itemBuilder: (_) => _saveMenuItems(),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text('Save as…'),
+            ),
+          ),
+          TextButton(
+            key: const Key('prep-record'),
+            // `ThemeData.adaptivePlatformDensity` is compact on every
+            // desktop, which shaves 8 dp off a button's minimum height —
+            // measured `108.6x36` at `minimumSize: Size(48, 44)`, so the
+            // asked-for height allows for it.
+            style: TextButton.styleFrom(minimumSize: const Size(48, 52)),
+            onPressed: _startLessonRecording,
+            child: const Text('Record'),
+          ),
+          PopupMenuButton<String>(
+            key: const Key('prep-more'),
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'More',
+            onSelected: _onMenuAction,
+            itemBuilder: (_) => _moreMenuItems(full: false),
+          ),
+        ];
+      }
+      return [
+        IconButton(
+          key: const Key('prep-record'),
+          icon: const Icon(Icons.fiber_manual_record),
+          tooltip: 'Record',
+          onPressed: _startLessonRecording,
+        ),
+        PopupMenuButton<String>(
+          key: const Key('prep-more'),
+          icon: const Icon(Icons.more_vert),
+          tooltip: 'More',
+          onSelected: _onMenuAction,
+          itemBuilder: (_) => _moreMenuItems(full: true),
+        ),
+      ];
+    }
+
+    // D11: while a take runs, „Save as…" and ⋮ give way on the wide bar —
+    // „Library" and „Board" stay, because a position loaded in mid-recording
+    // is part of the recording. On the narrow bar ⋮ stays and holds only what
+    // puts something on the board.
+    if (wideBar) {
+      return [
+        TextButton(
+          key: const Key('prep-library'),
+          onPressed: _toggleLibrary,
+          child: const Text('Library'),
+        ),
+        PopupMenuButton<String>(
+          key: const Key('prep-board-menu'),
+          onSelected: _onMenuAction,
+          itemBuilder: (_) => _boardMenuItems(),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8),
+            child: Text('Board'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: _recordingIndicator(),
+        ),
+        ..._recordingControls(),
+      ];
+    }
+    return [
+      ..._recordingControls(),
+      PopupMenuButton<String>(
+        key: const Key('prep-more'),
+        icon: const Icon(Icons.more_vert),
+        tooltip: 'More',
+        onSelected: _onMenuAction,
+        itemBuilder: (_) => _recordingMoreMenuItems(),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final wideBar = _wideBar;
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
-        title: _activeParts == null
-            ? const Text('Preparation', overflow: TextOverflow.ellipsis)
-            : _partNavBar(),
-        actions: [
-          if (wideBar) ...[
-            TextButton(
-              key: const Key('prep-library'),
-              onPressed: _toggleLibrary,
-              child: const Text('Library'),
-            ),
-            PopupMenuButton<String>(
-              key: const Key('prep-board-menu'),
-              onSelected: _onMenuAction,
-              itemBuilder: (_) => _boardMenuItems(),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('Board'),
+    final recording = _isRecordingLesson;
+    // A lesson being recorded is the only copy of a voice: leaving would drop
+    // it without a word. The way out is Stop (which saves) or Discard.
+    return PopScope(
+      canPop: !recording,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        AppFeedback.warning(context, 'Stop or discard the recording first.');
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
+          title: _barTitle(wideBar, recording),
+          actions: _barActions(wideBar, recording),
+        ),
+        body: MoveKeyboardShortcuts(
+          cursor: _moveCursor(),
+          onChanged: () {},
+          child: Stack(
+            children: [
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final body =
+                      Size(constraints.maxWidth, constraints.maxHeight);
+                  if (LandscapeBoardLayout.applies(context)) {
+                    return _buildLandscape(body);
+                  }
+                  if (Breakpoints.isWide(context)) return _buildDesktop(body);
+                  return _buildPhone(body);
+                },
               ),
-            ),
-            PopupMenuButton<String>(
-              key: const Key('prep-save-menu'),
-              onSelected: _onMenuAction,
-              itemBuilder: (_) => _saveMenuItems(),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Text('Save as…'),
-              ),
-            ),
-            PopupMenuButton<String>(
-              key: const Key('prep-more'),
-              icon: const Icon(Icons.more_vert),
-              tooltip: 'More',
-              onSelected: _onMenuAction,
-              itemBuilder: (_) => _moreMenuItems(full: false),
-            ),
-          ] else
-            PopupMenuButton<String>(
-              key: const Key('prep-more'),
-              icon: const Icon(Icons.more_vert),
-              tooltip: 'More',
-              onSelected: _onMenuAction,
-              itemBuilder: (_) => _moreMenuItems(full: true),
-            ),
-        ],
-      ),
-      body: MoveKeyboardShortcuts(
-        cursor: _moveCursor(),
-        onChanged: () {},
-        child: Stack(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final body = Size(constraints.maxWidth, constraints.maxHeight);
-                if (LandscapeBoardLayout.applies(context)) {
-                  return _buildLandscape(body);
-                }
-                if (Breakpoints.isWide(context)) return _buildDesktop(body);
-                return _buildPhone(body);
-              },
-            ),
-            if (wideBar && _libraryOpen) _libraryDrawer(),
-          ],
+              if (wideBar && _libraryOpen) _libraryDrawer(),
+            ],
+          ),
         ),
       ),
     );
@@ -1375,6 +1853,9 @@ class _PreparationScreenState extends State<PreparationScreen>
       color: Theme.of(context).scaffoldBackgroundColor,
       child: TabBar(
         controller: _phoneTabs,
+        // Four fixed tabs share the phone's width; the default 16 a side
+        // left 58 px for a word, and „Comment" read „Commen".
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
         tabs: const [
           Tab(text: 'Tree'),
           Tab(text: 'Comment'),
