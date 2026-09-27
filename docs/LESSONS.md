@@ -8613,3 +8613,42 @@ pre spajanja.
 
 Brojevi: 4266 → **4295** (27 kapija faze 2, 2 brojčanici motora), pun prolaz
 na grani bez ičega pored, dva puta; `analyze` 22.
+
+## 27.9.2026 — Preparation: faza 3, snimanje i polja u snimku
+
+`docs/PLAN-PRIPREMA.md`, faza 3: snimanje na novom ekranu (traka kaže da snimak
+teče i dok teče nema „Save as…" ni ⋮), i obeležena polja u snimku. Nijedan
+izvorni fajl servera nije promenjen. Izvođač je vratio 29 od 30.
+
+**Dva čitaoca jednog zapisa, svaki sa svojim pravilom.** Film je crtao oznake
+poslednjeg događaja, koje god vrste; plejer u aplikaciji je strelice čitao samo
+iz `arrow_drawn`. Skok na potez koji drži strelicu bio bi u plejeru gola tabla,
+a u filmu tabla sa strelicom. Pravilo je sada jedno — oznake su ono što je
+rekao **poslednji događaj** (D14) — svaki događaj koji ekran piše nosi oznake
+table koju ostavlja, i oba čitaoca stoje na istom fajlu
+(`chess_backend/test/fixtures/lesson_timeline.json`; pravilo 12).
+
+**Lažnjak koji svakome daje isti tok može da usluži samo prvog.** Trideseti
+slučaj je bio greška kapije: lažni mikrofon je držao jedan tok za sve snimke, a
+tok se sluša jednom, pa drugi snimak u istom testu nije čuo ništa. Izvođač je
+stao i rekao, kako nalog traži. Lažnjak pravi novi tok po snimku.
+
+**Brava koja čeka da stvar postoji otvorena je dok stvar ne stigne.** Dva
+dodira na „Record" pravila su dva snimka: server se pita za dozvolu **pre**
+nego što snimak postoji, a dugme je gledalo da li snimak postoji. Ekran sada
+odbija drugi dodir od samog dodira. Isti oblik kao dvostruki „Start" od
+22.9.2026, samo na strani klijenta. Nađeno na ocenjivanju, među pet puteva do
+table koje kapija nije prošla („Undo", ponovo odigran potez, obrisana
+varijanta, telefon položen, dva dodira).
+
+**„Staje" nije „može da se pročita", opet.** Slika pravog ekrana na telefonu
+čitala je „Commen" na drugom tabu — greška faze 1, koju je njena kapija
+propustila. Popravljeno, sa slučajem u kapiji faze 1.
+
+Trideset mutacija, svaka crvena na svom slučaju (4 server, 5 čitalac i plejer,
+21 ekran).
+
+Brojevi: 4295 → **4336** (5 čitalac i plejer, 35 kapija ekrana, 1 tabovi na
+telefonu); server 1772 → **1778** bez baze (6 novih slučajeva filma), 1930 →
+**1936** sa bazom. Posle spajanja sve je mereno ponovo na spojenom stablu
+(`c446f0ec`), bez ičega pored; `analyze` 22.

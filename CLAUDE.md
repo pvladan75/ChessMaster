@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4295 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4336 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL, 1772 without (both measured 27.9.2026)
+cd chess_backend && npm test          # node --test, 1936 with TEST_DATABASE_URL, 1778 without (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -978,7 +978,26 @@ the app is strict about** — take every literal in a gate from a run. The
 worker had also taken the engine's dials away at 900 wide to satisfy
 phase 1's „the panel is on the screen": **an assertion that a panel is
 whole on the screen forbids the panel to grow** — the box that scrolls is
-what has to be on the screen, with the panel's head in it. Phase 6 of
+what has to be on the screen, with the panel's head in it. Then its
+phase 3, recording on that screen and squares in a recording (→ **4336**,
+a full run on the merged tree with nothing else running; backend →
+**1778 / 1936**, both measured; analyze the same 22; no server source
+changed): the bar says a take is running and gives up „Save as…" and ⋮
+while it does, and every event carries the marks of the board it leaves
+behind — **the film drew the marks of the latest event whatever its kind,
+and the player read arrows from `arrow_drawn` alone**, so a jump to a move
+that holds an arrow replayed bare where the film drew it; both readers are
+now held to one fixture (`chess_backend/test/fixtures/lesson_timeline.json`).
+The worker returned 29 of 30 and named the thirtieth as the gate's fault,
+rightly: **a fake that hands every caller the same stream can serve only
+the first** — a stream is listened to once, and the second take of a test
+read nothing. Grading walked five ways onto the board the gate had not,
+and one was a bug: two taps on „Record" started two takes, because the
+server is asked before the take exists — **a guard that waits for the
+thing to exist is open for as long as the thing takes to arrive**, the
+double „Start" of 22.9 on the client's side. And a picture of the real
+phone read „Commen" on a tab phase 1's gate had passed — „fits" is not
+„can be read", again. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
@@ -1111,7 +1130,7 @@ The model split is defined globally in `~/.claude/CLAUDE.md`, with the agents in
 |---|---|---|
 | Lead | Opus 5, the main session | Plans (`docs/PLAN-*.md`), gates written and proved satisfiable before handing over, grading, merges, docs. Everything irreversible stays here: schema and migrations, deletions, `uploads/`, `.env`, `deploy/`, the droplet, the legal texts |
 | Worker | `implementer` agent, Sonnet 5 | One phase of a plan whose gate already exists — usually in a worktree (`isolation: "worktree"`) |
-| Measurement | `verifier` agent, Sonnet 5 | The full counts: app suite, analyze list against the 23 known infos, backend with `.env` moved aside |
+| Measurement | `verifier` agent, Sonnet 5 | The full counts: app suite, analyze list against the 22 known infos, backend with `.env` moved aside |
 | Escalation | `deep-debug` agent, Fable 5.1 | A fault that survived a full round of diagnosis, or a change across app, server and data where one missed reader corrupts something |
 | External worker | Gemini through `agy` | Large mechanical sweeps (translations, renames, vocabulary) where Max quota is better saved. Harness: `D:\Projekti\mislisha-test\orchestrator` — not in git, read its `HANDOFF.md` first; the `worker-batches` skill has the method |
 

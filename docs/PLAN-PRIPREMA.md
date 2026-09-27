@@ -626,19 +626,18 @@ method was called; an exercise's solution is nowhere on the screen; every
 a line that does not replay is refused with its count. The fixture carries
 `%clk` comments and a variation, as the owner's own games do.
 
-### Phase 3 — recording here, and squares in the timeline [lead: server and readers; implementer: the screen] — built and graded 27.9.2026, **not merged**
+### Phase 3 — recording here, and squares in the timeline [lead: server and readers; implementer: the screen] — built, graded and **merged into `master` 27.9.2026**
 
-**Where it stands.** Branch `priprema-faza-3`, in the worktree
-`.claude/worktrees/priprema-faza-3`, **nothing committed there**; the brief is
-`docs/briefs/BRIEF-PRIPREMA-FAZA3.md` in it. It waits for the owner's word to
-merge.
+**Where it stands.** Merged on the owner's word („merguj fazu 3",
+27.9.2026) as `c446f0ec`; the brief is `docs/briefs/BRIEF-PRIPREMA-FAZA3.md`.
+Every number below was measured again on the merged tree.
 
-| measured 27.9.2026, nothing else running | |
+| measured 27.9.2026 on the merged tree, nothing else running | |
 |---|---|
-| app, full suite on the branch | **4336 passed, 1 skipped** (4295 + 5 readers and player + 35 the screen's gate + 1 the phone's tabs) |
+| app, full suite | **4336 passed, 1 skipped** (4295 + 5 readers and player + 35 the screen's gate + 1 the phone's tabs) |
 | `flutter analyze` | the same 22 infos |
 | backend without a database | **1778** (1772 + 6) |
-| backend with a database | 1936, derived — the six new cases are pure |
+| backend with a database | **1936**, measured on a throwaway cluster |
 | deliberate faults | 30 of 30 caught: 4 server, 5 reader and player, 21 the screen |
 
 **No server source changed**: the judge already keeps whatever an event's
