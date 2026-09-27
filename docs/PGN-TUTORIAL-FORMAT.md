@@ -388,7 +388,7 @@ of the tutorial into a flat list of `{id, text}` — the title, the description,
 each part's title (except a generated „Part 3", which the app shows in its own
 words and which would come back as a name it takes for the trainer's), and the
 words of each `{ }` comment with its `[%cal]`/`[%csl]` taken out — and sends
-only that to `agy`, with `prompt.md` in front of it. The translations are
+only that to `agy`, with the prompt in front of it (`chess_backend/services/prompts/tutorial_translate.md`, which the app's „Translate…" reads too — phase 9 of `docs/PLAN-PRIPREMA.md`). The translations are
 written back into the same places. Moves, arrows and positions never leave the
 script, and after writing it proves it: each part's `pgn` with the comments
 removed must be byte-identical to the source's, and every field that is not
@@ -419,7 +419,7 @@ caught with the right reason. One real run —
 `adv_endgame_tarrasch_rule_active_rook.json` into Serbian — passed every check
 first time and reads **clean** through the app's own `readTutorialJson`, four
 parts of four. Its Serbian was good; its two slips („lekcija" for tutorial, and
-„Crni" capitalised mid-sentence) are why the glossary in `prompt.md` has those
+„Crni" capitalised mid-sentence) are why the glossary in the prompt has those
 two lines.
 
 Three things that are true and not the script's to fix:
