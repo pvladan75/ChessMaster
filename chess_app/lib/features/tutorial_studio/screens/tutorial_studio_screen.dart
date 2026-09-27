@@ -31,6 +31,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_parts_trans
 import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/part_picker_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_translation_flow.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video_export.dart';
@@ -1867,6 +1868,15 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                 _labelsField(),
                 const SizedBox(height: AppSpacing.md),
                 _languageField(),
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton(
+                    key: const Key('tutorial-translate'),
+                    onPressed: _translateTutorial,
+                    child: const Text('Translate…'),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Align(
                   alignment: Alignment.centerRight,
@@ -1880,6 +1890,32 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// „Translate…" — phase 9 of `docs/PLAN-PRIPREMA.md`.
+  ///
+  /// **Made of what is saved, and nothing else.** A copy is minted server-side
+  /// from the row this account has, and a draft with changes not yet written
+  /// there would be translated as it stood on the last save rather than as it
+  /// stands on screen — which the trainer would have no way of noticing until
+  /// the copy read wrong. So this asks nothing of the server when there is
+  /// anything unsaved, or when the tutorial has never been saved at all.
+  Future<void> _translateTutorial() async {
+    final id = _draft.lessonId;
+    if (id == null || _c.hasUnsavedChanges) {
+      AppFeedback.info(
+          context,
+          'Save the tutorial first — the translation is made of what is '
+          'saved.');
+      return;
+    }
+    await translateTutorialCopy(
+      context,
+      session: widget.session,
+      lessonId: id,
+      language: _draft.language,
+      api: _lessonApi,
     );
   }
 

@@ -31,6 +31,7 @@ import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/features/position_scanner/widgets/assign_positions_dialog.dart';
 import 'package:chess_app/features/tutorial_studio/services/recording_tutorial_flow.dart';
+import 'package:chess_app/features/tutorial_studio/services/tutorial_translation_flow.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -241,6 +242,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
               tooltip: 'Download video',
               onPressed: () => _downloadVideo(row),
             ),
+          IconButton(
+            icon: const Icon(Icons.translate, size: 20),
+            tooltip: 'Translate…',
+            onPressed: () => _translateTutorial(row),
+          ),
           IconButton(
             icon: const Icon(Icons.send_outlined, size: 20),
             tooltip: 'Send to student',
@@ -482,6 +488,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Future<void> _exportVideo(Map<String, dynamic> row) async {
     await _tutorialActions.exportVideo(context, row);
     if (mounted) setState(() {});
+  }
+
+  /// „Translate…" — phase 9 of `docs/PLAN-PRIPREMA.md`. Only reachable for
+  /// this account's own tutorials: [_actionsFor] already returns nothing for
+  /// `entry.fromTrainer` before this is ever built, so a trainer's shared
+  /// tutorial has no such button to tap.
+  Future<void> _translateTutorial(Map<String, dynamic> row) async {
+    final id = row['id'];
+    final lessonId = id is int ? id : int.tryParse(id.toString());
+    if (lessonId == null) return;
+    final newId = await translateTutorialCopy(
+      context,
+      session: widget.session,
+      lessonId: lessonId,
+      language: row['language']?.toString(),
+      api: _lessons,
+    );
+    // The copy is on the shelf when the trainer comes back to it.
+    if (newId != null && mounted) _load();
   }
 
   Future<void> _deleteTutorial(
