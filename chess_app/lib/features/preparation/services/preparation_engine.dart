@@ -25,6 +25,12 @@ class PreparationEngine {
   bool showEvaluation = false;
   bool showEvalBar = false;
 
+  /// This board's own dials (phase 2 of `docs/PLAN-PRIPREMA.md`) — not two
+  /// numbers written into a request, but state a trainer can move, as the
+  /// room's `_analysisDepth`/`_analysisLines` are.
+  int analysisDepth = AppSettingsService.instance.analysisDepth;
+  int analysisLines = AppSettingsService.instance.analysisLines;
+
   Map<int, AnalysisLine> lines = {};
   double eval = 0.0;
   String evalString = '0.00';
@@ -35,6 +41,22 @@ class PreparationEngine {
   bool get isOn => showEvaluation || showEvalBar;
   bool get isOnline => _service.isOnline;
   bool get isCustomEngineActive => _service.isCustomEngineActive;
+
+  /// For `showEngineSettingsDialog`, which the room's own „More" opens too.
+  StockfishService get service => _service;
+
+  /// A dial moved: remembered here, kept in the app's settings, and the
+  /// caller re-asks the engine (`triggerAnalysis`) about the position it
+  /// stands on.
+  void setAnalysisDepth(int depth) {
+    analysisDepth = depth;
+    AppSettingsService.instance.setAnalysisDepth(depth);
+  }
+
+  void setAnalysisLines(int lines) {
+    analysisLines = lines;
+    AppSettingsService.instance.setAnalysisLines(lines);
+  }
 
   Future<void> init() => _service.initEngine();
 
@@ -83,8 +105,8 @@ class PreparationEngine {
   void triggerAnalysis(String fen) {
     if (isOn) {
       _service.stopAnalysis();
-      _service.setMultiPV(AppSettingsService.instance.analysisLines);
-      _service.analyzePosition(fen);
+      _service.setMultiPV(analysisLines);
+      _service.analyzePosition(fen, depth: analysisDepth);
     } else {
       stopNow();
     }
