@@ -24,7 +24,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-sig
 const express = require('express');
 const {
   MAX_OVERRUN_MS, TRANSCRIPT_LANGUAGES, VENDOR_LANGUAGE, applyCorrection,
-  judgeSentences, latinOf, sentencesFrom,
+  judgeSentences, latinOf, sentencesFrom, wordsBySentence,
 } = require('../services/transcript');
 const { TUTORIAL_LANGUAGES } = require('../services/tutorialLanguage');
 const { createGroq, SttUnavailable, DEFAULT_MODEL } = require('../services/stt/groq');
@@ -87,6 +87,46 @@ describe('sentences are cut from the words', () => {
   test('a word with no text is dropped rather than joined as a space', () => {
     const got = sentencesFrom({ words: [w('Da', 0, 100), w('  ', 100, 200), w('vidimo.', 200, 400)], segments: [] });
     assert.equal(got[0].text, 'Da vidimo.');
+  });
+});
+
+// ------------------------------------------- the words of a sentence, 8b
+
+describe('the words of each sentence, with their times', () => {
+  const answer = {
+    words: [w('Краљ', 0, 400), w('  ', 400, 450), w('на', 450, 600), w('е4', 600, 1000),
+      w('Dobro', 900, 1300), w('je', 1300, 10060)],
+    segments: [seg('Краљ на е4.', 0, 1000), seg('Dobro je.', 900, 10060)],
+  };
+  const judged = () => judgeSentences(sentencesFrom(answer, { language: 'sr-Latn' }), 10000).sentences;
+
+  test('each sentence is handed its own, as it reads them, inside its own times', () => {
+    assert.deepEqual(wordsBySentence(judged(), answer.words), [
+      // Latin, as the sentence is; the closing mark its segment gave it; and
+      // the word with no text passed over as the sentence passed it over.
+      [w('Kralj', 0, 400), w('na', 450, 600), w('e4.', 600, 1000)],
+      // The sentence was brought inside the sound, and its last word with it.
+      [w('Dobro', 900, 1300), w('je.', 1300, 10000)],
+    ]);
+  });
+
+  test('a correction does not move them: they are the words as heard', () => {
+    const corrected = applyCorrection(judged(), ['Kralj ide na e4, odmah.', '']).sentences;
+    assert.deepEqual(wordsBySentence(corrected, answer.words), wordsBySentence(judged(), answer.words));
+  });
+
+  test('words that do not tally with the sentences are not handed out at all', () => {
+    const sentences = judged();
+    // One word short, one word over, and a word that is two.
+    assert.equal(wordsBySentence(sentences, answer.words.slice(0, -1)), null);
+    assert.equal(wordsBySentence(sentences, [...answer.words, w('još', 10060, 10100)]), null);
+    const joined = sentencesFrom({ words: [w('na e4.', 0, 900), w('Dobro.', 1000, 1500)], segments: [] });
+    assert.equal(wordsBySentence(joined, [w('na e4.', 0, 900), w('Dobro.', 1000, 1500)]), null);
+    // The right number of words, from another recording.
+    const moved = answer.words.map((x) => ({ ...x, startMs: x.startMs + 5, endMs: x.endMs + 5 }));
+    assert.equal(wordsBySentence(sentences, moved), null);
+    assert.equal(wordsBySentence(sentences, undefined), null);
+    assert.equal(wordsBySentence(sentences, []), null);
   });
 });
 
@@ -515,10 +555,16 @@ describe('POST /recordings/:id/transcript', () => {
     assert.equal(t.language, 'sr-Latn');
     assert.equal(t.vendor, 'groq');
     assert.equal(t.model, 'whisper-large-v3');
+    // Since phase 8b each sentence goes out with its words and their times.
     assert.deepEqual(t.sentences, [
-      { startMs: 0, endMs: 1000, text: 'Kralj na e4.', heard: 'Kralj na e4.' },
-      { startMs: 900, endMs: 10000, text: 'Dobro je.', heard: 'Dobro je.' },
+      { startMs: 0, endMs: 1000, text: 'Kralj na e4.', heard: 'Kralj na e4.',
+        words: [w('Kralj', 0, 400), w('na', 400, 600), w('e4.', 600, 1000)] },
+      { startMs: 900, endMs: 10000, text: 'Dobro je.', heard: 'Dobro je.',
+        words: [w('Dobro', 900, 1300), w('je.', 1300, 10000)] },
     ]);
+    assert.deepEqual(pool.transcripts.get(1).sentences.map((x) => Object.keys(x).sort()),
+      [['endMs', 'heard', 'startMs', 'text'], ['endMs', 'heard', 'startMs', 'text']],
+      'and is kept without them: the words are stored once');
     assert.equal(pool.transcripts.get(1).words.length, 5, 'every word as heard is kept');
     assert.equal(pool.transcripts.get(1).words[0].text, 'Краљ', 'as heard, not as turned');
   });
@@ -675,7 +721,13 @@ describe('GET /recordings/:id/transcript', () => {
     await call(app, 'POST', '/recordings/1/transcript', { language: 'en' });
     const heard = await call(app, 'GET', '/recordings/1/transcript');
     assert.equal(heard.body.transcript.sentences.length, 2);
-    assert.equal(heard.body.transcript.words, undefined, 'the app is handed the sentences, not every word');
+    // Until phase 8b this case held „the app is handed the sentences, not
+    // every word". It is handed the words now, because a sentence is cut
+    // where the board changed inside it — each sentence its own, and never
+    // the vendor's list as it is stored.
+    assert.equal(heard.body.transcript.words, undefined, 'the stored list is not sent');
+    assert.deepEqual(heard.body.transcript.sentences.map((x) => x.words.map((y) => y.text)),
+      [['Краљ', 'на', 'е4.'], ['Dobro', 'je.']], 'heard as English, so as the vendor wrote it');
 
     assert.equal((await call(app, 'GET', '/recordings/2/transcript')).body.available, false, 'a room recording');
     // A provider switched off offers nothing new, and what was heard before
@@ -698,10 +750,14 @@ describe('PUT /recordings/:id/transcript', () => {
       { texts: ['Kralj na e4, kaže se.', 'Dobro je.'], sentences: [{ startMs: 5, endMs: 6 }] });
     assert.equal(res.status, 200);
     assert.deepEqual(res.body.transcript.sentences, [
-      { startMs: 0, endMs: 1000, text: 'Kralj na e4, kaže se.', heard: 'Kralj na e4.' },
-      { startMs: 900, endMs: 10000, text: 'Dobro je.', heard: 'Dobro je.' },
+      { startMs: 0, endMs: 1000, text: 'Kralj na e4, kaže se.', heard: 'Kralj na e4.',
+        words: [w('Kralj', 0, 400), w('na', 400, 600), w('e4.', 600, 1000)] },
+      { startMs: 900, endMs: 10000, text: 'Dobro je.', heard: 'Dobro je.',
+        words: [w('Dobro', 900, 1300), w('je.', 1300, 10000)] },
     ]);
     assert.deepEqual(pool.transcripts.get(1).words, words);
+    assert.deepEqual(Object.keys(pool.transcripts.get(1).sentences[0]).sort(),
+      ['endMs', 'heard', 'startMs', 'text'], 'a correction does not store the words a second time');
   });
 
   test('a correction of the wrong length, or of a recording never heard, is refused', async () => {
