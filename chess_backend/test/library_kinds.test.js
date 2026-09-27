@@ -85,8 +85,8 @@ test('a tutorial with a render in flight says so', async () => {
 
 test('a recording is the host\'s own, and knows whether it has a film', async () => {
   const pool = stubPool([[
-    { id: 3, title: 'Endgames, part 1', audio_url: null, video_url: null, created_at: '2026-09-12T18:00:00Z' },
-    { id: 4, title: 'Endgames, part 2', audio_url: null, video_url: 'https://x/y.mp4', created_at: '2026-09-13T18:00:00Z' },
+    { id: 3, title: 'Endgames, part 1', audio_url: null, video_url: null, created_at: '2026-09-12T18:00:00Z', source: 'preparation' },
+    { id: 4, title: 'Endgames, part 2', audio_url: null, video_url: 'https://x/y.mp4', created_at: '2026-09-13T18:00:00Z', source: 'room' },
   ]]);
   const rows = await lib.listRecordings(pool, 5, { search: null });
   const { text, params } = pool.calls[0];
@@ -100,6 +100,10 @@ test('a recording is the host\'s own, and knows whether it has a film', async ()
   assert.equal(rows[1].hasVideo, true);
   assert.equal(rows[0].fen, '', 'a recording has no board of its own');
   assert.equal(rows[0].assignable, false);
+  // Phase 8 of docs/PLAN-PRIPREMA.md: only a Preparation recording can become a tutorial.
+  assert.match(text, /SELECT id, title, video_url, created_at, source/);
+  assert.equal(rows[0].fromPreparation, true);
+  assert.equal(rows[1].fromPreparation, false);
 });
 
 test('a search term reaches the two new shelves too', async () => {
