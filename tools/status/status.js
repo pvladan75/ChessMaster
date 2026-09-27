@@ -35,7 +35,7 @@ backendRequire('dotenv').config({ path: path.join(BACKEND, '.env') });
 const { Pool } = backendRequire('pg');
 const { buildSslConfig } = backendRequire('./db.js');
 const {
-  METRIC, UNIT_COSTS, ENTITLING_STATUSES, ttsCharactersMetric,
+  METRIC, UNIT_COSTS, ENTITLING_STATUSES, ttsCharactersMetric, sttSecondsMetric,
 } = backendRequire('./services/entitlementService.js');
 
 const TIMEOUT_MS = 10000;
@@ -159,6 +159,12 @@ async function database() {
       `${fmt(azureChars)} / ${fmt(FREE.azureNeuralChars)} chars  (${pct(azureChars, FREE.azureNeuralChars)}), ` +
         `${fmt(FREE.azureNeuralChars - azureChars)} left of F0`
     );
+
+    // Speech to text is billed by the hour of sound sent, every attempt
+    // counted (phase 7 of docs/PLAN-PRIPREMA.md) — $0.111 an hour on
+    // whisper-large-v3 as Groq's page said on 27.9.2026, not read from a bill.
+    const groqSeconds = used[sttSecondsMetric('groq')] || 0;
+    row('Groq speech to text', `${fmt(Math.ceil(groqSeconds / 60))} min of recordings heard`);
 
     // --- the donated services, which have no bill and a rate limit instead
     section('Free services this month (provider_requests)');

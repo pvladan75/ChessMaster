@@ -18,6 +18,8 @@ const recordingShares = require('../services/recordingShares');
 const { latestVideoFor } = require('../services/recordingVideo');
 const { EXPORTS_DIR } = require('../services/retentionService');
 const { mayRecordNarration } = require('../services/recordingConsent');
+const rateLimit = require('express-rate-limit');
+const { createTranscriptHandlers } = require('./recordingTranscript');
 
 // There is no `POST /recordings/save` any more (phase 5a of
 // docs/PLAN-SESIJA.md): a session with other people in it is not recorded at
@@ -199,6 +201,25 @@ router.put('/:id/shares', authenticateToken, async (req, res) => {
     return res.status(500).json({ error: 'Error sharing the recording.' });
   }
 });
+
+// The transcript of a recording made in Preparation — phase 7 of
+// docs/PLAN-PRIPREMA.md; routes/recordingTranscript.js says what each does.
+// Hearing a recording again is the host's own choice and costs the provider
+// an hour's price per hour of sound, so it is limited; reading and correcting
+// are not.
+const transcribeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many recordings transcribed. Please wait a while.' },
+});
+const transcript = createTranscriptHandlers({ pool });
+router.get('/:id/transcript', authenticateToken, transcript.read);
+// Whoever may record may transcribe (the owner's answer of 27.9.2026): the
+// same gate as the recording itself.
+router.post('/:id/transcript', authenticateToken, transcribeLimiter, lessonGate, transcript.transcribe);
+router.put('/:id/transcript', authenticateToken, transcript.correct);
 
 // GET /recordings/:id
 // Scoped as the list is — a recording contains a whole lesson and a voice, so

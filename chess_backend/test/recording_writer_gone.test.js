@@ -31,11 +31,17 @@ function routes() {
 // `DELETE /:id` (22.9.2026, the host deleting their own) is not counted as a
 // writer: it takes a row away and puts nothing into `uploads/`, which is what
 // this file is about.
+//
+// Nor are `POST` and `PUT /:id/transcript` (phase 7 of docs/PLAN-PRIPREMA.md,
+// 27.9.2026): they write a row of `recording_transcripts` and only ever read
+// the sound (`services/stt/compress.js` writes to its own output, and
+// test/recording_transcript.test.js holds the recording byte for byte).
 
 test("the room's writer stays gone, and the lesson's is the only one", () => {
   const writers = routes().filter((r) => !r.startsWith('GET ')
     && r !== 'POST /:id/export-mp4' && r !== 'PUT /:id/shares'
-    && r !== 'DELETE /:id');
+    && r !== 'DELETE /:id'
+    && r !== 'POST /:id/transcript' && r !== 'PUT /:id/transcript');
   assert.deepEqual(writers, ['POST /lesson']);
   assert.equal(routes().includes('POST /save'), false);
 });
@@ -46,11 +52,14 @@ test('what exists is still read, played and exported', () => {
     'GET /',
     'GET /:id',
     'GET /:id/shares',
+    'GET /:id/transcript',
     'GET /export-download/:filename',
     'GET /lesson-audio/:filename',
     'GET /lesson-limits',
     'POST /:id/export-mp4',
+    'POST /:id/transcript',
     'POST /lesson',
     'PUT /:id/shares',
+    'PUT /:id/transcript',
   ]);
 });
