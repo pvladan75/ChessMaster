@@ -8917,3 +8917,87 @@ the game tutorials) and Azure (the film's voice) — and that a transcript is a
 new kind of stored data. A step that says „mention X" is worth doing by
 reading the whole list X belongs in. The text stays the owner's and the
 lawyer's; the step in `TODO-objavljivanje.md` says what the app does.
+
+## 27.9.2026 — Preparation, phase 8b: a sentence cut where the board changed (app 4908 → 4954, backend 1860/2019 → 1863/2022)
+
+The owner made a tutorial of his recording „Proba 5" and reported that after
+`Qxe5+` three arrows, and a little later a fourth, were on the board with the
+move, though he speaks of them at the end of that part. Arithmetic: the app
+gains 45 cases in `recording_tutorial_cut_test.dart` and one in
+`recording_tutorial_doors_test.dart` (4908 + 46); the server gains three in
+`recording_transcript.test.js` (1860 + 3, 2019 + 3).
+
+**Nothing was broken, and that was the finding.** D5 had accepted that „an
+arrow may appear a few seconds before it is mentioned", and R4 did exactly
+that: a mark drawn inside a sentence stands from the sentence's first word.
+What nobody had measured was the sentence. Speech to text returned what he
+said after `Qxe5+` as one sentence of 16.6 s, and on his five recordings 25
+of 113 sentences are longer than ten seconds. **A tolerance accepted in words
+is a number nobody measured** — before agreeing to „a few seconds", measure
+the thing the seconds ride on. Phase 5 measured how many beats the rules made
+and how long their captions were, and never how long before its moment a mark
+was shown; that number was a median of 6.7 s.
+
+**Early against what?** The first measure was „how long before it was drawn
+is a mark on screen", and by it a cut at the very word being said wins. But
+the report was about being *mentioned*: a trainer says „može da postavi damu
+ispred" and draws the arrow as the clause ends, so an arrow shown as that
+clause begins is on time for a viewer although it is five seconds early for
+the pen. The rule prefers the clause's start for that reason, and goes to the
+word only where the clause began more than six seconds before. **A measure
+is chosen by what the report complained of, not by what is easiest to
+subtract.**
+
+**The owner's own correction would have switched the rule off where it
+mattered.** The first design cut a corrected sentence only when it had as
+many words as were heard — corrections being spellings. The stored row said
+otherwise: his one correction in „Proba 5" turns „1." into „uzima na", one
+word into two, in the sentence that holds three moves and an arrow. Words
+left alone now hold the rest in place (`_wordsOf`). **Read the real row
+before deciding what a user's edits look like.**
+
+**A survivor asked a question the rule had not answered.** „A move never
+takes the piece in which something was drawn before it" kept a flag,
+`drawnAt`, and reset it at every move. The mutation that stopped resetting it
+survived, because a move stamps a bare board and bareness reset the flag
+anyway. The honest question was what „drawn" means when a position *arrives*
+with marks — a jump to a move the tree already holds with its arrow. The
+answer removed the special case (`drawnAt = change.bare ? null : change.ms`),
+and one of the five real recordings changed by it: in „proba 4" the words
+said over such a position now stand on it, where they had waited for the
+next move. Rule 2, word for word.
+
+**A survivor that cannot change an answer is a deletion** — again. „A change
+before the sentence's first word is skipped" survived at its boundary, and
+then whole: such a change falls in no word, so the loop cuts nothing for it.
+The test went.
+
+**An invalid mutant of the lead's own.** „The words are stored with the
+sentences" mutated the row `wireOf` was handed — a clone, in the fake pool as
+in `pg`. It could not store anything, so its green said nothing. The mutant
+that can is in the route, where the sentences are written; that one is red.
+
+**Two of the gate's first reds were the gate's.** One case began its sentence
+at 0 with a move at 500, so the move was inside the sentence and the case
+counted one beat too few; another gave two heard words equal lengths, so
+„one for one" and „shared evenly" put the corrected word at the same
+millisecond. **A fixture with even numbers cannot tell two rules for
+dividing apart** — the kin of the half-pawn and the 840-wide window.
+
+**A comparison through one reader cannot see the reader drop a field.** The
+doors test held the flow to `_core()`, and both read the transcript through
+`TranscriptSentence.fromJson`; had that parser ignored `words`, both sides
+would have made the same three beats. The new case writes the markers out,
+`[0, 4500, 6000, 9000]`, and was watched red with the words unread.
+
+**Measured and not built**: a pause between words as a clause's start
+(Whisper stretches a word over the silence after it; two or three cuts in
+113 sentences), a 300 ms tolerance before a word's start (two cuts, 80 ms at
+the median), and the clause alone without the word (a median of 4.3 s and
+10.2 s at the worst — the report again, milder).
+
+**The sketch was written from the plan, not from the code**
+(`tools/stt_measure/cuts.js`), and the two agreed on all five recordings on
+the first run, beat for beat — after which every change to the rule was made
+in both and the fixtures written again. The fixtures keep the commas: **the
+times and the commas are the data; the words are somebody's.**

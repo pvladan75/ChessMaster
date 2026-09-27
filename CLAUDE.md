@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4908 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4954 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1860 without TEST_DATABASE_URL, 2019 with it (both measured 27.9.2026)
+cd chess_backend && npm test          # node --test, 1863 without TEST_DATABASE_URL, 2022 with it (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1071,7 +1071,24 @@ leaking the flow's module-level guard into later cases, and the worker
 released the guard when the dialog **closed** — the moment the request is
 sent, so for the minute the server works a second start went through. **Fix
 a test that leaks state in the test; a backstop in the product for a leak
-only a test can make moves the product's guard to the wrong moment.** Phase 6 of
+only a test can make moves the product's guard to the wrong moment.** Then
+its phase 8b, a sentence cut where the board changed (→ **4954**, a full run
+in the worktree with nothing else running; backend → **1863 / 2022**, both
+measured; analyze the same 22), after the owner's own tutorial from „Proba 5"
+showed four arrows with the move he drew them after. Nothing was broken:
+D5 had accepted „a few seconds" and speech to text had returned sixteen
+seconds as one sentence — 25 of his 113 sentences are longer than ten.
+**A tolerance accepted in words is a number nobody measured.** A sentence is
+now cut at the start of the clause in which the board changed, or at the word
+itself where that clause began more than six seconds before (D19; the server
+hands each sentence the times of its words, stored once). On his five
+recordings a mark was on screen a median 6.7 s before it was drawn and is now
+1.4 s, at most 5.9 s where it was 15.3 s. The owner's one correction changed
+a sentence's **word count**, in the sentence with three moves in it: **read
+the real row before deciding what a user's edits look like.** And a surviving
+mutation asked what „drawn" means when a position arrives with its marks;
+the answer removed a special case and changed one real recording for the
+better. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
