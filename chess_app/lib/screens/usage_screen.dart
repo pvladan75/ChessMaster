@@ -321,6 +321,8 @@ const _countedOrder = <String>[
   'scanned_pages',
   'ai_tutorial_tokens',
   'ai_review_tokens',
+  'ai_translations',
+  'ai_translation_tokens',
 ];
 
 const _countedLabels = <String, String>{
@@ -332,6 +334,8 @@ const _countedLabels = <String, String>{
   'scanned_pages': 'Book pages scanned',
   'ai_tutorial_tokens': 'AI tutorial writing',
   'ai_review_tokens': 'AI review writing',
+  'ai_translations': 'Tutorials translated',
+  'ai_translation_tokens': 'AI translation writing',
 };
 
 class CountedRow {
@@ -446,6 +450,7 @@ List<CountedRow> countedRows(MonthlyUsage usage) {
         return '${formatCount(value)} characters';
       case 'ai_tutorial_tokens':
       case 'ai_review_tokens':
+      case 'ai_translation_tokens':
         return '${formatCount(value)} tokens';
       default:
         return formatCount(value);
