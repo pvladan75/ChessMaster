@@ -1,3 +1,10 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected there: the room's column is given no pane and draws
+// no selection.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 // `docs/PLAN-LISTE.md`, phase 5 — pattern B for the Library.
 //
 // A wide window gets a pane beside the shelf: tap a board and it is drawn
@@ -51,6 +58,7 @@ import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
+import 'support/trainer_room.dart';
 
 /// White to move, so the panel's wording is a fact about the entry and not
 /// about the default.
@@ -128,8 +136,9 @@ Future<void> _room(WidgetTester tester, Size size) async {
     size,
     ChessGamePage(
       userSession: _session(),
-      roomCode: 'STUDIO',
-      initialRole: 'trener',
+      roomCode: trainerRoomCode,
+      initialRole: trainerSeat,
+      groupApi: teachingSomebody(),
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
     ),

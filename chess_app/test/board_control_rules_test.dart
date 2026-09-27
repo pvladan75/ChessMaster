@@ -58,14 +58,14 @@ void main() {
     expect(leadsRoom(seatRole: 'korisnik'), isFalse);
   });
 
-  test('the local Preparation board is led by whoever is at it', () {
-    // It has no room to broadcast to, so there is nothing to protect.
-    expect(leadsRoom(seatRole: null, isStudio: true), isTrue);
-    expect(
-        canDriveSharedBoard(
-            seatRole: null, boardControl: 'trainer_only', isStudio: true),
-        isTrue);
-  });
+  // Deleted in phase 4 of docs/PLAN-PRIPREMA.md: „the local Preparation
+  // board is led by whoever is at it", and under `mayTeachInRoom` „the local
+  // Preparation board has no room to be anybody in". Both held `isStudio`,
+  // which answered yes to every question; Preparation is a screen of its own
+  // and asks none of these rules anything. What they protected — that a
+  // trainer alone has every tool — is `PreparationScreen`'s, held by its three
+  // gates. That a room entered by the old code is an ordinary room is held by
+  // `preparation_doors_test.dart`.
 
   // ── who teaches in a room — item 5 of the owner's review of 21.9.2026 ──────
   //
@@ -82,7 +82,6 @@ void main() {
     bool teaches(int me, Set<int> myStudents, List<int> inRoom,
             {bool opened = false}) =>
         mayTeachInRoom(
-          isStudio: false,
           myId: me,
           myStudentIds: myStudents,
           memberIds: inRoom,
@@ -138,19 +137,6 @@ void main() {
       // (without it the self-filter survived its mutation).
       expect(teaches(1, {1}, [1]), isFalse);
       expect(teaches(1, {1}, [1], opened: true), isFalse);
-    });
-
-    test('the local Preparation board has no room to be anybody in', () {
-      expect(
-        mayTeachInRoom(
-          isStudio: true,
-          myId: 1,
-          myStudentIds: const {},
-          memberIds: const [],
-          openedRoom: false,
-        ),
-        isTrue,
-      );
     });
   });
 }

@@ -35,6 +35,7 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 
 import 'support/landscape.dart';
 import 'package:chess_app/widgets/app_slider.dart';
+import 'support/trainer_room.dart';
 import 'features/archive/mistake_drill_screen_test.dart'
     show FakeArchiveApiService;
 
@@ -280,9 +281,15 @@ void main() {
     }
   });
 
-  group('Studio room', () {
+  // Named „Studio room" and pumped as `STUDIO` until phase 4 of
+  // docs/PLAN-PRIPREMA.md. What is protected is the room held sideways, which
+  // is the live room's; Preparation on its side is held by
+  // `preparation_screen_test.dart`.
+  group('The room, for whoever opened it', () {
     Widget screen() => ChessGamePage(
-          roomCode: 'STUDIO',
+          roomCode: trainerRoomCode,
+          initialRole: trainerSeat,
+          groupApi: teachingSomebody(),
           userSession: UserSession(
               token: 't', id: 7, email: 'a@b.c', name: 'T', role: 'trener'),
           lessonApi: LessonApiService(

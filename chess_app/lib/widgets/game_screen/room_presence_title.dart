@@ -23,11 +23,11 @@ class RoomPresenceTitle extends StatelessWidget {
     required this.compact,
   });
 
-  /// „Room: 123456", „Connecting...", „Preparation".
+  /// „Room: 123456", „Connecting...".
   final String status;
 
   /// `room_members_list` as the server sent it: maps with `userId`, `name`,
-  /// `role`. Empty until the first one arrives — and always, in Preparation.
+  /// `role`. Empty until the first one arrives.
   final List<dynamic> members;
   final Object? myId;
 
@@ -121,7 +121,7 @@ class RoomPresenceTitle extends StatelessWidget {
 }
 
 /// What to say about [members] to the person with [myId]; null while there is
-/// nothing to say (no roster yet, or Preparation).
+/// nothing to say (no roster yet).
 ///
 /// `alone` is true whenever the person this session needs is missing: nobody
 /// else at all, or — for somebody who is not leading — no trainer.

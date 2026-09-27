@@ -1,3 +1,9 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected there: the room's column offers the Exercises chip.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 // exercise_library_own_test.dart — the implementer's own tests for phase 4
 // of `docs/PLAN-EXERCISE.md`, beyond what `exercise_library_test.dart` (the
 // gate, copied unchanged from `docs/gates/`) already covers.
@@ -22,6 +28,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import 'support/landscape.dart';
+import 'support/trainer_room.dart';
 
 const _fen = '8/8/8/8/8/4k3/8/R3K3 w - - 0 1';
 const _winTask = {'type': 'game', 'fen': _fen, 'side': 'w', 'goal': 'win'};
@@ -372,8 +379,9 @@ void main() {
         home: ChessGamePage(
           userSession: UserSession(
               id: 1, token: 'tok', email: 'e', name: 'N', role: 'trener'),
-          roomCode: 'STUDIO',
-          initialRole: 'trener',
+          roomCode: trainerRoomCode,
+          initialRole: trainerSeat,
+          groupApi: teachingSomebody(),
           lessonApi: LessonApiService(authToken: 'tok', client: client),
           positionLibrary:
               PositionLibraryService(authToken: 'tok', client: client),

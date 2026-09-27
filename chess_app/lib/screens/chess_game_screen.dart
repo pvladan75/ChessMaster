@@ -33,11 +33,6 @@ import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
 import 'package:chess_app/services/room_session_api.dart';
-import 'package:chess_app/services/lesson_recording_api.dart';
-import 'package:chess_app/features/tutorial_studio/services/narration_take.dart';
-import 'package:chess_app/features/tutorial_studio/services/lesson_take.dart';
-import 'package:chess_app/features/tutorial_studio/services/record_pcm_source.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:chess_app/widgets/game_screen/invite_students_dialog.dart';
 import 'package:chess_app/widgets/game_screen/room_presence_title.dart';
 import 'package:chess_app/widgets/game_screen/room_voice_panel.dart';
@@ -106,13 +101,6 @@ class ChessGamePage extends StatefulWidget {
   /// the room builds its own otherwise.
   final RoomSessionApi? roomSessionApi;
 
-  /// Recording a lesson in Preparation (phase 5b.3 of docs/PLAN-SESIJA.md):
-  /// the server, the microphone and where a take is kept until the server has
-  /// it. Injected by tests; built by the screen otherwise.
-  final LessonRecordingApi? lessonRecordingApi;
-  final PcmSource Function()? pcmSourceFactory;
-  final Future<Directory> Function()? lessonTakeDir;
-
   const ChessGamePage({
     super.key,
     required this.roomCode,
@@ -123,9 +111,6 @@ class ChessGamePage extends StatefulWidget {
     this.scannerApi,
     this.groupApi,
     this.roomSessionApi,
-    this.lessonRecordingApi,
-    this.pcmSourceFactory,
-    this.lessonTakeDir,
   });
 
   @override
@@ -212,7 +197,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// Whether this account teaches in this room — [mayTeachInRoom]. Decides
   /// „Make exercise" and a tutorial row's actions, not the board tools.
   bool get _mayTeach => rules.mayTeachInRoom(
-        isStudio: widget.roomCode == 'STUDIO',
         myId: widget.userSession.id,
         myStudentIds: _myStudentIds,
         memberIds: [
@@ -286,16 +270,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// Whether this seat leads the room — [rules.leadsRoom], and the only
   /// place this screen asks. It held four definitions of this until phase 3 of
   /// docs/PLAN-SESIJA.md; `test/room_one_leader_test.dart` keeps it at one.
-  bool get isLeader => rules.leadsRoom(
-        seatRole: activeRole,
-        isStudio: widget.roomCode == 'STUDIO',
-      );
+  bool get isLeader => rules.leadsRoom(seatRole: activeRole);
 
-  /// Seated in a real room without the right to run it. Asked of the seat the
+  /// Seated in the room without the right to run it. Asked of the seat the
   /// server granted, never of the role in the URL: joining by code arrives as
   /// 'korisnik', so a check for 'ucenik' there never fired for anybody who
   /// typed a code, and the voice and sharing controls were dead for them.
-  bool get _isStudentSeat => widget.roomCode != 'STUDIO' && !isLeader;
+  bool get _isStudentSeat => !isLeader;
 
   /// Whether this client may drive the shared board — either by moving a piece
   /// or by stepping through the move tree. Both broadcast the new position to
@@ -308,7 +289,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
   bool get canDriveSharedBoard => rules.canDriveSharedBoard(
         seatRole: activeRole,
         boardControl: boardControl,
-        isStudio: widget.roomCode == 'STUDIO',
       );
 
   @override
@@ -318,36 +298,30 @@ class _ChessGamePageState extends State<ChessGamePage> {
         LessonApiService(authToken: widget.userSession.token);
     _library = widget.positionLibrary ??
         PositionLibraryService(authToken: widget.userSession.token);
-    if (widget.roomCode != 'STUDIO') _loadMyStudents();
-    if (widget.roomCode == 'STUDIO') {
-      activeRole = 'trener';
-      boardOrientation = PlayerColor.white;
-      boardControl = 'unrestricted';
-    } else {
-      activeRole = widget.initialRole ?? 'korisnik';
-      // Whoever leads sits behind White. This asked for the co-host seat by
-      // name, so a trainer arriving as 'trener' opened on Black's side.
-      boardOrientation = isLeader ? PlayerColor.white : PlayerColor.black;
+    _loadMyStudents();
+    activeRole = widget.initialRole ?? 'korisnik';
+    // Whoever leads sits behind White. This asked for the co-host seat by
+    // name, so a trainer arriving as 'trener' opened on Black's side.
+    boardOrientation = isLeader ? PlayerColor.white : PlayerColor.black;
 
-      if (widget.userSession.isGuest) {
-        // A guest reached a real room directly (shared link, restored deep
-        // link...), bypassing Home's login gate. Send them to log in first,
-        // then straight back into this same room once they have.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          context.go(
-            AppRoutes.login,
-            extra: PendingSessionIntent.joinInviteRoom(widget.roomCode,
-                role: widget.initialRole),
-          );
-        });
-      } else {
-        // Marks this room as the user's active session so they can find
-        // their way back to it after stepping away (Home shows a "resume"
-        // banner) and so Home blocks starting/joining a different one until
-        // they explicitly leave — see the AppBar's "Napusti sesiju" action.
-        GameSessionService.instance.setActive(widget.roomCode, activeRole);
-      }
+    if (widget.userSession.isGuest) {
+      // A guest reached a room directly (shared link, restored deep
+      // link...), bypassing Home's login gate. Send them to log in first,
+      // then straight back into this same room once they have.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.go(
+          AppRoutes.login,
+          extra: PendingSessionIntent.joinInviteRoom(widget.roomCode,
+              role: widget.initialRole),
+        );
+      });
+    } else {
+      // Marks this room as the user's active session so they can find
+      // their way back to it after stepping away (Home shows a "resume"
+      // banner) and so Home blocks starting/joining a different one until
+      // they explicitly leave — see the AppBar's "Napusti sesiju" action.
+      GameSessionService.instance.setActive(widget.roomCode, activeRole);
     }
     controller = ChessBoardController();
     moveTree = MoveTree(
@@ -441,8 +415,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
     );
 
     // No `_initAudioChat()` here. Entering a room is not asking for a
-    // conversation — see [isVoiceOn]. The studio has no voice at all: there is
-    // nobody to talk to, and its token request was refused (`no-room`) anyway.
+    // conversation — see [isVoiceOn].
   }
 
   void _onAppSettingsChanged() {
@@ -459,11 +432,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'roomId': widget.roomCode,
       'userId': widget.userSession.id,
     });
-    // A take still open at this point was neither stopped nor discarded — the
-    // pop guard makes that rare — and it is closed rather than left holding
-    // its file.
-    _take?.removeListener(_onTakeChanged);
-    unawaited(_take?.cancel());
     socket.disconnect();
     socket.dispose();
     _agoraService.leaveChannel();
@@ -487,7 +455,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// „*Name* is in voice" for somebody who is not hearing it, else null — see
   /// [voiceInviteLine]. Nothing is said while disconnected, for the reason the
   /// presence line gives: the roster on screen would be the last one heard.
-  String? get _voiceInvite => !isConnected || widget.roomCode == 'STUDIO'
+  String? get _voiceInvite => !isConnected
       ? null
       : voiceInviteLine(audioUsers,
           myId: widget.userSession.id, voiceOn: isVoiceOn);
@@ -499,7 +467,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// by the server and applies the next time this is pressed — see
   /// [_rejoinVoice].
   Future<void> _joinVoice() async {
-    if (isVoiceOn || widget.roomCode == 'STUDIO') return;
+    if (isVoiceOn) return;
     setState(() => isVoiceOn = true);
     await _initAudioChat();
   }
@@ -750,7 +718,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     final sortedKeys = engineLines.keys.toList()..sort();
     final List<AnalysisLine> linesList =
         sortedKeys.map((k) => engineLines[k]!).toList();
-    final isStudio = widget.roomCode == 'STUDIO';
     final isAllowedToUseEngine = _mayUseEngine;
 
     return StockfishAnalysisWidget(
@@ -853,12 +820,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   /// Sends the current move's arrows to the room, inside the PGN.
   void _publishArrows() {
-    _markLesson('arrow_drawn', {
-      'arrows': [
-        for (final a in moveTree.current.arrows)
-          {'from': a.from, 'to': a.to, 'color': a.colorCode},
-      ],
-    });
     socket.emit('pgn_loaded', {
       'roomId': widget.roomCode,
       'pgn': moveTree.exportToPgn(),
@@ -998,20 +959,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
     socket.connect();
 
     socket.onConnect((_) {
-      final isStudio = widget.roomCode == 'STUDIO';
       setState(() {
         isConnected = true;
-        gameStatus = isStudio ? 'Preparation' : "Room: ${widget.roomCode}";
+        gameStatus = "Room: ${widget.roomCode}";
       });
-
-      // The studio is a local board, not a room: there is no `rooms` row named
-      // STUDIO and there must not be one. Asking to join it made the guest list
-      // answer the only way it can — `no-room` — and the screen did what a
-      // refusal says to do: a snackbar reading "Ne postoji soba sa tim kodom"
-      // and straight back out. Joining also put every studio in the world into
-      // one socket room called STUDIO, so one person's moves were broadcast
-      // into somebody else's analysis.
-      if (isStudio) return;
 
       // Join room passing role and roomCode
       socket.emit('joinGame', {
@@ -1816,15 +1767,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
   }
 
   // Socket: Load lesson position to board and broadcast
-  /// Puts a position on the board, and — while a lesson is being recorded —
-  /// stamps it as a new board (`init`), the board as it is shown after the
-  /// load.
   void loadLessonPosition(String fen, String? pgn) {
-    _loadLessonPositionOnBoard(fen, pgn);
-    _markLesson('init', {'fen': moveTree.current.fen, 'pgn': pgn ?? ''});
-  }
-
-  void _loadLessonPositionOnBoard(String fen, String? pgn) {
     if (pgn != null && pgn.isNotEmpty) {
       final parsed = MoveTree.parsePgn(pgn, startingFen: fen);
       if (parsed != null) {
@@ -2047,7 +1990,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   // Jump to specific MoveNode in active history and broadcast state
   void _selectNode(MoveNode node) {
-    _markLesson('move', {'fen': node.fen});
     setState(() {
       moveTree.current = node;
       commentController.text = node.comment;
@@ -2124,11 +2066,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   void _broadcastMoveAndState([String? from, String? to, String? newFen]) {
     final effectiveFen = newFen ?? controller.getFen();
-    _markLesson('move', {
-      'fen': effectiveFen,
-      if (from != null && to != null) 'from': from,
-      if (from != null && to != null) 'to': to,
-    });
     socket.emit('move', {
       'roomId': widget.roomCode,
       'move': (from != null && to != null) ? {'from': from, 'to': to} : null,
@@ -2623,7 +2560,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isStudio = widget.roomCode == 'STUDIO';
     final isAllowedToMove = canDriveSharedBoard;
     final media = MediaQuery.of(context);
     // Not on a phone held sideways, however wide it is: a 932 dp phone is past
@@ -2859,8 +2795,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     }
 
     Widget buildRightSidebar() {
-      final isStudio = widget.roomCode == 'STUDIO';
-
       // Material, not a coloured Container: the sidebar hosts a SwitchListTile,
       // and a ColoredBox between a ListTile and its nearest Material hides the
       // tile's own background and ink splashes behind an opaque layer. Flutter
@@ -2876,72 +2810,13 @@ class _ChessGamePageState extends State<ChessGamePage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  isStudio ? 'Preparation controls' : 'Moves',
+                const Text(
+                  'Moves',
                   style: AppText.headline,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _buildMoveTreeSection(),
-                if (isStudio) ...[
-                  const Divider(height: 12),
-                  const Text(
-                    'Arrow drawing',
-                    style: AppText.bodyLargeBold,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            setState(_toggleDrawingMode);
-                          },
-                          icon: Icon(_annotation.isDrawing
-                              ? Icons.check
-                              : Icons.brush),
-                          label: Text(_annotation.isDrawing
-                              ? 'Done drawing'
-                              : 'Draw arrow'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _annotation.isDrawing
-                                ? context.colors.warning
-                                : context.colors.accent,
-                            foregroundColor: context.colors.canvas,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_annotation.isDrawing) ...[
-                    const SizedBox(height: 10),
-                    _buildColorButtonRow(),
-                  ],
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildArrowEditButtons(),
-                  const SizedBox(height: AppSpacing.md),
-                  Card(
-                    color: context.colors.accentAlt.withValues(alpha: 0.15),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: AppRadii.roundedSm),
-                    child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.md),
-                      child: Row(
-                        children: [
-                          Icon(Icons.architecture,
-                              color: context.colors.textPrimary, size: 20),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              'Solo practice — classroom is off',
-                              style: AppText.captionBold
-                                  .copyWith(color: context.colors.textPrimary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ] else if (isLeader) ...[
+                if (isLeader) ...[
                   const Divider(height: 12),
                   const Text(
                     'Arrow drawing (Trainer)',
@@ -3037,262 +2912,234 @@ class _ChessGamePageState extends State<ChessGamePage> {
       return reserved < 8 ? 8 : reserved;
     }
 
-    // A lesson being recorded is the only copy of a voice: leaving would drop
-    // it without a word. The way out is Stop (which saves) or Discard.
-    return PopScope(
-      canPop: !_isRecordingLesson,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        AppFeedback.warning(context, 'Stop or discard the recording first.');
-      },
-      child: Scaffold(
-        key: _scaffoldKey,
-        appBar: AppBar(
-          toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
-          // Flutter draws the drawer's ☰ itself when a Scaffold has a drawer,
-          // and it lands four logical pixels from the left edge. Held sideways
-          // that corner is also where Android listens for the back gesture, and
-          // the owner reported the button „barely responds" there (20.9.2026,
-          // TODO-provera 205). Placed by hand instead, past whatever the system
-          // has reserved — the button itself already fills the bar, so the
-          // position was the whole of it.
-          leading: hasDrawer
-              ? Builder(
-                  builder: (context) => Padding(
-                    padding: EdgeInsets.only(left: leadingInset(context)),
-                    // The same tooltip Flutter's own `DrawerButton` carries,
-                    // so nothing that looks for this control by name has to
-                    // know it is now placed by hand.
-                    child: IconButton(
-                      icon: const Icon(Icons.menu),
-                      tooltip: 'Open navigation menu',
-                      onPressed: () => Scaffold.of(context).openDrawer(),
-                    ),
-                  ),
-                )
-              : null,
-          leadingWidth: hasDrawer ? 56 + leadingInset(context) : null,
-          // Who is here, where it cannot be missed (docs/PLAN-SESIJA.md, phase
-          // 2). Nothing is said while disconnected: the roster on screen would
-          // be the last one heard, and that is not who is here.
-          title: RoomPresenceTitle(
-            status: isConnected ? gameStatus : 'Connecting...',
-            members: isConnected ? roomMembers : const [],
-            myId: widget.userSession.id,
-            compact: LandscapeBoardLayout.applies(context),
-          ),
-          centerTitle: true,
-          titleSpacing: RoomPresenceTitle.isUpright(context,
-                  compact: LandscapeBoardLayout.applies(context))
-              ? RoomPresenceTitle.uprightTitleSpacing
-              : null,
-          // Drawn only while somebody is talking and this person is not
-          // hearing it; the board keeps its height the rest of the time.
-          bottom: isStudio && _isRecordingLesson
-              ? _buildLessonRecordingStrip()
-              : _voiceInvite == null
-                  ? null
-                  : RoomVoiceInvite(line: _voiceInvite!, onJoin: _joinVoice),
-          // Code and presence in the title; then the voice, the leader's
-          // session switches, the rest behind ⋮, and the way out — phase 6 of
-          // docs/PLAN-SESIJA.md. No cloud icon: the title already says
-          // „Connecting..." while the socket is down.
-          actions: [
-            if (!isStudio) _buildVoiceChip(),
-            // A lesson recorded alone, with the voice and the board together
-            // (phase 5b of docs/PLAN-SESIJA.md). Only here: a room is never
-            // recorded.
-            if (isStudio)
-              IconButton(
-                key: const Key('prep-record-lesson'),
-                icon: Icon(Icons.fiber_manual_record,
-                    color: _take == null
-                        ? context.colors.danger
-                        : context.colors.textMuted),
-                tooltip: 'Start recording',
-                onPressed: _take == null ? _startLessonRecording : null,
-              ),
-            if (!isStudio && activeRole == 'trener')
-              IconButton(
-                key: const Key('room-session-button'),
-                icon: Icon(Icons.tune, color: context.colors.accent),
-                tooltip: 'Session',
-                onPressed: () => _openPanel(_RoomPanel.session),
-              ),
-            _buildMoreMenu(),
-            // Whoever started the session ends it, for everybody; anybody else
-            // only leaves. Read from the seat the server gave, not the account.
-            if (!isStudio)
-              activeRole == 'trener'
-                  ? IconButton(
-                      key: const Key('room-end-session'),
-                      icon: Icon(Icons.stop_circle_outlined,
-                          color: context.colors.danger),
-                      tooltip: 'End session',
-                      onPressed: _endSession,
-                    )
-                  : IconButton(
-                      key: const Key('room-leave-session'),
-                      icon: Icon(Icons.logout, color: context.colors.danger),
-                      tooltip: 'Leave session',
-                      onPressed: _leaveSessionExplicitly,
-                    ),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-        ),
-        // Mobile layout has a Drawer for lessons listing (if Trainer)
-        drawer: hasDrawer ? Drawer(child: buildLeftSidebar()) : null,
-        endDrawer: isStudio
-            ? null
-            : Drawer(
-                child: SafeArea(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: _panel == _RoomPanel.session && isLeader
-                        ? _buildSessionPanel()
-                        : _buildVoicePanel(),
+    return Scaffold(
+      key: _scaffoldKey,
+      appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
+        // Flutter draws the drawer's ☰ itself when a Scaffold has a drawer,
+        // and it lands four logical pixels from the left edge. Held sideways
+        // that corner is also where Android listens for the back gesture, and
+        // the owner reported the button „barely responds" there (20.9.2026,
+        // TODO-provera 205). Placed by hand instead, past whatever the system
+        // has reserved — the button itself already fills the bar, so the
+        // position was the whole of it.
+        leading: hasDrawer
+            ? Builder(
+                builder: (context) => Padding(
+                  padding: EdgeInsets.only(left: leadingInset(context)),
+                  // The same tooltip Flutter's own `DrawerButton` carries,
+                  // so nothing that looks for this control by name has to
+                  // know it is now placed by hand.
+                  child: IconButton(
+                    icon: const Icon(Icons.menu),
+                    tooltip: 'Open navigation menu',
+                    onPressed: () => Scaffold.of(context).openDrawer(),
                   ),
                 ),
-              ),
-        body: MoveKeyboardShortcuts(
-          cursor: _moveCursor(),
-          // _selectNode does its own setState.
-          onChanged: () {},
-          // Same condition the strip already uses: a seat that does not
-          // drive the shared board must not drive it with the keyboard
-          // either.
-          enabled: canDriveSharedBoard,
-          child: Column(children: [
-            _buildCourseStepBar(),
-            Expanded(
-              child: isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        buildLeftSidebar(),
-                        const VerticalDivider(width: 1, thickness: 1),
-                        Expanded(
-                          child: Center(
-                            child: SingleChildScrollView(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (_showEvalBar && _mayUseEngine) ...[
-                                    SizedBox(
-                                      width: boardSize,
-                                      child: HorizontalEvalBarWidget(
-                                        eval: _currentRawEval,
-                                        evalString: currentEngineEval,
-                                        depth: _currentEvalDepth,
-                                        orientation: boardOrientation,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.sm),
-                                  ],
-                                  _buildChessBoardWithOverlay(boardSize),
-                                  if (_isStudentSeat)
-                                    SizedBox(
-                                        width: boardSize,
-                                        child: _buildStudentStrip()),
-                                  const SizedBox(height: AppSpacing.md),
-                                  // PGN navigators
+              )
+            : null,
+        leadingWidth: hasDrawer ? 56 + leadingInset(context) : null,
+        // Who is here, where it cannot be missed (docs/PLAN-SESIJA.md, phase
+        // 2). Nothing is said while disconnected: the roster on screen would
+        // be the last one heard, and that is not who is here.
+        title: RoomPresenceTitle(
+          status: isConnected ? gameStatus : 'Connecting...',
+          members: isConnected ? roomMembers : const [],
+          myId: widget.userSession.id,
+          compact: LandscapeBoardLayout.applies(context),
+        ),
+        centerTitle: true,
+        titleSpacing: RoomPresenceTitle.isUpright(context,
+                compact: LandscapeBoardLayout.applies(context))
+            ? RoomPresenceTitle.uprightTitleSpacing
+            : null,
+        // Drawn only while somebody is talking and this person is not
+        // hearing it; the board keeps its height the rest of the time.
+        bottom: _voiceInvite == null
+            ? null
+            : RoomVoiceInvite(line: _voiceInvite!, onJoin: _joinVoice),
+        // Code and presence in the title; then the voice, the leader's
+        // session switches, the rest behind ⋮, and the way out — phase 6 of
+        // docs/PLAN-SESIJA.md. No cloud icon: the title already says
+        // „Connecting..." while the socket is down.
+        actions: [
+          _buildVoiceChip(),
+          if (activeRole == 'trener')
+            IconButton(
+              key: const Key('room-session-button'),
+              icon: Icon(Icons.tune, color: context.colors.accent),
+              tooltip: 'Session',
+              onPressed: () => _openPanel(_RoomPanel.session),
+            ),
+          _buildMoreMenu(),
+          // Whoever started the session ends it, for everybody; anybody else
+          // only leaves. Read from the seat the server gave, not the account.
+          activeRole == 'trener'
+              ? IconButton(
+                  key: const Key('room-end-session'),
+                  icon: Icon(Icons.stop_circle_outlined,
+                      color: context.colors.danger),
+                  tooltip: 'End session',
+                  onPressed: _endSession,
+                )
+              : IconButton(
+                  key: const Key('room-leave-session'),
+                  icon: Icon(Icons.logout, color: context.colors.danger),
+                  tooltip: 'Leave session',
+                  onPressed: _leaveSessionExplicitly,
+                ),
+          const SizedBox(width: AppSpacing.xs),
+        ],
+      ),
+      // Mobile layout has a Drawer for lessons listing (if Trainer)
+      drawer: hasDrawer ? Drawer(child: buildLeftSidebar()) : null,
+      endDrawer: Drawer(
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: _panel == _RoomPanel.session && isLeader
+                ? _buildSessionPanel()
+                : _buildVoicePanel(),
+          ),
+        ),
+      ),
+      body: MoveKeyboardShortcuts(
+        cursor: _moveCursor(),
+        // _selectNode does its own setState.
+        onChanged: () {},
+        // Same condition the strip already uses: a seat that does not
+        // drive the shared board must not drive it with the keyboard
+        // either.
+        enabled: canDriveSharedBoard,
+        child: Column(children: [
+          _buildCourseStepBar(),
+          Expanded(
+            child: isWide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      buildLeftSidebar(),
+                      const VerticalDivider(width: 1, thickness: 1),
+                      Expanded(
+                        child: Center(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (_showEvalBar && _mayUseEngine) ...[
                                   SizedBox(
                                     width: boardSize,
-                                    child: buildNavigationControls(),
+                                    child: HorizontalEvalBarWidget(
+                                      eval: _currentRawEval,
+                                      evalString: currentEngineEval,
+                                      depth: _currentEvalDepth,
+                                      orientation: boardOrientation,
+                                    ),
                                   ),
                                   const SizedBox(height: AppSpacing.sm),
-                                  // Stockfish analysis widget directly UNDER board
+                                ],
+                                _buildChessBoardWithOverlay(boardSize),
+                                if (_isStudentSeat)
                                   SizedBox(
-                                    width: boardSize,
-                                    child: _buildStockfishAnalysisWidget(),
-                                  ),
+                                      width: boardSize,
+                                      child: _buildStudentStrip()),
+                                const SizedBox(height: AppSpacing.md),
+                                // PGN navigators
+                                SizedBox(
+                                  width: boardSize,
+                                  child: buildNavigationControls(),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                // Stockfish analysis widget directly UNDER board
+                                SizedBox(
+                                  width: boardSize,
+                                  child: _buildStockfishAnalysisWidget(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const VerticalDivider(width: 1, thickness: 1),
+                      buildRightSidebar(),
+                    ],
+                  )
+                : isLandscape
+                    // Side by side: the board takes the height and never
+                    // scrolls, the strip is pinned under the panels beside
+                    // it, and the lessons sidebar stays in the Drawer.
+                    ? SafeArea(
+                        top: false,
+                        child: LandscapeBoardLayout(
+                          boardScale:
+                              AppSettingsService.instance.boardSizeScale,
+                          board: _buildChessBoardWithOverlay,
+                          boardAside: _showEvalBar && _mayUseEngine
+                              ? (height) => VerticalEvalBarWidget(
+                                    eval: _currentRawEval,
+                                    evalString: currentEngineEval,
+                                    depth: _currentEvalDepth,
+                                    height: height,
+                                    orientation: boardOrientation,
+                                  )
+                              : null,
+                          panels: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (_isStudentSeat) _buildStudentStrip(),
+                              _buildStockfishAnalysisWidget(),
+                              const SizedBox(height: AppSpacing.sm),
+                              buildRightSidebar(),
+                            ],
+                          ),
+                          footer: [buildNavigationControls()],
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          const SizedBox(height: AppSpacing.sm),
+                          if (_showEvalBar && _mayUseEngine) ...[
+                            SizedBox(
+                              width: boardSize,
+                              child: HorizontalEvalBarWidget(
+                                eval: _currentRawEval,
+                                evalString: currentEngineEval,
+                                depth: _currentEvalDepth,
+                                orientation: boardOrientation,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                          _buildChessBoardWithOverlay(boardSize),
+                          const SizedBox(height: AppSpacing.sm),
+                          // Everything below the board scrolls together, the
+                          // navigation strip included. The strip used to be
+                          // pinned here between two fixed toolbars, which
+                          // left the move list and the studio controls a few
+                          // dozen pixels of viewport to scroll inside on a
+                          // phone. The board is the only thing that has to
+                          // stay put.
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.sm),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  if (_isStudentSeat) _buildStudentStrip(),
+                                  buildNavigationControls(),
+                                  _buildStockfishAnalysisWidget(),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  buildRightSidebar(),
                                 ],
                               ),
                             ),
                           ),
-                        ),
-                        const VerticalDivider(width: 1, thickness: 1),
-                        buildRightSidebar(),
-                      ],
-                    )
-                  : isLandscape
-                      // Side by side: the board takes the height and never
-                      // scrolls, the strip is pinned under the panels beside
-                      // it, and the lessons sidebar stays in the Drawer.
-                      ? SafeArea(
-                          top: false,
-                          child: LandscapeBoardLayout(
-                            boardScale:
-                                AppSettingsService.instance.boardSizeScale,
-                            board: _buildChessBoardWithOverlay,
-                            boardAside: _showEvalBar && _mayUseEngine
-                                ? (height) => VerticalEvalBarWidget(
-                                      eval: _currentRawEval,
-                                      evalString: currentEngineEval,
-                                      depth: _currentEvalDepth,
-                                      height: height,
-                                      orientation: boardOrientation,
-                                    )
-                                : null,
-                            panels: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                if (_isStudentSeat) _buildStudentStrip(),
-                                _buildStockfishAnalysisWidget(),
-                                const SizedBox(height: AppSpacing.sm),
-                                buildRightSidebar(),
-                              ],
-                            ),
-                            footer: [buildNavigationControls()],
-                          ),
-                        )
-                      : Column(
-                          children: [
-                            const SizedBox(height: AppSpacing.sm),
-                            if (_showEvalBar && _mayUseEngine) ...[
-                              SizedBox(
-                                width: boardSize,
-                                child: HorizontalEvalBarWidget(
-                                  eval: _currentRawEval,
-                                  evalString: currentEngineEval,
-                                  depth: _currentEvalDepth,
-                                  orientation: boardOrientation,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                            ],
-                            _buildChessBoardWithOverlay(boardSize),
-                            const SizedBox(height: AppSpacing.sm),
-                            // Everything below the board scrolls together, the
-                            // navigation strip included. The strip used to be
-                            // pinned here between two fixed toolbars, which
-                            // left the move list and the studio controls a few
-                            // dozen pixels of viewport to scroll inside on a
-                            // phone. The board is the only thing that has to
-                            // stay put.
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.lg,
-                                    vertical: AppSpacing.sm),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    if (_isStudentSeat) _buildStudentStrip(),
-                                    buildNavigationControls(),
-                                    _buildStockfishAnalysisWidget(),
-                                    const SizedBox(height: AppSpacing.sm),
-                                    buildRightSidebar(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-            ),
-          ]),
-        ),
+                        ],
+                      ),
+          ),
+        ]),
       ),
     );
   }
@@ -3551,253 +3398,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
           ),
         ],
       );
-
-  // --- Recording a lesson in Preparation (phase 5b.3 of docs/PLAN-SESIJA.md).
-
-  /// The take while one is running, and where its file is. Null otherwise.
-  LessonTake? _take;
-  String? _takePath;
-
-  LessonRecordingApi get _lessonRecordingApi =>
-      widget.lessonRecordingApi ??
-      LessonRecordingApi(authToken: widget.userSession.token);
-
-  bool get _isRecordingLesson =>
-      _take != null && _take!.state != NarrationState.stopped;
-
-  /// Stamps a board event on the take, at this point in the audio. A no-op
-  /// while nothing is being recorded, which is what lets every door onto the
-  /// board call it without asking first.
-  void _markLesson(String type, Map<String, dynamic> data) {
-    _take?.mark(type, data);
-  }
-
-  void _onTakeChanged() {
-    if (mounted) setState(() {});
-  }
-
-  Future<Directory> _defaultLessonTakeDir() async {
-    final support = await getApplicationSupportDirectory();
-    return Directory('${support.path}${Platform.pathSeparator}lessons');
-  }
-
-  /// Asks the server first — whether this account may record, and for how
-  /// long — and only then opens the microphone. A refusal said after half an
-  /// hour of talking is the one this order exists to prevent.
-  Future<void> _startLessonRecording() async {
-    if (_take != null) return;
-    final permit = await _lessonRecordingApi.permit();
-    if (!mounted) return;
-    if (!permit.allowed) {
-      AppFeedback.warning(context, permit.reason ?? 'You may not record.');
-      return;
-    }
-    final dir = await (widget.lessonTakeDir ?? _defaultLessonTakeDir)();
-    dir.createSync(recursive: true);
-    final path = '${dir.path}${Platform.pathSeparator}'
-        'lesson-${DateTime.now().millisecondsSinceEpoch}.wav';
-    final take = LessonTake(
-      source: (widget.pcmSourceFactory ?? RecordPcmSource.new)(),
-      sink: WavFileSink(path),
-      maxMs: permit.maxMs ?? narrationFallbackMaxMs,
-    )..addListener(_onTakeChanged);
-    setState(() {
-      _take = take;
-      _takePath = path;
-    });
-    unawaited(take.done.then(_onTakeDone));
-    final NarrationStart started;
-    try {
-      started = await take.start(opening: {
-        'fen': moveTree.current.fen,
-        'pgn': moveTree.exportToPgn(),
-      });
-    } catch (e) {
-      _forgetTake();
-      if (mounted) {
-        AppFeedback.error(context, 'The microphone could not start: $e');
-      }
-      return;
-    }
-    if (!mounted) return;
-    if (started == NarrationStart.noPermission) {
-      _forgetTake();
-      AppFeedback.warning(context,
-          'The app may not use the microphone. Allow it in the system settings.');
-    }
-  }
-
-  void _forgetTake() {
-    _take?.removeListener(_onTakeChanged);
-    final path = _takePath;
-    if (mounted) {
-      setState(() {
-        _take = null;
-        _takePath = null;
-      });
-    } else {
-      _take = null;
-      _takePath = null;
-    }
-    if (path != null) {
-      final file = File(path);
-      if (file.existsSync()) file.deleteSync();
-    }
-  }
-
-  /// Whatever ended the take — Stop, the cap, or Discard (null).
-  Future<void> _onTakeDone(LessonRecording? recording) async {
-    if (!mounted) return;
-    final path = _takePath;
-    if (recording == null || path == null) {
-      _forgetTake();
-      return;
-    }
-    if (recording.stoppedAtCap) {
-      AppFeedback.info(context,
-          'Recording stopped at the limit of one recording. It is kept.');
-    }
-    final title = await _askLessonTitle();
-    if (!mounted) return;
-    if (title == null) {
-      _forgetTake();
-      return;
-    }
-    await _uploadLesson(recording, path, title);
-  }
-
-  Future<String?> _askLessonTitle() {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Save the recording'),
-        content: TextField(
-          key: const Key('lesson-title-field'),
-          controller: controller,
-          autofocus: true,
-          maxLength: 255,
-          decoration: const InputDecoration(labelText: 'Title'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Discard'),
-          ),
-          ElevatedButton(
-            key: const Key('lesson-save'),
-            onPressed: () {
-              final text = controller.text.trim();
-              if (text.isNotEmpty) Navigator.pop(ctx, text);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Sends the take, and keeps it on this device until the server says 201 —
-  /// it is the only copy of a voice.
-  Future<void> _uploadLesson(
-      LessonRecording recording, String path, String title) async {
-    while (mounted) {
-      final result = await _lessonRecordingApi.upload(
-        audioPath: path,
-        title: title,
-        events: recording.events,
-        durationMs: recording.durationMs,
-      );
-      if (!mounted) return;
-      if (result.ok) {
-        _forgetTake();
-        AppFeedback.success(
-            context, 'Recording saved. It is under Recordings.');
-        return;
-      }
-      final again = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('The recording was not saved'),
-          content: Text(result.error ?? 'The recording could not be uploaded.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Discard'),
-            ),
-            ElevatedButton(
-              key: const Key('lesson-upload-retry'),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Try again'),
-            ),
-          ],
-        ),
-      );
-      if (again != true) {
-        _forgetTake();
-        return;
-      }
-    }
-  }
-
-  /// Under Preparation's bar while a lesson is being recorded: the clock, and
-  /// the three things a trainer may do to it.
-  PreferredSizeWidget _buildLessonRecordingStrip() {
-    final take = _take!;
-    final colors = context.colors;
-    final paused = take.state == NarrationState.paused;
-    final remaining = take.remainingMs;
-    return PreferredSize(
-      preferredSize: const Size.fromHeight(48),
-      child: Container(
-        key: const Key('lesson-recording-strip'),
-        height: 48,
-        color: colors.danger.withValues(alpha: 0.12),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-        child: Row(
-          children: [
-            // A shape, not only a colour: a dot recording, bars paused.
-            Icon(paused ? Icons.pause : Icons.fiber_manual_record,
-                color: colors.danger, size: 16),
-            const SizedBox(width: AppSpacing.sm),
-            Text(narrationClockOf(take.positionMs),
-                style: AppText.bodyBold.copyWith(color: colors.danger)),
-            if (remaining < 60000) ...[
-              const SizedBox(width: AppSpacing.sm),
-              Flexible(
-                child: Text(
-                  '${(remaining / 1000).ceil().clamp(0, 60)} s left',
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.caption.copyWith(color: colors.warning),
-                ),
-              ),
-            ],
-            const Spacer(),
-            IconButton(
-              key: const Key('lesson-recording-pause'),
-              icon: Icon(paused ? Icons.play_arrow : Icons.pause),
-              tooltip: paused ? 'Resume' : 'Pause',
-              onPressed: paused ? take.resume : take.pause,
-            ),
-            IconButton(
-              key: const Key('lesson-recording-stop'),
-              icon: Icon(Icons.stop, color: colors.danger),
-              tooltip: 'Stop and save',
-              onPressed: take.stop,
-            ),
-            IconButton(
-              key: const Key('lesson-recording-discard'),
-              icon: const Icon(Icons.delete_outline),
-              tooltip: 'Discard',
-              onPressed: take.cancel,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   /// The only path that actually ends the session (as opposed to just
   /// stepping out of the screen): clears [GameSessionService] so Home stops

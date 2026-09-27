@@ -8652,3 +8652,44 @@ Brojevi: 4295 → **4336** (5 čitalac i plejer, 35 kapija ekrana, 1 tabovi na
 telefonu); server 1772 → **1778** bez baze (6 novih slučajeva filma), 1930 →
 **1936** sa bazom. Posle spajanja sve je mereno ponovo na spojenom stablu
 (`c446f0ec`), bez ičega pored; `analyze` 22.
+
+## 27.9.2026 — Preparation: faza 4, vrata se menjaju i soba gubi Preparation
+
+`docs/PLAN-PRIPREMA.md`, faza 4, radio vođa: kartica na Teach i „New exercise"
+u Biblioteci otvaraju novi ekran (`/preparation`), soba gubi sve grane koje su
+pitale za kod `STUDIO`, svoje snimanje i 400 od 3871 reda. Server nije diran.
+
+**Test koji je tražio najjeftinije sedište nije test tog sedišta.** Šesnaest
+fajlova je otvaralo sobu kao `STUDIO`. Dvanaest od njih nije štitilo ništa što
+pripada Preparation — štitili su kolonu sobe, njene strelice, njen ☰, njena
+vrata — a `STUDIO` su uzeli jer je to sedište vodilo sobu bez servera. Pitanje
+„šta je ovaj test štitio" je razdvojilo dve gomile: ono što je sobino prešlo
+je na sedište onoga ko je otvorio sobu, bez izmene ijedne tvrdnje osim jedne
+reči („Draw arrows"); ono što je bilo Preparation obrisano je otvoreno, sa
+imenom naslednika. Plan je brojao četrnaest fajlova; grep literala ih je našao
+šesnaest.
+
+**Grešku budi faza koja je učini dostižnom, ne ona koja je napiše** (pravilo
+14). Faze 1–3 su sagradile ekran do kog nijedna vrata nisu vodila, pa ga niko
+nije proverio pravilom čitača ekrana. Čim je soba izgubila svoj slučaj, isti
+obilazak je pušten na novi ekran i našao tri oblačića — „Square", „Undo",
+„Clear marks" — koji šalju čvor bez roditelja: oblik pada od 20–22.9.2026.
+Traka sama, u svakoj gustini i režimu, bila je čista; samo na ekranu se
+videlo. `Tooltip` oko dugmeta kači svoj oblačić na čvor koji obuhvata traku, a
+Flutter 3.47 taj čvor ne pošalje uvek ponovo. Svaki oblačić trake sada ima
+svoj kontejner. **Kad test jedne stvari ode sa ekranom, pitaj da li novi ekran
+ima tu istu stvar.**
+
+**Mutant koji se ne kompajlira i mutant koji se nije primenio nisu ulov.**
+Prva dva mutanta vođe su bila nevažeća: `copyWith(token:)` ne postoji, a sidro
+drugog je `dart format` pomerio za dva razmaka. Lanac sa `&&` je oba pokazao
+kao ono što jesu. Tri važeća, svaki crven samo na svom slučaju.
+
+**Broj po imenima, ne po zbiru.** Proširen izveštaj (`--reporter expanded`)
+ispisuje red tek kad se promeni test koji teče, pa je iz dnevnika od 4336
+testova izašlo 834 imena. Imena daje `--reporter json`; osnovica je zato
+izmerena još jednom, u radnom stablu na spojenom kodu.
+
+Brojevi: 4336 → **4335** (12 obrisano, 11 dodato, 5 preimenovano — po imenima
+17 otišlo, 16 došlo), predviđeno pre prolaza; `analyze` 22; server netaknut,
+1778 / 1936.

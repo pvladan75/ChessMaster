@@ -172,7 +172,10 @@ void main() {
       expect(find.byIcon(Icons.people), findsNothing);
     });
 
-    testWidgets('Preparation has no roster and draws only its name',
+    // Named for Preparation until phase 4 of docs/PLAN-PRIPREMA.md, which
+    // was then the room with nobody in it. The case is the title's and
+    // stays: with no roster it draws the room's name and no line.
+    testWidgets('with no roster it draws only the room\'s name',
         (tester) async {
       await pump(tester, const Size(360, 640),
           members: const [], myId: 1, compact: false);

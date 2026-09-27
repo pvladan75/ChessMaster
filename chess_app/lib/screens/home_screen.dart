@@ -832,9 +832,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _navigateToGame(String roomCode, [String? sessionRole]) {
     // The role travels in the URL; the room route rebuilds the session with it.
-    final effectiveRole =
-        sessionRole ?? (roomCode == 'STUDIO' ? 'host' : 'korisnik');
-    context.push(AppRoutes.roomPath(roomCode, role: effectiveRole));
+    context.push(AppRoutes.roomPath(roomCode, role: sessionRole ?? 'korisnik'));
   }
 
   void _showSuccess(String message) {
@@ -936,7 +934,7 @@ class _HomeScreenState extends State<HomeScreen> {
           return TeachTab(
             tutorialCard: TutorialLibraryCard(session: widget.session),
             homeworkCard: HomeworkLibraryCard(session: widget.session),
-            onOpenPreparation: _openStudioRoom,
+            onOpenPreparation: _openPreparation,
             onStartSession: _createRoom,
             onOpenLibrary: () => context.push(AppRoutes.library),
             onOpenScanner: () => context.push(AppRoutes.scan),
@@ -1204,8 +1202,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _openStudioRoom() {
-    context.push(AppRoutes.roomPath('STUDIO', role: 'host'));
+  void _openPreparation() {
+    context.push(AppRoutes.preparation);
   }
 
   /// Lets the user find their way back into a room after stepping away from

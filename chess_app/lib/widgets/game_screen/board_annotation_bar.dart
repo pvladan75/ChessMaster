@@ -171,7 +171,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.xs,
       children: [
-        Tooltip(
+        _Tip(
           message: 'Arrow',
           child: OutlinedButton.icon(
             key: const Key('annotate-arrow'),
@@ -181,7 +181,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
             style: _labelledModeStyle(context, active: _isArrow),
           ),
         ),
-        Tooltip(
+        _Tip(
           message: 'Square',
           child: OutlinedButton.icon(
             key: const Key('annotate-square'),
@@ -197,7 +197,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
         // varijantu" with nothing wired to it, a dialog tab handing its
         // result to a callback nobody passed.
         if (_isSquare)
-          Tooltip(
+          _Tip(
             message: 'Mark a line of squares — tap one end, then the other. '
                 'Hold Shift instead, on a keyboard.',
             child: OutlinedButton.icon(
@@ -223,7 +223,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
           ],
         ),
         if (widget.onUndoPressed != null)
-          Tooltip(
+          _Tip(
             message: 'Undo',
             child: OutlinedButton.icon(
               key: const Key('annotate-undo'),
@@ -233,7 +233,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
               style: _labelledMutedStyle(context),
             ),
           ),
-        Tooltip(
+        _Tip(
           message: 'Clear marks',
           child: OutlinedButton.icon(
             key: const Key('annotate-clear'),
@@ -259,7 +259,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
       spacing: AppSpacing.xs,
       runSpacing: AppSpacing.xs,
       children: [
-        Tooltip(
+        _Tip(
           message: 'Arrow',
           child: OutlinedButton(
             key: const Key('annotate-arrow'),
@@ -268,7 +268,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
             child: const Icon(Icons.arrow_right_alt, size: 18),
           ),
         ),
-        Tooltip(
+        _Tip(
           message: 'Square',
           child: OutlinedButton(
             key: const Key('annotate-square'),
@@ -278,7 +278,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
           ),
         ),
         if (_isSquare)
-          Tooltip(
+          _Tip(
             message: 'Line',
             child: OutlinedButton(
               key: const Key('annotate-range'),
@@ -317,7 +317,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
             ],
           ),
         if (widget.onUndoPressed != null)
-          Tooltip(
+          _Tip(
             message: 'Undo',
             child: OutlinedButton(
               key: const Key('annotate-undo'),
@@ -326,7 +326,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
               child: const Icon(Icons.undo, size: 18),
             ),
           ),
-        Tooltip(
+        _Tip(
           message: 'Clear marks',
           child: OutlinedButton(
             key: const Key('annotate-clear'),
@@ -343,7 +343,7 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
   /// letter, opening the five when tapped.
   Widget _colorMenuButton(BuildContext context) {
     final selected = ArrowColor.byId(widget.selectedColorCode);
-    return Tooltip(
+    return _Tip(
       message: 'Colour: ${selected.name}',
       child: GestureDetector(
         key: const Key('annotate-color-menu'),
@@ -369,4 +369,27 @@ class _BoardAnnotationBarState extends State<BoardAnnotationBar> {
       ),
     );
   }
+}
+
+/// A tooltip with a semantics node of its own to hang from.
+///
+/// `Tooltip` around a button puts the popup's node **outside** the button's
+/// own, so it hangs from whatever node encloses the bar. On Preparation that
+/// is the node around the whole board column, and Flutter 3.47 does not
+/// always send that node again when the popup arrives: measured on
+/// 27.9.2026, „Square", „Undo" and „Clear marks" each sent a node no parent
+/// listed — the update Windows refuses, and the crash of 20–22.9.2026 with a
+/// screen reader attached. A container here is a parent that is always sent
+/// with its popup. Held by `move_tree_semantics_orphan_test.dart`.
+class _Tip extends StatelessWidget {
+  const _Tip({required this.message, required this.child});
+
+  final String message;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        container: true,
+        child: Tooltip(message: message, child: child),
+      );
 }

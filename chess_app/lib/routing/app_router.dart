@@ -41,6 +41,7 @@ import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/library/screens/library_screen.dart';
 import 'package:chess_app/features/library/widgets/library_list.dart';
+import 'package:chess_app/features/preparation/screens/preparation_screen.dart';
 import 'package:chess_app/screens/design_gallery_screen.dart';
 
 /// The app's navigation graph.
@@ -120,6 +121,11 @@ final List<RouteBase> appRouteTable = [
         initialRole: role,
       );
     },
+  ),
+  GoRoute(
+    path: AppRoutes.preparation,
+    builder: (context, state) =>
+        PreparationScreen(userSession: SessionService.instance.current),
   ),
   GoRoute(
     path: AppRoutes.analysis,

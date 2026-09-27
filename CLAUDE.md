@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4336 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4335 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1936 with TEST_DATABASE_URL, 1778 without (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -997,7 +997,20 @@ server is asked before the take exists — **a guard that waits for the
 thing to exist is open for as long as the thing takes to arrive**, the
 double „Start" of 22.9 on the client's side. And a picture of the real
 phone read „Commen" on a tab phase 1's gate had passed — „fits" is not
-„can be read", again. Phase 6 of
+„can be read", again. Then its phase 4, the doors (→ **4335**, a full
+run on the branch with nothing else running, predicted before it and
+compared by name: 12 cases deleted, 11 added, 5 renamed; analyze the same
+22; the server untouched): Teach's card and the Library's „New exercise"
+open `/preparation`, and the room lost every branch that asked for the code
+`STUDIO`, its recording and 400 of its 3871 lines. Sixteen test files had
+pumped the room by that code, and twelve of them protected nothing of
+Preparation's — **a test that took the cheapest seat is not a test of that
+seat**; asking what each protected sent twelve to the seat of whoever opened
+the room and four cases to their successors by name. And the sweep for the
+screen reader's rule, run on the new screen for the first time, found three
+tooltips in the marking bar sending a node no parent lists — **when a test
+leaves with a screen, ask whether the new screen has the same thing**
+(rule 14: phases 1–3 built a screen no door opened). Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

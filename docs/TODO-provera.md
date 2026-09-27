@@ -8431,6 +8431,140 @@ odlazi na kraj spiska u alatu.
    Potrebno: Windows; release build sa fazom 2b; Narrator ili tastatura na
    dodir.
 
+4. [ ] **Kartica `Preparation` otvara svoj ekran, ne sobu.** [250.1]
+   O čemu se radi: Faza 4 plana `PLAN-PRIPREMA.md` (27.9.2026). Do nje je
+   Preparation bila soba za sesiju otvorena kodom `STUDIO`: naslov je pisao
+   „Connecting..." dok se ne uspostavi veza sa serverom, a tabla je bila
+   ograničena na 62% visine prozora. Sada je to poseban ekran koji ne otvara
+   vezu ni sa kim.
+   Gde: `Teach` → kartica `Preparation` → `Open`.
+   Uradi: Otvori ekran sa ugašenim serverom, pa sa upaljenim. Pogledaj naslov,
+   veličinu table i šta stoji pored nje. Vrati se strelicom nazad.
+   Treba da vidiš: Naslov `Preparation` odmah, nikad „Connecting..."; u traci
+   `Library`, `Board`, `Save as…`, `Record` i `More`. Tabla je vidno veća nego
+   u sobi (na prozoru 1536 × 792 oko 608 umesto 491). Desno od table stablo,
+   ispod njega komentar i linije motora — ništa nije iza taba. Nema kartice
+   „Solo practice — classroom is off". Povratak vodi na `Teach`.
+   Potrebno: Windows.
+
+5. [ ] **`New exercise` iz Biblioteke otvara Preparation.** [250.2]
+   O čemu se radi: Faza 4 plana `PLAN-PRIPREMA.md` (27.9.2026). Druga vrata
+   ka istom ekranu; do sada su otvarala sobu.
+   Gde: `Teach` → `Library` → čip `Exercises` → `New exercise`.
+   Uradi: Dodirni `New exercise`, postavi poziciju i odigraj potez, pa
+   `Save as…` → `Exercise…`. Sačuvaj i vrati se u Biblioteku.
+   Treba da vidiš: Otvara se ekran `Preparation` (isti kao iz [250.1]), ne
+   soba. `Exercise…` otvara list za pravljenje zadatka na poziciji koja je na
+   tabli. Posle povratka novi zadatak je pod čipom `Exercises`.
+   Potrebno: Windows ili telefon; upaljen server.
+
+6. [ ] **Tabla u Preparation ne menja veličinu, šta god da se uključi.** [250.3]
+   O čemu se radi: Faza 1 plana `PLAN-PRIPREMA.md` (27.9.2026): tabla uzima
+   ono što prozor ostavi, i ništa što trener uključi je ne smanjuje.
+   Gde: `Teach` → `Preparation` → `Open`.
+   Uradi: Uključi motor i traku evaluacije, otvori i zatvori `Library`,
+   uključi `Arrow` pa `Square`, promeni veličinu prozora do najmanje koju
+   Windows dozvoljava. Na telefonu: uspravno pa položeno.
+   Treba da vidiš: Tabla ostaje iste veličine kad se uključi motor, traka
+   evaluacije, crtanje ili fioka Biblioteke. Traka evaluacije stoji pored
+   table, ne iznad nje. Na telefonu uspravno ispod table su tabovi `Tree`,
+   `Comment`, `Engine` i `Library`, i natpisi se čitaju celi. Nigde ništa nije
+   isečeno.
+   Potrebno: Windows; telefon.
+
+7. [ ] **Iz fioke Biblioteke na tablu stiže ono što stavka jeste.** [250.4]
+   O čemu se radi: Faza 2 plana `PLAN-PRIPREMA.md` (27.9.2026), odluka D1.
+   Soba je sačuvanu analizu umela da zapiše, a nije umela da je učita.
+   Gde: `Teach` → `Preparation` → `Open` → `Library`.
+   Uradi: Redom stavi na tablu: tutorijal sa više delova, sačuvanu analizu sa
+   varijantama, zadatak, poziciju. Kod tutorijala listaj delove iz trake.
+   Treba da vidiš: Deo tutorijala dolazi sa svojom linijom, a traka pokazuje
+   „Part 1 of N · naslov" sa `Previous part` i `Next part`; tabla pri tome ne
+   menja veličinu. Sačuvana analiza dolazi sa celim stablom, komentarima i
+   oznakama. Zadatak i pozicija dolaze kao sama pozicija. Fioka se zatvara
+   kad je red stavljen na tablu. Redovi u fioci nemaju dugmad za izmenu i
+   brisanje. Snimaka u fioci nema.
+   Potrebno: Windows; upaljen server; u Biblioteci bar po jedno od navedenog.
+
+8. [ ] **`Save as…` čuva ono što je na tabli, na četiri načina.** [250.5]
+   O čemu se radi: Faza 2 plana `PLAN-PRIPREMA.md` (27.9.2026), odluka D13.
+   `Position` čuva tablu koja je pred trenerom, bez linije — soba je čuvala
+   početnu poziciju i celu liniju.
+   Gde: `Teach` → `Preparation` → `Open` → `Board` → `Set up position…`,
+   odigraj liniju sa jednom varijantom, nacrtaj strelicu i obeleži polje,
+   stani na treći potez → `Save as…`.
+   Uradi: Sačuvaj redom `Position`, `Analysis`, `PGN`, pa `Open in Analysis`.
+   Svako sačuvano otvori ponovo iz Biblioteke.
+   Treba da vidiš: `Position` vraća tablu sa trećeg poteza, bez poteza pre i
+   posle. `Analysis` vraća celo stablo sa varijantom, strelicom i poljem.
+   `PGN` nosi `[SetUp "1"]` i `[FEN …]` postavljene pozicije i varijantu u
+   zagradi. `Open in Analysis` otvara Analysis sa istim stablom. Prazna
+   početna tabla se odbija rečenicom, ništa se ne šalje.
+   Potrebno: Windows; upaljen server.
+
+9. [ ] **Snimanje u Preparation: vreme je u traci, tabla ostaje ista.** [250.6]
+   O čemu se radi: Faza 3 plana `PLAN-PRIPREMA.md` (27.9.2026), odluke D11 i
+   D14. Snimanje je prešlo iz sobe na ovaj ekran; soba više ne snima ništa.
+   Gde: `Teach` → `Preparation` → `Open` → `Record`.
+   Uradi: Dodirni `Record` dva puta brzo. Govori, odigraj poteze, vrati se
+   potez unazad, nacrtaj strelicu, obeleži polje, učitaj poziciju iz
+   `Library`. Probaj `Pause` pa `Resume`, probaj strelicu nazad dok snima.
+   Zatim `Stop and save`, upiši naslov, `Save`.
+   Treba da vidiš: Počinje jedan snimak, ne dva. Dok snima, u traci su oblik
+   i vreme, `Pause`, `Stop and save` i `Discard`; `Save as…` i `More` nema
+   dok se ne završi (na uskoj traci `More` ostaje i drži samo ono što stavlja
+   na tablu). Tabla je iste veličine pre i posle. Strelica nazad javlja `Stop
+   or discard the recording first.` i ne izlazi. Posle čuvanja: `Recording
+   saved. It is under Recordings.`
+   Potrebno: Windows; mikrofon; upaljen server; nalog odrasle osobe.
+
+10. [ ] **Snimak iz Preparation pokazuje strelice i polja tamo gde su bili.**
+    [250.7]
+    O čemu se radi: Faza 3 plana `PLAN-PRIPREMA.md` (27.9.2026). Plejer je
+    strelice čitao samo iz jedne vrste događaja, film iz svih; sada oba crtaju
+    oznake koje je rekao poslednji događaj. Obeležena polja su nova u snimku.
+    Gde: `Home` → `Recordings` → snimak iz [250.6] → pusti; zatim izvezi video.
+    Uradi: Pusti snimak i zaustavi ga na mestu gde si se vratio na potez koji
+    već ima strelicu, i na mestu gde si obeležio polje. Isto pogledaj u
+    izvezenom videu.
+    Treba da vidiš: Na oba mesta plejer i video pokazuju istu tablu, iste
+    strelice i ista polja, u isto vreme kad si ih nacrtao. Potez na koji si
+    se vratio ima svoju strelicu, nije gola tabla.
+    Potrebno: Windows; upaljen server; snimak iz [250.6].
+
+11. [ ] **Soba za sesiju nema snimanje i nije izgubila ništa svoje.** [250.8]
+    O čemu se radi: Faza 4 plana `PLAN-PRIPREMA.md` (27.9.2026). Iz sobe je
+    izašlo dvadesetak grana koje su pitale za kod `STUDIO` i celo snimanje.
+    Sve ostalo u sobi treba da radi kao pre.
+    Gde: `Teach` → `New session` → `Start`.
+    Uradi: Kao trener sa bar jednim učenikom: pogledaj traku, levu kolonu
+    (`Set up position`, `Import PGN`, `Export PGN`, `Save position`,
+    `Save analysis`, `Make exercise`, `Library`), desnu (`Moves`,
+    `Draw arrows`). Stavi tutorijal na tablu, nacrtaj strelicu, sačuvaj
+    analizu, završi sesiju.
+    Treba da vidiš: U traci nema crvene tačke za snimanje; ima glas, `Session`
+    i `End session`. Naslov je „Room: kod". Sve navedeno u kolonama je tu i
+    radi. Desna kolona se zove `Moves`.
+    Potrebno: Windows; upaljen server; nalog trenera sa prihvaćenim učenikom.
+
+12. [ ] **Oblačići u traci za oznake ne ostavljaju čvor bez roditelja.**
+    [250.9]
+    O čemu se radi: Faza 4 plana `PLAN-PRIPREMA.md` (27.9.2026). Test je na
+    novom ekranu našao da oblačići `Square`, `Undo` i `Clear marks` šalju čvor
+    pristupačnosti koji nijedan roditelj ne navodi — isti oblik kao pad od
+    20–22.9.2026 sa čitačem ekrana. Popravljeno u traci za oznake; ovo
+    proverava pravi motor.
+    Gde: Release build pokrenut sa preusmerenim stderr-om kao u [249.1], pa
+    `Teach` → `Preparation` → `Open`, sa uključenim Narratorom ili tastaturom
+    na dodir.
+    Uradi: Zadrži miša redom nad svakim dugmetom ispod table (`Arrow`,
+    `Square`, boje, `Undo`, `Clear marks`) i nad dugmadima u traci dok se
+    oblačić ne pojavi. Zatim izađi iz ekrana i vrati se, pet puta.
+    Treba da vidiš: Aplikacija ne pada. `mislisha-stderr.txt` nema nijedan red
+    `will not be in the tree`; `crash.log` nema red `semantics orphan` bez
+    „— held back" za ovaj ekran.
+    Potrebno: Windows; release build; Narrator ili tastatura na dodir.
+
 ### Teach — Učenici, grupe i obaveštenja
 
 1. [ ] **Bedž na Teach imenuje šta čeka pregled, ne samo broj.** [177.6]

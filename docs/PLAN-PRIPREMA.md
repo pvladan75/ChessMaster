@@ -690,7 +690,51 @@ made before this phase still replays. **The board is the same size before
 „Record" is pressed and after**; a position loaded from the drawer while a
 recording runs is an `init` in its timeline.
 
-### Phase 4 — the doors change, and the room loses Preparation [lead]
+### Phase 4 — the doors change, and the room loses Preparation [lead] — built 27.9.2026, **not merged**
+
+**Where it stands.** Branch `priprema-faza-4`, in the worktree
+`.claude/worktrees/priprema-faza-4`, **nothing committed there**; it waits for
+the owner's word to merge. No server source changed.
+
+| measured 27.9.2026, nothing else running | |
+|---|---|
+| app, full suite on the branch | **4335 passed, 1 skipped** — predicted before the run and compared by name |
+| by name | 17 gone, 16 new: 12 deleted with what they tested, 11 added, 5 renamed |
+| `flutter analyze` | the same 22 infos |
+| backend | untouched: 1778 / 1936 |
+| deliberate faults | 3 of 3 caught, each on its own case; the other seven cases of the gate were watched red on master |
+
+**What was built.** `AppRoutes.preparation` (`/preparation`) builds
+`PreparationScreen` for the signed-in account; Teach's card and the Library's
+„New exercise" push it. The room lost every branch that asked for the code
+`STUDIO`, its recording (the take, the strip, the pop guard, three constructor
+seams) and the socket it opened without joining — 400 of its 3871 lines.
+`leadsRoom`, `canDriveSharedBoard` and `mayTeachInRoom` lost `isStudio`.
+
+**The tests, by what each was protecting.** Sixteen files pumped the room as
+`STUDIO`, not the fourteen counted in §2.
+
+| file | what it protects | what happened |
+|---|---|---|
+| twelve files (`room_drawing`, `room_library`, `room_prepared_line`, `room_save_position`, `room_drawer_button`, `library_grid_3b`, `library_master_detail`, `exercise_library_own`, `part_titles_shown`, `tutorial_versions`, `landscape_screens`, `move_tree_semantics_orphan`) | something the **live room keeps** — its column, its arrows, its doors, its ☰ | re-seated on whoever opened the room (`test/support/trainer_room.dart`), no assertion changed but one word: a trainer's button reads „Draw arrows" |
+| `lesson_recording_ui_test` (8) | the room's recording | deleted with it; each case is named beside its successor at the head of `preparation_recording_test.dart` |
+| `board_control_rules_test` (2), `room_teaching_tools_test` (1), `voice_on_request_test` (1) | what `isStudio` excused | deleted, with what they protected and where it is held now written in their place |
+| `room_presence_title_test` (1), `landscape_screens_test` (4) | unchanged | renamed: they were named for Preparation |
+
+**Found by the phase** (rule 14 — the feature that wakes a fault is the one
+that makes it reachable): swept for the screen reader's rule, the new screen
+sent a node no parent lists when „Square", „Undo" or „Clear marks" showed its
+tooltip. `Tooltip` around a button hangs the popup from whatever node encloses
+the bar, and the framework does not always send that node again. Each tooltip
+in the marking bar now has a container of its own. The bar alone was clean in
+every density and mode; only the screen showed it.
+
+**Not done here, and said**: the live-check items that reach a room feature
+through „Teach → Preparation" (`docs/TODO-provera.md`, „Sesija — Preparation"
+and [187.6], [249.1], [249.2]) still name the old path. They are not reworded,
+because the QA tool matches an item by its text; they are sorted in phase 10.
+
+*As planned:*
 
 The Teach card and the Library's button open the new screen. The `isStudio`
 branches and the unused socket leave the room. The fourteen test files are
@@ -701,7 +745,10 @@ glossary follow.
 **Gate**: `'STUDIO'` is grepped as a string literal in `lib/`, `test/` and
 `site/`, and every hit that remains has a reason written beside it; the app
 count is predicted before the run and compared by test name, not by total; the
-room's own tests are green **untouched**.
+room's own tests are green **untouched**. It is
+`chess_app/test/preparation_doors_test.dart`, ten cases; one literal remains,
+in that file, which enters a room by the old code to show it is an ordinary
+room.
 
 ### Phase 5 — a measurement: speech to text on real recordings, and the rules on paper [lead, owner]
 

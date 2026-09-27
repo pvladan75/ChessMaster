@@ -1,3 +1,10 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected: the room's column is the shared list, and a row goes
+// on the board.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 // The room's left column reads the shared library — phase 3b of
 // docs/PLAN-REORGANIZACIJA.md (S3).
 //
@@ -25,6 +32,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/game_screen/course_step_bar.dart';
 
 import 'support/dart_source.dart';
+import 'support/trainer_room.dart';
 
 const _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -121,8 +129,9 @@ Future<void> _openRoom(WidgetTester tester) async {
     home: ChessGamePage(
       userSession: UserSession(
           id: 1, token: 'tok', email: 'e', name: 'N', role: 'trener'),
-      roomCode: 'STUDIO',
-      initialRole: 'trener',
+      roomCode: trainerRoomCode,
+      initialRole: trainerSeat,
+      groupApi: teachingSomebody(),
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
       scannerApi: ScannerApiService(authToken: 'tok', client: client),

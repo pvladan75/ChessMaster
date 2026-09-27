@@ -1,3 +1,10 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected: a rename never mentions the steps, a new version
+// opens the copy, and editing opens the tutorial chosen.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -12,6 +19,7 @@ import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_scree
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
+import 'support/trainer_room.dart';
 
 /// The three things a trainer can do to a tutorial they already have: edit it,
 /// rename it, and keep it while making another version.
@@ -151,8 +159,9 @@ void main() {
       home: ChessGamePage(
         userSession: UserSession(
             id: 1, token: 'tok', email: 'e', name: 'N', role: 'trener'),
-        roomCode: 'STUDIO',
-        initialRole: 'trener',
+        roomCode: trainerRoomCode,
+        initialRole: trainerSeat,
+        groupApi: teachingSomebody(),
         lessonApi: api,
         positionLibrary: api.library,
       ),
