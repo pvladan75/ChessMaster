@@ -1,28 +1,47 @@
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/move_tree.dart';
 
-/// One stop on the line, in the order the child meets it.
+/// One stop on the line, in the order the child meets it — and, since D4 of
+/// `docs/PLAN-PRIPREMA.md`, one for every **sentence** a position holds, not
+/// one for the position alone.
 ///
-/// A beat **is** a node — it holds no copy of what the node carries, because
-/// two models of one tree is the fault this codebase has already paid for
-/// twice. What it adds is position: which move arrived here, which move leaves,
-/// what else could have left, and whether this is where the author is standing.
+/// A beat **is a view of a node's own beat** — it holds no copy of what the
+/// node carries, because two models of one tree is the fault this codebase
+/// has already paid for twice. What it adds is position: which move arrived
+/// here, which move leaves, what else could have left, which of the
+/// position's sentences this is, and whether this is where the author is
+/// standing.
 class TutorialBeat {
   const TutorialBeat({
     required this.node,
     required this.index,
+    required this.at,
+    required this.of,
+    required this.say,
     required this.isCurrent,
     this.next,
     this.branches = const [],
   });
 
-  /// The node this beat is a view of. Its `comment`, `arrows` and `squares` are
-  /// read from here rather than copied onto the beat.
+  /// The node this beat is a view of. Its `comment`, `arrows` and `squares`
+  /// read the *first* of its beats — [say] is the one this stop is about.
   final AnalysisNode node;
 
-  /// Where on the line this stop is, counting from 0 at the opening position.
+  /// Where on the line this stop's **position** is, counting from 0 at the
+  /// opening position. The same for every beat of one position, as it always
+  /// was for the position alone.
   final int index;
 
-  /// Whether the author is standing on this node.
+  /// Which of [node]'s beats this stop is, from 0.
+  final int at;
+
+  /// How many beats [node] holds.
+  final int of;
+
+  /// The sentence and the marks of this stop.
+  final NodeBeat say;
+
+  /// Whether the author is standing on this node, at this beat.
   final bool isCurrent;
 
   /// Where the line goes from here. Null on the last beat, where it runs out
@@ -100,7 +119,12 @@ class TutorialBranch {
 /// instead.** That is not defensive dressing: the author's node is held by a
 /// screen across edits, and a stale one used to be read as „no beats at all",
 /// which draws an empty panel over a tutorial that is perfectly fine.
-List<TutorialBeat> beatsOf(AnalysisNode root, AnalysisNode current) {
+///
+/// [currentAt] is which of [current]'s own beats the author stands on;
+/// clamped to the beats it still has, so a sentence removed from under the
+/// author does not read as „nowhere" but as the last one that is left.
+List<TutorialBeat> beatsOf(AnalysisNode root, AnalysisNode current,
+    {int currentAt = 0}) {
   var anchor = current;
   final spine = <AnalysisNode>[];
   for (AnalysisNode? node = current; node != null; node = node.parent) {
@@ -127,24 +151,34 @@ List<TutorialBeat> beatsOf(AnalysisNode root, AnalysisNode current) {
     spine.add(node.children.first);
   }
 
-  return [
-    for (var i = 0; i < spine.length; i++)
-      TutorialBeat(
-        node: spine[i],
+  final result = <TutorialBeat>[];
+  for (var i = 0; i < spine.length; i++) {
+    final node = spine[i];
+    final isAnchor = identical(node, anchor);
+    final clampedAt = currentAt.clamp(0, node.beats.length - 1).toInt();
+    final next = i + 1 < spine.length ? spine[i + 1] : null;
+    final branches = node.children.length > 1
+        ? [
+            for (final child in node.children)
+              TutorialBranch(
+                node: child,
+                san: child.moveSan ?? '',
+                taken: identical(child, next),
+              ),
+          ]
+        : const <TutorialBranch>[];
+    for (var at = 0; at < node.beats.length; at++) {
+      result.add(TutorialBeat(
+        node: node,
         index: i,
-        isCurrent: identical(spine[i], anchor),
-        next: i + 1 < spine.length ? spine[i + 1] : null,
-        branches: spine[i].children.length > 1
-            ? [
-                for (final child in spine[i].children)
-                  TutorialBranch(
-                    node: child,
-                    san: child.moveSan ?? '',
-                    taken:
-                        i + 1 < spine.length && identical(child, spine[i + 1]),
-                  ),
-              ]
-            : const [],
-      ),
-  ];
+        at: at,
+        of: node.beats.length,
+        say: node.beats[at],
+        isCurrent: isAnchor && at == clampedAt,
+        next: next,
+        branches: branches,
+      ));
+    }
+  }
+  return result;
 }

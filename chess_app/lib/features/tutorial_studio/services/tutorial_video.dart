@@ -81,7 +81,9 @@ List<FilmBeat> filmBeatsOf(TutorialDraft draft) {
       stops.add((
         section: section,
         beat: beats[i],
-        caption: beats[i].node.comment.trim(),
+        // Its own sentence, not the position's first — a beat's caption is
+        // what it itself says (D4 of `docs/PLAN-PRIPREMA.md`).
+        caption: beats[i].say.comment.trim(),
       ));
     }
   }
@@ -144,7 +146,10 @@ typedef PartOpening = ({PartEntry entry, String? afterMove, int? from});
 List<PartOpening?> partOpeningsOf(List<FilmBeat> stops) {
   final out = List<PartOpening?>.filled(stops.length, null);
   for (var i = 0; i < stops.length; i++) {
-    if (stops[i].beat.index != 0) continue;
+    // A part opens on the first beat of its opening position and nowhere
+    // else — a later sentence on that same first position is not a part
+    // opening, and is left null like any other beat inside a part.
+    if (stops[i].beat.index != 0 || stops[i].beat.at != 0) continue;
     final fen = stops[i].beat.node.fen;
 
     if (i > 0 && MoveTree.samePosition(stops[i - 1].beat.node.fen, fen)) {
@@ -155,7 +160,11 @@ List<PartOpening?> partOpeningsOf(List<FilmBeat> stops) {
     int? matched;
     int? namedAt;
     String? named;
+    // Only a position's own first beat is asked — the move a return hangs
+    // from is the position's, not whichever of its sentences happened to be
+    // on screen last.
     for (var j = i - 1; j >= 0; j--) {
+      if (stops[j].beat.at != 0) continue;
       if (!MoveTree.samePosition(stops[j].beat.node.fen, fen)) continue;
       matched ??= j;
       named ??= stops[j].beat.arrivedLabel;
@@ -264,20 +273,27 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
   for (var index = 0; index < stops.length; index++) {
     final stop = stops[index];
     final node = stop.beat.node;
-    final opensPart = stop.beat.index == 0;
+    final isFirstBeat = stop.beat.at == 0;
+    final opensPart = stop.beat.index == 0 && isFirstBeat;
     final opening = openings[index];
     final caption = stop.caption;
+    final say = stop.beat.say;
 
     events.add({
       'timestampMs': atMs,
-      'eventType': opensPart ? 'init' : 'move',
+      // A position's own first beat is what put it on the board — the
+      // `init` or `move` it always was. Every later beat is a sentence
+      // spoken and drawn over a board that is already there.
+      'eventType': !isFirstBeat ? 'beat' : (opensPart ? 'init' : 'move'),
       'data': {
         'fen': node.fen,
         // Asked of the beat's place on the line, not of the node's fields:
         // the opening position of a part is a position, and nothing arrived
         // at it. `MoveTree` calls its own root „Root", which is a
-        // placeholder a reader must never be shown.
-        if (!opensPart) ...{
+        // placeholder a reader must never be shown. A later beat is not a
+        // move either — the move already played when its position's first
+        // beat did.
+        if (isFirstBeat && !opensPart) ...{
           if (node.moveSan != null) 'san': node.moveSan!,
           ..._fromTo(node),
         },
@@ -290,14 +306,16 @@ TutorialVideo tutorialVideoOf(TutorialDraft draft) {
           if (opening?.afterMove != null) 'afterMove': opening!.afterMove!,
         },
         if (caption.isNotEmpty) 'text': caption,
-        if (node.arrows.isNotEmpty)
+        // This beat's own marks — not the position's first, and not the
+        // union of everything ever drawn there.
+        if (say.arrows.isNotEmpty)
           'arrows': [
-            for (final arrow in node.arrows)
+            for (final arrow in say.arrows)
               {'from': arrow.from, 'to': arrow.to, 'color': arrow.colorCode},
           ],
-        if (node.squares.isNotEmpty)
+        if (say.squares.isNotEmpty)
           'squares': [
-            for (final square in node.squares)
+            for (final square in say.squares)
               {'square': square.square, 'color': square.colorCode},
           ],
         // Per event, because a tutorial may be written from one side in one

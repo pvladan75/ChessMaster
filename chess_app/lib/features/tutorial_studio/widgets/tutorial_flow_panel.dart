@@ -9,37 +9,46 @@ import 'package:chess_app/theme/app_typography.dart';
 /// surface it is written on.
 ///
 /// It decides nothing: it projects [root] and [current] through [beatsOf],
-/// draws one card per beat, reports every selection through [onSelect] and
+/// draws one card per **beat** — a position may hold several (D4 of
+/// `docs/PLAN-PRIPREMA.md`) — reports every selection through [onSelect] and
 /// every edited sentence through [onCommentChanged]. The screen owns the
-/// cursor and the board.
+/// cursor, which beat of it is open, and the board.
+///
+/// A position's later sentences are drawn as cards under its first, indented,
+/// so they read as belonging to it rather than as their own stops on the
+/// line.
 ///
 /// The one piece of state here is a card's own [TextEditingController] and
-/// [FocusNode], keyed by `beat.node.id` so that a card built for one node is
-/// never left on screen holding another node's sentence.
+/// [FocusNode], keyed by the node's id and the beat's index so that a card
+/// built for one sentence is never left on screen holding another's.
 class TutorialFlowPanel extends StatelessWidget {
   const TutorialFlowPanel({
     super.key,
     required this.root,
     required this.current,
+    this.currentAt = 0,
     required this.onSelect,
     required this.onCommentChanged,
     this.onDelete,
     this.onInsertLine,
     this.partsStartingHere = const {},
     this.onOpenPart,
+    this.onAddSentence,
+    this.onRemoveSentence,
   });
 
   final AnalysisNode root;
   final AnalysisNode current;
-  final void Function(AnalysisNode) onSelect;
-  final void Function(AnalysisNode, String) onCommentChanged;
 
-  /// Takes back the move that arrived at a beat, with everything under it.
-  ///
-  /// Optional, and drawn only on the beats that *are* a move — the opening
-  /// position of a part is not one, and there is a different action for
-  /// throwing that away. The screen owns what deleting means, including
-  /// whether to ask first; this only says which move was pointed at.
+  /// Which of [current]'s beats is open.
+  final int currentAt;
+
+  final void Function(AnalysisNode node, int at) onSelect;
+  final void Function(AnalysisNode node, int at, String text) onCommentChanged;
+
+  /// Takes back the move that arrived at a position, with everything under
+  /// it. Drawn on the position's first card only — the move belongs to the
+  /// position, not to any one of its sentences.
   final void Function(AnalysisNode)? onDelete;
 
   /// „Insert a line here" — cut the part at the current beat and start a new
@@ -51,16 +60,24 @@ class TutorialFlowPanel extends StatelessWidget {
   final VoidCallback? onInsertLine;
 
   /// The later parts that go back to a beat of this one, by the beat's node
-  /// id — drawn on that beat as „Part 4 starts here · 18... h6". Phase 3 of
-  /// `docs/PLAN-MAPA-DELOVA.md`: the other end of the map's dashed edge.
+  /// id — drawn on that position's last card as „Part 4 starts here ·
+  /// 18... h6". Phase 3 of `docs/PLAN-MAPA-DELOVA.md`: the other end of the
+  /// map's dashed edge.
   final Map<String, List<({int part, String move})>> partsStartingHere;
 
   /// Opens part [index] (0-based). Null draws no chip.
   final void Function(int index)? onOpenPart;
 
+  /// „Add a sentence here", after the open one — drawn on the open card only.
+  final VoidCallback? onAddSentence;
+
+  /// Removes one of a position's sentences — drawn on every card of a
+  /// position that has more than one.
+  final void Function(AnalysisNode node, int at)? onRemoveSentence;
+
   @override
   Widget build(BuildContext context) {
-    final beats = beatsOf(root, current);
+    final beats = beatsOf(root, current, currentAt: currentAt);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,7 +86,13 @@ class TutorialFlowPanel extends StatelessWidget {
         for (var i = 0; i < beats.length; i++) ...[
           if (i > 0) const SizedBox(height: AppSpacing.xs),
           _BeatCard(
-            key: ValueKey(beats[i].node.id),
+            // The beat itself, not its position — inserting or removing a
+            // sentence shifts every later one's `at`, and a key built from
+            // that would hand a rebuilt card's state to a sentence that is
+            // not the one it was holding (rule 6: a helper that sets state
+            // must be provable, and a `TextEditingController` reused across
+            // two different beats is exactly the fault this guards against).
+            key: ObjectKey(beats[i].say),
             beat: beats[i],
             onSelect: onSelect,
             onCommentChanged: onCommentChanged,
@@ -77,6 +100,8 @@ class TutorialFlowPanel extends StatelessWidget {
             onInsertLine: onInsertLine,
             partsStartingHere: partsStartingHere[beats[i].node.id] ?? const [],
             onOpenPart: onOpenPart,
+            onAddSentence: onAddSentence,
+            onRemoveSentence: onRemoveSentence,
           ),
         ],
       ],
@@ -94,15 +119,19 @@ class _BeatCard extends StatefulWidget {
     this.onInsertLine,
     this.partsStartingHere = const [],
     this.onOpenPart,
+    this.onAddSentence,
+    this.onRemoveSentence,
   });
 
   final TutorialBeat beat;
-  final void Function(AnalysisNode) onSelect;
-  final void Function(AnalysisNode, String) onCommentChanged;
+  final void Function(AnalysisNode, int) onSelect;
+  final void Function(AnalysisNode, int, String) onCommentChanged;
   final void Function(AnalysisNode)? onDelete;
   final VoidCallback? onInsertLine;
   final List<({int part, String move})> partsStartingHere;
   final void Function(int index)? onOpenPart;
+  final VoidCallback? onAddSentence;
+  final void Function(AnalysisNode, int)? onRemoveSentence;
 
   @override
   State<_BeatCard> createState() => _BeatCardState();
@@ -115,18 +144,19 @@ class _BeatCardState extends State<_BeatCard> {
   ///
   /// The field's own `Key` changes the moment this card becomes the current
   /// one — `example-sentence` is the current beat's field and
-  /// `beat-comment-<index>` is every other — and a changed key unmounts the
-  /// element. A `TextField` that builds its own `FocusNode` therefore loses
-  /// the caret exactly when the trainer clicks into another card's sentence
-  /// to write it: the click selects the beat, the field is rebuilt under the
-  /// new key, and the typing goes nowhere. Owned here, the node outlives that
-  /// rebuild. No test could see this — `enterText` focuses the field itself.
+  /// `beat-comment-<index>[.<at>]` is every other — and a changed key
+  /// unmounts the element. A `TextField` that builds its own `FocusNode`
+  /// therefore loses the caret exactly when the trainer clicks into another
+  /// card's sentence to write it: the click selects the beat, the field is
+  /// rebuilt under the new key, and the typing goes nowhere. Owned here, the
+  /// node outlives that rebuild. No test could see this — `enterText` focuses
+  /// the field itself.
   final FocusNode _focus = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.beat.node.comment);
+    _controller = TextEditingController(text: widget.beat.say.comment);
   }
 
   @override
@@ -139,18 +169,22 @@ class _BeatCardState extends State<_BeatCard> {
   @override
   Widget build(BuildContext context) {
     final beat = widget.beat;
+    final isFirst = beat.at == 0;
+    final isLastBeat = beat.at == beat.of - 1;
+    final hasMultiple = beat.of > 1;
+    final keySuffix = isFirst ? '${beat.index}' : '${beat.index}.${beat.at}';
     final headerText =
         beat.index == 0 ? 'Starting position' : 'after ${beat.arrivedLabel}';
 
-    return Material(
-      key: Key('beat-${beat.index}'),
+    final card = Material(
+      key: Key('beat-$keySuffix'),
       color: beat.isCurrent
           ? context.colors.surfaceRaised
           : context.colors.surface,
       borderRadius: AppRadii.roundedMd,
       child: InkWell(
         borderRadius: AppRadii.roundedMd,
-        onTap: () => widget.onSelect(beat.node),
+        onTap: () => widget.onSelect(beat.node, beat.at),
         child: Container(
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.all(AppSpacing.sm),
@@ -178,12 +212,29 @@ class _BeatCardState extends State<_BeatCard> {
                     const SizedBox(width: AppSpacing.xs),
                   ],
                   Expanded(
-                    child: Text(
-                      headerText,
-                      style: (beat.isCurrent ? AppText.bodyBold : AppText.body)
-                          .copyWith(
-                        color: context.colors.textPrimary,
-                      ),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            headerText,
+                            style: (beat.isCurrent
+                                    ? AppText.bodyBold
+                                    : AppText.body)
+                                .copyWith(
+                              color: context.colors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (hasMultiple) ...[
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            '${beat.at + 1} of ${beat.of}',
+                            style: AppText.caption.copyWith(
+                              color: context.colors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   // The move that arrived here, taken back from the surface
@@ -200,7 +251,9 @@ class _BeatCardState extends State<_BeatCard> {
                       visualDensity: VisualDensity.compact,
                       onPressed: widget.onInsertLine,
                     ),
-                  if (widget.onDelete != null && beat.arrivedBy != null)
+                  if (isFirst &&
+                      widget.onDelete != null &&
+                      beat.arrivedBy != null)
                     IconButton(
                       key: Key('beat-delete-${beat.index}'),
                       icon: const Icon(Icons.backspace_outlined, size: 16),
@@ -209,23 +262,33 @@ class _BeatCardState extends State<_BeatCard> {
                       visualDensity: VisualDensity.compact,
                       onPressed: () => widget.onDelete!(beat.node),
                     ),
+                  if (hasMultiple && widget.onRemoveSentence != null)
+                    IconButton(
+                      key: Key('remove-sentence-${beat.index}.${beat.at}'),
+                      icon: const Icon(Icons.close, size: 16),
+                      color: context.colors.textMuted,
+                      tooltip: 'Remove this sentence',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () =>
+                          widget.onRemoveSentence!(beat.node, beat.at),
+                    ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
               TextField(
                 key: beat.isCurrent
                     ? const Key('example-sentence')
-                    : Key('beat-comment-${beat.index}'),
+                    : Key('beat-comment-$keySuffix'),
                 controller: _controller,
                 focusNode: _focus,
                 // The label says „trenutni", and it is true of exactly one
                 // card. Beside the timeline there was one field and the word
-                // was right; on four cards, three of them would claim to be
-                // the move the trainer is standing on. The header of each card
-                // („posle 1. e4") already says which move its sentence is
-                // about, so the other cards carry the field without a label —
-                // and the label becomes one more non-colour mark of where the
-                // author is.
+                // was right; on several cards, only one of them would claim
+                // to be the sentence the trainer is standing on. The header
+                // of each card already says which move and which sentence it
+                // is about, so the other cards carry the field without a
+                // label — and the label becomes one more non-colour mark of
+                // where the author is.
                 decoration: beat.isCurrent
                     ? const InputDecoration(
                         labelText: 'Comment for current move',
@@ -247,79 +310,96 @@ class _BeatCardState extends State<_BeatCard> {
                 textInputAction: TextInputAction.newline,
                 onTap: () {
                   if (!beat.isCurrent) {
-                    widget.onSelect(beat.node);
+                    widget.onSelect(beat.node, beat.at);
                   }
                 },
-                onChanged: (val) => widget.onCommentChanged(beat.node, val),
+                onChanged: (val) =>
+                    widget.onCommentChanged(beat.node, beat.at, val),
               ),
-              if (widget.onOpenPart != null &&
-                  widget.partsStartingHere.isNotEmpty) ...[
+              if (beat.isCurrent && widget.onAddSentence != null) ...[
                 const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final later in widget.partsStartingHere)
-                      ActionChip(
-                        key: Key('part-starts-here-${later.part + 1}'),
-                        avatar: const Icon(Icons.subdirectory_arrow_right,
-                            size: 16),
-                        label: Text(
-                          later.move.isEmpty
-                              ? 'Part ${later.part + 1} starts here'
-                              : 'Part ${later.part + 1} starts here · '
-                                  '${later.move}',
-                          style: AppText.body
-                              .copyWith(color: context.colors.textPrimary),
-                        ),
-                        onPressed: () => widget.onOpenPart!(later.part),
-                      ),
-                  ],
+                OutlinedButton(
+                  key: const Key('add-sentence'),
+                  onPressed: widget.onAddSentence,
+                  child: const Text('Add a sentence here'),
                 ),
               ],
-              if (beat.branches.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
-                  children: [
-                    for (final branch in beat.branches)
-                      ActionChip(
-                        backgroundColor: branch.taken
-                            ? context.colors.surfaceRaised
-                            : context.colors.surface,
-                        side: BorderSide(
-                          color: branch.taken
-                              ? context.colors.accent
-                              : context.colors.border,
-                        ),
-                        label: Text(
-                          branch.label,
-                          style:
-                              (branch.taken ? AppText.bodyBold : AppText.body)
-                                  .copyWith(
-                            color: branch.taken
-                                ? context.colors.textPrimary
-                                : context.colors.textSecondary,
+              if (isLastBeat) ...[
+                if (widget.onOpenPart != null &&
+                    widget.partsStartingHere.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final later in widget.partsStartingHere)
+                        ActionChip(
+                          key: Key('part-starts-here-${later.part + 1}'),
+                          avatar: const Icon(Icons.subdirectory_arrow_right,
+                              size: 16),
+                          label: Text(
+                            later.move.isEmpty
+                                ? 'Part ${later.part + 1} starts here'
+                                : 'Part ${later.part + 1} starts here · '
+                                    '${later.move}',
+                            style: AppText.body
+                                .copyWith(color: context.colors.textPrimary),
                           ),
+                          onPressed: () => widget.onOpenPart!(later.part),
                         ),
-                        onPressed: () => widget.onSelect(branch.node),
-                      ),
-                  ],
-                ),
-              ] else if (!beat.isLast && beat.playsLabel != null) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'then plays: ${beat.playsLabel}',
-                  style: AppText.caption.copyWith(
-                    color: context.colors.textSecondary,
+                    ],
                   ),
-                ),
+                ],
+                if (beat.branches.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [
+                      for (final branch in beat.branches)
+                        ActionChip(
+                          backgroundColor: branch.taken
+                              ? context.colors.surfaceRaised
+                              : context.colors.surface,
+                          side: BorderSide(
+                            color: branch.taken
+                                ? context.colors.accent
+                                : context.colors.border,
+                          ),
+                          label: Text(
+                            branch.label,
+                            style:
+                                (branch.taken ? AppText.bodyBold : AppText.body)
+                                    .copyWith(
+                              color: branch.taken
+                                  ? context.colors.textPrimary
+                                  : context.colors.textSecondary,
+                            ),
+                          ),
+                          onPressed: () => widget.onSelect(branch.node, 0),
+                        ),
+                    ],
+                  ),
+                ] else if (!beat.isLast && beat.playsLabel != null) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'then plays: ${beat.playsLabel}',
+                    style: AppText.caption.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ],
               ],
             ],
           ),
         ),
       ),
+    );
+
+    if (isFirst) return card;
+    return Padding(
+      padding: const EdgeInsets.only(left: AppSpacing.lg),
+      child: card,
     );
   }
 }

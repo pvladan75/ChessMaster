@@ -46,13 +46,8 @@ import 'package:chess_app/services/fen_legality.dart';
   final continuation = tail.isEmpty ? null : tail.first;
   final sidelines = tail.skip(1).toList();
 
-  AnalysisNode rootOn(List<AnalysisNode> children, {String comment = ''}) {
-    final root = AnalysisNode(
-      fen: cursor.fen,
-      comment: comment,
-      arrows: [...beforeCursor.arrows],
-      squares: [...beforeCursor.squares],
-    );
+  AnalysisNode rootOn(List<AnalysisNode> children, {bool keepWords = false}) {
+    final root = AnalysisNode.rootLike(beforeCursor, keepWords: keepWords);
     for (final child in children) {
       child.parent = root;
       root.children.add(child);
@@ -61,7 +56,7 @@ import 'package:chess_app/services/fen_legality.dart';
   }
 
   final line = TutorialSection(
-    root: rootOn(sidelines, comment: hasBefore ? '' : beforeCursor.comment),
+    root: rootOn(sidelines, keepWords: !hasBefore),
     blackOrientation: part.blackOrientation,
   );
 
@@ -197,12 +192,7 @@ AnalysisNode _rootWith(
   AnalysisNode child, {
   required bool keepComment,
 }) {
-  final root = AnalysisNode(
-    fen: like.fen,
-    comment: keepComment ? like.comment : '',
-    arrows: [...like.arrows],
-    squares: [...like.squares],
-  );
+  final root = AnalysisNode.rootLike(like, keepWords: keepComment);
   final moved = copyTree(child);
   moved.parent = root;
   root.children.add(moved);

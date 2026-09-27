@@ -290,11 +290,11 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   /// gets an underline — the one thing about a move a trainer cannot see on
   /// the board.
   Widget _phoneMoveList() {
-    final beats = beatsOf(_c.root, _c.cursor);
+    final beats = beatsOf(_c.root, _c.cursor, currentAt: _c.cursorAt);
     return _PhoneMoveList(
       key: const Key('phone-move-list'),
       beats: beats,
-      onSelect: _jumpTo,
+      onSelect: _selectBeat,
     );
   }
 
@@ -341,18 +341,53 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   Widget _phoneLineTab() {
     final current = _c.cursor;
     final isRoot = identical(current, _c.root);
-    final heading = isRoot
+    final at = _c.cursorAt;
+    final of = current.beats.length;
+    final baseHeading = isRoot
         ? 'Comment on the starting position'
         : 'Comment on ${current.moveNumberLabel}${current.moveSan}';
+    final heading =
+        of > 1 ? '$baseHeading · sentence ${at + 1} of $of' : baseHeading;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(heading, style: AppText.bodyBold),
+        // The ‹ › walk the position's sentences right beside the heading that
+        // names them — high in the tab, so reaching them does not have to
+        // scroll the board away, which the field and the buttons below it
+        // sometimes must.
+        Row(
+          children: [
+            Expanded(child: Text(heading, style: AppText.bodyBold)),
+            if (of > 1) ...[
+              IconButton(
+                key: const Key('phone-sentence-prev'),
+                icon: const Icon(Icons.chevron_left),
+                tooltip: 'Previous sentence',
+                visualDensity: VisualDensity.compact,
+                onPressed: at > 0 ? () => _selectBeat(current, at - 1) : null,
+              ),
+              IconButton(
+                key: const Key('phone-sentence-next'),
+                icon: const Icon(Icons.chevron_right),
+                tooltip: 'Next sentence',
+                visualDensity: VisualDensity.compact,
+                onPressed:
+                    at < of - 1 ? () => _selectBeat(current, at + 1) : null,
+              ),
+            ],
+          ],
+        ),
         const SizedBox(height: AppSpacing.xs),
         _PhoneCommentField(
-          key: ValueKey('phone-comment-${current.id}'),
+          // The beat itself, not its position — see the Flow panel's key for
+          // why: an insert or a remove shifts every later `at`, and a key
+          // built from that would hand a rebuilt field's state to a sentence
+          // that is not the one it was holding.
+          key: ObjectKey(current.beats[at]),
           node: current,
-          onChanged: (text) => _c.setComment(current, text, typing: true),
+          at: at,
+          onChanged: (text) =>
+              _c.setComment(current, text, at: at, typing: true),
         ),
         const SizedBox(height: AppSpacing.sm),
         BoardAnnotationBar(
@@ -378,6 +413,17 @@ extension _PhoneLayout on _TutorialStudioScreenState {
               OutlinedButton(
                 onPressed: () => _deleteNode(current),
                 child: const Text('Delete this move'),
+              ),
+            OutlinedButton(
+              key: const Key('phone-add-sentence'),
+              onPressed: () => _c.addSentence(),
+              child: const Text('Add a sentence here'),
+            ),
+            if (of > 1)
+              OutlinedButton(
+                key: const Key('phone-remove-sentence'),
+                onPressed: () => _c.removeSentence(current, at),
+                child: const Text('Remove this sentence'),
               ),
           ],
         ),
@@ -442,10 +488,14 @@ class _PhoneCommentField extends StatefulWidget {
   const _PhoneCommentField({
     super.key,
     required this.node,
+    required this.at,
     required this.onChanged,
   });
 
   final AnalysisNode node;
+
+  /// Which of [node]'s beats this field is about.
+  final int at;
   final ValueChanged<String> onChanged;
 
   @override
@@ -454,7 +504,7 @@ class _PhoneCommentField extends StatefulWidget {
 
 class _PhoneCommentFieldState extends State<_PhoneCommentField> {
   late final TextEditingController _controller = TextEditingController(
-    text: widget.node.comment,
+    text: widget.node.beats[widget.at].comment,
   );
 
   @override
@@ -489,7 +539,7 @@ class _PhoneMoveList extends StatefulWidget {
       {super.key, required this.beats, required this.onSelect});
 
   final List<TutorialBeat> beats;
-  final void Function(AnalysisNode) onSelect;
+  final void Function(AnalysisNode, int) onSelect;
 
   @override
   State<_PhoneMoveList> createState() => _PhoneMoveListState();
@@ -542,17 +592,22 @@ class _PhoneMoveListState extends State<_PhoneMoveList> {
           final node = beat.node;
           // The opening position is a position, not a move, and the trainer
           // comments on it like any other beat — so it is in the row, named.
-          final label = node.isRoot
-              ? 'Start'
-              : '${node.moveNumberLabel}${node.moveSan ?? ''}'.trim();
-          final hasComment = node.comment.trim().isNotEmpty;
+          // A position's later sentence has no move of its own to be named
+          // by, so it is a narrow chip — „·2" — beside the position's first
+          // (D16 D of `docs/PLAN-PRIPREMA.md`).
+          final label = beat.at > 0
+              ? '·${beat.at + 1}'
+              : (node.isRoot
+                  ? 'Start'
+                  : '${node.moveNumberLabel}${node.moveSan ?? ''}'.trim());
+          final hasComment = beat.say.comment.trim().isNotEmpty;
 
           return Padding(
             key: beat.isCurrent ? _currentKey : null,
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
             child: InkWell(
               key: Key('phone-move-$i'),
-              onTap: () => widget.onSelect(node),
+              onTap: () => widget.onSelect(node, beat.at),
               borderRadius: AppRadii.roundedSm,
               child: Container(
                 padding: const EdgeInsets.symmetric(

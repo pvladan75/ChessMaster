@@ -534,9 +534,14 @@ function applyEvent(state, event) {
   const next = { ...state };
   const data = (event && event.data) || null;
 
-  // Belongs to one beat, like the caption and the marks below it.
-  next.rewound = false;
-  next.rewoundAfter = null;
+  // Belongs to the position, not to any one beat of it — a `beat` changes
+  // the words and the marks and leaves the note under the board as it was,
+  // or a position the film went back to would say „Back to the position
+  // after …" for its first sentence and „Starting position" for its second.
+  if (!(event && event.eventType === 'beat')) {
+    next.rewound = false;
+    next.rewoundAfter = null;
+  }
 
   if (event && event.eventType === 'init' && data && data.fen) {
     next.fen = data.fen;

@@ -16,6 +16,9 @@ const {
   MAX_BEAT_SECONDS,
 } = require('../services/narrationPlan');
 
+const tts = require('../services/tts');
+const { narrateFilm } = require('../services/tutorialNarration');
+
 const secondsOf = (plan) => plan.segments.reduce((sum, s) => sum + s.seconds, 0);
 
 test('the audio is exactly as long as the film, to the millisecond', () => {
@@ -130,4 +133,57 @@ test('an event with no plan entry keeps the timestamp it arrived with', () => {
   const events = [{ timestampMs: 0 }, { timestampMs: 9000 }];
   const out = retimeEvents(events, narrationPlan([{ clipSeconds: 2 }]));
   assert.equal(out[1].timestampMs, 9000);
+});
+
+test('phase 6: a film whose events include a beat is narrated one clip per event', async () => {
+  // Added for phase 6 of docs/PLAN-PRIPREMA.md, item 3 of the brief's cases —
+  // `narrateFilm` reads `event.data.text` off every event regardless of its
+  // `eventType`, so a `beat` (a later sentence on a position already on the
+  // board) must be sent to the voice exactly like an `init` or a `move`. The
+  // fixture stubs `tts.speakBeats` to answer every caption silent, which keeps
+  // `narrateFilm` inside the branch that returns before it ever needs a real
+  // audio track or ffmpeg.
+  const savedBlocked = tts.narrationBlockedBy;
+  const savedSpeak = tts.speakBeats;
+  let sentCaptions = null;
+  try {
+    tts.narrationBlockedBy = async () => null;
+    tts.speakBeats = async (captions) => {
+      sentCaptions = captions;
+      return captions.map(() => ({ clipSeconds: null }));
+    };
+
+    const events = [
+      { timestampMs: 0, eventType: 'init', data: { fen: 'x', text: 'Look at the rook.' } },
+      {
+        timestampMs: 2000,
+        eventType: 'move',
+        data: { fen: 'y', san: 'Rh7', text: 'The rook cuts the king off.' },
+      },
+      {
+        timestampMs: 4000,
+        eventType: 'beat',
+        data: { fen: 'y', text: 'Now the seventh rank is closed.' },
+      },
+    ];
+
+    const result = await narrateFilm({
+      events,
+      voice: 'en_US-lessac-medium',
+      exportsDir: 'unused',
+      filename: 'unused',
+    });
+
+    assert.equal(sentCaptions.length, events.length,
+      'one caption asked of the voice per event, whatever its kind');
+    assert.equal(sentCaptions[2], 'Now the seventh rank is closed.',
+      'the beat\'s own sentence, not the position\'s first');
+    assert.equal(result.events.length, events.length);
+    // Every caption came back silent, so the voice found nothing to add —
+    // the same „nothing said" answer a wordless tutorial gets.
+    assert.equal(result.silentBecause, 'voice');
+  } finally {
+    tts.narrationBlockedBy = savedBlocked;
+    tts.speakBeats = savedSpeak;
+  }
 });

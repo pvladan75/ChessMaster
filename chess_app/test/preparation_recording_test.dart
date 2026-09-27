@@ -1209,5 +1209,105 @@ void main() {
       expect(events.first['data']['fen'], _afterE4);
       expect(events.last['data'], {'fen': _start});
     }, variant: windows);
+    testWidgets(
+        'a sentence removed, and brought back, is a change of the '
+        'marks', (tester) async {
+      // Added on grading: removing the open sentence opens the one before it,
+      // and „Undo" opens it again — both change what is drawn, and neither
+      // was stamped.
+      final server = _Server();
+      final (mic, _) = await _open(tester, server);
+      await _startRecording(tester);
+      await _speak(tester, mic, 500);
+      await _play(tester, 'e2', 'e4');
+      await _speak(tester, mic, 500);
+      await _press(tester, const Key('annotate-arrow'));
+      await _mark(tester, 'g1');
+      await _mark(tester, 'f3');
+      await _speak(tester, mic, 500);
+      await _press(tester, const Key('prep-add-sentence'));
+      await _speak(tester, mic, 500);
+      await _press(tester, const Key('annotate-clear'));
+      await _speak(tester, mic, 500);
+      // The open (second) sentence goes: the first, with its arrow, opens.
+      await _press(tester, const Key('prep-remove-sentence'));
+      await _speak(tester, mic, 500);
+      // „Undo" brings the bare second sentence back, open.
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.tap(find.widgetWithText(SnackBarAction, 'Undo'));
+      await _settle(tester);
+      await _speak(tester, mic, 500);
+      await _saveAs(tester, 'Removed and back');
+
+      final events = _eventsOf(server.uploads.single);
+      expect([
+        for (final e in events) e['eventType']
+      ], [
+        'init', // Record
+        'move', // e4
+        'arrow_drawn', // g1–f3
+        'arrow_drawn', // the second sentence cleared
+        'arrow_drawn', // the second removed: the first's arrow is back
+        'arrow_drawn', // Undo: the bare second sentence is open again
+      ]);
+      Map<String, dynamic> data(int i) =>
+          Map<String, dynamic>.from(events[i]['data'] as Map);
+      expect(data(4)['arrows'], [
+        {'from': 'g1', 'to': 'f3', 'color': 'G'},
+      ]);
+      expect(data(5), {'arrows': <Object>[], 'squares': <Object>[]});
+    });
+
+    testWidgets('another sentence opened is a change of the marks',
+        (tester) async {
+      final server = _Server();
+      final (mic, _) = await _open(tester, server);
+      await _startRecording(tester);
+      await _speak(tester, mic, 500);
+      await _play(tester, 'e2', 'e4');
+      await _speak(tester, mic, 500);
+      await _press(tester, const Key('annotate-arrow'));
+      await _mark(tester, 'g1');
+      await _mark(tester, 'f3');
+      await _speak(tester, mic, 500);
+      // A second sentence: it keeps the arrow, so the board does not change.
+      await _press(tester, const Key('prep-add-sentence'));
+      await _speak(tester, mic, 500);
+      await _press(tester, const Key('annotate-clear'));
+      await _speak(tester, mic, 500);
+      // Back to the first sentence: its arrow is on the board again.
+      await _press(tester, const Key('prep-sentence-prev'));
+      await _speak(tester, mic, 500);
+      await _saveAs(tester, 'Two sentences');
+
+      final events = _eventsOf(server.uploads.single);
+      expect([
+        for (final e in events) e['eventType']
+      ], [
+        'init', // Record
+        'move', // e4
+        'arrow_drawn', // g1–f3
+        'arrow_drawn', // the second sentence cleared
+        'arrow_drawn', // the first sentence opened again
+      ]);
+      expect([
+        for (final e in events) e['timestampMs']
+      ], [
+        0,
+        500,
+        1000,
+        2000,
+        2500
+      ], reason: 'adding a sentence that keeps the marks wrote nothing');
+      Map<String, dynamic> data(int i) =>
+          Map<String, dynamic>.from(events[i]['data'] as Map);
+      expect(data(3), {'arrows': <Object>[], 'squares': <Object>[]});
+      expect(data(4), {
+        'arrows': [
+          {'from': 'g1', 'to': 'f3', 'color': 'G'},
+        ],
+        'squares': <Object>[],
+      });
+    });
   });
 }

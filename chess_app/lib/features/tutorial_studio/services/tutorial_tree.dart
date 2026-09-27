@@ -76,15 +76,13 @@ TutorialTree tutorialTreeOf(TutorialDraft draft) {
   final shownAt = <String, AnalysisNode>{};
 
   AnalysisNode copy(AnalysisNode o, AnalysisNode? parent, int part) {
-    final n = AnalysisNode(
+    final n = AnalysisNode.copyOf(
       id: o.id,
       fen: o.fen,
       moveSan: o.moveSan,
       moveUci: o.moveUci,
-      comment: o.comment,
       nag: o.nag,
-      arrows: [...o.arrows],
-      squares: [...o.squares],
+      beats: o.beats,
       parent: parent,
     );
     origin[n.id] = (part: part, node: o);

@@ -7,7 +7,6 @@ class AnalysisNode {
   String fen;
   String? moveSan;
   String? moveUci;
-  String comment;
   String? nag; // '!!', '!', '?', '??', '!?', '!□'
 
   // A node used to carry the engine's evaluation, and it no longer does.
@@ -35,8 +34,12 @@ class AnalysisNode {
   /// Nothing in the studio writes these yet; the editor that does is phase 7.
   /// The format carries them from here so that when it arrives there is no
   /// second migration of everything already saved.
-  List<ChessArrow> arrows;
-  List<SquareMark> squares;
+  ///
+  /// A position may hold several beats (D4 of `docs/PLAN-PRIPREMA.md`); this
+  /// list is never empty, and [comment], [arrows] and [squares] read and write
+  /// its first, so every reader that knows nothing of beats keeps working on
+  /// exactly what it always read.
+  final List<NodeBeat> beats;
 
   /// The mover's clock after this move, in seconds, when the game carried one
   /// (`[%clk]`, read by [MoveTree.parsePgnClock]). Kept in the draft and
@@ -56,18 +59,112 @@ class AnalysisNode {
     required this.fen,
     this.moveSan,
     this.moveUci,
-    this.comment = '',
+    String comment = '',
     this.nag,
     List<ChessArrow>? arrows,
     List<SquareMark>? squares,
+    List<NodeBeat>? more,
     List<AnalysisNode>? children,
     this.parent,
     this.clockSeconds,
     this.timeControl,
   })  : id = id ?? _generateId(),
-        arrows = arrows ?? [],
-        squares = squares ?? [],
+        beats = [
+          NodeBeat(comment: comment, arrows: arrows, squares: squares),
+          ...?more,
+        ],
         children = children ?? [];
+
+  String get comment => beats.first.comment;
+  set comment(String value) => beats.first.comment = value;
+
+  List<ChessArrow> get arrows => beats.first.arrows;
+  set arrows(List<ChessArrow> value) => beats.first.arrows = value;
+
+  List<SquareMark> get squares => beats.first.squares;
+  set squares(List<SquareMark> value) => beats.first.squares = value;
+
+  /// The last beat — where a new sentence about this position picks up from,
+  /// and what a part opened on this position as a fork carries forward
+  /// ([rootLike]).
+  NodeBeat get lastBeat => beats.last;
+
+  /// A fresh beat, after the last one or after [after] — the index of an
+  /// existing beat, when the trainer is not simply adding to the end.
+  ///
+  /// [keepMarks] copies the arrows and squares of the beat it follows — its
+  /// own lists, never shared — so a new sentence starts drawing what the
+  /// author was just looking at rather than a blank board (D16 B of
+  /// `docs/PLAN-PRIPREMA.md`).
+  NodeBeat addBeat({int? after, bool keepMarks = false}) {
+    final at = after ?? beats.length - 1;
+    final beat = keepMarks
+        ? NodeBeat(
+            arrows: [...beats[at].arrows], squares: [...beats[at].squares])
+        : NodeBeat();
+    beats.insert(at + 1, beat);
+    return beat;
+  }
+
+  /// Drops the beat at [index]. Answers false, and removes nothing, for the
+  /// only beat a node has.
+  bool removeBeatAt(int index) {
+    if (beats.length <= 1 || index < 0 || index >= beats.length) return false;
+    beats.removeAt(index);
+    return true;
+  }
+
+  /// A node on [fen] carrying copies of [beats] — its own fresh lists — with
+  /// no parent and no children.
+  ///
+  /// **The one way, outside this file and `lib/move_tree.dart`, to put
+  /// another node's beats onto a node.** Every place the source guard names
+  /// (`node_beats_test.dart`, „one rule, one home") calls this instead of a
+  /// literal `arrows:`/`squares:` handover, because a node built by hand
+  /// forgets every beat after the first.
+  factory AnalysisNode.copyOf({
+    required String fen,
+    required Iterable<NodeBeat> beats,
+    String? id,
+    String? moveSan,
+    String? moveUci,
+    String? nag,
+    double? clockSeconds,
+    String? timeControl,
+    AnalysisNode? parent,
+  }) {
+    final node = AnalysisNode(
+      id: id,
+      fen: fen,
+      moveSan: moveSan,
+      moveUci: moveUci,
+      nag: nag,
+      clockSeconds: clockSeconds,
+      timeControl: timeControl,
+      parent: parent,
+    );
+    node.beats
+      ..clear()
+      ..addAll(beats.map((b) => b.copy()));
+    return node;
+  }
+
+  /// A root made like [node]'s position: its last beat's marks, copied, and
+  /// none of its words — what a part opened on a fork carries today (D4).
+  ///
+  /// [keepWords] true keeps every beat as it was, comments included — for the
+  /// one caller for whom nothing has read the sentence aloud yet, because
+  /// there is no part before it.
+  factory AnalysisNode.rootLike(AnalysisNode node, {bool keepWords = false}) {
+    if (keepWords) {
+      return AnalysisNode.copyOf(fen: node.fen, beats: node.beats);
+    }
+    final last = node.lastBeat;
+    return AnalysisNode.copyOf(
+      fen: node.fen,
+      beats: [NodeBeat(arrows: last.arrows, squares: last.squares)],
+    );
+  }
 
   /// The stored list as the dialect writes it: `Gd1h5,Rf1c4`.
   ///
@@ -185,6 +282,20 @@ class AnalysisNode {
       if (arrows.isNotEmpty) 'arrows': arrows.map((a) => a.toString()).toList(),
       if (squares.isNotEmpty)
         'squares': squares.map((s) => s.toString()).toList(),
+      // The first beat is `comment`/`arrows`/`squares`, as it always was, so
+      // a position with one beat is the JSON it always was; the rest, when
+      // there are any, ride beside it rather than replacing those fields.
+      if (beats.length > 1)
+        'beats': [
+          for (final b in beats.skip(1))
+            {
+              'comment': b.comment,
+              if (b.arrows.isNotEmpty)
+                'arrows': b.arrows.map((a) => a.toString()).toList(),
+              if (b.squares.isNotEmpty)
+                'squares': b.squares.map((s) => s.toString()).toList(),
+            },
+        ],
       if (clockSeconds != null) 'clock': clockSeconds,
       if (timeControl != null) 'timeControl': timeControl,
       'children': children.map((c) => c.toJson()).toList(),
@@ -195,6 +306,7 @@ class AnalysisNode {
   /// child's [parent] back-reference as it goes.
   factory AnalysisNode.fromJson(Map<String, dynamic> json,
       {AnalysisNode? parent}) {
+    final beatsJson = (json['beats'] as List?) ?? const [];
     final node = AnalysisNode(
       fen: json['fen'] as String,
       moveSan: json['moveSan'] as String?,
@@ -206,6 +318,14 @@ class AnalysisNode {
       // saved tree must not develop its own idea of that.
       arrows: MoveTree.parsePgnArrows('[%cal ${_asCsv(json['arrows'])}]'),
       squares: MoveTree.parsePgnSquares('[%csl ${_asCsv(json['squares'])}]'),
+      more: [
+        for (final b in beatsJson.whereType<Map>())
+          NodeBeat(
+            comment: b['comment'] as String? ?? '',
+            arrows: MoveTree.parsePgnArrows('[%cal ${_asCsv(b['arrows'])}]'),
+            squares: MoveTree.parsePgnSquares('[%csl ${_asCsv(b['squares'])}]'),
+          ),
+      ],
       parent: parent,
       clockSeconds: (json['clock'] as num?)?.toDouble(),
       timeControl: json['timeControl'] as String?,

@@ -456,12 +456,22 @@ Map<String, List<({int part, String move})>> partsStartingIn(
   final map = partMapOf(draft);
   final open = draft.selected;
   // The film's own walk of one part — `filmBeatsOf` walks each part this way.
+  // One stop per *sentence* now (D4 of `docs/PLAN-PRIPREMA.md`), so the
+  // position `e.from!.beat` names is found by its own first sentence rather
+  // than by indexing the list positionally.
   final beats = beatsOf(draft.section.root, draft.section.root);
   final out = <String, List<({int part, String move})>>{};
   for (final e in map.entries) {
     if (e.entry != PartEntry.returns || e.from!.part != open) continue;
-    if (e.from!.beat >= beats.length) continue;
-    final node = beats[e.from!.beat].node;
+    TutorialBeat? at;
+    for (final b in beats) {
+      if (b.index == e.from!.beat && b.at == 0) {
+        at = b;
+        break;
+      }
+    }
+    if (at == null) continue;
+    final node = at.node;
     final first = e.moves.split(' ');
     // „18... h6" is two tokens and „19. Rxe5" too; a part that is only a
     // position has no move to name.

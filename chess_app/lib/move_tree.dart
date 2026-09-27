@@ -47,12 +47,45 @@ const Map<int, String> _numericNags = {
   6: '?!',
 };
 
+/// A sentence and the marks that stand while it is said — D4 of
+/// `docs/PLAN-PRIPREMA.md`. A position may hold several: today a trainer's
+/// second comment on a move silently replaced the first, and a beat is what
+/// lets both stand, in order, each with its own arrows and squares rather than
+/// the union of everything ever drawn there.
+///
+/// Lives beside [ChessArrow] and [SquareMark], whose dialect it is written
+/// in: a beat's [arrows] and [squares] are exactly what those two already
+/// meant, just no longer pinned to being the *only* set a position may carry.
+class NodeBeat {
+  String comment;
+  List<ChessArrow> arrows;
+  List<SquareMark> squares;
+
+  NodeBeat({
+    this.comment = '',
+    List<ChessArrow>? arrows,
+    List<SquareMark>? squares,
+  })  : arrows = arrows ?? [],
+        squares = squares ?? [];
+
+  /// No words, no arrow, no square — nothing for a screen to show or a film
+  /// to stop for.
+  bool get isEmpty => comment.isEmpty && arrows.isEmpty && squares.isEmpty;
+
+  /// A copy with lists of its own, so editing it never reaches back into
+  /// whatever it was copied from.
+  NodeBeat copy() => NodeBeat(
+        comment: comment,
+        arrows: [...arrows],
+        squares: [...squares],
+      );
+}
+
 class MoveNode {
   final String san;
   final String fen;
   final String from;
   final String to;
-  String comment;
 
   /// `!`, `??`, `!?` — the assessment written on the move.
   ///
@@ -79,21 +112,67 @@ class MoveNode {
 
   MoveNode? parent;
   final List<MoveNode> children = [];
-  List<ChessArrow> arrows = [];
-  List<SquareMark> squares = [];
+
+  /// The sentences on this move, and the marks that stood with each — never
+  /// empty. [comment], [arrows] and [squares] read and write the first, so
+  /// every reader that knows nothing of beats keeps working on exactly what
+  /// it always read.
+  final List<NodeBeat> beats;
 
   MoveNode({
     required this.san,
     required this.fen,
     required this.from,
     required this.to,
-    this.comment = '',
+    String comment = '',
     this.nag,
     this.parent,
     List<ChessArrow>? arrows,
     List<SquareMark>? squares,
-  })  : arrows = arrows ?? [],
-        squares = squares ?? [];
+    List<NodeBeat>? more,
+  }) : beats = [
+          NodeBeat(comment: comment, arrows: arrows, squares: squares),
+          ...?more,
+        ];
+
+  String get comment => beats.first.comment;
+  set comment(String value) => beats.first.comment = value;
+
+  List<ChessArrow> get arrows => beats.first.arrows;
+  set arrows(List<ChessArrow> value) => beats.first.arrows = value;
+
+  List<SquareMark> get squares => beats.first.squares;
+  set squares(List<SquareMark> value) => beats.first.squares = value;
+
+  /// The last beat — where a new sentence about this position picks up from,
+  /// and what a part opened on this position as a fork carries forward.
+  NodeBeat get lastBeat => beats.last;
+
+  /// A fresh beat, after the last one or after [after] — the index of an
+  /// existing beat, when the trainer is not simply adding to the end.
+  ///
+  /// [keepMarks] copies the arrows and squares of the beat it follows — its
+  /// own lists, never shared — so a new sentence starts drawing what the
+  /// author was just looking at rather than a blank board (D16 B of
+  /// `docs/PLAN-PRIPREMA.md`).
+  NodeBeat addBeat({int? after, bool keepMarks = false}) {
+    final at = after ?? beats.length - 1;
+    final beat = keepMarks
+        ? NodeBeat(
+            arrows: [...beats[at].arrows], squares: [...beats[at].squares])
+        : NodeBeat();
+    beats.insert(at + 1, beat);
+    return beat;
+  }
+
+  /// Drops the beat at [index]. Answers false, and removes nothing, for the
+  /// only beat a node has — a position always has at least one, even if it
+  /// says nothing.
+  bool removeBeatAt(int index) {
+    if (beats.length <= 1 || index < 0 || index >= beats.length) return false;
+    beats.removeAt(index);
+    return true;
+  }
 
   @override
   String toString() {
@@ -284,7 +363,8 @@ class MoveTree {
     _writePgnNode(mainChild, sb, nextShowMoveNumber);
   }
 
-  /// Writes one node's `{ words [%cal …] [%csl …] }`, or nothing.
+  /// Writes one node's beats as successive `{ words [%cal …] [%csl …] }`
+  /// groups, in order, or nothing when it has none to say.
   ///
   /// One function rather than the two near-identical blocks that used to sit in
   /// [_writePgnNode] — one for the main line and one for variations. They were
@@ -292,17 +372,35 @@ class MoveTree {
   /// adding `[%csl]` to the first copy and not the second would have written
   /// squares on the main line and silently dropped them from every sideline,
   /// which is the sort of fault that only shows up in somebody's lesson.
+  ///
+  /// **An empty beat is not written**, and the clock — which is the node's,
+  /// not any one beat's — is written once, in the last group that is written
+  /// at all; when every beat is empty and there is a clock, that group is the
+  /// clock alone. A tree with one beat to a position is written byte for byte
+  /// as it always was, because that is exactly the single-group case.
   static void _writeComment(MoveNode node, StringBuffer sb) {
-    final parts = <String>[];
-    if (node.comment.isNotEmpty) parts.add(node.comment);
-    if (node.arrows.isNotEmpty) {
-      parts.add('[%cal ${node.arrows.map((a) => a.toString()).join(',')}]');
+    final said = node.beats.where((b) => !b.isEmpty).toList();
+    final clock = node.clockSeconds;
+    if (said.isEmpty) {
+      if (clock == null) return;
+      sb.write('{ ${pgnClock(clock)} } ');
+      return;
     }
-    if (node.squares.isNotEmpty) {
-      parts.add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
+    for (var i = 0; i < said.length; i++) {
+      final beat = said[i];
+      final parts = <String>[];
+      if (beat.comment.isNotEmpty) parts.add(beat.comment);
+      if (beat.arrows.isNotEmpty) {
+        parts.add('[%cal ${beat.arrows.map((a) => a.toString()).join(',')}]');
+      }
+      if (beat.squares.isNotEmpty) {
+        parts.add('[%csl ${beat.squares.map((s) => s.toString()).join(',')}]');
+      }
+      if (i == said.length - 1 && clock != null) {
+        parts.add(pgnClock(clock));
+      }
+      sb.write('{ ${parts.join(' ')} } ');
     }
-    if (parts.isEmpty) return;
-    sb.write('{ ${parts.join(' ')} } ');
   }
 
   static List<ChessArrow> parsePgnArrows(String commentText) {
@@ -552,11 +650,27 @@ class MoveTree {
       } else if (token == '}') {
         collectingComment = false;
         final commentStr = currentCommentTokens.join(' ').trim();
-        currentNode.arrows = parsePgnArrows(commentStr);
-        currentNode.squares = parsePgnSquares(commentStr);
-        currentNode.clockSeconds =
-            parsePgnClock(commentStr) ?? currentNode.clockSeconds;
-        currentNode.comment = cleanPgnComment(commentStr);
+        final arrows = parsePgnArrows(commentStr);
+        final squares = parsePgnSquares(commentStr);
+        final clock = parsePgnClock(commentStr);
+        final comment = cleanPgnComment(commentStr);
+        // The clock is the node's, not any one beat's, and it can arrive on a
+        // comment that says nothing else at all — the online exporters write
+        // one after every move.
+        if (clock != null) currentNode.clockSeconds = clock;
+        // A comment that holds only commands is not a beat (T3): nothing here
+        // becomes a sentence, so the node's beats are left as they were.
+        if (comment.isNotEmpty || arrows.isNotEmpty || squares.isNotEmpty) {
+          // The first `{ … }` on a move fills the beat every node already
+          // has; a second becomes a beat of its own — two comments on one
+          // move are two beats, not one replacing the other.
+          final beat = currentNode.beats.first.isEmpty
+              ? currentNode.beats.first
+              : currentNode.addBeat();
+          beat.comment = comment;
+          beat.arrows = arrows;
+          beat.squares = squares;
+        }
         continue;
       }
 

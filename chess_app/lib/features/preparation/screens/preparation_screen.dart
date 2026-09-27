@@ -85,6 +85,15 @@ import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 
 const _startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+/// Whether [a] and [b] draw exactly the same arrows and squares — asked when
+/// opening another sentence, to tell whether the board actually changed
+/// (D16 E of `docs/PLAN-PRIPREMA.md`).
+bool _sameMarks(NodeBeat a, NodeBeat b) =>
+    a.arrows.map((x) => x.toString()).join(',') ==
+        b.arrows.map((x) => x.toString()).join(',') &&
+    a.squares.map((x) => x.toString()).join(',') ==
+        b.squares.map((x) => x.toString()).join(',');
+
 class PreparationScreen extends StatefulWidget {
   const PreparationScreen({
     super.key,
@@ -166,6 +175,17 @@ class _PreparationScreenState extends State<PreparationScreen>
 
   late AnalysisNode _rootNode;
   late AnalysisNode _currentNode;
+
+  /// Which of [_currentNode]'s beats is open — D4/D16 of
+  /// `docs/PLAN-PRIPREMA.md`. Reset to 0 wherever the cursor moves to a
+  /// different node.
+  int _currentAt = 0;
+
+  /// The cursor's open sentence — what the board draws and what a drawn mark
+  /// or a recording's `arrow_drawn` goes to.
+  NodeBeat get _openBeat =>
+      _currentNode.beats[_currentAt.clamp(0, _currentNode.beats.length - 1)];
+
   PlayerColor _orientation = PlayerColor.white;
 
   // ── the Library's drawer (phase 2) ───────────────────────────────────
@@ -288,11 +308,72 @@ class _PreparationScreenState extends State<PreparationScreen>
   void _jumpTo(AnalysisNode node) {
     setState(() {
       _currentNode = node;
+      _currentAt = 0;
       _boardController.loadFen(node.fen);
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(node.fen);
     _stampMoveLanded(node);
+  }
+
+  /// Opens sentence [at] of [node] — the ‹ › that walk a position's
+  /// sentences. Not a move and not a new part, so it stamps `arrow_drawn`
+  /// when the sentence it opens draws something different from the one it
+  /// left (D16 E of `docs/PLAN-PRIPREMA.md`).
+  void _selectBeat(AnalysisNode node, int at) {
+    final before = _openBeat;
+    setState(() {
+      _currentNode = node;
+      _currentAt = at;
+      _annotation.cancelPending();
+    });
+    if (!_sameMarks(before, _openBeat)) _stampArrowChange();
+  }
+
+  /// A fresh sentence after the open one, keeping its marks, and opens it.
+  void _addSentence() {
+    final node = _currentNode;
+    final at = _currentAt.clamp(0, node.beats.length - 1);
+    setState(() {
+      node.addBeat(after: at, keepMarks: true);
+      _currentAt = at + 1;
+    });
+  }
+
+  /// Drops sentence [at] of [node], with an „Undo" — Preparation has no
+  /// other undo (D16 C). False, and nothing removed, for a position's only
+  /// sentence.
+  bool _removeSentence(AnalysisNode node, int at) {
+    final removed = node.beats[at].copy();
+    final before = _openBeat;
+    if (!node.removeBeatAt(at)) return false;
+    setState(() {
+      if (identical(node, _currentNode)) {
+        _currentAt = at == 0 ? 0 : at - 1;
+      }
+    });
+    // What is drawn changed as surely as if the trainer had cleared it, and a
+    // take must see it (the recording's invariant).
+    if (!_sameMarks(before, _openBeat)) _stampArrowChange();
+    AppFeedback.show(
+      context,
+      () => SnackBar(
+        content: const Text('Sentence removed.'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            if (!mounted) return;
+            final shown = _openBeat;
+            setState(() {
+              node.beats.insert(at, removed);
+              if (identical(node, _currentNode)) _currentAt = at;
+            });
+            if (!_sameMarks(shown, _openBeat)) _stampArrowChange();
+          },
+        ),
+      ),
+    );
+    return true;
   }
 
   void _playMove(String from, String to, String promotion) {
@@ -313,6 +394,7 @@ class _PreparationScreenState extends State<PreparationScreen>
         san: played.san,
         uci: played.uci,
       );
+      _currentAt = 0;
       _boardController.loadFen(played.fen);
       _annotation.cancelPending();
     });
@@ -344,6 +426,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       parent.removeChild(node);
       if (cursorFallsUnder) {
         _currentNode = parent;
+        _currentAt = 0;
         _boardController.loadFen(parent.fen);
         cursorMoved = true;
       }
@@ -383,6 +466,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _activeParts = null;
       _rootNode = root;
       _currentNode = root;
+      _currentAt = 0;
       _boardController.loadFen(root.fen);
       _annotation.cancelPending();
     });
@@ -415,6 +499,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _activePartIndex = index;
       _rootNode = read.root;
       _currentNode = read.root;
+      _currentAt = 0;
       _boardController.loadFen(read.root.fen);
       _annotation.cancelPending();
     });
@@ -790,8 +875,9 @@ class _PreparationScreenState extends State<PreparationScreen>
   /// The standard start with no move and no mark on it.
   bool get _boardIsBare =>
       _rootNode.children.isEmpty &&
-      _rootNode.arrows.isEmpty &&
-      _rootNode.squares.isEmpty &&
+      // Every sentence, not the first: a board whose only mark is on a later
+      // one is not bare (phase 6).
+      _rootNode.beats.every((b) => b.arrows.isEmpty && b.squares.isEmpty) &&
       _rootNode.fen == _startFen;
 
   Future<void> _saveAsAnalysis() async {
@@ -968,8 +1054,8 @@ class _PreparationScreenState extends State<PreparationScreen>
     // thing telling the trainer their tap was heard.
     final changed = _annotation.tap(
       square,
-      arrows: _currentNode.arrows,
-      squares: _currentNode.squares,
+      arrows: _openBeat.arrows,
+      squares: _openBeat.squares,
       asRange:
           _annotation.rangeMode || HardwareKeyboard.instance.isShiftPressed,
     );
@@ -979,8 +1065,8 @@ class _PreparationScreenState extends State<PreparationScreen>
 
   void _clearMarks() {
     final changed = _annotation.clearMarks(
-      arrows: _currentNode.arrows,
-      squares: _currentNode.squares,
+      arrows: _openBeat.arrows,
+      squares: _openBeat.squares,
     );
     if (changed) {
       setState(() {});
@@ -989,8 +1075,8 @@ class _PreparationScreenState extends State<PreparationScreen>
   }
 
   void _undoMark() {
-    final squares = _currentNode.squares;
-    final arrows = _currentNode.arrows;
+    final squares = _openBeat.squares;
+    final arrows = _openBeat.arrows;
     final squareFirst = _annotation.mode == AnnotationMode.square;
     var changed = squareFirst
         ? _annotation.undoLastSquare(squares)
@@ -1081,11 +1167,11 @@ class _PreparationScreenState extends State<PreparationScreen>
   /// player never has to guess which one changed.
   void _stampArrowChange() => _markLesson('arrow_drawn', {
         'arrows': [
-          for (final a in _currentNode.arrows)
+          for (final a in _openBeat.arrows)
             {'from': a.from, 'to': a.to, 'color': a.colorCode},
         ],
         'squares': [
-          for (final s in _currentNode.squares)
+          for (final s in _openBeat.squares)
             {'square': s.square, 'color': s.colorCode},
         ],
       });
@@ -1526,8 +1612,8 @@ class _PreparationScreenState extends State<PreparationScreen>
         isAllowedToMove: true,
         isDrawingMode: _annotation.isDrawing,
         drawingStartSquare: _annotation.pendingFrom,
-        arrows: _currentNode.arrows,
-        squares: _currentNode.squares,
+        arrows: _openBeat.arrows,
+        squares: _openBeat.squares,
         engineArrows: _engineArrows(),
         lastMoveFrom: _lastMoveFrom,
         lastMoveTo: _lastMoveTo,
@@ -1604,24 +1690,74 @@ class _PreparationScreenState extends State<PreparationScreen>
     );
   }
 
-  String _commentLabel(AnalysisNode node) => node.isRoot
-      ? 'Comment (select a move)'
-      : 'Comment for ${node.moveNumberLabel}${node.moveSan}';
+  String _commentLabel(AnalysisNode node, int at, int of) {
+    final base = node.isRoot
+        ? 'Comment (select a move)'
+        : 'Comment for ${node.moveNumberLabel}${node.moveSan}';
+    return of > 1 ? '$base · sentence ${at + 1} of $of' : base;
+  }
 
   Widget _commentPanel() {
     final node = _currentNode;
+    final isRoot = node.isRoot;
+    final at = _currentAt.clamp(0, node.beats.length - 1);
+    final of = node.beats.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(_commentLabel(node), style: AppText.bodyBold),
+        Row(
+          children: [
+            Expanded(
+              child: Text(_commentLabel(node, at, of), style: AppText.bodyBold),
+            ),
+            // Nothing is added on the starting position, whose comment is
+            // switched off here as today (D16 E).
+            if (!isRoot && of > 1) ...[
+              IconButton(
+                key: const Key('prep-sentence-prev'),
+                icon: const Icon(Icons.chevron_left),
+                tooltip: 'Previous sentence',
+                visualDensity: VisualDensity.compact,
+                onPressed: at > 0 ? () => _selectBeat(node, at - 1) : null,
+              ),
+              IconButton(
+                key: const Key('prep-sentence-next'),
+                icon: const Icon(Icons.chevron_right),
+                tooltip: 'Next sentence',
+                visualDensity: VisualDensity.compact,
+                onPressed: at < of - 1 ? () => _selectBeat(node, at + 1) : null,
+              ),
+            ],
+          ],
+        ),
         const SizedBox(height: 4),
         _CommentField(
-          key: ValueKey('prep-comment-${node.id}'),
+          key: ObjectKey(node.beats[at]),
           node: node,
-          enabled: !node.isRoot,
-          onChanged: (text) => setState(() => node.comment = text),
+          at: at,
+          enabled: !isRoot,
+          onChanged: (text) => setState(() => node.beats[at].comment = text),
         ),
+        if (!isRoot) ...[
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            children: [
+              OutlinedButton(
+                key: const Key('prep-add-sentence'),
+                onPressed: _addSentence,
+                child: const Text('Add a sentence here'),
+              ),
+              if (of > 1)
+                OutlinedButton(
+                  key: const Key('prep-remove-sentence'),
+                  onPressed: () => _removeSentence(node, at),
+                  child: const Text('Remove this sentence'),
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -1932,11 +2068,15 @@ class _CommentField extends StatefulWidget {
   const _CommentField({
     super.key,
     required this.node,
+    required this.at,
     required this.enabled,
     required this.onChanged,
   });
 
   final AnalysisNode node;
+
+  /// Which of [node]'s beats this field is about.
+  final int at;
   final bool enabled;
   final ValueChanged<String> onChanged;
 
@@ -1946,7 +2086,7 @@ class _CommentField extends StatefulWidget {
 
 class _CommentFieldState extends State<_CommentField> {
   late final TextEditingController _controller =
-      TextEditingController(text: widget.node.comment);
+      TextEditingController(text: widget.node.beats[widget.at].comment);
 
   @override
   void dispose() {

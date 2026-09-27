@@ -197,35 +197,52 @@ class PgnExporterService {
     }
   }
 
-  /// One node's `{ words [%cal …] [%csl …] }`, or null when it has nothing to
-  /// say.
+  /// One node's beats as successive `{ words [%cal …] [%csl …] }` groups, or
+  /// null when it has nothing to say.
   ///
   /// One builder rather than one per call site: the root's note and a move's
   /// note must be written in the same dialect, since both are read back by the
-  /// same parser.
+  /// same parser. Mirrors `MoveTree._writeComment` exactly — the two are read
+  /// back by the same parser and must agree on it.
+  ///
+  /// **An empty beat is not written**, and the clock — the node's, not any
+  /// one beat's — is written once, in the last group written at all. A
+  /// position with one beat is written exactly as it always was, because
+  /// that is the single-group case.
   static String? _commentText(AnalysisNode node) {
-    final parts = <String>[];
     // No `[%eval …]` any more. A node stopped carrying the engine's number on
     // 4.9.2026, and an export writes what the tree holds — the reader's own
     // comment, the NAG above, and what they drew.
-    if (node.comment.isNotEmpty) {
-      parts.add(node.comment);
-    }
-    // The same two tags `MoveTree` writes, in the same order. A studio export is
-    // read back by `MoveTree.parsePgn`, so if these two disagreed about the
-    // dialect an arrow would survive one direction and not the other.
-    if (node.arrows.isNotEmpty) {
-      parts.add('[%cal ${node.arrows.map((a) => a.toString()).join(',')}]');
-    }
-    if (node.squares.isNotEmpty) {
-      parts.add('[%csl ${node.squares.map((s) => s.toString()).join(',')}]');
-    }
-    // The clock read in from an online game, written back in its own command
-    // so the next read finds it (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3).
+    final said = node.beats.where((b) => !b.isEmpty).toList();
     final clock = node.clockSeconds;
-    if (clock != null) parts.add(MoveTree.pgnClock(clock));
-    if (parts.isEmpty) return null;
-    return '{ ${parts.join(" ")} }';
+    if (said.isEmpty) {
+      if (clock == null) return null;
+      return '{ ${MoveTree.pgnClock(clock)} }';
+    }
+    final groups = <String>[];
+    for (var i = 0; i < said.length; i++) {
+      final beat = said[i];
+      final parts = <String>[];
+      if (beat.comment.isNotEmpty) parts.add(beat.comment);
+      // The same two tags `MoveTree` writes, in the same order. A studio
+      // export is read back by `MoveTree.parsePgn`, so if these two
+      // disagreed about the dialect an arrow would survive one direction and
+      // not the other.
+      if (beat.arrows.isNotEmpty) {
+        parts.add('[%cal ${beat.arrows.map((a) => a.toString()).join(',')}]');
+      }
+      if (beat.squares.isNotEmpty) {
+        parts.add('[%csl ${beat.squares.map((s) => s.toString()).join(',')}]');
+      }
+      // The clock read in from an online game, written back in its own
+      // command so the next read finds it
+      // (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3).
+      if (i == said.length - 1 && clock != null) {
+        parts.add(MoveTree.pgnClock(clock));
+      }
+      groups.add('{ ${parts.join(" ")} }');
+    }
+    return groups.join(' ');
   }
 
   static int _extractMoveNumberFromFen(String fen) {
