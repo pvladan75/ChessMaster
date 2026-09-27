@@ -858,6 +858,17 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     final rec = recording!;
     final panelVisible = _transcriptPanelVisible;
     final isWide = Breakpoints.isWide(context);
+    final sideways = LandscapeBoardLayout.applies(context);
+    // On a phone a correction has the screen to itself. The keyboard takes
+    // half of it upright and two thirds sideways, and what it leaves was
+    // shared between the board, the sheet and the controls — the sheet's
+    // list got nothing, so the owner typed into a sentence he could not see
+    // (27.9.2026). Decided by the pencil, not by the keyboard: a tree that
+    // changed shape as the keyboard came up would rebuild the field being
+    // typed into and drop its focus.
+    final editing = _editingIndex;
+    final correctsAlone =
+        editing != null && _transcript != null && (sideways || !isWide);
 
     return Scaffold(
       appBar: AppBar(
@@ -930,122 +941,147 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             LogicalKeyboardKey.space:
                 maxDurationMs > 0 ? _togglePlayPause : null,
           },
-          child: LandscapeBoardLayout.applies(context)
-              ? LandscapeBoardLayout(
-                  board: _buildBoard,
-                  // Empty unless a transcript is offered — the room's own
-                  // replay still has nothing else to read beside its controls.
-                  panels: panelVisible
-                      ? _buildTranscriptPanel()
-                      : const SizedBox.shrink(),
-                  footer: [_buildControlDeck()],
-                )
-              : panelVisible && isWide
-                  // From 840 wide: a column right of the board, which never
-                  // shrinks it — the board is bound by height at every
-                  // desktop size, so the row takes width the board never had.
-                  // The control deck stays full width, under both, exactly as
-                  // it is without the panel: nested inside the narrower board
-                  // column it wrapped its caption onto a second line, which
-                  // cost the board 16 px of height it never gave up before.
-                  ? Column(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: Center(
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.all(AppSpacing.md),
-                                    child: AspectRatio(
-                                      aspectRatio: 1.0,
-                                      child: LayoutBuilder(
-                                        builder: (ctx, constraints) =>
-                                            _buildBoard(constraints.maxWidth),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              SizedBox(
-                                width: LandscapeBoardLayout.minPanelWidth,
-                                child: _buildTranscriptPanel(),
-                              ),
-                            ],
-                          ),
-                        ),
-                        _buildControlDeck(),
-                      ],
+          child: correctsAlone
+              ? _buildCorrectionPage(editing)
+              : sideways
+                  ? LandscapeBoardLayout(
+                      board: _buildBoard,
+                      // Empty unless a transcript is offered — the room's own
+                      // replay still has nothing else to read beside its controls.
+                      panels: panelVisible
+                          ? _buildTranscriptPanel()
+                          : const SizedBox.shrink(),
+                      footer: [_buildControlDeck()],
                     )
-                  : Column(
-                      children: [
-                        // The board's area, and over its lower half the
-                        // sheet when it is open — a layer of this area and
-                        // not of the screen, so the control deck under it,
-                        // which holds play and the button that closes the
-                        // sheet, is never covered. Not a route or a Scaffold
-                        // bottom sheet either: their scrim covers the whole
-                        // screen even when non-modal. (Grading, 27.9.2026:
-                        // the first build laid the sheet over the deck, and
-                        // a rendered phone had no way out of it.)
-                        Expanded(
-                          child: LayoutBuilder(
-                            builder: (ctx, area) => Stack(
-                              children: [
-                                // Open, the sheet takes the lower 55% and
-                                // the board shrinks to the rest, whole —
-                                // a smaller board beats half of one.
-                                Positioned(
-                                  left: 0,
-                                  right: 0,
-                                  top: 0,
-                                  height: panelVisible && _transcriptSheetOpen
-                                      ? area.maxHeight * 0.45
-                                      : area.maxHeight,
-                                  child: Center(
-                                    child: Padding(
-                                      padding:
-                                          const EdgeInsets.all(AppSpacing.md),
-                                      child: AspectRatio(
-                                        aspectRatio: 1.0,
-                                        child: LayoutBuilder(
-                                          builder: (ctx, constraints) =>
-                                              _buildBoard(constraints.maxWidth),
+                  : panelVisible && isWide
+                      // From 840 wide: a column right of the board, which never
+                      // shrinks it — the board is bound by height at every
+                      // desktop size, so the row takes width the board never had.
+                      // The control deck stays full width, under both, exactly as
+                      // it is without the panel: nested inside the narrower board
+                      // column it wrapped its caption onto a second line, which
+                      // cost the board 16 px of height it never gave up before.
+                      ? Column(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(
+                                    child: Center(
+                                      child: Padding(
+                                        padding:
+                                            const EdgeInsets.all(AppSpacing.md),
+                                        child: AspectRatio(
+                                          aspectRatio: 1.0,
+                                          child: LayoutBuilder(
+                                            builder: (ctx, constraints) =>
+                                                _buildBoard(
+                                                    constraints.maxWidth),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                if (panelVisible && _transcriptSheetOpen)
-                                  Positioned(
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    height: area.maxHeight * 0.55,
-                                    child: Material(
-                                      elevation: 8,
-                                      child: _buildTranscriptPanel(),
-                                    ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  SizedBox(
+                                    width: LandscapeBoardLayout.minPanelWidth,
+                                    child: _buildTranscriptPanel(),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
+                            _buildControlDeck(),
+                          ],
+                        )
+                      // Never laid out shorter than [_uprightMinHeight]: the
+                      // keyboard is still on its way down for a moment after
+                      // a correction is saved, and the controls alone are
+                      // taller than what it leaves. Scrolling for that moment
+                      // is the lesser cost — the rule of
+                      // `LandscapeBoardLayout.minHeight`.
+                      : _atLeastUprightHeight(Column(
+                          children: [
+                            // The board's area, and over its lower half the
+                            // sheet when it is open — a layer of this area and
+                            // not of the screen, so the control deck under it,
+                            // which holds play and the button that closes the
+                            // sheet, is never covered. Not a route or a Scaffold
+                            // bottom sheet either: their scrim covers the whole
+                            // screen even when non-modal. (Grading, 27.9.2026:
+                            // the first build laid the sheet over the deck, and
+                            // a rendered phone had no way out of it.)
+                            Expanded(
+                              child: LayoutBuilder(
+                                builder: (ctx, area) => Stack(
+                                  children: [
+                                    // Open, the sheet takes the lower 55% and
+                                    // the board shrinks to the rest, whole —
+                                    // a smaller board beats half of one.
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      top: 0,
+                                      height:
+                                          panelVisible && _transcriptSheetOpen
+                                              ? area.maxHeight * 0.45
+                                              : area.maxHeight,
+                                      child: Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(
+                                              AppSpacing.md),
+                                          child: AspectRatio(
+                                            aspectRatio: 1.0,
+                                            child: LayoutBuilder(
+                                              builder: (ctx, constraints) =>
+                                                  _buildBoard(
+                                                      constraints.maxWidth),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (panelVisible && _transcriptSheetOpen)
+                                      Positioned(
+                                        left: 0,
+                                        right: 0,
+                                        bottom: 0,
+                                        height: area.maxHeight * 0.55,
+                                        child: Material(
+                                          elevation: 8,
+                                          child: _buildTranscriptPanel(),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
 
-                        // Player Control Deck — with the sheet's own
-                        // opener, upright below 840, when a transcript
-                        // is offered.
-                        _buildControlDeck(
-                            showTranscriptButton: panelVisible && !isWide),
-                      ],
-                    ),
+                            // Player Control Deck — with the sheet's own
+                            // opener, upright below 840, when a transcript
+                            // is offered.
+                            _buildControlDeck(
+                                showTranscriptButton: panelVisible && !isWide),
+                          ],
+                        )),
         ),
       ),
     );
   }
+
+  /// The least height the upright player is laid out in; under it, it scrolls.
+  static const double _uprightMinHeight = 480;
+
+  Widget _atLeastUprightHeight(Widget player) => LayoutBuilder(
+        builder: (context, area) => SingleChildScrollView(
+          child: SizedBox(
+            height: area.maxHeight < _uprightMinHeight
+                ? _uprightMinHeight
+                : area.maxHeight,
+            child: player,
+          ),
+        ),
+      );
 
   Widget _buildBoard(double side) {
     return BoardWithCoordinates(
@@ -1257,30 +1293,122 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        TextField(
-          key: Key('transcript-field-$index'),
-          controller: _editController,
-          maxLines: null,
-          style: AppText.body,
-        ),
+        _correctionField(index),
         const SizedBox(height: AppSpacing.xs),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextButton(
-              key: Key('transcript-cancel-$index'),
-              onPressed: _cancelEdit,
-              child: const Text('Cancel'),
-            ),
+            _correctionCancel(index),
             const SizedBox(width: AppSpacing.sm),
-            ElevatedButton(
-              key: Key('transcript-save-$index'),
-              onPressed: () => _saveEdit(index),
-              child: const Text('Save'),
-            ),
+            _correctionSave(index),
           ],
         ),
       ],
+    );
+  }
+
+  Widget _correctionField(int index, {bool alone = false}) => TextField(
+        key: Key('transcript-field-$index'),
+        controller: _editController,
+        // Alone on the screen it is what the pencil was tapped for, so the
+        // keyboard opens on it, and it takes the height it is given and
+        // scrolls inside it — growing with its text, it would push Save
+        // under the keyboard.
+        autofocus: alone,
+        maxLines: null,
+        expands: alone,
+        textAlignVertical: alone ? TextAlignVertical.top : null,
+        style: AppText.body,
+        decoration: alone
+            ? const InputDecoration(border: OutlineInputBorder())
+            : const InputDecoration(),
+      );
+
+  Widget _correctionCancel(int index) => TextButton(
+        key: Key('transcript-cancel-$index'),
+        onPressed: _cancelEdit,
+        child: const Text('Cancel'),
+      );
+
+  Widget _correctionSave(int index) => ElevatedButton(
+        key: Key('transcript-save-$index'),
+        onPressed: () => _saveEdit(index),
+        child: const Text('Save'),
+      );
+
+  /// Below this much height — a phone on its side with the keyboard up has
+  /// about 120 — the buttons stand beside the field and the two lines over it
+  /// are left out: under it they would be behind the keyboard.
+  static const double _correctionShort = 220;
+
+  /// A sentence being corrected on a phone: the field, what was heard, Save
+  /// and Cancel, and nothing else — no board, no sheet, no controls. The
+  /// field has what the buttons leave, so the buttons are on the screen at
+  /// every height. The player is as it was the moment either is pressed.
+  Widget _buildCorrectionPage(int index) {
+    final sentence = _transcript!.sentences[index];
+    return LayoutBuilder(
+      builder: (context, area) {
+        final short = area.maxHeight < _correctionShort;
+        final field = _correctionField(index, alone: true);
+        return Padding(
+          key: const Key('transcript-correction-page'),
+          padding: EdgeInsets.all(short ? AppSpacing.xs : AppSpacing.md),
+          child: short
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: field),
+                    const SizedBox(width: AppSpacing.sm),
+                    SingleChildScrollView(
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          visualDensity: VisualDensity.compact,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _correctionSave(index),
+                            _correctionCancel(index),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_sentenceTime(sentence.startMs)} · '
+                      'Correct this sentence',
+                      style: AppText.captionBold,
+                    ),
+                    const SizedBox(height: AppSpacing.xxs),
+                    Text(
+                      'Heard: ${sentence.heard.isEmpty ? "(nothing said)" : sentence.heard}',
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.caption
+                          .copyWith(color: context.colors.textMuted),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Expanded(child: field),
+                    const SizedBox(height: AppSpacing.xs),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _correctionCancel(index),
+                        const SizedBox(width: AppSpacing.sm),
+                        _correctionSave(index),
+                      ],
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 

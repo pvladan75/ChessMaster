@@ -566,6 +566,23 @@ odlazi na kraj spiska u alatu.
     dugme ceo, sa rečima, ispod liste, a lista i dalje ima mesta.
     Potrebno: Windows i telefon; server.
 
+15. [ ] **Ispravka rečenice na telefonu ima ceo ekran.** [250.27]
+    O čemu se radi: Tvoja prijava od 27.9.2026: posle olovke tastatura
+    pokrije list, pa se ne vidi rečenica u koju kucaš. Na telefonu ispravka
+    sada zauzima ceo ekran — bez table, lista i kontrola — dok ne dodirneš
+    `Save` ili `Cancel`. Na širokom prozoru se rečenica i dalje ispravlja na
+    svom mestu, pored table.
+    Gde: plejer iz [250.14] na telefonu, uspravno, list sa rečenicama otvoren;
+    zatim isto sa telefonom položeno.
+    Uradi: Dodirni olovku na jednoj rečenici, promeni reč, `Save`. Ponovi sa
+    `Cancel`. Ponovi oba položeno.
+    Treba da vidiš: Tastatura se sama otvori. Uspravno: vreme rečenice i
+    „Correct this sentence", ispod „Heard: …", pa polje sa tekstom i `Cancel`
+    i `Save` — sve iznad tastature. Položeno: polje preko cele širine, a
+    `Save` i `Cancel` desno od njega. Posle `Save` ili `Cancel` plejer je
+    kakav je bio, list je i dalje otvoren, a rečenica ispravljena (ili ista).
+    Potrebno: telefon; server.
+
 ### Home — Home i obaveštenja
 
 1. [ ] **Na Home-u više nema ponavljanja iz tutorijala.** [246.10]

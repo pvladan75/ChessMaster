@@ -654,6 +654,128 @@ void main() {
     });
   });
 
+  // The owner, 27.9.2026, with a picture of his phone: the pencil was tapped,
+  // the keyboard came up, and the screen showed the board, „Make a tutorial",
+  // „Transcribe again…" and the player's controls — and not the sentence he
+  // was typing into. The sheet is a share of what the keyboard leaves, and the
+  // controls under it are not, so the list got nothing. On a phone a
+  // correction now has the screen to itself.
+  group('correcting on a phone', () {
+    /// The keyboard, as the system reports it: the view keeps its size and
+    /// loses [height] from the bottom.
+    void keyboard(WidgetTester tester, double height) {
+      tester.view.viewInsets = FakeViewPadding(bottom: height);
+      addTearDown(tester.view.resetViewInsets);
+    }
+
+    for (final (name, size, keys) in const [
+      ('upright', Size(360, 640), 300.0),
+      ('on its side', Size(915, 412), 230.0),
+    ]) {
+      testWidgets(
+          '$name, with the keyboard up: the sentence, Save and Cancel are '
+          'above the keyboard, and the board is not drawn', (tester) async {
+        final server = _Server(transcript: _transcript());
+        await _player(tester, server, size: size);
+        final open = find.byKey(const Key('replay-transcript-open'));
+        if (open.evaluate().isNotEmpty) {
+          await tester.tap(open);
+          await _settle(tester);
+        }
+        await tester.ensureVisible(find.byKey(const Key('transcript-edit-0')));
+        await tester.tap(find.byKey(const Key('transcript-edit-0')));
+        await _settle(tester);
+        keyboard(tester, keys);
+        await _settle(tester);
+        expect(tester.takeException(), isNull);
+
+        final line = size.height - keys;
+        final field = find.byKey(const Key('transcript-field-0'));
+        expect(field, findsOneWidget);
+        final rect = tester.getRect(field);
+        expect(rect.height, greaterThanOrEqualTo(40),
+            reason: 'a line of text can be read');
+        expect(rect.top, greaterThanOrEqualTo(0));
+        expect(rect.bottom, lessThanOrEqualTo(line),
+            reason: 'the field is above the keyboard');
+        expect(rect.width, greaterThanOrEqualTo(size.width * 0.6),
+            reason: 'and has the width of the screen, not of a column');
+        expect(tester.widget<TextField>(field).autofocus, isTrue,
+            reason: 'the keyboard opens on it');
+        for (final key in ['transcript-save-0', 'transcript-cancel-0']) {
+          final button = find.byKey(Key(key));
+          expect(button.hitTestable(), findsOneWidget, reason: key);
+          expect(tester.getRect(button).bottom, lessThanOrEqualTo(line),
+              reason: '$key is above the keyboard');
+        }
+        expect(find.byType(SkinnedChessBoard), findsNothing);
+
+        // Saved, the player is back as it was, with the corrected sentence.
+        await tester.enterText(field, 'Ispravljeno na telefonu.');
+        await tester.tap(find.byKey(const Key('transcript-save-0')));
+        await _settle(tester);
+        expect(server.puts, hasLength(1));
+        expect(find.byType(SkinnedChessBoard), findsOneWidget);
+        expect(field, findsNothing);
+        expect(_panel, findsOneWidget,
+            reason: 'the sheet that was open is still open');
+        expect(tester.takeException(), isNull);
+        await _close(tester);
+      });
+    }
+
+    testWidgets('cancel gives the player back and sends nothing', (
+      tester,
+    ) async {
+      final server = _Server(transcript: _transcript());
+      await _player(tester, server, size: const Size(360, 640));
+      await tester.tap(find.byKey(const Key('replay-transcript-open')));
+      await _settle(tester);
+      await tester.tap(find.byKey(const Key('transcript-edit-0')));
+      await _settle(tester);
+      expect(find.byType(SkinnedChessBoard), findsNothing);
+      await tester.tap(find.byKey(const Key('transcript-cancel-0')));
+      await _settle(tester);
+      expect(server.puts, isEmpty);
+      expect(find.byType(SkinnedChessBoard), findsOneWidget);
+      expect(_panel, findsOneWidget);
+      await _close(tester);
+    });
+
+    testWidgets(
+        'what was heard stands over the field, so a correction is made '
+        'against it', (tester) async {
+      final server = _Server(transcript: _transcript());
+      await _player(tester, server, size: const Size(360, 640));
+      await tester.tap(find.byKey(const Key('replay-transcript-open')));
+      await _settle(tester);
+      await tester.tap(find.byKey(const Key('transcript-edit-0')));
+      await _settle(tester);
+      final heard = _sentences().first['heard'] as String;
+      expect(find.text('Heard: $heard'), findsOneWidget);
+      await _close(tester);
+    });
+
+    testWidgets('beside the board on a wide window nothing changes', (
+      tester,
+    ) async {
+      final server = _Server(transcript: _transcript());
+      await _player(tester, server, size: const Size(1200, 900));
+      await tester.tap(find.byKey(const Key('transcript-edit-0')));
+      await _settle(tester);
+      expect(find.byType(SkinnedChessBoard), findsOneWidget);
+      expect(
+        find.descendant(
+          of: _sentence(0),
+          matching: find.byKey(const Key('transcript-field-0')),
+        ),
+        findsOneWidget,
+        reason: 'the sentence is corrected where it stands',
+      );
+      await _close(tester);
+    });
+  });
+
   group('where it stands', () {
     for (final size in const [
       Size(1200, 900),
