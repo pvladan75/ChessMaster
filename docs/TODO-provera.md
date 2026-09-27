@@ -502,6 +502,60 @@ odlazi na kraj spiska u alatu.
    od snimka; strelica nazad u AI vežbama radi i vraća na prethodni ekran.
    Potrebno: telefon; telefon položeno.
 
+10. [ ] **Snimak iz Preparation se prepisuje u rečenice.** [250.14]
+    O čemu se radi: Faza 7 plana `PLAN-PRIPREMA.md` (27.9.2026). Zvuk snimka
+    ide Groq-u (`whisper-large-v3`), a vraća se kao rečenice sa vremenima.
+    Srpski dolazi latinicom. Samo za domaćina, samo za snimak iz Preparation.
+    Gde: `Home` → `Recordings` → snimak iz Preparation → `Play`.
+    Uradi: Dodirni `Transcribe…`. U dijalogu `Transcribe this recording`
+    proveri jezike, ostavi `Serbian (Latin)` i dodirni `Transcribe`. Dok čekaš,
+    dodirni dugme još jednom.
+    Treba da vidiš: Dijalog nudi šest jezika (bez ćirilice) i kaže da zvuk ide
+    Groq-u. Umesto dugmeta piše `Transcribing…`, drugi dodir ne radi ništa.
+    Posle nekoliko sekundi kolona desno od table ima rečenice, svaka sa
+    vremenom (`0:12`), sve latinicom. Tabla nije manja nego pre. Na snimku iz
+    žive sobe i na nalogu učenika nema ni kolone ni dugmeta.
+    Potrebno: Windows; server restartovan posle spajanja, u `.env`
+    `STT_PROVIDER=groq` i `GROQ_API_KEY`.
+
+11. [ ] **Rečenica pomera snimak, oznaka prati glas.** [250.15]
+    O čemu se radi: Faza 7 plana `PLAN-PRIPREMA.md`. Rečenica koja se upravo
+    izgovara ima deblji okvir i ▶ — ne samo boju.
+    Gde: plejer iz [250.14].
+    Uradi: Dodirni treću rečenicu, pa pusti snimak i gledaj kolonu.
+    Treba da vidiš: Sat ispod table skače na vreme te rečenice, tabla pokazuje
+    poziciju iz tog trenutka, ▶ je na toj rečenici. Dok snimak ide, ▶ prelazi
+    na sledeću rečenicu kad glas stigne do nje.
+    Potrebno: Windows.
+
+12. [ ] **Ispravka rečenice menja tekst, nikad vreme.** [250.16]
+    O čemu se radi: Faza 7 plana `PLAN-PRIPREMA.md`. Ispravljen tekst je ono
+    što će faza 8 pretvoriti u tutorijal; ono što je servis čuo ostaje
+    zapisano ispod.
+    Gde: plejer iz [250.14].
+    Uradi: Olovkom otvori rečenicu koju je servis pogrešno čuo, ispravi je i
+    dodirni `Save`. Otvori drugu i dodirni `Cancel`. Izađi iz plejera i uđi
+    ponovo.
+    Treba da vidiš: Ispravljena rečenica ima novi tekst i ispod `Heard: …` sa
+    starim; vreme joj je isto. `Cancel` ne menja ništa. Posle ponovnog ulaska
+    ispravka je tu.
+    Potrebno: Windows.
+
+13. [ ] **Ponovo prepisivanje pita, i rečenice na telefonu.** [250.17]
+    O čemu se radi: Faza 7 plana `PLAN-PRIPREMA.md`. Ponovno slušanje briše
+    ispravke, zato prvo pita. Na telefonu uspravno rečenice su u listu iznad
+    kontrola; položeno su pored table.
+    Gde: plejer iz [250.14]; zatim isti snimak na telefonu, uspravno i
+    položeno.
+    Uradi: Dodirni `Transcribe again…`, pa `Cancel`; zatim ponovo i `Replace`,
+    pa `Transcribe`. Na telefonu uspravno dodirni ikonu titlova pored brzine,
+    dodirni jednu rečenicu, pusti snimak, pa ikonu opet. Okreni telefon.
+    Treba da vidiš: `Transcribe again?` kaže da zamenjuje prepis i ispravke;
+    `Cancel` ne šalje ništa. Na telefonu se otvara list sa rečenicama, tabla
+    je manja ali cela iznad njega, dugme za puštanje i ikona ostaju dostupni,
+    ikona zatvara list. Položeno su rečenice u koloni pored table.
+    Potrebno: Windows i telefon; server.
+
 ### Home — Home i obaveštenja
 
 1. [ ] **Na Home-u više nema ponavljanja iz tutorijala.** [246.10]
@@ -9413,6 +9467,18 @@ odlazi na kraj spiska u alatu.
    za taj nalog; bez servera — „Could not load your usage." i dugme `Try
    again`, koje posle ponovnog paljenja servera učita brojeve.
    Potrebno: server; Windows ili telefon.
+
+10. [ ] **`Usage this month` broji prepisane snimke.** [250.18]
+    O čemu se radi: Faza 7 plana `PLAN-PRIPREMA.md`. Svaki pokušaj
+    prepisivanja se broji u sekundama zvuka (Groq naplaćuje pokušaj), i
+    prikazuje se u minutima, zaokruženo naviše.
+    Gde: `Settings` → odeljak `ACCOUNT` → `Usage this month`.
+    Uradi: Posle [250.14] otvori ekran.
+    Treba da vidiš: Pod `Also counted` red `Recordings transcribed` sa brojem
+    minuta koji odgovara dužini snimaka koje si prepisao (ponovljeno
+    prepisivanje se broji ponovo). `node tools/status/status.js` ima isti broj
+    u redu `Groq speech to text`.
+    Potrebno: server; Windows ili telefon.
 
 ### Podešavanja i izgled — Cela aplikacija
 

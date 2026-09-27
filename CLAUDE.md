@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4796 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4828 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1784 without TEST_DATABASE_URL (measured 27.9.2026), 1942 with it (derived: the six new cases are pure)
+cd chess_backend && npm test          # node --test, 1829 without TEST_DATABASE_URL, 1988 with it (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1025,7 +1025,22 @@ found three more by walking the doors: removing an earlier sentence opened the
 wrong one (**„which opens next" is relative to the open one, not the removed
 one** — every case had removed the open or the first), and in Preparation a
 removal and its Undo changed the board without a stamp in the take (**every
-new way to change what is drawn is a door the recording must see**). Phase 6 of
+new way to change what is drawn is a door the recording must see**). Then its phase 7, speech to text (→ **4828**, a full run in the
+worktree with nothing else running; backend → **1829 / 1988**, both
+measured; analyze the same 22): Groq's `whisper-large-v3` hears a recording
+made in Preparation (`STT_PROVIDER`), sent as Ogg Opus from an ffmpeg child
+that only reads it, cut into sentences by phase 5's rule, kept in
+`recording_transcripts`, corrected by text and never by time, and read beside
+the board in the player. **The plan's own refusal rule would have refused
+every recording** — a sentence's end runs up to 480 ms past the next one's
+start in all five of the owner's — so what is refused is what cannot be real;
+**measure the vendor's untidiness before writing the rule that judges it.**
+The worker stopped on two faults of the lead's gate (canned answers with no
+charset, which `package:http` encodes as latin1, and `hitTestable()` on a
+board the marks' `CustomPaint` covers), and **a rendered look with a
+transcript longer than the gate's four sentences found two faults the gate
+passed**: a list asking for a fixed 420 px overflowed the column at 900 x 700,
+and the phone's sheet covered the only button that closed it. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
