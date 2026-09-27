@@ -97,6 +97,24 @@ Publika ID tokena se ne menja preimenovanjem paketa.
       `docs/saglasnost-roditelja.md` ispravni i da pokrivaju ono što aplikacija
       radi — uključujući snimanje glasa dece, zbog kog su i pisani.
       **Ograda je njegova: proveravao je za Srbiju, za druge države ne zna.**
+- [ ] **Politika privatnosti ne imenuje tri pružaoca koje aplikacija već
+      koristi** (nađeno 27.9.2026, faza 10 plana `PLAN-PRIPREMA.md`, D9).
+      Odeljak 5 navodi Agoru, Gemini, Google, Lichess i hosting, a ne:
+      - **Groq** (govor u tekst) — dobija **zvuk trenerovog snimka** iz
+        Preparation, dakle glas punoletnog trenera, kad on zatraži prepis.
+        Prenos van Srbije (SAD). Na dropletu je isključen (`STT_PROVIDER`
+        prazan) **dok ga politika ne navede** — to je uslov iz D9;
+      - **DeepSeek** (reči tutorijala iz partije, reči pregleda, **prevod
+        tutorijala**) — dobija tekst koji je trener napisao i šahovske
+        podatke, bez imena i naloga. Prenos van Srbije (Kina);
+      - **Azure Speech** (glas filma) — dobija rečenice tutorijala koje
+        izgovara. Prenos van Srbije.
+      Uz to se **prepis čuva uz snimak** (`recording_transcripts`: rečenice,
+      vremena i reči kako ih je servis čuo) — nova vrsta podatka za odeljke o
+      tome šta se čuva i koliko dugo; briše se sa snimkom.
+      Uz to je **Gemini relikt** (vlasnik, 26.9.2026) i odeljak 5.2 odlazi kad
+      se obrišu njegova vrata. Tekst je vlasnikov i advokatov; ovde je samo
+      popis šta aplikacija radi. Posle izmene: `STT_PROVIDER=groq` na dropletu.
 - [ ] **Odlučiti gde se aplikacija nudi.** Play podrazumevano deli svuda; dok
       pravna provera pokriva jednu državu, spisak zemalja u Play Console-u
       treba suziti na nju. Proširenje je onda odluka, a ne previd.

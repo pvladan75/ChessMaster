@@ -55,5 +55,26 @@ class SharedCases(unittest.TestCase):
                     case['faults'])
 
 
+class SeveralBeatsOnOneMove(unittest.TestCase):
+    """Two comments in a row on one move are two beats (phase 6 of
+    docs/PLAN-PRIPREMA.md): each is its own item, each is written back in its
+    own place with its own commands, and nothing else moves."""
+
+    def test_each_comment_is_its_own_item_and_goes_back_to_its_place(self):
+        tutorial = {'positionList': [{
+            'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+            'kind': 'show',
+            'pgn': '1. e4 { The king pawn. [%cal Ge2e4] } '
+                   '{ And the bishop. [%cal Gf1c4] } e5 *',
+        }]}
+        items = translate.extract(tutorial)
+        self.assertEqual(items, {'p1.c1': 'The king pawn.', 'p1.c2': 'And the bishop.'})
+        merged = translate.merge(tutorial, {'p1.c1': 'Kraljev pešak.', 'p1.c2': 'I lovac.'})
+        self.assertEqual(merged['positionList'][0]['pgn'],
+                         '1. e4 { Kraljev pešak. [%cal Ge2e4] } '
+                         '{ I lovac. [%cal Gf1c4] } e5 *')
+        translate.prove_untouched(tutorial, merged)
+
+
 if __name__ == '__main__':
     unittest.main()
