@@ -148,3 +148,12 @@ dialog's absent choices, the absent `translate-start`, the Library's absent
 button, the studio's absent `tutorial-translate` (after its helper had found
 and edited the title field), and the usage row's missing label. **None of it
 has been watched going green.**
+
+**After grading (27.9.2026).** The worker found the gate's second case
+leaving its dialog open when it tore the tree down, which leaked the
+module-level guard into every later case — a fault of the gate. Its fix
+released the guard when the language dialog closed, which is when the
+request is sent; the lead took that out, made the case cancel its dialog,
+and added a tenth case — a second start while the first translation is held
+open sends nothing — watched red on the worker's version and green on the
+corrected one.

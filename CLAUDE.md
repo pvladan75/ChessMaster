@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4892 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4908 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1841 without TEST_DATABASE_URL, 2000 with it (both measured 27.9.2026)
+cd chess_backend && npm test          # node --test, 1860 without TEST_DATABASE_URL, 2019 with it (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1057,7 +1057,21 @@ ever compared a comment with what had been written. The worker stopped on
 two faults of the lead's gate: a frozen sentence that said „lesson", which
 the vocabulary test forbids on screen (**a gate's literal text is screen
 text, and the vocabulary rules apply to it**), and a fake's parameter
-nothing passed. Phase 6 of
+nothing passed. Then its phase 9, translation (→ **4908**, a full run
+in the worktree with nothing else running; backend → **1860 / 2019**, both
+measured; analyze the same 22): `POST /lessons/:id/translate` sends only a
+tutorial's prose to DeepSeek — comments found by their **braces**, so the
+server still reads no move — judges it as the batch tool does, asks once
+more for what was refused, and writes the copy in one INSERT or not at all.
+The tool and the server read **one prompt** and are held to **one fixture of
+cases**, which found a real disagreement: Python's `w` is Unicode and
+JavaScript's is not. Grading found the worker's fix for a gate fault worse
+than the fault: the lead's case left a dialog open under a torn-down tree,
+leaking the flow's module-level guard into later cases, and the worker
+released the guard when the dialog **closed** — the moment the request is
+sent, so for the minute the server works a second start went through. **Fix
+a test that leaks state in the test; a backstop in the product for a leak
+only a test can make moves the product's guard to the wrong moment.** Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

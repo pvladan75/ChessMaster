@@ -8867,3 +8867,37 @@ analyze warning. Both were the gate's, and both were fixed there.
 threw past the door on a server that could not be reached, with nothing said;
 and the progress closed before the voice's copy, which for thirty minutes of
 sound is not instant. Both fixed, the first with a case watched red.
+
+## 27.9.2026 — Preparation, phase 9: a tutorial translated into a copy (app 4892 → 4908, backend 1841/2000 → 1860/2019)
+
+Arithmetic: app 4892 + 10 (the doors' gate, one case added at grading) + 6
+(the worker's `tutorial_translation_flow_test`) = 4908, measured with nothing
+else running. Backend 1841 + 19 (`lesson_translation.test.js`) = 1860 without
+a database, 2000 + 19 = 2019 with a throwaway cluster, both measured. The
+tool's Python test (`tools/tutorial_translate/test_translate.py`) is one case
+over the 13 of the shared fixture, run by hand; CI runs no Python.
+
+**Two judges of one thing agree only if they read one fixture.** The server's
+translation judge is a port of the batch tool's, and the port had to choose
+what `\w` means: Python's is Unicode, JavaScript's is ASCII, so a square
+glued to „ć" was a square to one and not the other. The fixture has that case
+now; both judges read it; the tool's own script rule (only a language named
+„Latin" was checked for Cyrillic) was brought to the server's.
+
+**A mutation's red can be a hang.** Removing the one-translation-at-a-time
+guard made the lead's own case wait for ever: it awaited the second request,
+which without the guard was held by the same fake as the first. Rewritten to
+decide without waiting on the hold (rule 9).
+
+**Fix a test that leaks state in the test.** The lead's gate had a case that
+left the language dialog open and replaced the tree, so the flow's
+module-level guard never let go and five later cases failed. The worker saw
+it rightly and fixed it in the product: the guard was released when the
+dialog was disposed — which is the moment the request is sent, so for the
+minute the server works a second start went through. No real screen can
+leave that dialog open under a torn-down tree (it sits on the root navigator,
+and Back pops it). The backstop came out, the case cancels its dialog, and a
+new case holds the request open and proves a second start sends nothing —
+red on the worker's version, green on the corrected one. Its first draft was
+red for the wrong reason too: **a dialog on its way out is still found**, so
+the assertion waits out the closing animation.

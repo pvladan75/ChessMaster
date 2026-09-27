@@ -36,6 +36,7 @@
 //   „Tutorials translated", `ai_translation_tokens` is „AI translation
 //   writing", in tokens.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -86,9 +87,13 @@ http.Response _json(Object body, [int status = 200]) => http.Response.bytes(
     );
 
 class _Server {
-  _Server({this.translateStatus = 201, this.language = 'en'});
+  _Server({this.translateStatus = 201, this.language = 'en', this.hold});
 
   final int translateStatus;
+
+  /// When given, the translation is not answered until it completes — the
+  /// minute the server works, held open.
+  final Future<void>? hold;
   final String? language;
   final requests = <http.Request>[];
 
@@ -96,6 +101,7 @@ class _Server {
     requests.add(req);
     final path = req.url.path;
     if (req.method == 'POST' && path == '/lessons/12/translate') {
+      if (hold != null) await hold;
       if (translateStatus != 201) {
         return _json({
           'error': 'The translation could not be used, so no copy was made. '
@@ -135,8 +141,7 @@ class _Server {
 
   List<String> get translations => [
         for (final r in requests)
-          if (r.method == 'POST' && r.url.path.endsWith('/translate'))
-            r.body,
+          if (r.method == 'POST' && r.url.path.endsWith('/translate')) r.body,
       ];
 
   int get shelfLoads =>
@@ -213,6 +218,11 @@ void main() {
       for (final code in ['en', 'sr-Latn', 'sr-Cyrl', 'de', 'es', 'it', 'fr']) {
         expect(_choice(code), findsOneWidget, reason: code);
       }
+      // Closed as a trainer closes it. A tree torn down under an open dialog
+      // never completes the dialog, and the flow's guard — module state —
+      // would then hold this tutorial for every later case in the file.
+      await tester.tap(find.byKey(const Key('translate-cancel')));
+      await tester.pumpAndSettle();
       await _close(tester);
     });
 
@@ -226,13 +236,16 @@ void main() {
       await tester.tap(find.byKey(const Key('translate-start')));
       await tester.pumpAndSettle();
 
-      expect(server.translations, [jsonEncode({'language': 'de'})]);
+      expect(server.translations, [
+        jsonEncode({'language': 'de'})
+      ]);
       expect(find.byType(TutorialStudioScreen), findsOneWidget);
       expect(find.textContaining('German'), findsWidgets);
       await _close(tester);
     });
 
-    testWidgets('a refused translation says the server\'s sentence and opens '
+    testWidgets(
+        'a refused translation says the server\'s sentence and opens '
         'nothing', (tester) async {
       final server = _Server(translateStatus: 422);
       await _pumpFlow(tester, server);
@@ -260,6 +273,44 @@ void main() {
     });
   });
 
+  testWidgets(
+      'a second start while the first is being translated sends nothing',
+      (tester) async {
+    // Found at grading: the guard was released when the language dialog
+    // closed, which is the moment the request is sent — so for the whole
+    // minute the server works, a second start went through.
+    final release = Completer<void>();
+    final server = _Server(hold: release.future);
+    await _pumpFlow(tester, server);
+    await tester.tap(_choice('de'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('translate-start')));
+    await tester.pump();
+    // Long enough for the language dialog's own closing animation to end: a
+    // dialog on its way out is still found.
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(server.translations.length, 1, reason: 'the first is on its way');
+    expect(find.byKey(const Key('translate-start')), findsNothing);
+    expect(find.text('Translating…'), findsOneWidget);
+
+    // The door again, as the other place it is drawn would call it.
+    final context = tester.element(find.text('translate'));
+    unawaited(translateTutorialCopy(context,
+        session: _session,
+        lessonId: 12,
+        language: 'en',
+        api: LessonApiService(authToken: 'tok', client: server.client)));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const Key('translate-start')), findsNothing,
+        reason: 'no second question while the first translation runs');
+
+    release.complete();
+    await tester.pumpAndSettle();
+    expect(server.translations.length, 1);
+    await _close(tester);
+  });
+
   group('the Library\'s door', () {
     testWidgets('a tutorial card translates, and the shelf is loaded again',
         (tester) async {
@@ -270,8 +321,8 @@ void main() {
           AnalysisPersistenceService.withClient(client));
       addTearDown(AnalysisPersistenceService.resetInstance);
       await tester.pumpWidget(MaterialApp(
-        theme:
-            ThemeData.light().copyWith(extensions: const [AppColorTokens.light]),
+        theme: ThemeData.light()
+            .copyWith(extensions: const [AppColorTokens.light]),
         home: LibraryScreen(
           session: _session,
           positionLibrary:
@@ -297,7 +348,9 @@ void main() {
       await tester.tap(find.byKey(const Key('translate-start')));
       await tester.pumpAndSettle();
 
-      expect(server.translations, [jsonEncode({'language': 'es'})]);
+      expect(server.translations, [
+        jsonEncode({'language': 'es'})
+      ]);
       expect(server.shelfLoads, greaterThan(loadsBefore),
           reason: 'the copy is on the shelf when the trainer comes back');
       await _close(tester);
@@ -309,8 +362,8 @@ void main() {
       await _wide(tester);
       final server = _Server();
       await tester.pumpWidget(MaterialApp(
-        theme:
-            ThemeData.light().copyWith(extensions: const [AppColorTokens.light]),
+        theme: ThemeData.light()
+            .copyWith(extensions: const [AppColorTokens.light]),
         home: TutorialStudioScreen(
           session: _session,
           entry: TutorialEntry.saved(_lesson()),
@@ -321,7 +374,8 @@ void main() {
       return server;
     }
 
-    testWidgets('„Translate…" is in the Details sheet and translates what is '
+    testWidgets(
+        '„Translate…" is in the Details sheet and translates what is '
         'saved', (tester) async {
       final server = await openStudio(tester);
       await tester.tap(find.byKey(const Key('tutorial-details')));
@@ -336,7 +390,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('translate-start')));
       await tester.pumpAndSettle();
-      expect(server.translations, [jsonEncode({'language': 'de'})]);
+      expect(server.translations, [
+        jsonEncode({'language': 'de'})
+      ]);
       await _close(tester);
     });
 

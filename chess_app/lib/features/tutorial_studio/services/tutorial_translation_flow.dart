@@ -58,8 +58,7 @@ Future<int?> _run(
   required String? language,
   required LessonApiService api,
 }) async {
-  final chosen = await _chooseLanguage(context,
-      lessonId: lessonId, currentLanguage: language);
+  final chosen = await _chooseLanguage(context, currentLanguage: language);
   if (chosen == null || !context.mounted) return null;
 
   final closeProgress = _showProgress(context);
@@ -97,15 +96,13 @@ Future<int?> _run(
 /// „Translate into…" — every [TutorialLanguage] the tutorial is not already
 /// in (all seven when it says none), one chosen at a time.
 ///
-/// Wrapped in [_GuardRelease]: `Navigator.pop` completes this dialog's own
-/// Future, but a screen torn down while the dialog is still open — the
-/// trainer navigating away, or a test tree replaced wholesale — never pops
-/// it, and that Future then never completes at all. A widget's `dispose`
-/// fires either way, so the guard against a second start is released there
-/// rather than only where this function returns.
+/// The guard is **not** released when this dialog closes: the translation is
+/// sent right after it, and a guard let go there would be open for the whole
+/// minute the server works. (A release in the dialog's `dispose` was built
+/// once, for a test that tore its tree down with the dialog still open; the
+/// test was the fault, and was made to close its dialog.)
 Future<TutorialLanguage?> _chooseLanguage(
   BuildContext context, {
-  required int lessonId,
   required String? currentLanguage,
 }) {
   final offered = [
@@ -115,88 +112,61 @@ Future<TutorialLanguage?> _chooseLanguage(
   TutorialLanguage? chosen;
   return showDialog<TutorialLanguage>(
     context: context,
-    builder: (dialogContext) => _GuardRelease(
-      lessonId: lessonId,
-      child: StatefulBuilder(
-        builder: (dialogContext, setState) => AlertDialog(
-          title: const Text('Translate into…'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'The tutorial\'s words are sent to DeepSeek to be '
-                  'translated. The translation is a copy — the tutorial '
-                  'itself is not changed.',
-                  style: AppText.body
-                      .copyWith(color: dialogContext.colors.textSecondary),
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setState) => AlertDialog(
+        title: const Text('Translate into…'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'The tutorial\'s words are sent to DeepSeek to be '
+                'translated. The translation is a copy — the tutorial '
+                'itself is not changed.',
+                style: AppText.body
+                    .copyWith(color: dialogContext.colors.textSecondary),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // `RadioGroup` rather than a `groupValue` on every tile,
+              // which is deprecated.
+              RadioGroup<TutorialLanguage>(
+                groupValue: chosen,
+                onChanged: (value) => setState(() => chosen = value),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final language in offered)
+                      RadioListTile<TutorialLanguage>(
+                        key: Key('translate-language-${language.code}'),
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        title: Text(language.label),
+                        value: language,
+                      ),
+                  ],
                 ),
-                const SizedBox(height: AppSpacing.md),
-                // `RadioGroup` rather than a `groupValue` on every tile,
-                // which is deprecated.
-                RadioGroup<TutorialLanguage>(
-                  groupValue: chosen,
-                  onChanged: (value) => setState(() => chosen = value),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (final language in offered)
-                        RadioListTile<TutorialLanguage>(
-                          key: Key('translate-language-${language.code}'),
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          title: Text(language.label),
-                          value: language,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          actions: [
-            TextButton(
-              key: const Key('translate-cancel'),
-              onPressed: () => Navigator.pop(dialogContext, null),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              key: const Key('translate-start'),
-              onPressed: chosen == null
-                  ? null
-                  : () => Navigator.pop(dialogContext, chosen),
-              child: const Text('Translate'),
-            ),
-          ],
         ),
+        actions: [
+          TextButton(
+            key: const Key('translate-cancel'),
+            onPressed: () => Navigator.pop(dialogContext, null),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('translate-start'),
+            onPressed: chosen == null
+                ? null
+                : () => Navigator.pop(dialogContext, chosen),
+            child: const Text('Translate'),
+          ),
+        ],
       ),
     ),
   );
-}
-
-/// Releases [_inFlight]'s hold on [lessonId] as soon as this leaves the
-/// tree, whatever took it out — an answer, a cancel, or the screen beneath
-/// it disappearing while it was still open. See [_chooseLanguage].
-class _GuardRelease extends StatefulWidget {
-  const _GuardRelease({required this.lessonId, required this.child});
-
-  final int lessonId;
-  final Widget child;
-
-  @override
-  State<_GuardRelease> createState() => _GuardReleaseState();
-}
-
-class _GuardReleaseState extends State<_GuardRelease> {
-  @override
-  void dispose() {
-    _inFlight.remove(widget.lessonId);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
 }
 
 /// A dialog that cannot be dismissed while the translation runs. Returns a

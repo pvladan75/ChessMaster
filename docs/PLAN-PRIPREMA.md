@@ -1304,7 +1304,7 @@ rule's boundary:
   both render, the second with no time in it that came from the recording;
 - deleting the tutorial leaves the recording's sound on disk.
 
-### Phase 9 — translation [lead: the route; implementer: the app]
+### Phase 9 — translation [lead: the route; implementer: the app] — built and graded 27.9.2026 on branch `priprema-faza-9`, not yet merged
 
 **Where it stands, 27.9.2026**, on branch `priprema-faza-9`:
 
@@ -1330,9 +1330,14 @@ rule's boundary:
   proof itself has its own cases). One of the reds was first a **hang** —
   the one-at-a-time case awaited a second request held by the same fake —
   and was rewritten to decide without waiting.
-- **The app's half** — brief `docs/briefs/BRIEF-PRIPREMA-FAZA9.md`, gate
-  `docs/gates/tutorial_translation_doors_test.dart` (9 cases), with the
-  implementer.
+- **The app's half, built by the implementer and graded** — brief
+  `docs/briefs/BRIEF-PRIPREMA-FAZA9.md`, gate
+  `docs/gates/tutorial_translation_doors_test.dart` (10 cases, one added at
+  grading), plus six of the worker's. Grading took out a guard release the
+  worker had put in the language dialog's `dispose`: it let a second start
+  through for the whole minute the server works, and the leak it answered was
+  the gate's own (a case that left its dialog open). App **4908**, 1 skipped;
+  analyze the same 22. Live items `[250.24]`–`[250.25]`.
 
 **The lead's decisions, stated so they can be overruled:**
 

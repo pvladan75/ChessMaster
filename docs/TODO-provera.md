@@ -6084,6 +6084,23 @@ odlazi na kraj spiska u alatu.
     tutorijala). Drugi put se otvara studio sa tutorijalom bez rečenica.
     Potrebno: Windows; snimak iz Preparation bez prepisa.
 
+35. [ ] **Tutorijal se prevodi u kopiju.** [250.24]
+    O čemu se radi: Faza 9 plana `PLAN-PRIPREMA.md` (27.9.2026). DeepSeek-u
+    idu samo reči (naslov, opis, imena delova, rečenice), nikad potezi; svaki
+    prevod se proverava (potezi i polja moraju ostati isti), odbijeno se traži
+    još jednom, i tek tada nastaje kopija. Original se ne menja.
+    Gde: `Teach` → `Library` → čip `Tutorials`.
+    Uradi: Na kartici svog tutorijala dodirni ikonu `Translate…`. Pogledaj
+    ponuđene jezike, izaberi jedan i dodirni `Translate`.
+    Treba da vidiš: Nema jezika na kome tutorijal već jeste; dijalog kaže da
+    reči idu DeepSeek-u i da se original ne menja. `Translating…` dok traje
+    (do minut-dva), pa se otvara `Tutorial studio` sa kopijom i poruka
+    `Translated into …`. Potezi, strelice i polja su isti kao u originalu,
+    rečenice na novom jeziku; u `Library` su oba tutorijala. Na tutorijalu
+    koji ti je trener poslao dugmeta nema.
+    Potrebno: Windows; server restartovan posle spajanja, u `.env`
+    `DEEPSEEK_API_KEY`.
+
 ### Teach — Position Scanner
 
 1. [ ] **PDF bez dijagrama ili zaštićen lozinkom.** [13.b602]
@@ -8320,6 +8337,21 @@ odlazi na kraj spiska u alatu.
     Drugi put rečenica kaže da se tutorijal promenio otkad je napravljen iz
     snimka. Film sa sintetičkim glasom se pravi normalno.
     Potrebno: Windows; server sa glasom (Azure ili piper).
+
+75. [ ] **`Translate…` u studiju, i film prevoda sintetičkim glasom.** [250.25]
+    O čemu se radi: Faza 9 plana `PLAN-PRIPREMA.md`. Prevodi se ono što je
+    sačuvano, zato dugme odbija dok ima nesačuvanih izmena. Kopija nema svoj
+    glas ni film (D6): govori je sintetički glas na njenom jeziku.
+    Gde: `Tutorial studio` sa sačuvanim tutorijalom → `Details…` ispod naslova
+    (na telefonu `More` → `Details…`).
+    Uradi: Promeni naslov i ne čuvaj, pa `Details…` → `Translate…`. Zatim
+    sačuvaj i ponovi, izaberi jezik. Na otvorenoj kopiji `Export video` sa
+    sintetičkim glasom.
+    Treba da vidiš: Prvi put poruka „Save the tutorial first — the translation
+    is made of what is saved." i nijedan jezik. Drugi put kopija kao u
+    [250.24]. U izvozu kopije nema `From the recording`, a glas izgovara
+    rečenice na jeziku kopije.
+    Potrebno: Windows; server sa glasom (Azure ili piper) i DeepSeek ključem.
 
 ### Teach — Domaći i napredak učenika
 
