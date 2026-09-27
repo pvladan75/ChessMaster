@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4197 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4266 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL (derived), 1772 without (measured)
+cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL, 1772 without (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -949,7 +949,23 @@ worker stopped rather than edit it, as the brief says. **The gate proves the
 detector on fixtures only**: the owner's crashing path was green under the
 same rule in every widget-test variant, so phase 2 is settled by the live
 pass, whose first item is the detector's ids against the engine's stderr from
-one run. Phase 6 of
+one run.
+Then `docs/PLAN-PRIPREMA.md` — Preparation gets its own screen, a recording
+becomes an ordinary tutorial, a position may hold several beats — and its
+phase 1, the screen's core (→ **4266**, a full run in a worktree with
+nothing else running; analyze the same 22; the baseline measured first,
+and the backend's 1930 with a database **measured**, not derived). The
+board takes what the window has left — 608 at the owner's 1536 x 792 where
+the room draws 491 — and nothing the trainer switches on resizes it. The
+worker returned 61 of 62 and said why. **A gate case that a reused widget
+cannot satisfy is the gate's fault** — the tree's card is 516 px whatever
+it is given, so measure the natural size of every widget a layout must
+reuse before asking the layout for anything. **A gate helper that ends
+before a debounce makes the worker bend behaviour to the timer**: the
+engine's switch asked nothing until the next move, green in all fifty
+cases — and **a behaviour no seam can observe stays green when it is
+removed**, so the screen took an `engine` and a fake that remembers what
+it was asked. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

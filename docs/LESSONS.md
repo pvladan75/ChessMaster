@@ -8520,3 +8520,59 @@ petlje preživela. Ostala je jedna provera i fallback, a preživeli mutant
 nikad se ne ostavi bez odgovora.**
 
 Brojevi: 4193 → 4197, `analyze` 22.
+
+## 27.9.2026 — Preparation: svoj ekran, faza 1
+
+`docs/PLAN-PRIPREMA.md`, faza 1: jezgro novog ekrana Preparation — tabla, traka
+za označavanje, traka poteza, stablo, komentar i linije motora — u obliku koji
+je vlasnik izabrao sa skica (varijanta C). Izvođač je vratio 61 od 62 slučaja
+kapije i rekao zašto jedan ne prolazi; ostalo je završeno na ocenjivanju.
+
+**Slučaj kapije koji ponovo upotrebljen widget ne može da zadovolji je greška
+kapije.** Kapija je tražila da su stablo, komentar i linije motora svi na
+ekranu na 900 × 700, a kartica stabla (`AnalysisMoveTreeWidget`) je uvek 516 px
+— zaglavlje i telo do 420 — pa je motor bio gurnut 161 px ispod ivice prozora.
+Izvođač nije smeo da dira karticu i nije lagao geometrijom (stablo u
+scroll-view bi zadovoljilo tvrdnju i preklopilo panele); stao je i rekao.
+Kartica je dobila opciono `fills`. **Pre nego što kapija nešto traži od
+rasporeda, izmeri prirodnu veličinu svakog widgeta koji raspored mora da
+upotrebi.**
+
+**Pomoćnik kapije koji završi pre debounce-a tera izvođača da ponašanje
+prilagodi tajmeru.** `_switchEngineOn` je pumpao 100 ms, motor pita posle
+180 ms, pa je slučaj koji se završi sa upaljenim motorom ostavljao tajmer i
+padao na `!timersPending`. Izvođač je zato prekidač napravio tako da motor ne
+pita ništa do sledećeg poteza — i to napisao u izveštaju. Greška je bila u
+pomoćniku; sad čeka 300 ms, a prekidač pita odmah, kao u Analizi. **Kad
+izvođač promeni ponašanje da bi test prošao, prvo pitanje je šta test radi
+pogrešno.**
+
+**Ponašanje koje nijedan šav ne vidi ostaje zeleno kad ga ukloniš.** Ta
+izmena je prošla svih 50 slučajeva, jer test nema motor i „pitao" i „nije
+pitao" izgledaju isto. Ekran je dobio šav `engine`, a lažni motor pamti šta je
+pitan: prekidač, potez i skok svaki imaju svoj slučaj. Pravilo 7, sa druge
+strane — ne samo „lažiraj klijenta", nego **ako nema klijenta koga bi
+lažirao, ponašanje nije pod testom.**
+
+**Mutant koji ništa ne menja nije preživeli**, opet. Prva mutacija mesta za
+evaluacionu traku u položenom telefonu je praznu kutiju zamenila širom, a
+`LandscapeBoardLayout` tom mestu daje svoju širinu šta god da se u njemu
+crta. Prava mutacija — mesta nema dok je motor ugašen — obara sve četiri
+veličine.
+
+**Skica daje oblik, ne brojeve.** Skica je računala 112 px za dva reda ispod
+table; stvarni su 56 i 48. Pravilo (`PreparationLayout`) je zato dalo tablu 608
+gde je skica imala 600, i kapija tvrdi „do 16 px od skice, nikad ispod
+današnje", sa literalima. Traka za označavanje sa natpisima traži oko 760 px,
+a tabla je 608 — otuda tri gustine.
+
+**Headless Edge upiše PNG posle povratka pokretača**, pa provera odmah posle
+poziva kaže da slike nema; čeka se fajl. I izlaz mu se ne šalje u `/dev/null`
+— tada ne upiše ništa.
+
+Trinaest mutacija ekrana i sedam pravila rasporeda, svaka crvena na svom
+slučaju. Polazni brojevi izmereni u radnom stablu pre ičega: 4197, 22, server
+1772 i 1930 — ovaj poslednji prvi put meren, ne izveden.
+
+Brojevi: 4197 → **4266** (12 pravilo rasporeda, 52 ekran, 5 linija motora u
+stablo), pun prolaz u radnom stablu bez ičega pored; `analyze` 22.

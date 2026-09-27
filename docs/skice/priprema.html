@@ -1,0 +1,439 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Preparation sketch</title>
+<style>
+:root{
+  --canvas:#0f172a; --surface:#1e293b; --raised:#334155; --recess:#020617;
+  --border:rgba(255,255,255,.12); --borderS:rgba(255,255,255,.24);
+  --t1:#f8fafc; --t2:#cbd5e1; --t3:#94a3b8;
+  --accent:#2dd4bf; --brand:#a78bfa; --danger:#fda4af; --info:#38bdf8;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000;color:var(--t1);
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;overflow:hidden}
+#cap{height:44px;display:flex;align-items:center;gap:18px;padding:0 14px;
+  background:#fff;color:#111;font-size:15px;white-space:nowrap;overflow:hidden}
+#cap b{font-size:16px}
+#cap .big{font-weight:700;border:2px solid #111;border-radius:6px;padding:2px 8px}
+#win{position:relative;background:var(--canvas);overflow:hidden}
+.bar{height:56px;background:var(--surface);display:flex;align-items:center;
+  padding:0 12px;gap:8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.bar.small{height:44px}
+.bar.rec{background:#3a2a3a;border-bottom:3px solid var(--danger)}
+.title{font-size:18px;font-weight:600}
+.sub{color:var(--t2);font-size:13px;border:1px solid var(--border);border-radius:14px;
+  padding:3px 10px;overflow:hidden;text-overflow:ellipsis}
+.sp{flex:1}
+.btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;
+  border:1px solid var(--borderS);border-radius:6px;color:var(--t1);background:transparent;
+  font-size:14px;white-space:nowrap}
+.btn.fill{background:var(--accent);color:#04211d;border-color:var(--accent);font-weight:600}
+.btn.on{background:var(--raised);border:2px solid var(--t1);font-weight:700}
+.btn.rec{border:2px solid var(--danger);font-weight:600}
+.btn.icon{width:36px;padding:0;justify-content:center;font-size:16px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--danger);display:inline-block}
+.body{display:flex;gap:12px;padding:12px;position:relative}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.ph{height:40px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;
+  border-bottom:1px solid var(--border);font-weight:600}
+.ph .mini{font-weight:400;color:var(--t3);font-size:12px}
+.pc{flex:1;min-height:0;padding:10px 12px;overflow:hidden}
+.tabs{display:flex;height:40px;flex:none;border-bottom:1px solid var(--border)}
+.tab{padding:0 16px;display:flex;align-items:center;color:var(--t3);font-size:14px;
+  border-bottom:3px solid transparent}
+.tab.sel{color:var(--t1);font-weight:700;border-bottom-color:var(--accent);background:var(--raised)}
+.seg{display:inline-flex;border:1px solid var(--borderS);border-radius:6px;overflow:hidden;font-size:12px;font-weight:400}
+.seg span{padding:3px 9px;color:var(--t3)}
+.seg span.sel{background:var(--raised);color:var(--t1);font-weight:700}
+.boardcol{display:flex;flex-direction:column;align-items:center;gap:8px;flex:none}
+.boardrow{display:flex;gap:8px;align-items:stretch}
+.evalbar{width:16px;border-radius:4px;overflow:hidden;border:1px solid var(--borderS);
+  display:flex;flex-direction:column}
+.evalbar i{display:block;background:#111}
+.evalbar b{display:block;background:#f1f5f9;flex:1}
+.board{position:relative;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px var(--borderS)}
+.sq{position:absolute;display:flex;align-items:center;justify-content:center;line-height:1}
+.pw{color:#fff;-webkit-text-stroke:1.4px #000}
+.pb{color:#141414;text-shadow:0 0 2px #fff,0 0 2px #fff}
+.pw,.pb{font-family:"Segoe UI Symbol"}
+.row48{height:48px;display:flex;align-items:center;gap:6px;flex:none}
+.row44{height:44px;display:flex;align-items:center;gap:6px;flex:none}
+.sw{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;color:#fff;
+  text-shadow:0 0 2px #000,0 0 2px #000}
+.sw.sel{outline:3px solid var(--t1);outline-offset:2px}
+.sep{width:1px;height:26px;background:var(--borderS);margin:0 4px}
+.dim{color:var(--t3);font-size:12px}
+.tree{position:relative;background:var(--canvas);border-radius:6px;flex:1;min-height:0;overflow:hidden}
+.node{position:absolute;height:28px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;border:1px solid var(--borderS);background:var(--surface);color:var(--t1);white-space:nowrap}
+.node.main{border-radius:5px;font-weight:700}
+.node.var{border-radius:14px;color:var(--t2)}
+.node.act{background:#0c4a6e;border:3px solid #fff;font-weight:700;color:#fff}
+.field{border:1px solid var(--borderS);border-radius:6px;padding:8px 10px;color:var(--t1);
+  background:var(--canvas);line-height:1.4}
+.field.ph2{color:var(--t3)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--borderS);border-radius:16px;padding:3px 10px;font-size:12px;color:var(--t2)}
+.chip.sel{background:var(--raised);border:2px solid var(--t1);color:var(--t1);font-weight:700}
+.item{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--border);
+  border-radius:8px;background:var(--canvas)}
+.thumb{width:48px;height:48px;flex:none;border-radius:3px;
+  background:repeating-conic-gradient(#b58763 0% 25%,#f0dab5 0% 50%) 0 0/12px 12px}
+.item b{display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item span{display:block;font-size:12px;color:var(--t3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.eline{display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);
+  white-space:nowrap;overflow:hidden;font-size:13px}
+.ev{min-width:46px;text-align:center;border:1px solid var(--borderS);border-radius:4px;
+  font-weight:700;font-size:12px;padding:1px 0;flex:none}
+.switch{width:34px;height:18px;border-radius:9px;background:var(--accent);position:relative;display:inline-block}
+.switch:after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#04211d}
+.menu{position:absolute;background:var(--raised);border:1px solid var(--borderS);border-radius:8px;
+  padding:6px 0;box-shadow:0 10px 30px rgba(0,0,0,.6);z-index:20;min-width:230px}
+.menu div{padding:9px 16px;font-size:14px}
+.menu .h{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;padding:6px 16px 2px}
+.menu .l{border-top:1px solid var(--border);padding:0;margin:4px 0}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:10}
+.drawer{position:absolute;left:0;top:0;bottom:0;width:380px;z-index:11;border-radius:0}
+.pgn{font-size:14px;line-height:1.7;color:var(--t2)}
+.pgn b{color:#fff;background:#0c4a6e;border:2px solid #fff;border-radius:4px;padding:0 4px}
+.pgn i{font-style:normal;color:var(--t3)}
+</style>
+</head>
+<body>
+<div id="cap"></div>
+<div id="win"></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const V = Q.get('v') || 'A';
+const W = +(Q.get('w') || 1536), H = +(Q.get('h') || 792);
+const S = Q.get('s') || 'idle';
+const PAD = 12, UNDER = 112, EVAL = 24;
+
+function today(w, h){
+  const wide = w >= 840;
+  return Math.round(wide ? Math.min(h * 0.62, Math.max(240, w - 620) * 0.96)
+                         : Math.min(h * 0.65, w * 0.9));
+}
+const down8 = x => Math.floor(x / 8) * 8;
+
+/* ---------- the board ---------- */
+const FEN = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R';
+const GLYPH = {k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+function xy(sq){ return [sq.charCodeAt(0) - 97, 8 - (+sq[1])]; }
+function board(size, marks){
+  const s = size / 8; let h = '';
+  const rows = FEN.split('/');
+  const last = ['f1','b5'].map(xy);
+  for (let r = 0; r < 8; r++){
+    let f = 0;
+    for (const ch of rows[r]){
+      const n = +ch;
+      const cells = n ? n : 1;
+      for (let i = 0; i < cells; i++, f++){
+        const dark = (r + f) % 2 === 1;
+        const isLast = last.some(p => p[0] === f && p[1] === r);
+        const bg = dark ? '#b58763' : '#f0dab5';
+        const piece = n ? '' :
+          `<span class="${ch === ch.toUpperCase() ? 'pw' : 'pb'}" style="font-size:${s*0.8}px">${GLYPH[ch.toLowerCase()]}&#xFE0E;</span>`;
+        h += `<div class="sq" style="left:${f*s}px;top:${r*s}px;width:${s}px;height:${s}px;background:${bg}">`
+           + (isLast ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,.22)"></div>` : '')
+           + `<div style="position:relative">${piece}</div></div>`;
+      }
+    }
+  }
+  if (marks){
+    const [ex, ey] = xy('e5');
+    h += `<div style="position:absolute;left:${ex*s}px;top:${ey*s}px;width:${s}px;height:${s}px;
+            border:${Math.max(3,s*0.07)}px solid #ff2929;outline:1.5px solid #fff;outline-offset:-1.5px"></div>`;
+    const arrow = (from, to, colour) => {
+      const [ax, ay] = xy(from), [bx, by] = xy(to);
+      const x1 = (ax+.5)*s, y1 = (ay+.5)*s, x2 = (bx+.5)*s, y2 = (by+.5)*s;
+      const L = Math.hypot(x2-x1, y2-y1), ux = (x2-x1)/L, uy = (y2-y1)/L, nx = -uy, ny = ux;
+      const a = s*0.07, hl = s*0.36, hw = s*0.2, st = s*0.3;
+      const sx = x1 + ux*st, sy = y1 + uy*st, ex2 = x2 - ux*s*0.18, ey2 = y2 - uy*s*0.18;
+      const mx = ex2 - ux*hl, my = ey2 - uy*hl;
+      const pts = [[sx+nx*a,sy+ny*a],[mx+nx*a,my+ny*a],[mx+nx*hw,my+ny*hw],[ex2,ey2],
+                   [mx-nx*hw,my-ny*hw],[mx-nx*a,my-ny*a],[sx-nx*a,sy-ny*a]].map(p => p.join(',')).join(' ');
+      return `<polygon points="${pts}" fill="none" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+        <polygon points="${pts}" fill="${colour}" fill-opacity=".92" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>`;
+    };
+    h += `<svg width="${size}" height="${size}" style="position:absolute;left:0;top:0">
+      ${arrow('b5','c6','#85ff85')}${arrow('c6','e5','#ff9429')}
+    </svg>`;
+  }
+  return `<div class="board" style="width:${size}px;height:${size}px">${h}</div>`;
+}
+function evalBar(size){
+  return `<div class="evalbar" style="height:${size}px"><i style="height:${size*0.46}px"></i><b></b></div>`;
+}
+
+/* ---------- the rows under the board ---------- */
+function markBar(width, compact){
+  const sw = [['R','#ff2929'],['O','#ff9429'],['G','#85ff85'],['B','#00188f'],['P','#910fb3']];
+  if (compact){
+    return `<div class="row44" style="width:${width}px">
+      <span class="btn icon on" title="Arrow">↗</span><span class="btn icon">▢</span><span class="btn icon">⋯</span>
+      <span class="sep"></span><span class="sw sel" style="background:#85ff85">G</span><span class="dim">colour</span>
+      <span class="sp"></span><span class="btn icon">↶</span><span class="btn icon">✕</span></div>`;
+  }
+  const narrow = width < 520;
+  return `<div class="row48" style="width:${width}px">
+    <span class="btn on">↗ Arrow</span><span class="btn">▢ Square</span><span class="btn">${narrow ? '⋯' : '⋯ Range'}</span>
+    <span class="sep"></span>
+    ${sw.map((c,i) => `<span class="sw ${i===2?'sel':''}" style="background:${c[1]}">${c[0]}</span>`).join('')}
+    <span class="sp"></span>
+    <span class="btn">${narrow ? '↶' : '↶ Undo'}</span><span class="btn">${narrow ? '✕' : '✕ Clear'}</span></div>`;
+}
+function strip(width, compact){
+  const c = compact ? 'row44' : 'row48';
+  return `<div class="${c}" style="width:${width}px">
+    <span class="btn icon">⏮</span><span class="btn icon">◀</span>
+    <span class="dim" style="padding:0 6px;color:var(--t1);font-weight:600">3. Bb5</span>
+    <span class="btn icon">▶</span><span class="btn icon">⏭</span>
+    <span class="sp"></span><span class="btn icon" title="Flip">⇅</span><span class="btn icon" title="View">⚙</span></div>`;
+}
+
+/* ---------- the tree ---------- */
+const NODES = [
+  [0,'Start',0,0,null],[1,'1. e4',1,0,0],[2,'1... e5',2,0,1],[3,'2. Nf3',3,0,2],[4,'2... Nc6',4,0,3],
+  [5,'3. Bb5',5,0,4],[6,'3... a6',6,0,5],[7,'4. Ba4',7,0,6],[8,'4... Nf6',8,0,7],[9,'5. O-O',9,0,8],
+  [10,'3... Nf6',6,1,5],[11,'4. O-O',7,1,10],[12,'4... Nxe4',8,1,11],
+  [13,'3... f5',6,2,5],[14,'4. Nc3',7,2,13],
+];
+function tree(w, h, horizontal){
+  const cw = horizontal ? 72 : 80, ch = 28;
+  let pos;
+  if (horizontal){
+    const sx = Math.min(96, (w - 24 - cw) / 9), sy = Math.min(46, (h - 28 - ch) / 2);
+    pos = n => [12 + n[2]*sx, 14 + n[3]*sy];
+  } else {
+    const sy = Math.min(46, (h - 24 - ch) / 9), sx = Math.min(104, (w - 32 - cw) / 2);
+    pos = n => [16 + n[3]*sx, 12 + n[2]*sy];
+  }
+  let svg = '', html = '';
+  for (const n of NODES){
+    const [x, y] = pos(n);
+    if (n[4] !== null){
+      const p = NODES[n[4]], [px, py] = pos(p);
+      let d;
+      if (horizontal){
+        const x1 = px + cw, y1 = py + ch/2, x2 = x, y2 = y + ch/2, m = (x1 + x2)/2;
+        d = `M${x1},${y1} C${m},${y1} ${m},${y2} ${x2},${y2}`;
+      } else {
+        const x1 = px + cw/2, y1 = py + ch, x2 = x + cw/2, y2 = y, m = (y1 + y2)/2;
+        d = `M${x1},${y1} C${x1},${m} ${x2},${m} ${x2},${y2}`;
+      }
+      svg += `<path d="${d}" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="${n[3]===0?2.2:1.4}"/>`;
+    }
+    const cls = n[0] === 5 ? 'act' : (n[3] === 0 ? 'main' : 'var');
+    html += `<div class="node ${cls}" style="left:${x}px;top:${y}px;width:${cw}px">${n[1]}</div>`;
+  }
+  return `<div class="tree"><svg width="${w}" height="${h}" style="position:absolute;left:0;top:0">${svg}</svg>${html}</div>`;
+}
+function treeHead(){
+  return `<div class="ph">Move tree <span class="sp"></span>
+    <span class="seg"><span class="sel">Visual</span><span>PGN</span></span>
+    <span class="btn icon" style="height:26px;width:26px;font-size:13px">−</span>
+    <span class="btn icon" style="height:26px;width:26px;font-size:13px">+</span></div>`;
+}
+const PGN = `1. e4 e5 2. Nf3 Nc6 <b>3. Bb5</b> a6 <i>(3... Nf6 4. O-O Nxe4)</i> <i>(3... f5 4. Nc3)</i> 4. Ba4 Nf6 5. O-O`;
+
+/* ---------- comment, engine, library ---------- */
+function comment(){
+  return `<div class="dim" style="margin-bottom:6px;color:var(--t2)">Comment for <b style="color:var(--t1)">3. Bb5</b></div>
+    <div class="field" style="flex:1;min-height:0;overflow:hidden">The bishop pins nothing yet, but it attacks the knight that defends e5.</div>`;
+}
+function engine(lines){
+  const L = [['+0.3','3... a6 4. Ba4 Nf6 5. O-O Be7 6. Re1'],['+0.4','3... Nf6 4. O-O Nxe4 5. d4 Nd6'],['+0.7','3... f5 4. Nc3 fxe4 5. Nxe4']];
+  return L.slice(0, lines).map(l => `<div class="eline"><span class="ev">${l[0]}</span><span>${l[1]}</span></div>`).join('');
+}
+function engineHead(){
+  return `<div class="ph">Engine <span class="mini">depth 24</span><span class="sp"></span><span class="switch"></span></div>`;
+}
+function library(rows){
+  const items = [
+    ['Rook endings — Lucena','Tutorial · 5 parts · with its line'],
+    ['Ruy Lopez, my notes','Analysis · the whole tree'],
+    ['Mate in 2 — no. 14','Exercise · the position alone'],
+    ['Dvoretsky, p. 112','Position · scanned'],
+    ['Philidor defence','Tutorial · 3 parts'],
+    ['Queen sacrifice on h7','Exercise · the position alone'],
+    ['Carlsbad structure','Analysis · the whole tree'],
+  ];
+  return `<div class="field ph2" style="margin-bottom:8px">🔍 Search the library…</div>
+    <div class="chips" style="margin-bottom:10px">
+      <span class="chip sel">All</span><span class="chip">Tutorials</span><span class="chip">Analyses</span>
+      <span class="chip">Exercises</span><span class="chip">Positions</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+    ${items.slice(0, rows).map(i => `<div class="item"><div class="thumb"></div>
+        <div style="min-width:0"><b>${i[0]}</b><span>${i[1]}</span></div></div>`).join('')}</div>`;
+}
+
+/* ---------- the bar ---------- */
+function barHtml(o){
+  const small = W < 1000;
+  if (S === 'rec'){
+    return `<div class="bar rec">
+      <span class="btn icon" style="border:none">←</span>
+      <span class="dot"></span><span class="title">Recording</span>
+      <span class="title" style="font-variant-numeric:tabular-nums">02:41</span>
+      <span class="dim" style="font-size:13px">27:19 left</span>
+      <span class="sp"></span>
+      ${o.drawer ? '<span class="btn">☰ Library</span>' : ''}
+      <span class="btn">Board ▾</span>
+      <span class="sep"></span>
+      <span class="btn">❚❚ Pause</span><span class="btn fill">■ Stop and save</span><span class="btn">Discard</span>
+    </div>`;
+  }
+  return `<div class="bar">
+    <span class="btn icon" style="border:none">←</span>
+    <span class="title">Preparation</span>
+    ${small ? '' : '<span class="sub">Ruy Lopez, my notes</span>'}
+    <span class="sp"></span>
+    ${o.drawer ? `<span class="btn ${S==='lib'?'on':''}">☰ Library</span>` : ''}
+    <span class="btn ${S==='menu'?'on':''}" id="bBoard">Board ▾</span>
+    <span class="btn ${S==='menu'?'on':''}" id="bSave">${small ? 'Save ▾' : 'Save as… ▾'}</span>
+    <span class="btn rec"><span class="dot"></span>${small ? 'Rec' : 'Record'}</span>
+    <span class="btn icon">⋮</span>
+  </div>`;
+}
+function menus(){
+  if (S !== 'menu') return '';
+  const b = document.getElementById('bBoard'), s = document.getElementById('bSave');
+  const wr = document.getElementById('win').getBoundingClientRect();
+  const rb = b.getBoundingClientRect(), rs = s.getBoundingClientRect();
+  return `<div class="menu" style="left:${rb.left - wr.left - 250}px;top:${rb.bottom - wr.top + 6}px">
+      <div class="h">Put on the board</div>
+      <div>Set up position…</div><div>Paste FEN…</div><div>Import PGN…</div>
+      <div class="l"></div><div>Starting position</div></div>
+    <div class="menu" style="left:${rs.left - wr.left}px;top:${rs.bottom - wr.top + 6}px">
+      <div class="h">Keep what is on the board</div>
+      <div>Position</div><div>Exercise…</div><div>Analysis — the whole tree</div><div>PGN — copy or file</div>
+      <div class="l"></div><div>Open in Analysis</div></div>`;
+}
+
+/* ---------- desktop ---------- */
+function desktop(){
+  const BAR = 56, bodyH = H - BAR;
+  const availH = H - BAR - 2*PAD - UNDER;
+  const paneMin = W < 1000 ? 400 : (V === 'A' ? 460 : 420);
+  let libShown = false, size, paneW;
+  if (V === 'A'){
+    const withLib = W - 2*PAD - paneMin - PAD - 320 - PAD - EVAL;
+    libShown = withLib >= availH;
+    const room = libShown ? withLib : W - 2*PAD - paneMin - PAD - EVAL;
+    size = down8(Math.min(availH, room));
+    paneW = paneMin;
+  } else {
+    size = down8(Math.min(availH, W - 2*PAD - PAD - paneMin - EVAL));
+    paneW = W - 2*PAD - PAD - (size + EVAL);
+  }
+  const drawer = (V === 'C') || (V === 'A' && !libShown);
+  const innerH = bodyH - 2*PAD;
+
+  const boardCol = `<div class="boardcol" style="${V==='A' ? 'flex:1' : ''}">
+      <div class="boardrow">${evalBar(size)}${board(size, true)}</div>
+      <div style="padding-left:${EVAL}px">${markBar(size)}${strip(size)}</div></div>`;
+
+  let right;
+  if (V === 'A' || V === 'B'){
+    const tabs = V === 'A' ? ['Tree','Engine'] : ['Tree','Library','Engine'];
+    const treeH = innerH - 40 - 40 - 20 - 128;
+    right = `<div class="panel" style="width:${paneW}px;${V==='A'?'flex:none':''}">
+      <div class="tabs">${tabs.map((t,i) => `<div class="tab ${i===0?'sel':''}">${t}</div>`).join('')}</div>
+      ${treeHead()}
+      <div class="pc" style="display:flex;flex-direction:column;padding:10px">${tree(paneW - 22, treeH, false)}</div>
+      <div style="height:128px;flex:none;border-top:1px solid var(--border);padding:10px 12px;display:flex;flex-direction:column">${comment()}</div>
+    </div>`;
+  } else {
+    const split = paneW >= 480;
+    const botH = split ? 186 : 236;
+    const treeH = innerH - botH - PAD - 40 - 20;
+    const horizontal = paneW >= 700;
+    const bottom = split
+      ? `<div style="display:flex;gap:12px;height:${botH}px;flex:none">
+           <div class="panel" style="flex:1"><div class="pc" style="display:flex;flex-direction:column">${comment()}</div></div>
+           <div class="panel" style="flex:1">${engineHead()}<div class="pc">${engine(3)}</div></div></div>`
+      : `<div class="panel" style="height:${botH}px;flex:none">
+           <div class="pc" style="display:flex;flex-direction:column;flex:none;height:112px">${comment()}</div>
+           ${engineHead()}<div class="pc">${engine(2)}</div></div>`;
+    right = `<div style="width:${paneW}px;display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div class="panel" style="flex:1">${treeHead()}
+        <div class="pc" style="display:flex;flex-direction:column;padding:10px">${tree(paneW - 22, treeH, horizontal)}</div></div>
+      ${bottom}</div>`;
+  }
+
+  const lib = (V === 'A' && libShown)
+    ? `<div class="panel" style="width:320px;flex:none"><div class="ph">Library</div><div class="pc">${library(7)}</div></div>` : '';
+
+  const overlay = (S === 'lib' && drawer)
+    ? `<div class="scrim"></div><div class="panel drawer"><div class="ph">Library <span class="sp"></span><span class="mini">tap a row to put it on the board</span></div>
+         <div class="pc">${library(7)}</div></div>` : '';
+
+  const win = document.getElementById('win');
+  win.style.width = W + 'px'; win.style.height = H + 'px';
+  win.innerHTML = barHtml({drawer}) +
+    `<div class="body" style="height:${bodyH}px">${lib}${boardCol}${right}${overlay}</div>`;
+  win.insertAdjacentHTML('beforeend', menus());
+
+  const names = {A:'Library · Board · Tabs', B:'Board · one pane with tabs', C:'Board · everything in sight, Library in a drawer'};
+  const st = {idle:'', rec:' · while recording', menu:' · the two menus (shown open together)', lib:' · the Library drawer open'}[S];
+  const where = V === 'A' ? (libShown ? 'Library beside the board' : 'Library in a drawer here')
+              : V === 'B' ? 'Library is a tab' : 'Library in a drawer';
+  document.getElementById('cap').innerHTML =
+    `<b>Variant ${V}</b> ${names[V]}${st} <span>window ${W} × ${H}</span>
+     <span class="big">board ${size}</span> <span>today ${today(W,H)}</span> <span>${where}</span>`;
+}
+
+/* ---------- phone, upright ---------- */
+function phoneUp(){
+  const BAR = 56, size = down8(W - 16);
+  const rest = H - BAR - 8 - size - 44 - 44 - 40;
+  const win = document.getElementById('win');
+  win.style.width = W + 'px'; win.style.height = H + 'px';
+  win.innerHTML = `<div class="bar" style="padding:0 6px;gap:4px">
+      <span class="btn icon" style="border:none">←</span><span class="title" style="font-size:17px">Preparation</span>
+      <span class="sp"></span><span class="btn rec icon"><span class="dot"></span></span><span class="btn icon">⋮</span></div>
+    <div style="padding:8px 8px 0;display:flex;flex-direction:column;align-items:center">
+      ${board(size, true)}${markBar(size, true)}${strip(size, true)}</div>
+    <div class="tabs" style="background:var(--surface)">
+      <div class="tab sel" style="padding:0 12px">Tree</div><div class="tab" style="padding:0 12px">Comment</div>
+      <div class="tab" style="padding:0 12px">Engine</div><div class="tab" style="padding:0 12px">Library</div></div>
+    <div style="height:${rest}px;padding:8px 10px;overflow:hidden"><div class="pgn">${PGN}</div></div>`;
+  document.getElementById('cap').innerHTML =
+    `<b>Phone, upright</b> <span>${W} × ${H}</span> <span class="big">board ${size}</span> <span>today ${today(W,H)}</span>`;
+  document.getElementById('cap').style.fontSize = '12px';
+  document.getElementById('cap').style.gap = '8px';
+}
+
+/* ---------- phone, on its side ---------- */
+function phoneSide(){
+  const BAR = 44, size = down8(H - BAR - 16);
+  const paneW = W - size - 8 - 8 - 8;
+  const win = document.getElementById('win');
+  win.style.width = W + 'px'; win.style.height = H + 'px';
+  win.innerHTML = `<div class="bar small" style="padding:0 8px;gap:6px">
+      <span class="btn icon" style="border:none;height:32px">←</span><span class="title" style="font-size:16px">Preparation</span>
+      <span class="sp"></span><span class="btn rec" style="height:32px"><span class="dot"></span>Record</span>
+      <span class="btn icon" style="height:32px">⋮</span></div>
+    <div style="display:flex;gap:8px;padding:8px;height:${H-BAR}px">
+      ${board(size, true)}
+      <div style="width:${paneW}px;display:flex;flex-direction:column;min-width:0">
+        ${strip(paneW, true)}${markBar(paneW, true)}
+        <div class="tabs" style="height:34px"><div class="tab sel">Tree</div><div class="tab">Comment</div>
+          <div class="tab">Engine</div><div class="tab">Library</div></div>
+        <div style="flex:1;min-height:0;padding:8px 4px;overflow:hidden"><div class="pgn">${PGN}</div></div>
+      </div></div>`;
+  document.getElementById('cap').innerHTML =
+    `<b>Phone, on its side</b> <span>${W} × ${H}</span> <span class="big">board ${size}</span>
+     <span>the strip and the marks stay beside the board</span>`;
+}
+
+if (V === 'PU') phoneUp(); else if (V === 'PS') phoneSide(); else desktop();
+</script>
+</body>
+</html>

@@ -18,7 +18,7 @@ je sesija počinjala tako što ga je ceo pročitala.
 Zbog podele poneko „odeljak iznad/niže" sada pokazuje preko granice dva fajla —
 ako ga nema ovde, u arhivi je.
 
-Poslednje ažuriranje: **26.9.2026** — najnovije je „Pad sa čitačem ekrana, drugi put: šta pad ostavlja za sobom" (`PLAN-FORENZIKA-PADA.md`; faze 1–3 u kodu, provera uživo otvorena — prva stavka: id-jevi detektora naspram stderr-a motora), pa „Merenje potrošnje API servisa, i ekran „Usage this month"" (u kodu, provera uživo — stavke [248.1]–[248.4]), pa „Redosled varijanti i grana tutorijala" (`PLAN-REDOSLED-GRANA.md`; D1–D7 odgovoreni po preporuci; **faze 0–3 u kodu** — ostaje provera uživo [247.9]–[247.12]), pa „Delovi tutorijala kao mapa, i deo kao jedna linija" (`PLAN-MAPA-DELOVA.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke [247.1]–[247.8]), pa „Tutorijal služi samo za video" (`PLAN-TUTORIJAL-VIDEO.md`; faze 0, 2, 3 i 4 u kodu 25.9.2026, provera uživo — stavke [246.1]–[246.15]), pa „Spisak za proveru uživo preuređen" (odmah ispod: `TODO-provera.md` po mestu u aplikaciji, svaka stavka sa putanjom; tri nalaza koji traže posao), pa „Zagonetke iz partije, faza 1b: tutorijal na pravilu greške“ (u kodu, provera uživo — stavka 245), pa „Zagonetke iz partije, faza 1t: naše tablebase tabele“ (u kodu, provera uživo — stavka 244), pa „Zagonetke iz partije, faza 3: pregled piše komentare“ (u kodu, provera uživo — stavka 243), pa „Pravilo greške, navike u otvaranju i odgovori engine-a na disku“ (odmah ispod; `PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 0 izmerena i faza 1.1 u kodu, `PLAN-MOJE-PARTIJE.md` §9.1–9.4 u kodu — provera uživo, stavke 237–239), pa „Zagonetke iz partije: pre greške, jedan jasan odgovor, i zašto“ (plan napisan 23.9.2026), pa „Knjiga čiji font nemamo čita se kao slike“ (faza 3h plana `PLAN-SKENER-SLIKE.md`, u kodu, provera uživo — stavka 236; sa njom i sve knjige u fontu `DiagramTTFritz`), pa „Materijal: pozicije, zadaci i zagonetke — jedan model, tri glagola" (plan `PLAN-MATERIJAL.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke 231–235), pa „Pozicija bez strane na potezu se ne koristi dok se ne pita" (u kodu, provera uživo — stavka 230), pa „Dijagrami kao slike: deljena kalibracija" (faza 3g, u kodu, provera uživo — stavka 229), pa „Dijagrami kao slike: prvo kalibracija, pa strane" (faza 3f, u kodu, provera uživo — stavka 228), pa „Dijagrami kao slike: kalibraciju bira trener" (faza 3e, u kodu, provera uživo — stavka 227), pa „Dijagrami kao slike: faza 3 — ekrani" (u kodu, provera uživo — stavka 225), pa „Dijagrami kao slike: faza 2 — čitanje sa kalibracijom" (`POST /scans/images`, u kodu; aplikacija ga još ne zove — faza 3), pa „Dijagrami kao slike: faza 1 — table isečene na serveru", pa „Dijagrami kao slike: faza 0 izmerena" (ništa u aplikaciji, čeka odluku vlasnika — §7 plana `PLAN-SKENER-SLIKE.md`), pa „Skener na Teach, i plan za dijagrame koji su slike" (kartica u kodu, provera uživo — stavka 224; `PLAN-SKENER-SLIKE.md` napisan, ništa u kodu), pa „Jedna sesija na dupli klik, jedna kopija aplikacije na Windowsu" (stavka 223), pa „Brisanje snimka" (stavka 222), pa „Taktički i pozicioni motivi — samo za AI" (u kodu, provera uživo — stavka 221), pa „Pad na Windowsu sa čitačem ekrana" (u kodu, pad proveren uživo — stavka 220), pa „Sesija uživo: plan reorganizacije" (faza 1 u kodu, provera uživo — stavka 219), pa „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
+Poslednje ažuriranje: **27.9.2026** — najnovije je „Preparation: svoj ekran, i snimak koji postaje tutorijal" (`PLAN-PRIPREMA.md`; plan napisan 27.9.2026, **ništa u kodu**; skice nacrtane i vlasnik izabrao varijantu C — D11; faza 0 zatvorena, brojevi izmereni; faza 1 u radu na grani `priprema-faza-1`), pa „Pad sa čitačem ekrana, drugi put: šta pad ostavlja za sobom" (`PLAN-FORENZIKA-PADA.md`; faze 1–3 u kodu, provera uživo otvorena — prva stavka: id-jevi detektora naspram stderr-a motora), pa „Merenje potrošnje API servisa, i ekran „Usage this month"" (u kodu, provera uživo — stavke [248.1]–[248.4]), pa „Redosled varijanti i grana tutorijala" (`PLAN-REDOSLED-GRANA.md`; D1–D7 odgovoreni po preporuci; **faze 0–3 u kodu** — ostaje provera uživo [247.9]–[247.12]), pa „Delovi tutorijala kao mapa, i deo kao jedna linija" (`PLAN-MAPA-DELOVA.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke [247.1]–[247.8]), pa „Tutorijal služi samo za video" (`PLAN-TUTORIJAL-VIDEO.md`; faze 0, 2, 3 i 4 u kodu 25.9.2026, provera uživo — stavke [246.1]–[246.15]), pa „Spisak za proveru uživo preuređen" (odmah ispod: `TODO-provera.md` po mestu u aplikaciji, svaka stavka sa putanjom; tri nalaza koji traže posao), pa „Zagonetke iz partije, faza 1b: tutorijal na pravilu greške“ (u kodu, provera uživo — stavka 245), pa „Zagonetke iz partije, faza 1t: naše tablebase tabele“ (u kodu, provera uživo — stavka 244), pa „Zagonetke iz partije, faza 3: pregled piše komentare“ (u kodu, provera uživo — stavka 243), pa „Pravilo greške, navike u otvaranju i odgovori engine-a na disku“ (odmah ispod; `PLAN-ZAGONETKE-IZ-PARTIJE.md` faza 0 izmerena i faza 1.1 u kodu, `PLAN-MOJE-PARTIJE.md` §9.1–9.4 u kodu — provera uživo, stavke 237–239), pa „Zagonetke iz partije: pre greške, jedan jasan odgovor, i zašto“ (plan napisan 23.9.2026), pa „Knjiga čiji font nemamo čita se kao slike“ (faza 3h plana `PLAN-SKENER-SLIKE.md`, u kodu, provera uživo — stavka 236; sa njom i sve knjige u fontu `DiagramTTFritz`), pa „Materijal: pozicije, zadaci i zagonetke — jedan model, tri glagola" (plan `PLAN-MATERIJAL.md`; **faze 0–5 u kodu**, ostaje faza 6 — vlasnikova provera uživo, stavke 231–235), pa „Pozicija bez strane na potezu se ne koristi dok se ne pita" (u kodu, provera uživo — stavka 230), pa „Dijagrami kao slike: deljena kalibracija" (faza 3g, u kodu, provera uživo — stavka 229), pa „Dijagrami kao slike: prvo kalibracija, pa strane" (faza 3f, u kodu, provera uživo — stavka 228), pa „Dijagrami kao slike: kalibraciju bira trener" (faza 3e, u kodu, provera uživo — stavka 227), pa „Dijagrami kao slike: faza 3 — ekrani" (u kodu, provera uživo — stavka 225), pa „Dijagrami kao slike: faza 2 — čitanje sa kalibracijom" (`POST /scans/images`, u kodu; aplikacija ga još ne zove — faza 3), pa „Dijagrami kao slike: faza 1 — table isečene na serveru", pa „Dijagrami kao slike: faza 0 izmerena" (ništa u aplikaciji, čeka odluku vlasnika — §7 plana `PLAN-SKENER-SLIKE.md`), pa „Skener na Teach, i plan za dijagrame koji su slike" (kartica u kodu, provera uživo — stavka 224; `PLAN-SKENER-SLIKE.md` napisan, ništa u kodu), pa „Jedna sesija na dupli klik, jedna kopija aplikacije na Windowsu" (stavka 223), pa „Brisanje snimka" (stavka 222), pa „Taktički i pozicioni motivi — samo za AI" (u kodu, provera uživo — stavka 221), pa „Pad na Windowsu sa čitačem ekrana" (u kodu, pad proveren uživo — stavka 220), pa „Sesija uživo: plan reorganizacije" (faza 1 u kodu, provera uživo — stavka 219), pa „Stockfish 19 u aplikaciji" (motor na Androidu iz lokalnog paketa, tri nove provere pozicije, preuzimanje motora na Windowsu popravljeno — u kodu, provera uživo — stavka 218), pa „Domaći grupi, ista imena analiza, i ko podučava u sobi" (u kodu, provera uživo — stavka 217; server restartovan sa `PUT /analysis/:id`), pa „„Find the move": potez ostaje na tabli, i rešenje se može skinuti" (u kodu, provera uživo — stavka 216; stavka 214 potvrđena uživo istog dana), pa „Brisanje iz Biblioteke, „Make exercise" na poziciji, i oznake i jezik na telefonu" (u kodu, provera uživo — stavka 215), pa „Tudja analiza posle promene naloga, i motor koji staje kad se ode“ (u kodu, provera uživo — stavka 214; ispod njega i šta je iz pregleda komentara 18–21.9 još otvoreno), pa „Početni tabovi: faze 3 i 4“ (Home i Practise; **ceo PLAN-POCETNI-TABOVI zatvoren** — vlasnik potvrdio stavke 212 i 213 uživo 21.9.2026, a kartica „Chess trainer and drills“ je na njegovu reč uklonjena), pa „Početni tabovi: plan, faze 0–2“ (`PLAN-POCETNI-TABOVI.md`; Teach — stavka 212, potvrđena), pa „Puzzle sets pripadaju nalogu“ (nova tabela i rute; u kodu, provera uživo, stavka 211 — traži restart backenda), pa „Liste: faza 7“ („Choose a game“ kao prava tabela; PLAN-LISTE odgradjen u celosti — u kodu, provera uživo, stavka 210), pa „Liste: faza 6“ (okno pored liste repertoara; PLAN-LISTE odgradjen — u kodu, provera uživo, stavka 209), pa „Liste: faza 5“ (okno pored police u Biblioteci, i minimalna širina kartice u mreži — u kodu, provera uživo, stavka 208), pa „Vlasnikova provera 20.9.2026 uveče: tri nalaza“ (zagonetke iz Biblioteke, brojevi prate prekidač online partija, ☰ u sobi — u kodu, provera uživo, stavka 207), pa „Liste: faza 4“ („What to drill“ u kolonama, `AdaptiveCardColumns`, u kodu, provera uživo — stavka 206), pa „Liste: faza 3b“ (`LibraryList` na `AdaptiveCardGrid`, u kodu, provera uživo — stavka 205), pa „Liste koje koriste širinu“ (plan `PLAN-LISTE.md`; faze 0–3b i 1b u kodu), pa „Spajanje tutorijala i izdvajanje delova“ (u kodu, provera uživo — stavka 202), pa „Preparation čuva liniju i izvozi je u PGN“ (u kodu, provera uživo — stavka 201), pa „Vlasnikova provera 20.9.2026“ odmah ispod ove glave (u kodu, stavka 194), pa „Zadatak: vlasnikova provera 19.9.2026“ (faze 8–12 u kodu — stavke 189–193; ostaje provera uživo), pa „Zadatak (Exercise) — plan, faze 1–5 u kodu“ (provera uživo — stavke 185, 186 i 187; faza 6 zatvorena bez gradnje 19.9.2026) (`PLAN-EXERCISE.md`; šema, jedan čitalac, sudija za niz poteza, `/exercises`, presuda po dostignutoj poziciji; „mora biti rešeno“ izbačeno), pa „‚Play it out’ prima tablu kakvu daje dijagram“ (u kodu, ponovna provera uživo — stavka 183.1), pa „Settings, druga provera 18.9.2026: hrom iznad table“ (u kodu, ponovna provera uživo — stavke 180.2, 180.3, 180.5), pa „Vlasnikova provera 18.9.2026: šest nalaza, svih šest zatvoreno“ (u kodu, ponovna provera uživo — stavke 176.2, 176.4, 177.2, 177.4, 177.6, 179.2), pa „Domaći zadatak — plan sa tri varijante" (`PLAN-DOMACI-ZADATAK.md`, predlog, ništa u kodu, čeka odgovore vlasnika na §8), pa „Settings, pregled po odeljcima" (u kodu, provera uživo — stavka 180); pre toga „Reorganizacija aplikacije — plan sa tri varijante" (predlog, ništa u kodu, čeka odluku vlasnika), pa „Četiri prijave iste večeri: podešavanja, mat, Google, obaveštenje" (u kodu, provera uživo — stavka 174), pa „Telefon položeno: posle prve provere" (u kodu, **viđeno uživo** — stavka 173), pa „Telefon položeno: tabla levo, sve ostalo desno" (u kodu, prva provera uživo — stavka 172), pa „Analiza uvozi PGN sa varijantama" (u kodu, provera uživo — stavka 171), pa „Tri prijave o repertoaru: motor, brojač i PGN" (u kodu, spojeno posle revizije, provera uživo — stavka 170), pa „Ostatak revizije (blok C)" (u kodu, četiri pitanja čekaju odluku, provera uživo — stavka 169), pa „Soba iz revizije (blok B)" (u kodu, provera uživo sa dva uređaja — stavka 168), pa „Sigurnosni blok iz revizije" (u kodu, provera uživo — stavka 167), pa „Repertoar se gradi na
 tabli" odmah ispod ove glave (P0–P4 u kodu, provera uživo — stavka 166), pa
 „Otvaranja iz naše baze" (faze 0–4 u kodu, faza 5 otvorena, provera uživo —
 stavke 164 i 165), pa „Izlazak iz
@@ -54,6 +54,117 @@ ekran zna zašto se otvara, i „Biblioteka“ ima ulaz u studio; ostaje P5 nada
 faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
+
+## Preparation: svoj ekran, i snimak koji postaje tutorijal — 27.9.2026, plan napisan, ništa u kodu
+
+Plan je `docs/PLAN-PRIPREMA.md`. Vlasnik je 27.9.2026 izneo sedam tačaka o
+ekranu Teach → Preparation (grafičko stablo i označavanje polja; šta se iz
+Biblioteke učitava; snimak sa naracijom kao tutorijal koji se šalje učeniku i
+stavlja u domaći; govor u tekst; prevod; veća tabla i dizajn od delova drugih
+ekrana; ekran i dalje pravi zadatke, analize i PGN), pa tri ograničenja: deo
+tutorijala ne pamti **kada** je strelica povučena, sintetizovan ili preveden
+glas govori drugom brzinom, i naracija ne sme da se cepka na svakoj strelici.
+
+**Odlučeno (D1–D10 plana, vlasnik, 27.9.2026):**
+
+* Iz Biblioteke po vrsti: deo tutorijala **sa linijom**, sačuvana analiza **sa
+  celim stablom**, zadatak, pozicija i sken **samo pozicija**. To zatvara
+  „otvoreno pitanje za vlasnika" iz odeljka o padu, niže.
+* Snimak se **pretvara u običan tutorijal**; nije druga vrsta tutorijala u
+  spisku. Sirov snimak ostaje pod Recordings kao matična kopija glasa.
+* Preparation dobija **svoj ekran**; soba ostaje samo za sesiju uživo.
+* **Pozicija može da ima više taktova** (rečenica + oznake koje stoje dok se
+  ona govori) — u samom tutorijalu, dakle i u Tutorial Studiju. Ne više
+  delova.
+* Tekst se seče **samo na rečenicama**; strelica ili potez usred rečenice se
+  vezuje za rečenicu. Nijedno vreme se ne prenosi iz snimka na drugi glas.
+* Film snimka stiže u domaći **kroz tutorijal** u koji se pretvori.
+* Prevod je **kopija**, samo sedam jezika čiji se potezi umeju izgovoriti.
+* Govor u tekst šalje glas spoljnom servisu — rečenica u politici privatnosti
+  je vlasnikova i advokatova, pre nego što to koristi iko osim njega.
+
+**Šta je mereno u kodu, a menja odluke** (sve sa putanjama u §2 plana):
+Preparation je ekran sobe u posebnom režimu (14 test fajlova, 109 slučajeva
+stoji na tome); tabla je ograničena na 62% visine prozora; grafičko stablo
+crta `AnalysisNode`, a soba drži `MoveTree`; strelice se u snimku pamte sa
+vremenom, ali **stablo kakvo je bilo na „Stop" se ne čuva**; film već ume da
+nacrta promenu oznaka bez poteza, tutorijal ne ume da je zapiše; **čitač PGN-a
+drugi komentar na istom potezu upisuje preko prvog, bez reči**; govor u tekst
+ne postoji nigde; prevod postoji samo kao alat van aplikacije.
+
+**Faze**: 0 brojevi i skice ekrana (PNG, vlasnik bira) · 1 jezgro ekrana ·
+2 materijal unutra i napolje · 3 snimanje i polja u snimku · 4 vrata se
+prebacuju, soba gubi Preparation · 5 **merenje** govora u tekst na vlasnikovim
+snimcima i pravila na papiru · 6 više taktova na poziciji · 7 govor u tekst i
+transkript · 8 snimak postaje tutorijal · 9 prevod · 10 reči · 11 provera
+uživo. Faza 5 može da teče uporedo sa 1–4; 8 traži 6 i 7.
+
+**Otvoreno za vlasnika** (§8 plana, svako uz fazu kojoj treba): koji servis
+sluša snimke (posle merenja); da li ispravka transkripta čuva sopstveni glas
+(preporuka: da); koliko govor u tekst i prevod koštaju nalog; srpski u kom
+pismu; da li „Transcribe" drži ekran; natpis na dugmetu koje dodaje takt.
+
+**Skice ekrana su nacrtane i poslate vlasniku 27.9.2026** (faza 0, tačka 2):
+tri varijante, 14 PNG-ova iz jedne strane `docs/skice/priprema.html`. Tabla je
+ista u sve tri — 600 na njegovom prozoru 1536 × 792 (danas 491), 608 na
+1200 × 800, 440 na 900 × 700 (danas 269); razlika je samo šta stoji pored
+table. **Vlasnik je izabrao varijantu C i prihvatio svih pet predloga iz
+skica** („Varijanta C, i da na svih pet predloga", 27.9.2026) — to je D11
+plana: ništa iza taba na desktopu (stablo gore, komentar i linije motora
+ispod), Biblioteka u fioci, snimanje se kaže **u traci** a ne u posebnom redu
+ispod nje, evaluacija stoji **pored** table, „Board ▾" stavlja na tablu a
+„Save as… ▾" čuva, linije motora nisu više ispod table, a na telefonu četiri
+taba sa stablom kao notacijom. Mere iz skice su cilj, ne broj iz aplikacije:
+faza 1 tvrdi tablu do 16 px od skice i nikad manju od današnje. **Polazni
+brojevi su izmereni 27.9.2026** (agent `verifier`, radno stablo, ništa drugo
+ne radi): aplikacija 4197 + 1 preskočen, `analyze` 22 poznata `info`, server
+1772 bez baze i **1930 sa bazom — sada mereno, ne izvedeno**. Faza 0 je time
+zatvorena. **Faza 1 je izgrađena, ocenjena i spojena u `master` 27.9.2026**: u
+radnom stablu aplikacija **4266 + 1 preskočen** (4197 + 12 + 52 + 5, kako je
+predviđeno pre prolaza), `analyze` ista 22, trinaest mutacija ekrana svaka
+crvena na svom slučaju, šest slika pravog ekrana poslato vlasniku. Izvođač je
+vratio 61 od 62 i rekao zašto; ocenjivanje je popravilo karticu stabla koja
+nije umela da bude niža od 516 px (novo opciono `fills`), prekidač motora
+koji nije pitao motor do sledećeg poteza, i dodalo šav `engine` da test vidi
+šta je motor pitan. Spojeno na vlasnikovu reč („merguj i pokreni radnika"); faza 2 je u radu.
+Faza 1 je bila na grani `priprema-faza-1`
+(radno stablo `.claude/worktrees/priprema-faza-1`, nalog
+`docs/briefs/BRIEF-PRIPREMA-FAZA1.md`, ništa nije komitovano). Vođa je
+napisao pravilo rasporeda (12 slučajeva, 7 mutacija uhvaćeno) i kapiju ekrana
+(50 slučajeva; na praznom ekranu 47 crveno sa čitljivim razlogom, 3 zelena
+dokazano umeju da padnu). Stvarni redovi ispod table su 56 + 48, pa pravilo
+daje tablu **608** na 1536 × 792, 616 na 1200 × 800 i 442 na 900 × 700.
+**Tri odluke o kontrolama, vlasnik ih je potvrdio 27.9.2026** („Slažem se sa
+sve tri odluke" — D12 plana): evaluacija se ovde nikad ne upisuje u komentar
+(sobino „Insert evaluation into comment" i pečat na ubačenoj liniji motora
+se ne prenose); „To main line" i „Delete variation" su u meniju stabla, ne
+dugmad; traka za označavanje je od ikonica tamo gde natpisi ne staju, sa
+rečima u tooltip-u. **Kapija faze 2 je napisana unapred** —
+`docs/gates/preparation_material_test.dart`, 24 slučaja, ugovor na vrhu
+fajla — ali **nije ni kompajlirana ni viđena crvena**: čeka ekran faze 1.
+Odluke u njoj, **vlasnik ih je potvrdio 27.9.2026** („Slažem se sa svih pet
+odluka i sa natpisom" — D13 plana, zajedno sa natpisom „Add a sentence here"
+za dugme koje dodaje takt, čime je Q6 zatvoreno): „Position" čuva tablu
+pred trenerom bez linije (soba danas čuva početnu poziciju i celu liniju);
+redovi u fioci Biblioteke nemaju radnje; „Open in Analysis" nosi kopiju
+celog stabla; tutorijal se lista iz trake, ne iz reda iznad table; učitavanje
+zamenjuje tablu bez pitanja, kao i danas. **Snimke za fazu 5 vlasnik pravi
+28.9.2026.** **Faza 6 je pripremljena** na vlasnikovu reč, dok izvođač gradi
+fazu 1: model je odlučen i **vlasnik ga je prihvatio 27.9.2026** (`NodeBeat`; `comment`, `arrows` i `squares` čitaju
+i pišu **prvi** takt, pa ekran koji ne zna za taktove ne može da ih spljošti),
+popisan je svaki čitalac, pisac i kopirant, i tri kapije su u nacrtu u
+`docs/gates/` (`node_beats_test.dart`, `tutorial_beats_film_test.dart`,
+`film_beat_event.test.js`) — **nijedna nije kompajlirana ni viđena crvena**.
+Tri nalaza iz čitanja: `treeSignature` ne bi video izmenu druge rečenice, pa
+bi sledeće čuvanje vratilo stari tekst dela; čitač PGN-a danas drugi
+komentar upisuje preko prvog; i **server se ipak menja** — `applyEvent`
+briše „Back to the position after …" na svakom događaju, pa bi druga
+rečenica na poziciji na koju se film vratio stajala iznad „Starting
+position". Pre naloga ostaje skica uređivača za vlasnika.
+
+**Za fazu 5 treba od vlasnika**: tri njegova snimka (srpski, engleski, jedan
+sa mnogo strelica i skokova) i reč da smeju da se pošalju oba servisa radi
+merenja.
 
 ## Pad sa čitačem ekrana, drugi put: šta pad ostavlja za sobom — 26.9.2026, `PLAN-FORENZIKA-PADA.md`, faze 1–3 u kodu, ostaje provera uživo ([249.1])
 
@@ -234,6 +345,7 @@ samo pozicija. **Nije urađeno** — vlasnik menja i druge stvari u Preparation 
 hoće jedno celovito rešenje u novom planu, u novom razgovoru. Mesto izmene je
 `_putOnBoard` u `chess_game_screen.dart` (dva poziva `loadLessonPosition(...,
 entry.pgn)` za poziciju i sken; deo tutorijala ostaje kakav je).
+**Plan je napisan 27.9.2026**: `PLAN-PRIPREMA.md`, odluka D1, faza 2.
 
 **Brojevi.** Aplikacija **4139 → 4171** (18 u `crash_trail_test`, 14 u
 `semantics_shadow_test`), pun prolaz bez ičega pored, 1 preskočen; `analyze`
