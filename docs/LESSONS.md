@@ -8576,3 +8576,40 @@ slučaju. Polazni brojevi izmereni u radnom stablu pre ičega: 4197, 22, server
 
 Brojevi: 4197 → **4266** (12 pravilo rasporeda, 52 ekran, 5 linija motora u
 stablo), pun prolaz u radnom stablu bez ičega pored; `analyze` 22.
+
+## 27.9.2026 — Preparation: faza 2, materijal unutra i napolje
+
+`docs/PLAN-PRIPREMA.md`, faza 2: Biblioteka kao fioka (na telefonu tab), šta
+ide na tablu po vrsti stavke, tutorijal koji se lista iz trake, „Board" i
+„Save as…", i brojčanici motora na svakoj širini. Izvođač je vratio 19 od 24.
+
+**Kapija pisana pre ekrana pisana je iz sećanja na aplikaciju, a sećanje
+gubi baš ono u čemu je aplikacija stroga.** Tri od pet crvenih bila su greška
+kapije: FEN posle `e4` bez polja za en passant (`-` umesto `e3`, a igrač
+aplikacije ga uvek upiše), očekivanje `( 1. d4` sa razmakom koji izvoznik PGN-a
+ne piše, i pomoćnik koji je tapkao peti red fioke — ispod njene ivice, jer je
+kartica 132 px a fioka 520. **Svaki literal u kapiji uzmi iz prolaza, ne iz
+glave**; pomoćnik koji tapka red prvo ga dovede na ekran.
+
+**Tvrdnja da je panel ceo na ekranu zabranjuje panelu da raste.** Faza 1 je
+tvrdila da je panel motora na ekranu na 900 × 700. Faza 2 mu je dodala
+brojčanike, panel je postao viši od svog mesta, i izvođač je brojčanike na toj
+širini sklonio da bi tvrdnja prošla — i to napisao. Vraćeni su; tvrdnja sada
+drži **kutiju koja skroluje** na ekranu, vrh panela u njoj i najmanje 170 px
+visine. Isto pravilo kao u fazi 1: kad izvođač promeni ponašanje da bi test
+prošao, prvo pitanje je šta test radi pogrešno.
+
+**Preživeli mutant je našao grešku, ne rupu u testu.** „Analysis" je odbijao
+tablu bez poteza kao „nema šta da se sačuva" — a postavljena pozicija bez
+poteza jeste nešto. `_boardIsBare` sada pita da li je to početna pozicija bez
+poteza i oznaka. Drugi: dijalozi za čuvanje su dobijali praznu listu oznaka,
+pa filter Biblioteke nije imao po čemu da filtrira; oznake se sada traže prvi
+put kad zatrebaju, jednom, i ekran i dalje ne pita server ništa pri otvaranju.
+
+Četrnaest mutacija, svaka crvena na svom slučaju. Posle punog prolaza
+promenjena je jedna sitnica (natpis dela u traci `Expanded` → `Flexible`, da
+strelice stoje uz natpis a ne na krajevima trake), pa je pun prolaz ponovljen
+pre spajanja.
+
+Brojevi: 4266 → **4295** (27 kapija faze 2, 2 brojčanici motora), pun prolaz
+na grani bez ičega pored, dva puta; `analyze` 22.

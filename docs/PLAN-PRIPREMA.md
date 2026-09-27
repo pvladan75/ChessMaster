@@ -575,14 +575,22 @@ opens it.
 
 Source guard: the new folder names no socket (read by structure, not by text).
 
-### Phase 2 — material in, material out [implementer] — gate drafted 27.9.2026
+### Phase 2 — material in, material out [implementer] — built, graded and merged 27.9.2026
 
-**Where it stands.** The gate is drafted as
-`docs/gates/preparation_material_test.dart`, 24 cases, with the contract at
-its head — the five seams the screen gains, every key and every sentence.
-**It has not been compiled or watched going red**: it names constructor
-parameters the screen gets in this phase, so it waits for phase 1's screen
-and moves to `chess_app/test/` when the phase is briefed.
+**Merged on the owner's word** („merguj, ostavi kartice kakve jesu, kreni
+sa fazom 3"). The gate is `chess_app/test/preparation_material_test.dart`,
+27 cases; the draft that stood in `docs/gates/` is deleted, the test being
+its one home now. App **4295 passed, 1 skipped**, a full run on the branch
+with nothing else running, twice; analyze the same 22. Fourteen deliberate
+faults, each red on its own case. The worker returned 19 of 24; three of
+the five were faults of the gate (`docs/LESSONS.md`, 27.9.2026, phase 2).
+
+**Left as it is, on the owner's word**: the drawer's rows are the
+Library's own cards, 132 px tall, so about three show at 1536 × 792.
+
+**Seen and not built**: a phone held on its side has the narrow bar
+(title and ⋮); the engine's glue is the third copy of that code in the
+app; the phone's pinned tabs repeat the studio's private ones.
 
 **Decided by the lead while writing it, and confirmed by the owner the same
 day (D13):**
@@ -618,7 +626,32 @@ method was called; an exercise's solution is nowhere on the screen; every
 a line that does not replay is refused with its count. The fixture carries
 `%clk` comments and a variation, as the owner's own games do.
 
-### Phase 3 — recording here, and squares in the timeline [lead: server; implementer: app]
+### Phase 3 — recording here, and squares in the timeline [lead: server and readers; implementer: the screen] — briefed 27.9.2026, being built
+
+**Where it stands.** Branch `priprema-faza-3`, in a worktree; the brief is
+`docs/briefs/BRIEF-PRIPREMA-FAZA3.md` there. The lead's half is built and
+proved: the fixture, the film's test and the judge's (6 cases, 4 faults
+caught), the player's rule and its drawing of squares (5 cases, 5 faults
+caught). **No server source changed**: the judge already keeps whatever an
+event's `data` holds and the film already draws `squares` from any event.
+The screen's gate is `test/preparation_recording_test.dart`, 30 cases,
+compiled and watched going red.
+
+**Decided by the lead while building it, to be overruled if wrong:**
+
+- **The marks are what the latest event said, whatever its kind.** That was
+  the film's rule already; the player read arrows from `arrow_drawn`
+  alone, so a step to a move that holds an arrow would have replayed bare
+  where the film drew it. Every event the screen writes therefore carries
+  the marks of the board it leaves behind.
+- **While a take runs the bar gives up „Save as…" and ⋮**, as the sketch
+  has it; on a phone ⋮ stays and holds only what puts something on the
+  board.
+- **On a phone held upright a tutorial is walked from ⋮ while a take
+  runs**: 360 px do not hold the stepper and the recording's controls
+  together. With no take running it is walked from the bar, as in phase 2.
+
+*As planned:*
 
 The take, its title, its upload and the rule that the screen cannot be left
 while a voice is being recorded — moved, not rewritten. What the strip under

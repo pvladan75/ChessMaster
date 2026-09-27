@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4266 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4295 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1930 with TEST_DATABASE_URL, 1772 without (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -965,7 +965,20 @@ before a debounce makes the worker bend behaviour to the timer**: the
 engine's switch asked nothing until the next move, green in all fifty
 cases — and **a behaviour no seam can observe stays green when it is
 removed**, so the screen took an `engine` and a fake that remembers what
-it was asked. Phase 6 of
+it was asked. Then its phase 2, material in and out (→ **4295**, a full
+run on the branch with nothing else running; analyze the same 22): the
+Library as a drawer, what goes on the board decided by what the entry is,
+a tutorial walked from the bar, „Board" and „Save as…". The worker
+returned 19 of 24, and three of the five were the lead's gate: a fixture
+FEN without the en passant square the app's own player writes, a PGN
+expectation with a space the exporter never writes, and a helper that
+tapped a row below the drawer's fold. **A gate written before the screen
+exists is written from memory of the app, and memory drops the details
+the app is strict about** — take every literal in a gate from a run. The
+worker had also taken the engine's dials away at 900 wide to satisfy
+phase 1's „the panel is on the screen": **an assertion that a panel is
+whole on the screen forbids the panel to grow** — the box that scrolls is
+what has to be on the screen, with the panel's head in it. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the
