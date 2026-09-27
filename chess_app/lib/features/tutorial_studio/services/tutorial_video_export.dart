@@ -120,14 +120,22 @@ Future<RenderJobState?> exportTutorialVideo({
   // folder it may not need is one that does not open when that call does not
   // return — which is exactly what a widget test's clock does to it.
   //
-  // The signature is walked once here and travels with everything that judges
-  // the take: the dialog, the upload, and the render request.
-  final signature = filmSignatureOf(filmBeatsOf(draft));
+  // The signatures are walked once here and travel with everything that
+  // judges the take: the dialog, the upload, and the render request.
+  // `filmSignatureOf` is what an ordinary take is held to and
+  // `filmPositionsSignatureOf` what a voice copied from a recording is (D18)
+  // — never the other one's, or a corrected spelling would refuse a copied
+  // voice, and a replaced move would pass one recorded over the words.
+  final stops = filmBeatsOf(draft);
+  final signature = filmSignatureOf(stops);
+  final positionsSignature = filmPositionsSignatureOf(stops);
   final recording = _recordingFor(
     narrationStore ?? deviceNarrationStore(),
     lessonId,
     video.events.length,
     signature,
+    api: api,
+    positionsSignature: positionsSignature,
   );
 
   // Asked before anything is drawn on screen: a switch the server cannot honour
@@ -207,15 +215,17 @@ Future<RenderJobState?> exportTutorialVideo({
 
   // Sent once per take: the server keeps the take's id beside the file, so the
   // export of a tutorial whose recording is already there sends only the
-  // request.
+  // request. A voice copied from a recording is never uploaded — the server
+  // already has that sound (T4).
   final mine = chosen.recording;
-  if (mine != null) {
+  final mineStored = mine?.stored;
+  if (mineStored != null) {
     if (!context.mounted) return null;
     final sent = await _sendRecordingIfNeeded(
       context: context,
       api: api,
       lessonId: lessonId,
-      stored: mine,
+      stored: mineStored,
       signature: signature,
     );
     if (!sent) return null;
@@ -240,11 +250,15 @@ Future<RenderJobState?> exportTutorialVideo({
     narrate: mine == null && canSpeak ? narrate : null,
     voice: mine == null && canSpeak ? voice : null,
     useRecording: mine == null ? null : true,
-    takeId: mine?.takeId,
+    takeId: mineStored?.takeId,
     // Asked of the server as well, and for a reason this dialog cannot cover:
     // the take on the server may have been recorded on another device, against
-    // beats that have moved since. See `recordingForFilm`.
-    signature: mine == null ? null : signature,
+    // beats that have moved since. See `recordingForFilm`. A voice copied
+    // from a recording is held to the positions its beats stand on (D18),
+    // never to the words — `positionsSignature`, not `signature`.
+    signature: mine == null
+        ? null
+        : (mine.fromServer ? positionsSignature : signature),
   );
   if (!context.mounted) return null;
 
@@ -682,23 +696,61 @@ class _ExportChoice {
   /// Whether the sentences are written beside the board.
   final bool captions;
 
-  /// The trainer's own take, when that is the voice chosen — the take itself
-  /// rather than a yes, so what is sent is what the dialog showed.
-  final StoredNarration? recording;
+  /// The voice found — a device take or one copied from a recording — when
+  /// that is what was chosen: the thing itself rather than a yes, so what is
+  /// sent is what the dialog showed.
+  final _Recording? recording;
 }
 
-/// A take on this device, and whether a film can be made of it.
+/// A voice this trainer can pick as the film's, from whichever place it comes.
+///
+/// **Two sources, one offer.** A take this device recorded and a voice
+/// copied from a recording (phase 8 of `docs/PLAN-PRIPREMA.md`) are never
+/// both on offer — a tutorial has one narration — so the sheet draws one
+/// `export-voice-recording` row whichever this is, and only the label under
+/// it says which.
 class _Recording {
-  const _Recording.usable(StoredNarration this.stored) : unusable = null;
-  const _Recording.unusable(String this.unusable) : stored = null;
+  const _Recording.usable(StoredNarration this.stored)
+      : unusable = null,
+        serverBeats = null,
+        serverSignature = null,
+        serverMs = null;
+  const _Recording.unusable(String this.unusable)
+      : stored = null,
+        serverBeats = null,
+        serverSignature = null,
+        serverMs = null;
+
+  /// A voice the server holds, copied from the recording this tutorial was
+  /// made from — never uploaded, and never a file on this device.
+  const _Recording.fromServer({
+    required int this.serverBeats,
+    required String this.serverSignature,
+    required int this.serverMs,
+  })  : stored = null,
+        unusable = null;
+
   final StoredNarration? stored;
   final String? unusable;
+  final int? serverBeats;
+  final String? serverSignature;
+  final int? serverMs;
+
+  bool get fromServer => serverMs != null;
+  bool get usable => stored != null || fromServer;
 }
 
-/// This tutorial's take on this device, or null when there is none — or no
-/// directory to look in, which is not this dialog's fault to report.
+/// This tutorial's take on this device, or — where it holds none — the
+/// voice the server copied from the recording it was made from, or null when
+/// there is neither.
 Future<_Recording?> _recordingFor(
-    NarrationTakeStore store, int lessonId, int beats, String signature) async {
+  NarrationTakeStore store,
+  int lessonId,
+  int beats,
+  String signature, {
+  required LessonApiService api,
+  required String positionsSignature,
+}) async {
   final NarrationLoad load;
   try {
     load = await store.load(lessonId);
@@ -711,25 +763,56 @@ Future<_Recording?> _recordingFor(
         'Your recording on this device could not be read. Record it again.');
   }
   final stored = load.stored;
-  if (stored == null) return null;
+  if (stored != null) {
+    // One decision, in `takeMismatchOf`, so this dialog and the recording
+    // screen cannot come to disagree about whether a take is still the right
+    // one.
+    final take = stored.take;
+    return switch (takeMismatchOf(take, beats: beats, signature: signature)) {
+      TakeMismatch.none => _Recording.usable(stored),
+      TakeMismatch.silent => const _Recording.unusable(
+          'Your recording is silent — nothing reached the microphone. Record '
+          'it again.'),
+      TakeMismatch.beatsChanged => _Recording.unusable(
+          'Your recording was made when the tutorial had ${take.eventCount} '
+          'beats, and it has $beats now. Record it again.'),
+      TakeMismatch.edited => const _Recording.unusable(
+          'The tutorial has been edited since your recording was made, so it '
+          'no longer follows it. Record it again, or export without your '
+          'voice.'),
+      TakeMismatch.incomplete => _Recording.unusable(
+          'Your recording stops at beat ${take.markersMs.length} of '
+          '${take.eventCount}. Record it again to the end.'),
+    };
+  }
 
-  // One decision, in `takeMismatchOf`, so this dialog and the recording screen
-  // cannot come to disagree about whether a take is still the right one.
-  final take = stored.take;
-  return switch (takeMismatchOf(take, beats: beats, signature: signature)) {
-    TakeMismatch.none => _Recording.usable(stored),
-    TakeMismatch.silent => const _Recording.unusable(
-        'Your recording is silent — nothing reached the microphone. Record '
-        'it again.'),
-    TakeMismatch.beatsChanged => _Recording.unusable(
-        'Your recording was made when the tutorial had ${take.eventCount} '
-        'beats, and it has $beats now. Record it again.'),
-    TakeMismatch.edited => const _Recording.unusable(
-        'The tutorial has been edited since your recording was made, so it no '
-        'longer follows it. Record it again, or export without your voice.'),
-    TakeMismatch.incomplete => _Recording.unusable(
-        'Your recording stops at beat ${take.markersMs.length} of '
-        '${take.eventCount}. Record it again to the end.'),
+  // No take on this device: ask the server for a voice copied from the
+  // recording this tutorial was made from. Only `follows: 'positions'`
+  // answers that question — a take recorded over the tutorial elsewhere is
+  // not this, and offers nothing new here.
+  final info = await api.fetchNarrationInfo(lessonId);
+  if (info == null || !info.ready || info.follows != 'positions') return null;
+  final takenBeats = info.beats;
+  final takenSignature = info.signature;
+  final ms = info.ms;
+  if (takenBeats == null || takenSignature == null || ms == null) return null;
+
+  return switch (recordingVoiceMismatchOf(
+    takenBeats: takenBeats,
+    takenSignature: takenSignature,
+    beats: beats,
+    positionsSignature: positionsSignature,
+  )) {
+    RecordingVoiceMismatch.none => _Recording.fromServer(
+        serverBeats: takenBeats, serverSignature: takenSignature, serverMs: ms),
+    RecordingVoiceMismatch.beatsChanged => _Recording.unusable(
+        'Your recording was laid over $takenBeats beats, and the tutorial '
+        'has $beats now. Export without your voice, or make the tutorial '
+        'again.'),
+    RecordingVoiceMismatch.edited => const _Recording.unusable(
+        'The tutorial has changed since it was made from your recording, so '
+        'the voice no longer follows it. Export without your voice, or make '
+        'the tutorial again.'),
   };
 }
 
@@ -872,7 +955,7 @@ Future<_ExportChoice?> _askAboutExport({
   unawaited(recording.then((take) {
     if (closed) return;
     found = take;
-    if (take?.stored != null) answer = _Voice.recording;
+    if (take?.usable == true) answer = _Voice.recording;
     refresh?.call(() {});
   }));
 
@@ -881,7 +964,7 @@ Future<_ExportChoice?> _askAboutExport({
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setLocal) {
         refresh = setLocal;
-        final mine = found?.stored;
+        final mine = found?.usable == true ? found : null;
         final answers = [
           if (mine != null) _Voice.recording,
           if (voices.isNotEmpty) _Voice.synthesised,
@@ -936,12 +1019,18 @@ Future<_ExportChoice?> _askAboutExport({
                           dense: true,
                           contentPadding: EdgeInsets.zero,
                           title: Text(
-                              'My recording '
-                              '(${narrationClockOf(mine.take.durationMs)})',
+                              mine.fromServer
+                                  ? 'From the recording '
+                                      '(${narrationClockOf(mine.serverMs!)})'
+                                  : 'My recording '
+                                      '(${narrationClockOf(mine.stored!.take.durationMs)})',
                               style: body),
                           subtitle: Text(
-                              'Your own voice, and the board moves where you '
-                              'pressed Space.',
+                              mine.fromServer
+                                  ? 'The voice from the recording this '
+                                      'tutorial was made from.'
+                                  : 'Your own voice, and the board moves '
+                                      'where you pressed Space.',
                               style: note),
                         ),
                       if (voices.isNotEmpty)
@@ -1162,7 +1251,7 @@ Future<_ExportChoice?> _askAboutExport({
               onPressed: () => Navigator.pop(
                   ctx,
                   _ExportChoice(answer, chosen, wantsHd, wantsCaptions,
-                      answer == _Voice.recording ? found?.stored : null)),
+                      answer == _Voice.recording ? found : null)),
               child: const Text('Export'),
             ),
           ],

@@ -20,6 +20,7 @@ import 'package:chess_app/models/recording_models.dart';
 import 'package:chess_app/models/recording_transcript.dart';
 import 'package:chess_app/services/recording_transcript_api.dart';
 import 'package:chess_app/core/services/tutorial_language.dart';
+import 'package:chess_app/features/tutorial_studio/services/recording_tutorial_flow.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -113,6 +114,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
       _transcriptAvailability = result;
       _transcript = result.transcript;
     });
+  }
+
+  Future<void> _makeTutorial() async {
+    await makeTutorialFromRecording(
+      context,
+      session: widget.userSession,
+      recordingId: widget.recordingId,
+      client: _client,
+    );
   }
 
   /// Who may watch this lesson — the host's own accepted students, ticked here
@@ -1133,6 +1143,26 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 420),
           child: list(transcript),
+        ),
+      const SizedBox(height: AppSpacing.sm),
+      // Under the list, so it exists exactly where the panel does — beside
+      // the board, in the phone's sheet and in the sideways column. Only the
+      // host of a Preparation recording ever sees it (`_mayTranscribe`); the
+      // server would refuse anybody else, and a student's player has no
+      // business making the request at all.
+      if (_mayTranscribe)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            key: const Key('transcript-make-tutorial'),
+            onPressed: _makeTutorial,
+            icon: const Icon(Icons.auto_stories_outlined, size: 18),
+            label: const Text(
+              'Make a tutorial',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ),
       const SizedBox(height: AppSpacing.sm),
       if (_transcribing)

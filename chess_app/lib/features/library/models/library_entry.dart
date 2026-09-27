@@ -77,6 +77,7 @@ class LibraryEntry {
     this.origin = 'book',
     this.task,
     this.isExercise = false,
+    this.fromPreparation = false,
   });
 
   final LibraryKind kind;
@@ -158,6 +159,12 @@ class LibraryEntry {
   /// taught to both.
   final bool isExercise;
 
+  /// Whether this recording was made alone in Preparation — the only kind
+  /// that can become a tutorial (phase 8 of `docs/PLAN-PRIPREMA.md`). Only a
+  /// recording row carries it on the wire; absent reads as false, which is
+  /// every other kind and a recording written before the field existed.
+  final bool fromPreparation;
+
   factory LibraryEntry.fromJson(Map<String, dynamic> json) => LibraryEntry(
         kind: libraryKindFrom(json['kind']?.toString()) ?? LibraryKind.position,
         id: json['id']?.toString() ?? '',
@@ -183,6 +190,7 @@ class LibraryEntry {
         origin: _text(json['origin']) ?? 'book',
         task: (json['task'] as Map?)?.cast<String, dynamic>(),
         isExercise: json['isExercise'] == true,
+        fromPreparation: json['fromPreparation'] == true,
       );
 
   static String? _text(dynamic value) {

@@ -447,7 +447,14 @@ void main() {
     expect(find.byKey(const Key('export-voice-recording')), findsNothing);
     expect(find.byKey(const Key('export-recording-unusable')), findsNothing);
     await pressExport(tester);
-    expect(server.calls.where((c) => c.contains('/narration')), isEmpty);
+    // Superseded by phase 8 of docs/PLAN-PRIPREMA.md: with no take on this
+    // device the export now asks the server whether it holds a voice copied
+    // from a recording (`GET /lessons/12/narration`) before deciding there is
+    // nothing to offer — this fixture's server answers `status: 'none'`,
+    // which is exactly this tutorial, so the one request is the new question
+    // and not a regression.
+    expect(server.calls.where((c) => c.contains('/narration')),
+        ['GET /lessons/12/narration']);
     expect(_dir.listSync(), isEmpty,
         reason: 'looking for a take left a folder behind');
   });
