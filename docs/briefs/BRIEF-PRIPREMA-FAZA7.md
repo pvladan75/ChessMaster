@@ -13,7 +13,9 @@ has been run. **Never start the server.** `flutter test` rewrites the seven
 generated plugin registrants under `linux/`, `macos/` and `windows/` with
 other line endings; leave them, the lead restores them.
 
-Baseline in this worktree before you start: see „The pass condition".
+Baseline measured in this worktree on 27.9.2026, at `7c9bff06`, with nothing
+else running: **4796 passed, 1 skipped**; `flutter analyze` the **22** known
+infos (all `curly_braces_in_flow_control_structures`). The gate adds 24.
 
 If you believe a test in the gate is wrong, **stop and say so in the report** —
 do not work around it. A workaround that satisfies a test without satisfying
@@ -54,8 +56,8 @@ flutter test test/replay_transcript_test.dart
 flutter test test/replay_share_test.dart test/replay_audio_test.dart test/replay_frame_test.dart test/replay_space_key_test.dart test/replay_squares_test.dart test/home_recording_delete_test.dart test/usage_screen_test.dart
 ```
 
-all green, **and** the full app suite at the baseline **plus the gate's
-cases plus yours** (say how many, by file), **and** `flutter analyze` with
+all green, **and** the full app suite at **4796 + 24 = 4820 passed, 1
+skipped, plus yours** (say how many, by file), **and** `flutter analyze` with
 the same 22 infos and nothing new, no `// ignore` added. Run `dart format`
 on every Dart file you touch. No existing test is deleted, skipped or
 weakened; one rewritten must be rewritten openly, with a comment saying
