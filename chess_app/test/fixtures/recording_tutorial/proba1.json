@@ -1,0 +1,546 @@
+{
+ "about": "Phase 5's recording „proba 1\": its real timeline, and the sentences the server builds from Groq's real answer (services/transcript.js), each word replaced by a placeholder of the same length — the times are the recording's, the words are not kept. `sketch` is what tools/stt_measure/beats.js, phase 5's measurement, answers on these sentences.",
+ "durationMs": 142178,
+ "events": [
+  {
+   "data": {
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "pgn": "[Event \"Analysis Studio Session\"]\n[Site \"Chess trainer\"]\n[Date \"2026.09.27\"]\n[Round \"1\"]\n[White \"Player\"]\n[Black \"Analysis Engine\"]\n[Result \"*\"]\n\n *"
+   },
+   "eventType": "init",
+   "timestampMs": 0
+  },
+  {
+   "data": {
+    "to": "e4",
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+    "from": "e2"
+   },
+   "eventType": "move",
+   "timestampMs": 6978
+  },
+  {
+   "data": {
+    "to": "e5",
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+    "from": "e7"
+   },
+   "eventType": "move",
+   "timestampMs": 10218
+  },
+  {
+   "data": {
+    "to": "f3",
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+    "from": "g1"
+   },
+   "eventType": "move",
+   "timestampMs": 13348
+  },
+  {
+   "data": {
+    "to": "c6",
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    "from": "b8"
+   },
+   "eventType": "move",
+   "timestampMs": 15988
+  },
+  {
+   "data": {
+    "to": "c4",
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+    "from": "f1"
+   },
+   "eventType": "move",
+   "timestampMs": 21828
+  },
+  {
+   "data": {
+    "to": "c5",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    "from": "f8"
+   },
+   "eventType": "move",
+   "timestampMs": 27778
+  },
+  {
+   "data": {
+    "to": "b4",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/1PB1P3/5N2/P1PP1PPP/RNBQK2R b KQkq b3 0 4",
+    "from": "b2"
+   },
+   "eventType": "move",
+   "timestampMs": 34758
+  },
+  {
+   "data": {
+    "to": "b4",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/5N2/P1PP1PPP/RNBQK2R w KQkq - 0 5",
+    "from": "c5"
+   },
+   "eventType": "move",
+   "timestampMs": 36588
+  },
+  {
+   "data": {
+    "to": "c3",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+    "from": "c2"
+   },
+   "eventType": "move",
+   "timestampMs": 38188
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "a5",
+      "from": "b4",
+      "color": "B"
+     }
+    ],
+    "squares": []
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 47918
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "a5",
+      "from": "b4",
+      "color": "B"
+     },
+     {
+      "to": "e7",
+      "from": "b4",
+      "color": "B"
+     }
+    ],
+    "squares": []
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 52868
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "a5",
+      "from": "b4",
+      "color": "B"
+     },
+     {
+      "to": "e7",
+      "from": "b4",
+      "color": "B"
+     },
+     {
+      "to": "c5",
+      "from": "b4",
+      "color": "B"
+     }
+    ],
+    "squares": []
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 58038
+  },
+  {
+   "data": {
+    "to": "c5",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/P2P1PPP/RNBQK2R w KQkq - 1 6",
+    "from": "b4"
+   },
+   "eventType": "move",
+   "timestampMs": 70598
+  },
+  {
+   "data": {
+    "to": "d4",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2BPP3/2P2N2/P4PPP/RNBQK2R b KQkq d3 0 6",
+    "from": "d2"
+   },
+   "eventType": "move",
+   "timestampMs": 74358
+  },
+  {
+   "data": {
+    "to": "d4",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2BpP3/2P2N2/P4PPP/RNBQK2R w KQkq - 0 7",
+    "from": "e5"
+   },
+   "eventType": "move",
+   "timestampMs": 77448
+  },
+  {
+   "data": {
+    "to": "g1",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2BpP3/2P2N2/P4PPP/RNBQ1RK1 b kq - 1 7",
+    "from": "e1"
+   },
+   "eventType": "move",
+   "timestampMs": 81578
+  },
+  {
+   "data": {
+    "to": "c3",
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+    "from": "d4"
+   },
+   "eventType": "move",
+   "timestampMs": 88008
+  },
+  {
+   "data": {
+    "arrows": [],
+    "squares": [
+     {
+      "color": "B",
+      "square": "f7"
+     }
+    ]
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 98078
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "d5",
+      "from": "d1",
+      "color": "B"
+     }
+    ],
+    "squares": [
+     {
+      "color": "B",
+      "square": "f7"
+     }
+    ]
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 108338
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "d5",
+      "from": "d1",
+      "color": "B"
+     },
+     {
+      "to": "e7",
+      "from": "d8",
+      "color": "B"
+     }
+    ],
+    "squares": [
+     {
+      "color": "B",
+      "square": "f7"
+     }
+    ]
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 117868
+  },
+  {
+   "data": {
+    "to": "f7",
+    "fen": "r1bqk1nr/pppp1Bpp/2n5/2b5/4P3/2p2N2/P4PPP/RNBQ1RK1 b kq - 0 8",
+    "from": "c4"
+   },
+   "eventType": "move",
+   "timestampMs": 127558
+  },
+  {
+   "data": {
+    "to": "f7",
+    "fen": "r1bq2nr/pppp1kpp/2n5/2b5/4P3/2p2N2/P4PPP/RNBQ1RK1 w - - 0 9",
+    "from": "e8"
+   },
+   "eventType": "move",
+   "timestampMs": 130188
+  },
+  {
+   "data": {
+    "to": "d5",
+    "fen": "r1bq2nr/pppp1kpp/2n5/2bQ4/4P3/2p2N2/P4PPP/RNB2RK1 b - - 1 9",
+    "from": "d1"
+   },
+   "eventType": "move",
+   "timestampMs": 131918
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "c5",
+      "from": "d5",
+      "color": "B"
+     }
+    ],
+    "squares": []
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 136738
+  },
+  {
+   "data": {
+    "arrows": [
+     {
+      "to": "c5",
+      "from": "d5",
+      "color": "B"
+     },
+     {
+      "to": "f7",
+      "from": "d5",
+      "color": "B"
+     }
+    ],
+    "squares": []
+   },
+   "eventType": "arrow_drawn",
+   "timestampMs": 138718
+  }
+ ],
+ "transcript": {
+  "language": "sr-Latn",
+  "sentences": [
+   {
+    "startMs": 0,
+    "endMs": 3240,
+    "text": "S1 w w w w w w w w w w w.",
+    "heard": "S1 w w w w w w w w w w w."
+   },
+   {
+    "startMs": 3100,
+    "endMs": 5740,
+    "text": "S2 w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "heard": "S2 w w w w w w w w w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 5500,
+    "endMs": 6120,
+    "text": "S3 w w w.",
+    "heard": "S3 w w w."
+   },
+   {
+    "startMs": 6120,
+    "endMs": 9020,
+    "text": "S4 w w w w w w.",
+    "heard": "S4 w w w w w w."
+   },
+   {
+    "startMs": 8940,
+    "endMs": 9800,
+    "text": "S5 w w.",
+    "heard": "S5 w w."
+   },
+   {
+    "startMs": 9800,
+    "endMs": 12440,
+    "text": "S6 w w w w w w w.",
+    "heard": "S6 w w w w w w w."
+   },
+   {
+    "startMs": 12440,
+    "endMs": 15120,
+    "text": "S7 w w w w.",
+    "heard": "S7 w w w w."
+   },
+   {
+    "startMs": 14660,
+    "endMs": 15920,
+    "text": "S8 w w.",
+    "heard": "S8 w w."
+   },
+   {
+    "startMs": 15920,
+    "endMs": 18360,
+    "text": "S9 w.",
+    "heard": "S9 w."
+   },
+   {
+    "startMs": 18560,
+    "endMs": 24140,
+    "text": "S10 w w w w w w w.",
+    "heard": "S10 w w w w w w w."
+   },
+   {
+    "startMs": 25500,
+    "endMs": 29420,
+    "text": "S11 w w w w w w w w w w w w w w w w w.",
+    "heard": "S11 w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 29000,
+    "endMs": 37480,
+    "text": "S12 w w w w w w w w w w w w w w w w w w w w w w.",
+    "heard": "S12 w w w w w w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 39880,
+    "endMs": 47220,
+    "text": "S13 w w w w w w w w w w w w w w.",
+    "heard": "S13 w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 47000,
+    "endMs": 63020,
+    "text": "S14 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "heard": "S14 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 69000,
+    "endMs": 89929,
+    "text": "S15 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "heard": "S15 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 90089,
+    "endMs": 102089,
+    "text": "S16 w w w w w w w w w w w w w w w w w w w w w w.",
+    "heard": "S16 w w w w w w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 103049,
+    "endMs": 110269,
+    "text": "S17 w w w w w w w w w w w w w w w w w w w w.",
+    "heard": "S17 w w w w w w w w w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 110369,
+    "endMs": 118129,
+    "text": "S18 w w w w w w.",
+    "heard": "S18 w w w w w w."
+   },
+   {
+    "startMs": 118129,
+    "endMs": 119629,
+    "text": "S19 w w w w w w w w w w w w.",
+    "heard": "S19 w w w w w w w w w w w w."
+   },
+   {
+    "startMs": 119629,
+    "endMs": 120549,
+    "text": "S20 w w w w.",
+    "heard": "S20 w w w w."
+   },
+   {
+    "startMs": 121329,
+    "endMs": 123469,
+    "text": "S21 w w w w w w.",
+    "heard": "S21 w w w w w w."
+   },
+   {
+    "startMs": 123469,
+    "endMs": 124509,
+    "text": "S22 w w.",
+    "heard": "S22 w w."
+   },
+   {
+    "startMs": 125109,
+    "endMs": 128349,
+    "text": "S23 w w w w w.",
+    "heard": "S23 w w w w w."
+   },
+   {
+    "startMs": 128789,
+    "endMs": 132269,
+    "text": "S24 w w w w w w w w w w.",
+    "heard": "S24 w w w w w w w w w w."
+   },
+   {
+    "startMs": 132269,
+    "endMs": 133669,
+    "text": "S25 w w w w.",
+    "heard": "S25 w w w w."
+   },
+   {
+    "startMs": 133669,
+    "endMs": 136449,
+    "text": "S26 w w w w w w w w w.",
+    "heard": "S26 w w w w w w w w w."
+   },
+   {
+    "startMs": 136729,
+    "endMs": 138269,
+    "text": "S27 w w w.",
+    "heard": "S27 w w w."
+   },
+   {
+    "startMs": 138349,
+    "endMs": 140449,
+    "text": "S28 w w w.",
+    "heard": "S28 w w w."
+   }
+  ]
+ },
+ "sketch": {
+  "parts": 1,
+  "beats": 24,
+  "wordlessBeats": 6,
+  "beatsPerPart": [
+   24
+  ],
+  "fens": [
+   "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+   "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+   "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+   "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+   "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+   "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+   "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+   "r1bqk1nr/pppp1ppp/2n5/2b1p3/1PB1P3/5N2/P1PP1PPP/RNBQK2R b KQkq b3 0 4",
+   "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/5N2/P1PP1PPP/RNBQK2R w KQkq - 0 5",
+   "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+   "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+   "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/P2P1PPP/RNBQK2R w KQkq - 1 6",
+   "r1bqk1nr/pppp1ppp/2n5/2b1p3/2BPP3/2P2N2/P4PPP/RNBQK2R b KQkq d3 0 6",
+   "r1bqk1nr/pppp1ppp/2n5/2b5/2BpP3/2P2N2/P4PPP/RNBQK2R w KQkq - 0 7",
+   "r1bqk1nr/pppp1ppp/2n5/2b5/2BpP3/2P2N2/P4PPP/RNBQ1RK1 b kq - 1 7",
+   "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+   "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+   "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+   "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+   "r1bqk1nr/pppp1Bpp/2n5/2b5/4P3/2p2N2/P4PPP/RNBQ1RK1 b kq - 0 8",
+   "r1bq2nr/pppp1kpp/2n5/2b5/4P3/2p2N2/P4PPP/RNBQ1RK1 w - - 0 9",
+   "r1bq2nr/pppp1kpp/2n5/2bQ4/4P3/2p2N2/P4PPP/RNB2RK1 b - - 1 9",
+   "r1bq2nr/pppp1kpp/2n5/2bQ4/4P3/2p2N2/P4PPP/RNB2RK1 b - - 1 9",
+   "r1bq2nr/pppp1kpp/2n5/2bQ4/4P3/2p2N2/P4PPP/RNB2RK1 b - - 1 9"
+  ],
+  "sentencesPerBeat": [
+   3,
+   2,
+   1,
+   2,
+   1,
+   1,
+   1,
+   0,
+   1,
+   1,
+   1,
+   0,
+   0,
+   0,
+   0,
+   1,
+   1,
+   1,
+   5,
+   1,
+   0,
+   3,
+   1,
+   1
+  ]
+ }
+}

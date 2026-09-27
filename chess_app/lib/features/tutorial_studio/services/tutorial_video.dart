@@ -253,6 +253,33 @@ String filmSignatureOf(List<FilmBeat> stops) {
   return sha256.convert(utf8.encode(out.toString())).toString();
 }
 
+/// What a voice copied from a recording is held to — Q2 of
+/// `docs/PLAN-PRIPREMA.md`, answered D18: **the positions of its beats, not
+/// their words.**
+///
+/// [filmSignatureOf] holds a take to its sentences because that take was
+/// recorded *over* them: a sentence rewritten is a voice saying something the
+/// screen no longer does. A tutorial made from a recording is the other way
+/// round — the sentences were written *from* the voice — so correcting a
+/// spelling does not make the voice wrong, and a take refused for it would be
+/// the recording's hour thrown away over a typo.
+///
+/// What it still holds, and must: the position each beat stands on, in
+/// order. A move replaced, a part moved or a sentence added or removed moves a
+/// marker onto a board it was never spoken over. The count is compared beside
+/// it, as for every take.
+///
+/// Prefixed, so a signature of one kind can never equal one of the other.
+String filmPositionsSignatureOf(List<FilmBeat> stops) {
+  final out = StringBuffer('positions;');
+  for (final stop in stops) {
+    out
+      ..write(stop.beat.node.fen)
+      ..write(';');
+  }
+  return sha256.convert(utf8.encode(out.toString())).toString();
+}
+
 /// Every part of [draft], in order, as one film.
 ///
 /// A part contributes one event per beat of its main line. The first of them
