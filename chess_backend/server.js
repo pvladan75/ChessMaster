@@ -11,6 +11,7 @@ const { pool, initDB } = require('./db');
 const authRoutes = require('./routes/auth');
 const roomRoutes = require('./routes/rooms');
 const lessonRoutes = require('./routes/lessons');
+const lessonTranslationRoutes = require('./routes/lessonTranslation');
 const gameTutorialWordsRoutes = require('./routes/gameTutorialWords');
 const reviewWordsRoutes = require('./routes/reviewWords');
 const tablebaseRoutes = require('./routes/tablebase');
@@ -147,6 +148,8 @@ app.use('/rooms', roomRoutes);
 // Before /lessons, whose router would read `from-game` as a lesson id.
 app.use('/lessons/from-game', gameTutorialWordsRoutes);
 app.use('/review-words', reviewWordsRoutes);
+// POST /lessons/:id/translate — phase 9 of docs/PLAN-PRIPREMA.md.
+app.use('/lessons', lessonTranslationRoutes);
 app.use('/lessons', lessonRoutes);
 app.use('/recordings', recordingRoutes);
 app.use('/api/tablebase', tablebaseRoutes);

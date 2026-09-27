@@ -1,0 +1,100 @@
+{
+ "about": [
+  "Phase 9 of docs/PLAN-PRIPREMA.md. One set of cases for the two judges of a translation: the server's (services/tutorialTranslation.js, judgeTranslation) and the batch tool's (tools/tutorial_translate/translate.py, judge). Both read this file — chess_backend/test/lesson_translation.test.js and tools/tutorial_translate/test_translate.py — and must fault exactly the ids `faults` names, each for the kind it names.",
+  "Kinds: missing, empty, notation, braces, cyrillic, invented. `code` is the language asked for as the server knows it; `language` is the same in words, as the tool is told it.",
+  "Written by hand from the rules, never by running either judge."
+ ],
+ "cases": [
+  {
+   "name": "a faithful translation passes",
+   "code": "sr-Latn", "language": "Serbian (Latin script)",
+   "source": { "title": "The Italian Game", "p1.c1": "White plays Nf3, and after 12. Bxf7+ the king has to move." },
+   "translation": { "title": "Italijanska partija", "p1.c1": "Beli igra Nf3, a posle 12. Bxf7+ kralj mora da se pomeri." },
+   "faults": {}
+  },
+  {
+   "name": "a move written with the language's own letters",
+   "code": "sr-Latn", "language": "Serbian (Latin script)",
+   "source": { "p1.c1": "The bishop goes Bc4." },
+   "translation": { "p1.c1": "Lovac ide Lc4." },
+   "faults": { "p1.c1": "notation" }
+  },
+  {
+   "name": "a sign split from its move",
+   "code": "de", "language": "German",
+   "source": { "p1.c1": "Then Bxf7+ wins." },
+   "translation": { "p1.c1": "Dann gewinnt Bxf7 +." },
+   "faults": { "p1.c1": "notation" }
+  },
+  {
+   "name": "a square dropped, and a move added",
+   "code": "fr", "language": "French",
+   "source": { "p1.c1": "The knight wants the d5 square.", "p2.c1": "Black waits." },
+   "translation": { "p1.c1": "Le cavalier veut la case.", "p2.c1": "Les noirs attendent avec e5." },
+   "faults": { "p1.c1": "notation", "p2.c1": "notation" }
+  },
+  {
+   "name": "a move number of the other side",
+   "code": "es", "language": "Spanish",
+   "source": { "p1.c1": "After 12... Nf3 it is over." },
+   "translation": { "p1.c1": "Tras 12. Nf3 se acabó." },
+   "faults": { "p1.c1": "notation" }
+  },
+  {
+   "name": "a full stop after a number that no move follows is not a move number",
+   "code": "it", "language": "Italian",
+   "source": { "description": "Mate in 3. Then the endgame." },
+   "translation": { "description": "Matto in 3. Poi il finale." },
+   "faults": {}
+  },
+  {
+   "name": "a square glued to a letter of another script is no longer a square",
+   "code": "sr-Latn", "language": "Serbian (Latin script)",
+   "source": { "p1.c1": "The pawn goes to d5." },
+   "translation": { "p1.c1": "Pešak ide na d5ć." },
+   "faults": { "p1.c1": "notation" }
+  },
+  {
+   "name": "an item left out, one given back empty, one invented",
+   "code": "de", "language": "German",
+   "source": { "title": "Endgames", "p1.title": "The rook", "p1.c1": "Cut the king off." },
+   "translation": { "p1.title": "   ", "p1.c1": "Schneide den König ab.", "p1.c2": "Ein Satz, den niemand schrieb." },
+   "faults": { "title": "missing", "p1.title": "empty", "p1.c2": "invented" }
+  },
+  {
+   "name": "a brace or a command in a comment, never in a title",
+   "code": "en", "language": "English",
+   "source": { "title": "Kraljev gambit", "p1.c1": "Beli žrtvuje pešaka.", "p1.c2": "Crni prima." },
+   "translation": { "title": "The King's {Gambit}", "p1.c1": "White gives a {pawn}.", "p1.c2": "Black accepts [%cal Ge7e5]." },
+   "faults": { "p1.c1": "braces", "p1.c2": "braces" }
+  },
+  {
+   "name": "Cyrillic letters in a Latin-script language, in English and German too",
+   "code": "sr-Latn", "language": "Serbian (Latin script)",
+   "source": { "p1.c1": "The king is safe.", "p1.c2": "Now the rook." },
+   "translation": { "p1.c1": "Краљ je bezbedan.", "p1.c2": "Sada top." },
+   "faults": { "p1.c1": "cyrillic" }
+  },
+  {
+   "name": "Cyrillic in German",
+   "code": "de", "language": "German",
+   "source": { "p1.c1": "The king is safe." },
+   "translation": { "p1.c1": "Der König ist sicher, краљ." },
+   "faults": { "p1.c1": "cyrillic" }
+  },
+  {
+   "name": "Cyrillic is the point of Serbian in Cyrillic, and the notation stays Latin",
+   "code": "sr-Cyrl", "language": "Serbian (Cyrillic script)",
+   "source": { "p1.c1": "White plays Nf3 to d4." },
+   "translation": { "p1.c1": "Бели игра Nf3 на d4." },
+   "faults": {}
+  },
+  {
+   "name": "castling in both spellings, and a promotion",
+   "code": "it", "language": "Italian",
+   "source": { "p1.c1": "White castles O-O, and later e8=Q#." },
+   "translation": { "p1.c1": "Il bianco arrocca 0-0, e poi e8=Q#." },
+   "faults": { "p1.c1": "notation" }
+  }
+ ]
+}
