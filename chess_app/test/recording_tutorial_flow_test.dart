@@ -44,9 +44,14 @@ http.Response _json(Object body, [int status = 200]) => http.Response.bytes(
     );
 
 class _Server {
+  _Server({this.unreachable = false});
+
+  /// A server nobody can reach: the client throws, as a real one does.
+  final bool unreachable;
   final requests = <http.Request>[];
   late final client = MockClient((req) async {
     requests.add(req);
+    if (unreachable) throw http.ClientException('Connection refused');
     if (req.method == 'GET' && req.url.path == '/recordings/31') {
       return _json(_recording());
     }
@@ -95,5 +100,21 @@ void main() {
     expect(server.calls, ['GET /recordings/31', 'GET /recordings/31'],
         reason: 'the guard let go, so the second start asks again rather '
             'than being read as a recording whose first run is still going');
+  });
+
+  testWidgets(
+      'a server that cannot be reached is said, not thrown past the door, '
+      'and the guard lets go', (tester) async {
+    // Found at grading: the first request was the only one not behind a
+    // service that answers a failure with a sentence.
+    final server = _Server(unreachable: true);
+    await _pump(tester, server);
+    await tester.tap(find.text('make'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Could not read that recording.'), findsOneWidget);
+    await tester.tap(find.text('make'));
+    await tester.pumpAndSettle();
+    expect(server.calls, ['GET /recordings/31', 'GET /recordings/31']);
   });
 }

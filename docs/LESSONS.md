@@ -8822,3 +8822,48 @@ shorter than the real thing cannot fail** — a transcript has dozens of
 sentences, not four. And the worker's own long-list case had passed by luck:
 it scrolled until the last row was *built*, which a list does in its cache
 band below the edge, not until it was *visible*.
+
+## 27.9.2026 — Preparation, phase 8: a recording becomes a tutorial (app 4828 → 4892, backend 1829/1988 → 1841/2000)
+
+Arithmetic: app 4828 + 37 (the core's gate, `recording_to_tutorial_test`) + 2
+(`move_tree_comment_parens_test`) = 4867, measured on the branch before the
+doors; + 16 (the doors' gate) + 8 (the worker's) + 1 (the lead's, at grading)
+= 4892, measured with nothing else running. Backend 1829 + 12
+(`recording_voice_copy.test.js`) = 1841 without a database, 1988 + 12 = 2000
+with a throwaway cluster, both measured; `library_kinds` and
+`narration_upload` gained assertions, not cases.
+
+**A writer that reads its work back finds the reader's faults too.** The core
+reads every part back through `readStepTree` before handing it out, and the
+first sentence with parentheses refused: `MoveTree.parsePgn` set every `(` and
+`)` apart to find variations — a comment's included — so „(see move 12)" came
+back as „( see move 12 )" from every save of every tutorial. Nothing had ever
+compared a comment with what was written, so it slept. Fixed at the reader,
+with its own case watched red on the old code.
+
+**The times are the data; the words are somebody's.** The gate stands on
+phase 5's four real recordings, but the repository is public and a transcript
+is what a person said. Every sentence was replaced by „S7 w w w." of the same
+length: the rules read times and caption lengths, never words, so nothing the
+gate checks was lost — and the phase-5 sketch, run on the same placeholders,
+still gave the published 1/5/2/2 parts, 99 beats and 36 wordless.
+
+**A mutation that cannot change an answer is a deletion.** The part splitter
+looked for a jump over every skipped position; a position is skipped only when
+the next one jumps, so the beat's own position always answers. The loop went.
+
+**An existence check that is also caught by a neighbour is not a check of
+itself.** The read-back's caption comparison survived its first case, because
+`[%csl …]` in a sentence also adds a square and the marks comparison refused it
+first. A `[%clk …]`, which changes only the words, gave the caption check a case
+of its own.
+
+**A gate's literal text is screen text.** The worker stopped on the lead's
+frozen sentence „Only a lesson recorded in Preparation…", which the vocabulary
+test forbids on screen — and on a fake's parameter no case ever passed, a new
+analyze warning. Both were the gate's, and both were fixed there.
+
+**Grading found the one request not behind a service**: the flow's first `GET`
+threw past the door on a server that could not be reached, with nothing said;
+and the progress closed before the voice's copy, which for thirty minutes of
+sound is not instant. Both fixed, the first with a case watched red.

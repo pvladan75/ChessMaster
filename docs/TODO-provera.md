@@ -556,6 +556,16 @@ odlazi na kraj spiska u alatu.
     ikona zatvara list. Položeno su rečenice u koloni pored table.
     Potrebno: Windows i telefon; server.
 
+14. [ ] **`Make a tutorial` u plejeru.** [250.21]
+    O čemu se radi: Faza 8 plana `PLAN-PRIPREMA.md`. Isto vrata kao u
+    `Library`, ispod liste rečenica (u traci plejera nema mesta na telefonu).
+    Gde: plejer iz [250.14]; zatim isti snimak na telefonu uspravno.
+    Uradi: Ispod rečenica dodirni `Make a tutorial`. Na telefonu otvori list
+    sa rečenicama ikonom pored brzine i pogledaj dno lista.
+    Treba da vidiš: Otvara se `Tutorial studio` kao u [250.19]. Na telefonu je
+    dugme ceo, sa rečima, ispod liste, a lista i dalje ima mesta.
+    Potrebno: Windows i telefon; server.
+
 ### Home — Home i obaveštenja
 
 1. [ ] **Na Home-u više nema ponavljanja iz tutorijala.** [246.10]
@@ -6042,6 +6052,38 @@ odlazi na kraj spiska u alatu.
    dugmad ostaju u istom redu sa naslovom.
    Potrebno: Windows i telefon.
 
+33. [ ] **Snimak iz Preparation postaje tutorijal.** [250.19]
+    O čemu se radi: Faza 8 plana `PLAN-PRIPREMA.md` (27.9.2026). Iz snimka i
+    njegovog prepisa pravi se običan tutorijal: delovi se seku gde je tabla
+    skočila, rečenice idu na poziciju na kojoj su završene, strelica nacrtana
+    usred rečenice je na toj rečenici. Tvoj glas se kopira u tutorijal; snimak
+    ostaje kakav je bio.
+    Gde: `Teach` → `Library` → čip `Recordings`.
+    Uradi: Na kartici snimka iz Preparation koji ima prepis ([250.14]) dodirni
+    ikonu `Make a tutorial`. Uporedi karticu snimka iz žive sobe, ako ga imaš.
+    Treba da vidiš: Kratko `Making the tutorial…`, pa se otvara `Tutorial
+    studio` sa novim tutorijalom (ime kao snimak, jezik kao prepis). Delova
+    ima onoliko koliko puta si skočio na drugu poziciju; potezi su redom kako
+    si ih odigrao; rečenice stoje na potezima o kojima govore; potez bez
+    reči je prazan korak. Na snimku iz žive sobe dugmeta nema. U `Library`
+    se pojavio novi tutorijal, a snimak je i dalje tu i pušta se.
+    Potrebno: Windows; server restartovan posle spajanja; snimak iz Preparation
+    sa prepisom.
+
+34. [ ] **Snimak bez prepisa postaje tutorijal bez reči.** [250.20]
+    O čemu se radi: Faza 8 plana `PLAN-PRIPREMA.md`. Gde server nema
+    prepisivanje (droplet, dok politika privatnosti ne pomene Groq), tutorijal
+    se i dalje pravi — potezi, oznake i tvoj glas, bez teksta — ali tek pošto
+    aplikacija pita.
+    Gde: `Teach` → `Library` → `Recordings`, snimak iz Preparation koji nema
+    prepis.
+    Uradi: Dodirni `Make a tutorial`, pa `Cancel`; zatim ponovo i `Make it
+    without words`.
+    Treba da vidiš: Dijalog `No transcript` kaže da će tutorijal imati poteze i
+    tvoj glas, ali ne i reči. `Cancel` ne pravi ništa (u `Library` nema novog
+    tutorijala). Drugi put se otvara studio sa tutorijalom bez rečenica.
+    Potrebno: Windows; snimak iz Preparation bez prepisa.
+
 ### Teach — Position Scanner
 
 1. [ ] **PDF bez dijagrama ili zaštićen lozinkom.** [13.b602]
@@ -8249,6 +8291,35 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Deo i njegovi nastavci dolaze ranije u mapi; red koji ne
    može nigde da se pomeri ne otvara meni.
    Potrebno: telefon.
+
+73. [ ] **Film tutorijala iz snimka tvojim glasom, i posle ispravke reči.** [250.22]
+    O čemu se radi: Faza 8 plana `PLAN-PRIPREMA.md`, odluka D18: glas kopiran
+    iz snimka prati pozicije koraka, ne njihove reči — ispravka slova ne kvari
+    glas. Koraci počinju gde počinje njihova prva rečenica; potez odigran
+    usred rečenice pojavljuje se kad si ga odigrao.
+    Gde: tutorijal iz [250.19], otvoren u `Tutorial studio`.
+    Uradi: Ispravi jednu reč u nekoj rečenici i sačuvaj. Dodirni `Export video`.
+    Pusti gotov film uz snimak u plejeru, isti deo.
+    Treba da vidiš: Izbor glasa nudi `From the recording (m:ss)` sa „The voice
+    from the recording this tutorial was made from." i on je izabran. Nema
+    otpremanja snimka. U filmu se čuje tvoj glas, a tabla i strelice se
+    menjaju kad i u plejeru (strelica najviše par sekundi ranije, na početku
+    svoje rečenice); ispravljena reč stoji u titlu.
+    Potrebno: Windows; server.
+
+74. [ ] **Promenjen potez gasi glas iz snimka i to kaže; sintetički glas i dalje
+    radi.** [250.23]
+    O čemu se radi: Faza 8 plana `PLAN-PRIPREMA.md`, D18: zamenjen potez,
+    premešten deo ili dodata/obrisana rečenica pomeraju korake ispod glasa.
+    Gde: tutorijal iz [250.19] u `Tutorial studio`.
+    Uradi: Dodaj jednu rečenicu na neku poziciju (`Add a sentence here`),
+    sačuvaj, pa `Export video`. Zatim je obriši, zameni jedan potez drugim,
+    sačuvaj i opet `Export video`; izaberi sintetički glas i izvezi.
+    Treba da vidiš: Prvi put nema `From the recording`, a rečenica kaže
+    „Your recording was laid over N beats, and the tutorial has N+1 now…".
+    Drugi put rečenica kaže da se tutorijal promenio otkad je napravljen iz
+    snimka. Film sa sintetičkim glasom se pravi normalno.
+    Potrebno: Windows; server sa glasom (Azure ili piper).
 
 ### Teach — Domaći i napredak učenika
 

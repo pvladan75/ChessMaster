@@ -1199,7 +1199,7 @@ fails is a sentence, and the recording is as it was; a correction changes text
 and never a time; the schema change is read for what `initDB` does at start
 before the running server loads it.
 
-### Phase 8 — a recording becomes a tutorial [lead: the core and the voice; implementer: the doors]
+### Phase 8 — a recording becomes a tutorial [lead: the core and the voice; implementer: the doors] — built and graded 27.9.2026 on branch `priprema-faza-8`, not yet merged
 
 **Where it stands, 27.9.2026**, on branch `priprema-faza-8`:
 
@@ -1229,8 +1229,17 @@ before the running server loads it.
   `BE/test/fixtures/recording_tutorial_film.json` and laid over the copy by
   `BE/test/recording_voice_copy.test.js`. Backend 1829 → **1841** without a
   database (measured), thirteen mutations each red.
-- **The doors** — brief `docs/briefs/BRIEF-PRIPREMA-FAZA8.md`, gate
-  `docs/gates/recording_tutorial_doors_test.dart` (16 cases).
+- **The doors, built by the implementer and graded** — brief
+  `docs/briefs/BRIEF-PRIPREMA-FAZA8.md`, gate
+  `docs/gates/recording_tutorial_doors_test.dart` (16 cases), plus eight of the
+  worker's and one of the lead's. The worker stopped on two faults of the
+  lead's gate: its frozen sentence said „lesson", which the vocabulary test
+  forbids on screen (now „Only a recording made in Preparation can become a
+  tutorial."), and a fake's parameter nothing passed. Grading found the
+  flow's first request unguarded against a server that cannot be reached, and
+  the progress closing before the voice was copied; both fixed. Six mutations
+  of the worker's code, each red. App **4892**, 1 skipped; analyze the same 22.
+  Live items `[250.19]`–`[250.23]`.
 
 **The lead's decisions while building it, stated so they can be overruled:**
 

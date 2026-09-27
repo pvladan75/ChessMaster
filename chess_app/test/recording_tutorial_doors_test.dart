@@ -30,7 +30,7 @@
 //     nothing and returns null.
 //
 //   What a trainer reads (AppFeedback, or the dialog):
-//     a room recording     „Only a lesson recorded in Preparation can become
+//     a room recording     „Only a recording made in Preparation can become
 //                           a tutorial." — before anything is sent
 //     the core refuses     its own sentence (RecordingTutorialRefused.reason)
 //     the save is refused  the server's sentence; nothing else is sent and
@@ -213,7 +213,6 @@ class _Server {
     this.withTranscript = true,
     this.saveStatus = 201,
     this.voiceStatus = 201,
-    this.fromPreparation = true,
   });
 
   final String source;
@@ -221,7 +220,6 @@ class _Server {
   final bool withTranscript;
   final int saveStatus;
   final int voiceStatus;
-  final bool fromPreparation;
   final requests = <http.Request>[];
 
   late final http.Client client = MockClient((req) async {
@@ -285,7 +283,7 @@ class _Server {
             'id': '31',
             'title': 'Italijanska',
             'fen': '',
-            'fromPreparation': fromPreparation,
+            'fromPreparation': true,
           },
           {
             'kind': 'recording',
@@ -446,7 +444,7 @@ void main() {
       expect(server.writes, isEmpty);
       expect(
           find.text(
-              'Only a lesson recorded in Preparation can become a tutorial.'),
+              'Only a recording made in Preparation can become a tutorial.'),
           findsOneWidget);
       await _close(tester);
     });

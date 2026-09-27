@@ -68,11 +68,17 @@ Future<int?> _run(
     'Content-Type': 'application/json',
   };
 
-  final recRes = await client.get(
-    Uri.parse('$backendUrl/recordings/$recordingId'),
-    headers: headers,
-  );
-  final recJson = _decoded(recRes);
+  // Asked through a `try`: every later request goes through a service that
+  // answers a failure with a sentence, and this one would otherwise throw
+  // past the door that started it, with nothing said.
+  Map<String, dynamic>? recJson;
+  try {
+    recJson = _decoded(await client
+        .get(Uri.parse('$backendUrl/recordings/$recordingId'), headers: headers)
+        .timeout(const Duration(seconds: 20)));
+  } catch (_) {
+    recJson = null;
+  }
   if (recJson == null) {
     if (context.mounted) {
       AppFeedback.error(context, 'Could not read that recording.');
@@ -83,7 +89,7 @@ Future<int?> _run(
   if (recording.source != 'preparation') {
     if (context.mounted) {
       AppFeedback.error(context,
-          'Only a lesson recorded in Preparation can become a tutorial.');
+          'Only a recording made in Preparation can become a tutorial.');
     }
     return null;
   }
@@ -117,31 +123,36 @@ Future<int?> _run(
   final closeProgress = _showProgress(context);
   final api = LessonApiService(authToken: session.token, client: client);
 
+  // The progress stays up until the voice is attached as well: copying the
+  // sound of a thirty-minute take is not instant, and the screen must not
+  // look finished while it runs.
   final LessonWriteResult saved;
+  ({bool ok, String? error})? voice;
   try {
     saved = await api.saveTutorial(
       title: recording.title,
       positionList: core.draft.positionList,
       language: LanguageWrite.of(transcript?.language),
     );
+    if (saved.ok && saved.id != null) {
+      final attached = await api.attachRecordingVoice(
+        lessonId: saved.id!,
+        recordingId: recordingId,
+        markersMs: core.markersMs,
+        beats: core.beats,
+        signature: core.signature,
+      );
+      voice = (ok: attached.ok, error: attached.error);
+    }
   } finally {
     await closeProgress();
   }
   if (!context.mounted) return saved.ok ? saved.id : null;
-  if (!saved.ok || saved.id == null) {
+  if (!saved.ok || saved.id == null || voice == null) {
     AppFeedback.error(context, saved.error ?? 'Could not save the tutorial.');
     return null;
   }
   final lessonId = saved.id!;
-
-  final voice = await api.attachRecordingVoice(
-    lessonId: lessonId,
-    recordingId: recordingId,
-    markersMs: core.markersMs,
-    beats: core.beats,
-    signature: core.signature,
-  );
-  if (!context.mounted) return lessonId;
 
   final lesson = {
     'id': lessonId,
