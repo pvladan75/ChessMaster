@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
@@ -29,6 +30,7 @@ import 'package:chess_app/features/library/widgets/board_preview_panel.dart';
 import 'package:chess_app/features/library/widgets/course_picker_dialog.dart';
 import 'package:chess_app/features/library/widgets/library_list.dart';
 import 'package:chess_app/features/position_scanner/widgets/assign_positions_dialog.dart';
+import 'package:chess_app/features/tutorial_studio/services/recording_tutorial_flow.dart';
 import 'package:chess_app/features/tutorial_studio/tutorial_editor_entry.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -65,6 +67,7 @@ class LibraryScreen extends StatefulWidget {
     this.exerciseApi,
     this.recordingApi,
     this.scannerApi,
+    this.client,
   });
 
   final UserSession session;
@@ -98,11 +101,16 @@ class LibraryScreen extends StatefulWidget {
   /// Seam for deleting a scanned position or an exercise; same rule.
   final ScannerApiService? scannerApi;
 
+  /// The client „Make a tutorial" sends its requests through — phase 8 of
+  /// `docs/PLAN-PRIPREMA.md`. A real one when null.
+  final http.Client? client;
+
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
+  late final http.Client _client = widget.client ?? http.Client();
   late final PositionLibraryService _library = widget.positionLibrary ??
       PositionLibraryService(authToken: widget.session.token);
   late final LessonApiService _lessons =
@@ -299,6 +307,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ];
       case LibraryKind.recording:
         return [
+          // Only a lesson recorded alone in Preparation can become a
+          // tutorial (phase 8 of `docs/PLAN-PRIPREMA.md`) — a room recording
+          // has none of this door.
+          if (entry.fromPreparation)
+            IconButton(
+              icon: const Icon(Icons.auto_stories_outlined, size: 20),
+              tooltip: 'Make a tutorial',
+              onPressed: () => _makeTutorial(entry),
+            ),
           IconButton(
             icon: const Icon(Icons.play_circle_outline, size: 20),
             tooltip: 'Play',
@@ -598,6 +615,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final id = int.tryParse(entry.id);
     if (id == null) return;
     context.push(AppRoutes.replayPath(id));
+  }
+
+  Future<void> _makeTutorial(LibraryEntry entry) async {
+    final id = int.tryParse(entry.id);
+    if (id == null) return;
+    final newId = await makeTutorialFromRecording(context,
+        session: widget.session, recordingId: id, client: _client);
+    // The shelf reloads after, so the new tutorial is on it.
+    if (newId != null && mounted) _load();
   }
 
   Future<void> _openTutorial(LibraryEntry entry) async {

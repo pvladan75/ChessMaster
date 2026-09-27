@@ -26,6 +26,8 @@ const multer = require('multer');
 const narrationUpload = require('../services/narrationUpload');
 const { mayRecordNarration } = require('../services/recordingConsent');
 const { readTutorialLanguage } = require('../services/tutorialLanguage');
+const recordingTranscripts = require('../services/recordingTranscripts');
+const lessonRecording = require('../services/lessonRecording');
 
 /// Runs a submitted step list through the one builder, or answers the caller.
 ///
@@ -594,9 +596,11 @@ async function saveNarration(req, res) {
        UPDATE saved_lessons
           SET narration_filename = $2, narration_ms = $3, narration_markers = $4,
               narration_recorded_at = NOW(), narration_take_id = $6,
-              narration_signature = $7
+              narration_signature = $7, narration_follows = NULL
         WHERE id = $1 AND (user_id = $5 OR trainer_id = $5)
     RETURNING (SELECT narration_filename FROM old) AS replaced, narration_recorded_at`,
+      // `narration_follows` back to NULL: a take recorded over the tutorial
+      // replaces a voice copied from a recording, and is held to its words.
       [lessonId, file.filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id, takeId,
         signature]
     );
@@ -635,7 +639,8 @@ async function saveNarration(req, res) {
 router.get('/:id/narration', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT narration_filename, narration_ms, narration_markers, narration_take_id, narration_recorded_at
+      `SELECT narration_filename, narration_ms, narration_markers, narration_take_id, narration_recorded_at,
+              narration_signature, narration_follows
          FROM saved_lessons
         WHERE id = $1 AND (user_id = $2 OR trainer_id = $2)`,
       [req.params.id, req.user.id]
@@ -656,6 +661,12 @@ router.get('/:id/narration', authenticateToken, async (req, res) => {
       ms: row.narration_ms,
       beats: Array.isArray(row.narration_markers) ? row.narration_markers.length : 0,
       recordedAt: row.narration_recorded_at,
+      // Phase 8 of docs/PLAN-PRIPREMA.md. A voice copied from a recording
+      // lives only here — no device holds a take of it — so the app judges it
+      // from this answer: what it is held to, and the signature it was kept
+      // with. Null for a take recorded over the tutorial.
+      follows: row.narration_follows || null,
+      signature: row.narration_signature || null,
     });
   } catch (err) {
     logger.error('[NARRATION] Could not read the recording:', err);
@@ -670,6 +681,115 @@ router.post(
   narrationGate,
   receiveNarration,
   saveNarration,
+);
+
+// POST /lessons/:id/narration/from-recording — a recording's voice becomes
+// the narration of the tutorial the app made of it. Phase 8 of
+// docs/PLAN-PRIPREMA.md.
+//
+//   { recordingId, markersMs, beats, signature }
+//
+// The app makes the tutorial (T5: the server has no PGN reader) and sends where
+// each beat begins in the recording's sound; this checks that both are the
+// account's, **copies** the sound (T4) and judges the copy exactly as an
+// uploaded take is judged — the markers against the file's own length. The
+// recording is only ever read.
+//
+// Behind the same gate as an upload, in the same order: who may give this
+// tutorial a voice is asked before a byte is copied.
+async function attachRecordingVoice(req, res) {
+  const lessonId = Number.parseInt(req.params.id, 10);
+  const body = req.body || {};
+  const signature = typeof body.signature === 'string' ? body.signature : '';
+  if (!narrationUpload.SIGNATURE.test(signature)) {
+    // Required here, unlike an upload's: every voice copied from a recording
+    // is held to the positions it was laid over, and one without a signature
+    // could never be judged against an edit.
+    return res.status(400).json({ error: 'The tutorial\'s beats were not signed. Make the tutorial again.' });
+  }
+
+  let recording;
+  try {
+    recording = await recordingTranscripts.hostRecording(pool, body.recordingId, req.user.id);
+  } catch (err) {
+    logger.error('[NARRATION] Recording lookup failed:', err);
+    return res.status(500).json({ error: 'Server error while reading the recording.' });
+  }
+  // Only the host's own, only one made in Preparation — the transcript's rule,
+  // asked through its one home. Anything else reads as not found.
+  if (!recording || !recordingTranscripts.transcribable(recording)) {
+    return res.status(404).json({ error: 'Recording not found.' });
+  }
+  const source = lessonRecording.lessonAudioPath(recording.audio_file);
+  if (!fs.existsSync(source)) {
+    logger.error(`[NARRATION] Recording ${recording.id} names ${path.basename(source)}, which is not on disk`);
+    return res.status(404).json({ error: 'The recording\'s sound is missing.' });
+  }
+
+  let filename;
+  try {
+    filename = narrationUpload.copyIntoNarration(source, lessonId);
+  } catch (err) {
+    logger.error('[NARRATION] Could not copy the recording:', err);
+    return res.status(500).json({ error: 'Server error while copying the recording.' });
+  }
+  const copy = path.join(narrationUpload.narrationDir(), filename);
+
+  const judged = narrationUpload.judgeNarration({
+    file: copy,
+    markersMs: Array.isArray(body.markersMs) ? body.markersMs : null,
+    durationMs: recording.duration_ms,
+    beats: Number(body.beats),
+  });
+  if (!judged.ok) {
+    narrationUpload.removeQuietly(copy);
+    return res.status(judged.status).json({ error: judged.error });
+  }
+
+  let result;
+  try {
+    result = await pool.query(
+      `WITH old AS (SELECT narration_filename FROM saved_lessons WHERE id = $1 FOR UPDATE)
+       UPDATE saved_lessons
+          SET narration_filename = $2, narration_ms = $3, narration_markers = $4,
+              narration_recorded_at = NOW(), narration_take_id = NULL,
+              narration_signature = $6, narration_follows = $7
+        WHERE id = $1 AND (user_id = $5 OR trainer_id = $5)
+    RETURNING (SELECT narration_filename FROM old) AS replaced, narration_recorded_at`,
+      [lessonId, filename, judged.durationMs, JSON.stringify(judged.markers), req.user.id,
+        signature, narrationUpload.FOLLOWS_POSITIONS]
+    );
+  } catch (err) {
+    narrationUpload.removeQuietly(copy);
+    logger.error('[NARRATION] Could not keep the recording\'s voice:', err);
+    return res.status(500).json({ error: 'Server error while keeping the recording\'s voice.' });
+  }
+  if (result.rowCount === 0) {
+    narrationUpload.removeQuietly(copy);
+    return res.status(404).json({ error: 'Tutorial not found or you do not have permission to record over it.' });
+  }
+  // The tutorial's own previous narration, never the recording: the row names
+  // files under uploads/narration only.
+  const replaced = result.rows[0].replaced;
+  if (replaced && replaced !== filename) {
+    narrationUpload.removeNarrationFile(replaced);
+  }
+  return res.status(201).json({
+    narration: {
+      ms: judged.durationMs,
+      beats: judged.markers.length,
+      follows: narrationUpload.FOLLOWS_POSITIONS,
+      recordedAt: result.rows[0].narration_recorded_at,
+    },
+  });
+}
+
+router.post(
+  '/:id/narration/from-recording',
+  authenticateToken,
+  requireEntitlement(ENT.MP4_EXPORT),
+  narrationGate,
+  attachRecordingVoice,
 );
 
 // POST /lessons/:id/export-video

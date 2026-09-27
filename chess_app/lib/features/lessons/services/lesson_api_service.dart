@@ -17,11 +17,24 @@ import 'package:chess_app/services/app_logger.dart';
 /// threw the body away, which is why a client could never learn them — and why
 /// a second „Sačuvaj" would have made a second tutorial.
 class LessonWriteResult {
-  const LessonWriteResult({this.id, this.steps = const [], this.error});
+  const LessonWriteResult(
+      {this.id, this.title, this.language, this.steps = const [], this.error});
 
   /// The row's id. Null when the write failed, or when the server answered
   /// without one.
   final int? id;
+
+  /// The title as the row now stands, when the server sent one. A caller that
+  /// wants to open the row it just wrote (phase 8 of
+  /// `docs/PLAN-PRIPREMA.md`) reads it from here rather than repeating what it
+  /// sent — the server is the one that stored it.
+  final String? title;
+
+  /// The language as the row now stands, when the server's answer named the
+  /// field at all — `null` here can mean either „not said" or „the field was
+  /// absent from the answer"; a caller that must tell those apart reads the
+  /// row itself.
+  final String? language;
 
   /// `position_list` as it is now stored. Empty when the server said nothing
   /// about the steps — which the real one never does, but a client that treats
@@ -186,6 +199,44 @@ class NarrationUploadResult {
   /// How long the server measured the audio to be, from the file itself.
   final int? ms;
   final int? beats;
+}
+
+/// `GET /lessons/:id/narration`, whole — phase 8 of `docs/PLAN-PRIPREMA.md`.
+///
+/// [serverTakeId] and [LessonApiService.narrationMaxMs] each read one field of
+/// this same answer; this is for the export, which since phase 8 has to judge
+/// a voice **copied from a recording** and needs the two fields those two
+/// never asked for: [follows] and [signature] (D18).
+class NarrationInfo {
+  const NarrationInfo({
+    required this.status,
+    this.maxMs,
+    this.takeId,
+    this.ms,
+    this.beats,
+    this.follows,
+    this.signature,
+    this.recordedAt,
+  });
+
+  /// `'ready'` or `'none'`.
+  final String status;
+  final int? maxMs;
+  final String? takeId;
+  final int? ms;
+  final int? beats;
+
+  /// `'positions'` for a voice copied from a recording (D18); null for a take
+  /// recorded over the tutorial itself, or when there is none.
+  final String? follows;
+
+  /// What the voice is held to — `filmSignatureOf` for an ordinary take,
+  /// `filmPositionsSignatureOf` for one copied from a recording. Null when
+  /// [follows] and this were never stamped (a take from before phase 5).
+  final String? signature;
+  final String? recordedAt;
+
+  bool get ready => status == 'ready';
 }
 
 /// Everything the app does to `saved_lessons`, in one place.
@@ -420,6 +471,8 @@ class LessonApiService {
       final rawSteps = decoded['position_list'];
       return LessonWriteResult(
         id: decoded['id'] is int ? decoded['id'] as int : null,
+        title: decoded['title']?.toString(),
+        language: decoded['language']?.toString(),
         steps: [
           for (final raw in rawSteps is List ? rawSteps : const [])
             if (raw is Map) Map<String, dynamic>.from(raw),
@@ -924,6 +977,60 @@ class LessonApiService {
     }
   }
 
+  /// Gives [lessonId] the voice of a recording it was made from — phase 8 of
+  /// `docs/PLAN-PRIPREMA.md`, `POST /lessons/:id/narration/from-recording`.
+  ///
+  /// The server copies the recording's own sound (T4: nothing here uploads
+  /// anything) and judges the copy exactly as [uploadNarration] judges a
+  /// file, so a refusal comes back in its sentence. [signature] is
+  /// `filmPositionsSignatureOf` — what the copied voice is held to (D18) —
+  /// and is required: the server refuses an unsigned request outright.
+  Future<NarrationUploadResult> attachRecordingVoice({
+    required int lessonId,
+    required int recordingId,
+    required List<int> markersMs,
+    required int beats,
+    required String signature,
+  }) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/lessons/$lessonId/narration/from-recording'),
+            headers: _headers,
+            body: jsonEncode({
+              'recordingId': recordingId,
+              'markersMs': markersMs,
+              'beats': beats,
+              'signature': signature,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 201) {
+        final body = jsonDecode(res.body);
+        final narration = body is Map ? body['narration'] : null;
+        return NarrationUploadResult(
+          ok: true,
+          ms: narration is Map ? (narration['ms'] as num?)?.toInt() : null,
+          beats:
+              narration is Map ? (narration['beats'] as num?)?.toInt() : null,
+        );
+      }
+      return NarrationUploadResult(
+        ok: false,
+        error: _errorFrom(
+            res.body,
+            'The recording\'s voice could not be attached '
+            '(${res.statusCode}).'),
+      );
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not attach the recording\'s voice: $e');
+      return const NarrationUploadResult(
+        ok: false,
+        error: 'Cannot connect to server.',
+      );
+    }
+  }
+
   /// The id of the take the server holds for [lessonId], or null when it holds
   /// none — or could not be asked.
   ///
@@ -943,6 +1050,35 @@ class LessonApiService {
         return body['takeId']?.toString();
       }
       return null;
+    } catch (e) {
+      AppLogger.log('[Lessons] Could not ask for the narration: $e');
+      return null;
+    }
+  }
+
+  /// `GET /lessons/:id/narration`, whole — phase 8 of `docs/PLAN-PRIPREMA.md`.
+  /// Null when it could not be asked, which reads to the export exactly as
+  /// „nothing new from the server": a device take, if there is one, still
+  /// stands.
+  Future<NarrationInfo?> fetchNarrationInfo(int lessonId) async {
+    try {
+      final res = await _client
+          .get(Uri.parse('$backendUrl/lessons/$lessonId/narration'),
+              headers: _headers)
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode != 200) return null;
+      final body = jsonDecode(res.body);
+      if (body is! Map || body['status'] is! String) return null;
+      return NarrationInfo(
+        status: body['status'] as String,
+        maxMs: (body['maxMs'] as num?)?.toInt(),
+        takeId: body['takeId']?.toString(),
+        ms: (body['ms'] as num?)?.toInt(),
+        beats: (body['beats'] as num?)?.toInt(),
+        follows: body['follows']?.toString(),
+        signature: body['signature']?.toString(),
+        recordedAt: body['recordedAt']?.toString(),
+      );
     } catch (e) {
       AppLogger.log('[Lessons] Could not ask for the narration: $e');
       return null;

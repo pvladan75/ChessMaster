@@ -189,6 +189,22 @@ ostaje prazan dok politika privatnosti ne navede Groq. **Sledeće**: faza 8
 (snimak postaje tutorijal), kojoj treba odgovor na Q2 (da li ispravljen
 tekst zadržava trenerov glas).
 
+**Faza 8 (snimak postaje tutorijal) je izgrađena i ocenjena 27.9.2026** na
+grani `priprema-faza-8` (radno stablo `.claude/worktrees/priprema-faza-8`),
+**još nije spojena u `master`**: aplikacija **4892** (1 preskočen), server
+**1841** bez baze i **2000** sa bazom, analiza istih 22, sve mereno. Vlasnik je
+odgovorio na Q2 („Slažem se sa preporukom") — **D18**: glas kopiran iz snimka
+prati pozicije koraka, ne reči. Jezgro (`recording_tutorial.dart`) i server
+(`POST /lessons/:id/narration/from-recording`, kolona `narration_follows`,
+`fromPreparation` na snimcima u Biblioteci) je gradio vođa, vrata izvođač.
+Vođine odluke su u planu, u fazi 8 (markeri: tabla nikad ne žuri; nova tabla
+je uvek nov deo; strana table po većini dela; snimak bez prepisa može u
+tutorijal bez reči, posle pitanja; vrata u plejeru su u panelu prepisa).
+**Usput nađena i popravljena greška u jedinom čitaču PGN-a**: zagrade u
+komentaru su se posle svakog čuvanja vraćale sa razmacima. Stavke za proveru
+uživo `[250.19]`–`[250.23]`. **Spajanje traži restart servera** (nova kolona,
+nova ruta; `initDB` samo dodaje kolonu). **Sledeće**: faza 9 (prevod).
+
 
 1. **Faze 1–4 su u `master` i na `origin`** (27.9.2026). Ekran je gotov;
    sledeće je vlasnikova provera uživo.

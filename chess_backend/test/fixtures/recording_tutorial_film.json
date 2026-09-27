@@ -1,0 +1,377 @@
+{
+ "about": [
+  "Phase 8 of docs/PLAN-PRIPREMA.md. The tutorial the app makes of the recording „proba 2\" (chess_app/test/fixtures/recording_tutorial/proba2.json): its film as tutorialVideoOf writes it, one marker per beat of that film for the recording's own voice, and the positions signature the voice is held to.",
+  "Written by chess_app/test/recording_to_tutorial_test.dart and held to it there; never edited by hand."
+ ],
+ "durationMs": 174598,
+ "beats": 28,
+ "markersMs": [
+  0,
+  9848,
+  12008,
+  14548,
+  16518,
+  22278,
+  24808,
+  26040,
+  37128,
+  41208,
+  48660,
+  55118,
+  60028,
+  60120,
+  66000,
+  71820,
+  74160,
+  82188,
+  86298,
+  92868,
+  106979,
+  119308,
+  122448,
+  139608,
+  144958,
+  148518,
+  155259,
+  162299
+ ],
+ "signature": "adcec440c0e1786b60e10d474896ec22fdc82cf4b8807e5c1619a5a8727600b5",
+ "seconds": 112,
+ "events": [
+  {
+   "timestampMs": 0,
+   "eventType": "init",
+   "data": {
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "join": "fresh",
+    "text": "S1 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 7000,
+   "eventType": "move",
+   "data": {
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+    "san": "e4",
+    "from": "e2",
+    "to": "e4",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 9000,
+   "eventType": "move",
+   "data": {
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+    "san": "e5",
+    "from": "e7",
+    "to": "e5",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 11000,
+   "eventType": "move",
+   "data": {
+    "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2",
+    "san": "Nf3",
+    "from": "g1",
+    "to": "f3",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 13000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3",
+    "san": "Nc6",
+    "from": "b8",
+    "to": "c6",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 15000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3",
+    "san": "Bc4",
+    "from": "f1",
+    "to": "c4",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 17000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4",
+    "san": "Bc5",
+    "from": "f8",
+    "to": "c5",
+    "text": "S2 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 23000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/1PB1P3/5N2/P1PP1PPP/RNBQK2R b KQkq b3 0 4",
+    "san": "b4",
+    "from": "b2",
+    "to": "b4",
+    "text": "S3 w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 27000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/5N2/P1PP1PPP/RNBQK2R w KQkq - 0 5",
+    "san": "Bxb4",
+    "from": "c5",
+    "to": "b4",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 29000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+    "san": "c3",
+    "from": "c2",
+    "to": "c3",
+    "text": "S4 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 37000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/b3p3/2B1P3/2P2N2/P2P1PPP/RNBQK2R w KQkq - 1 6",
+    "san": "Ba5",
+    "from": "b4",
+    "to": "a5",
+    "text": "S5 w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 39000,
+   "eventType": "init",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+    "join": "returns",
+    "afterMove": "5. c3",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 43000,
+   "eventType": "init",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+    "join": "continues",
+    "text": "S6 w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 45000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/P2P1PPP/RNBQK2R w KQkq - 1 6",
+    "san": "Bc5",
+    "from": "b4",
+    "to": "c5",
+    "text": "S7 w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 47000,
+   "eventType": "init",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/4p3/1bB1P3/2P2N2/P2P1PPP/RNBQK2R b KQkq - 0 5",
+    "join": "returns",
+    "afterMove": "5. c3",
+    "text": "S8 w w w w w w w w w w w w w w. S9 w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 51000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2B1P3/2P2N2/P2P1PPP/RNBQK2R w KQkq - 1 6",
+    "san": "Bc5",
+    "from": "b4",
+    "to": "c5",
+    "text": "S10 w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 53000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b1p3/2BPP3/2P2N2/P4PPP/RNBQK2R b KQkq d3 0 6",
+    "san": "d4",
+    "from": "d2",
+    "to": "d4",
+    "text": "S11 w w w w. S12 w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 56000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2BpP3/2P2N2/P4PPP/RNBQK2R w KQkq - 0 7",
+    "san": "exd4",
+    "from": "e5",
+    "to": "d4",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 58000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2BpP3/2P2N2/P4PPP/RNBQ1RK1 b kq - 1 7",
+    "san": "O-O",
+    "from": "e1",
+    "to": "g1",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 60000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+    "san": "dxc3",
+    "from": "d4",
+    "to": "c3",
+    "text": "S13 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w. S14 w w w w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 71000,
+   "eventType": "beat",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+    "text": "S15 w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 76000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2bQ4/2B1P3/2p2N2/P4PPP/RNB2RK1 b kq - 1 8",
+    "san": "Qd5",
+    "from": "d1",
+    "to": "d5",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 78000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1b1k1nr/ppppqppp/2n5/2bQ4/2B1P3/2p2N2/P4PPP/RNB2RK1 w kq - 2 9",
+    "san": "Qe7",
+    "from": "d8",
+    "to": "e7",
+    "text": "S16 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "arrows": [
+     {
+      "from": "e7",
+      "to": "f7",
+      "color": "P"
+     },
+     {
+      "from": "e7",
+      "to": "c5",
+      "color": "P"
+     }
+    ],
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 88000,
+   "eventType": "init",
+   "data": {
+    "fen": "r1bqk1nr/pppp1ppp/2n5/2b5/2B1P3/2p2N2/P4PPP/RNBQ1RK1 w kq - 0 8",
+    "join": "returns",
+    "afterMove": "7... dxc3",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 92000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bqk1nr/pppp1Bpp/2n5/2b5/4P3/2p2N2/P4PPP/RNBQ1RK1 b kq - 0 8",
+    "san": "Bxf7+",
+    "from": "c4",
+    "to": "f7",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 94000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bq2nr/pppp1kpp/2n5/2b5/4P3/2p2N2/P4PPP/RNBQ1RK1 w - - 0 9",
+    "san": "Kxf7",
+    "from": "e8",
+    "to": "f7",
+    "text": "S17 w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 103000,
+   "eventType": "move",
+   "data": {
+    "fen": "r1bq2nr/pppp1kpp/2n5/2bQ4/4P3/2p2N2/P4PPP/RNB2RK1 b - - 1 9",
+    "san": "Qd5+",
+    "from": "d1",
+    "to": "d5",
+    "text": "S18 w w w w w w w w. S19 w w w w w. S20 w w.",
+    "orientation": "white"
+   }
+  },
+  {
+   "timestampMs": 107000,
+   "eventType": "beat",
+   "data": {
+    "fen": "r1bq2nr/pppp1kpp/2n5/2bQ4/4P3/2p2N2/P4PPP/RNB2RK1 b - - 1 9",
+    "text": "S21 w w w w w. S22 w w w w w. S23 w w w w w w w w w w.",
+    "arrows": [
+     {
+      "from": "d5",
+      "to": "c5",
+      "color": "P"
+     },
+     {
+      "from": "d5",
+      "to": "f7",
+      "color": "P"
+     }
+    ],
+    "orientation": "white"
+   }
+  }
+ ]
+}

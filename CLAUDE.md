@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4828 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4892 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1829 without TEST_DATABASE_URL, 1988 with it (both measured 27.9.2026)
+cd chess_backend && npm test          # node --test, 1841 without TEST_DATABASE_URL, 2000 with it (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1040,7 +1040,24 @@ charset, which `package:http` encodes as latin1, and `hitTestable()` on a
 board the marks' `CustomPaint` covers), and **a rendered look with a
 transcript longer than the gate's four sentences found two faults the gate
 passed**: a list asking for a fixed 420 px overflowed the column at 900 x 700,
-and the phone's sheet covered the only button that closed it. Phase 6 of
+and the phone's sheet covered the only button that closed it. Then its
+phase 8, a recording becomes a tutorial (→ **4892**, a full run in the
+worktree with nothing else running; backend → **1841 / 2000**, both
+measured; analyze the same 22): `recordingTutorialOf` cuts a timeline and a
+transcript into parts and beats by R1–R8, gives one marker per beat for the
+recording's own voice, and the server copies the sound into the tutorial's
+narration, held to the **positions** of its beats and not their words (D18,
+`narration_follows`). Its fixtures are phase 5's four real recordings with
+every word replaced by a placeholder of the same length — **the times are
+the data; the words are somebody's**. **The writer's read-back found a
+fault in the one reader**: `parsePgn` set every parenthesis apart, a
+comment's included, so „(see move 12)" came back from every save as
+„( see move 12 )" — dormant since the reader was written, because nothing
+ever compared a comment with what had been written. The worker stopped on
+two faults of the lead's gate: a frozen sentence that said „lesson", which
+the vocabulary test forbids on screen (**a gate's literal text is screen
+text, and the vocabulary rules apply to it**), and a fake's parameter
+nothing passed. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

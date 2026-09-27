@@ -258,7 +258,7 @@ async function listRecordings(pool, userId, { search }) {
   }
 
   const result = await pool.query(
-    `SELECT id, title, video_url, created_at
+    `SELECT id, title, video_url, created_at, source
        FROM session_recordings
       WHERE ${where}
       ORDER BY created_at DESC
@@ -272,6 +272,10 @@ async function listRecordings(pool, userId, { search }) {
     title: row.title || 'Untitled',
     fen: '',
     hasVideo: row.video_url != null,
+    // Only a lesson recorded alone in Preparation can become a tutorial
+    // (phase 8 of docs/PLAN-PRIPREMA.md); a room's recording had other
+    // people in it. Said here so the card offers only what the server allows.
+    fromPreparation: row.source === 'preparation',
     createdAt: row.created_at,
     assignable: false,
     blockedReason: null,

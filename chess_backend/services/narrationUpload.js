@@ -265,6 +265,27 @@ const TAKE_ID = /^[0-9a-f]{8,64}$/;
 /// is compared with the one the export sends.
 const SIGNATURE = /^[0-9a-f]{64}$/;
 
+/// `saved_lessons.narration_follows` for a voice copied from a recording
+/// (D18 of docs/PLAN-PRIPREMA.md). The app signs such a voice over the
+/// positions of its beats and not their words; this server only stores the
+/// word and hands it back, as it does the signature itself.
+const FOLLOWS_POSITIONS = 'positions';
+
+/// A copy of a recording's sound, made to be a tutorial's narration — T4 of
+/// docs/PLAN-PRIPREMA.md: **the voice is copied, never shared.** A tutorial's
+/// deletion removes its own narration file, and if that file were the
+/// recording's, deleting a tutorial would delete the only copy of a voice.
+///
+/// Refuses to overwrite (a fresh random name is never taken, and a clash is a
+/// fault to see, not a file to replace). Returns the new file's name.
+function copyIntoNarration(sourcePath, lessonId) {
+  const dir = narrationDir();
+  fs.mkdirSync(dir, { recursive: true });
+  const filename = narrationFilename(lessonId);
+  fs.copyFileSync(sourcePath, path.join(dir, filename), fs.constants.COPYFILE_EXCL);
+  return filename;
+}
+
 /// The film's events on a stored recording's own timing, or why they cannot be.
 ///
 /// Phase 4. The markers replace the app's reading-speed guess — the same
@@ -338,6 +359,8 @@ function recordingForFilm({ row, takeId, events, signature }) {
 module.exports = {
   TAKE_ID,
   SIGNATURE,
+  FOLLOWS_POSITIONS,
+  copyIntoNarration,
   recordingForFilm,
   LIVE_MICROPHONE_DBFS,
   narrationMaxBytes,

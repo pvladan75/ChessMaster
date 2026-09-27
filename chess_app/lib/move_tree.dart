@@ -616,6 +616,27 @@ class MoveTree {
     return moves;
   }
 
+  /// Sets every `(` and `)` of the movetext apart, so a variation's marks are
+  /// tokens of their own — **and only the movetext's.** Until 27.9.2026 this
+  /// was two `replaceAll`s over the whole text, comments included, so a
+  /// trainer's „(see move 12)" came back from every save as
+  /// „( see move 12 )". Found by phase 8 of `docs/PLAN-PRIPREMA.md`, whose
+  /// writer reads its work back before keeping it.
+  static String _spaceVariationMarks(String text) {
+    final out = StringBuffer();
+    var inComment = false;
+    for (final unit in text.split('')) {
+      if (unit == '{') inComment = true;
+      if (unit == '}') inComment = false;
+      if (!inComment && (unit == '(' || unit == ')')) {
+        out.write(' $unit ');
+      } else {
+        out.write(unit);
+      }
+    }
+    return out.toString();
+  }
+
   static MoveTree? parsePgn(String pgn, {String? startingFen}) {
     String? extractedFen = startingFen ?? fenHeaderOf(pgn);
     final actualStartingFen = extractedFen ??
@@ -626,8 +647,7 @@ class MoveTree {
         pgn.replaceAll(RegExp(r'^\s*\[[^%][^\]]*\]\s*$', multiLine: true), '');
     cleaned = cleaned.replaceAll('{', ' { ');
     cleaned = cleaned.replaceAll('}', ' } ');
-    cleaned = cleaned.replaceAll('(', ' ( ');
-    cleaned = cleaned.replaceAll(')', ' ) ');
+    cleaned = _spaceVariationMarks(cleaned);
     cleaned = cleaned.replaceAll(RegExp(r'\b(1-0|0-1|1/2-1/2|\*)\b'), '');
 
     final tokens = cleaned.split(RegExp(r'\s+'));

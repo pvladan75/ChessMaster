@@ -319,6 +319,9 @@ test('a whole take is kept, and the row names it with its markers', async () => 
   assert.equal(update.values[2], 1000);
   assert.equal(update.values[3], '[0,400]');
   assert.match(update.sql, /FOR UPDATE/, 'the old name is read with the row locked');
+  // Phase 8 of docs/PLAN-PRIPREMA.md: a take recorded over the tutorial
+  // replaces a voice copied from a recording, and is held to its words again.
+  assert.match(update.sql, /narration_follows = NULL/);
 });
 
 test('the beats a take was recorded against are kept beside it', async () => {
@@ -661,6 +664,26 @@ test('the server says which take it holds, and says none plainly', async () => {
   assert.equal(ready.body.takeId, 'ab12');
   assert.equal(ready.body.beats, 3);
   assert.equal(ready.body.filename, undefined, 'the file stays the server\'s business');
+  // A take recorded over the tutorial is held to its words: nothing says
+  // otherwise.
+  assert.equal(ready.body.follows, null);
+  assert.equal(ready.body.signature, null);
+
+  // Phase 8 of docs/PLAN-PRIPREMA.md: a voice copied from a recording lives
+  // only here, so the app judges it from this answer — what it is held to and
+  // the signature it was kept with.
+  const copied = await ask([{
+    narration_filename: 'narration_12_y.wav',
+    narration_ms: 9100,
+    narration_markers: [0, 3500, 7000],
+    narration_take_id: null,
+    narration_recorded_at: 't',
+    narration_signature: 'd'.repeat(64),
+    narration_follows: 'positions',
+  }]);
+  assert.equal(copied.body.follows, 'positions');
+  assert.equal(copied.body.signature, 'd'.repeat(64));
+  assert.equal(copied.body.takeId, null);
 });
 
 const FILM = [

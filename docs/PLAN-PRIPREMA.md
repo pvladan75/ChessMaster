@@ -389,6 +389,17 @@ svih pet preporuka", 27.9.2026, from the sketch `docs/skice/taktovi.html`:
 - **E** — Preparation's comment box follows the open sentence, with ‹ › and
   the same button.
 
+**D18. A voice copied from a recording is held to the positions of its
+beats, not their words** — Q2, „Slažem se sa preporukom za Q2", 27.9.2026.
+A take recorded *over* a tutorial is held to its sentences
+(`filmSignatureOf`), because a rewritten sentence is a voice saying what the
+screen no longer does. A tutorial made from a recording is the other way
+round: its sentences were written *from* the voice, so a corrected spelling
+does not make the voice wrong. Such a voice is signed with
+`filmPositionsSignatureOf` — the position of every beat, in order — and
+`saved_lessons.narration_follows` says which kind a tutorial's voice is. A
+move replaced, a part moved, or a sentence added or removed still refuses it.
+
 ### The lead's, stated so they can be overruled
 
 **T1. The new screen stands on `AnalysisNode`.** The graphical tree, its menu
@@ -1188,7 +1199,83 @@ fails is a sentence, and the recording is as it was; a correction changes text
 and never a time; the schema change is read for what `initDB` does at start
 before the running server loads it.
 
-### Phase 8 — a recording becomes a tutorial [lead: the core and the voice; implementer: the doors]
+### Phase 8 — a recording becomes a tutorial [lead: the core and the voice; implementer: the doors] — built and graded 27.9.2026 on branch `priprema-faza-8`, not yet merged
+
+**Where it stands, 27.9.2026**, on branch `priprema-faza-8`:
+
+- **The core, built and graded by the lead** —
+  `APP/features/tutorial_studio/services/recording_tutorial.dart`,
+  `recordingTutorialOf`. Its gate, `T/recording_to_tutorial_test.dart`,
+  stands on phase 5's four real recordings (`T/fixtures/recording_tutorial/`:
+  the timelines as recorded and the sentences the server builds from Groq's
+  real answers, **each word replaced by a placeholder of the same length** —
+  the repository is public and a transcript is what somebody said) with the
+  phase-5 sketch's answer beside each, and on built cases at every rule's
+  boundary. The sketch and the core agree on all four: 1, 5, 2 and 2 parts,
+  99 beats, 36 wordless — phase 5's published numbers. Twenty mutations, each
+  red on its own case; one more survived because it could not change an
+  answer, and the loop it removed was deleted.
+- **The read-back found a fault in the one reader**: `MoveTree.parsePgn` set
+  every parenthesis apart, a comment's included, so a trainer's „(see move
+  12)" came back from every save as „( see move 12 )". Only the movetext's
+  are set apart now (`T/move_tree_comment_parens_test.dart`).
+- **The voice, built by the lead** — `POST /lessons/:id/narration/from-recording`
+  copies the host's own Preparation recording (T4) and judges the copy as an
+  upload is judged; `saved_lessons.narration_follows` (one nullable column)
+  says the voice is held to positions (D18); an upload over the tutorial sets
+  it back; `GET /:id/narration` hands back `follows` and `signature`; the
+  Library's recording rows say `fromPreparation`. The app's film of „proba 2"
+  is written by the app's test to
+  `BE/test/fixtures/recording_tutorial_film.json` and laid over the copy by
+  `BE/test/recording_voice_copy.test.js`. Backend 1829 → **1841** without a
+  database (measured), thirteen mutations each red.
+- **The doors, built by the implementer and graded** — brief
+  `docs/briefs/BRIEF-PRIPREMA-FAZA8.md`, gate
+  `docs/gates/recording_tutorial_doors_test.dart` (16 cases), plus eight of the
+  worker's and one of the lead's. The worker stopped on two faults of the
+  lead's gate: its frozen sentence said „lesson", which the vocabulary test
+  forbids on screen (now „Only a recording made in Preparation can become a
+  tutorial."), and a fake's parameter nothing passed. Grading found the
+  flow's first request unguarded against a server that cannot be reached, and
+  the progress closing before the voice was copied; both fixed. Six mutations
+  of the worker's code, each red. App **4892**, 1 skipped; analyze the same 22.
+  Live items `[250.19]`–`[250.23]`.
+
+**The lead's decisions while building it, stated so they can be overruled:**
+
+- **Markers.** R8 says a beat begins where its first sentence does. Where a
+  trainer plays moves *inside* one sentence (a third of all beats, phase 5),
+  that sentence belongs to the last of them (R3) and starts before the
+  wordless moves in front of it. There **the board wins**: each move is shown
+  when it was played, and the sentence's beat waits for its own position —
+  the caption is late by the length of the moves, the board is never early.
+  The first beat is at 0; nothing starts at or past the sound's end.
+- **A new board is always a new part**, even one legal move from the last
+  (the sketch's rule): a position loaded from the Library is a new thing to
+  look at, whatever it happens to be.
+- **A part stands the way the board stood for most of it**, not the way it
+  stood at its first instant: a trainer turns the board a moment after
+  setting it up.
+- **A sentence the trainer emptied stands on no beat**; braces become
+  parentheses (they would close the PGN comment); line breaks and runs of
+  spaces become one space, which is how the reader gives a comment back.
+  Anything else the reader would read differently — `[%csl …]` or `[%clk …]`
+  typed into a sentence — refuses the whole tutorial with a sentence rather
+  than keeping it changed.
+- **A recording with no transcript can still become a tutorial** — its moves,
+  its marks and the voice, no words — after the app asks. This is what the
+  door offers where the server has no speech to text (the droplet, until the
+  privacy policy names Groq, D9).
+- **The tutorial is made on the server at once**, then given the voice, then
+  opened in the studio. A voice the server refuses leaves the tutorial made
+  and says so (do the thing, then say it); the trainer can still export it
+  with a synthesised voice.
+- **The player's door is in the transcript panel**, not the bar: the host's
+  bar is full at 360 wide.
+- **A copied voice lives only on the server**; the export asks the server
+  when the device has no take, and a take on the device still wins.
+
+*As planned:*
 
 The pure core, in the app: a timeline and a transcript in, a tutorial's draft
 and one marker per beat out, by R1–R8 with phase 5's thresholds. Every part is
@@ -1270,7 +1357,9 @@ student and put in a homework.
 **Q1. Which vendor hears the recordings** — *answered 27.9.2026*: Groq (D15).
 Azure stays the voice.
 
-**Q2. Does correcting the transcript keep the trainer's own voice?** Today a
+**Q2** — *answered 27.9.2026*: yes, as recommended (D18).
+
+**Q2 as it was asked. Does correcting the transcript keep the trainer's own voice?** Today a
 changed sentence makes a recorded take „no longer follow" its tutorial, which
 is right where the voice was recorded *over* the text. Here the text was
 written *from* the voice, and a corrected spelling does not make the voice
