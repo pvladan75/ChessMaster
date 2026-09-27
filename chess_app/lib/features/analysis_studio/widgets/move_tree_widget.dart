@@ -48,6 +48,23 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
   /// A sentence for one card. See `VisualMoveTreeWidget.nodeTooltip`.
   final String? Function(AnalysisNode node)? nodeTooltip;
 
+  /// Which of the two views this card opens on — Preparation's phone opens on
+  /// notation, a desktop window on the graph (D11 of
+  /// `docs/PLAN-PRIPREMA.md`). Defaults to the graph, what every existing
+  /// caller (Analysis, the repertoire, the Tutorial Studio) already got by
+  /// starting `_showVisualGraph` at `true`, so none of them changes.
+  final bool startOnGraph;
+
+  /// Take the height this card is given rather than its own 420 at most.
+  ///
+  /// False by default, which is what every caller had: the card sits in a
+  /// column that scrolls and has no height to fill. Preparation puts it in a
+  /// pane of a known height, above the comment and the engine's lines, and
+  /// at the narrowest window a card that insists on 516 px pushes the
+  /// engine's lines off the screen (phase 1 of `docs/PLAN-PRIPREMA.md`).
+  /// With this on, the parent must bound the card's height.
+  final bool fills;
+
   const AnalysisMoveTreeWidget({
     super.key,
     required this.rootNode,
@@ -63,6 +80,8 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
     this.onExtra,
     this.nodeLook,
     this.nodeTooltip,
+    this.startOnGraph = true,
+    this.fills = false,
   });
 
   @override
@@ -70,7 +89,7 @@ class AnalysisMoveTreeWidget extends StatefulWidget {
 }
 
 class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
-  bool _showVisualGraph = true; // Default to interactive visual tree graph!
+  late bool _showVisualGraph = widget.startOnGraph;
 
   @override
   Widget build(BuildContext context) {
@@ -185,9 +204,8 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
               ],
             ),
             Divider(height: 16, color: context.colors.border),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 420),
-              width: double.infinity,
+            _TreeBody(
+              fills: widget.fills,
               child: _showVisualGraph
                   ? VisualMoveTreeWidget(
                       rootNode: widget.rootNode,
@@ -491,6 +509,27 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
         canMoveVariation: widget.canMoveVariation,
         promoteApplies: widget.promoteApplies,
       ),
+    );
+  }
+}
+
+/// The tree itself, under the card's header: as tall as it is given where the
+/// card [fills], and 420 at most where it does not.
+class _TreeBody extends StatelessWidget {
+  const _TreeBody({required this.fills, required this.child});
+
+  final bool fills;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (fills) {
+      return Expanded(child: SizedBox(width: double.infinity, child: child));
+    }
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 420),
+      width: double.infinity,
+      child: child,
     );
   }
 }
