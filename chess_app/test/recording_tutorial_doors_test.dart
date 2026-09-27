@@ -165,12 +165,37 @@ List<Map<String, Object?>> _sentences() => [
       },
     ];
 
-Map<String, Object?> _transcript() => {
+/// The second sentence as the server sends it since phase 8b: with a comma
+/// after „e4" and the time of every word. The arrow of [_timeline] is drawn
+/// at 6500, while „skakač" is said.
+List<Map<String, Object?>> _sentencesWithWords() {
+  const words = ['Beli', 'igra', 'e4,', 'i', 'skakač', 'ide', 'na', 'f3.'];
+  const starts = [4500, 4900, 5300, 6000, 6300, 6900, 7300, 7600];
+  return [
+    _sentences().first,
+    {
+      'startMs': 4500,
+      'endMs': 8000,
+      'text': words.join(' '),
+      'heard': words.join(' '),
+      'words': [
+        for (var i = 0; i < words.length; i++)
+          {
+            'text': words[i],
+            'startMs': starts[i],
+            'endMs': i + 1 < starts.length ? starts[i + 1] : 8000,
+          },
+      ],
+    },
+  ];
+}
+
+Map<String, Object?> _transcript([List<Map<String, Object?>>? sentences]) => {
       'language': 'sr-Latn',
       'vendor': 'groq',
       'model': 'whisper-large-v3',
       'durationMs': 12000,
-      'sentences': _sentences(),
+      'sentences': sentences ?? _sentences(),
       'updatedAt': '2026-09-27T12:10:00.000Z',
     };
 
@@ -211,6 +236,7 @@ class _Server {
     this.source = 'preparation',
     this.timeline,
     this.withTranscript = true,
+    this.sentences,
     this.saveStatus = 201,
     this.voiceStatus = 201,
   });
@@ -218,6 +244,7 @@ class _Server {
   final String source;
   final List<Map<String, Object?>>? timeline;
   final bool withTranscript;
+  final List<Map<String, Object?>>? sentences;
   final int saveStatus;
   final int voiceStatus;
   final requests = <http.Request>[];
@@ -232,7 +259,7 @@ class _Server {
       return _json({
         'available': true,
         'languages': ['en', 'sr-Latn'],
-        'transcript': withTranscript ? _transcript() : null,
+        'transcript': withTranscript ? _transcript(sentences) : null,
       });
     }
     if (req.method == 'POST' && path == '/lessons/save') {
@@ -378,6 +405,25 @@ void main() {
       expect(voice['signature'], core.signature);
 
       expect(find.byType(TutorialStudioScreen), findsOneWidget);
+      await _close(tester);
+    });
+
+    testWidgets(
+        'the words of a sentence reach the core: it is cut where the arrow '
+        'was drawn, and the voice is sent a marker for each piece',
+        (tester) async {
+      // Phase 8b. The numbers are written out, not asked of the core: a
+      // transcript read without its words would make the same three beats on
+      // both sides of a comparison.
+      final server = _Server(sentences: _sentencesWithWords());
+      await _pumpFlow(tester, server);
+
+      final voice = server.bodyOf('POST /lessons/77/narration/from-recording');
+      expect(voice['markersMs'], [0, 4500, 6000, 9000]);
+      expect(voice['beats'], 4);
+      final saved = jsonEncode(server.bodyOf('POST /lessons/save'));
+      expect(saved, contains('{ Beli igra e4, }'));
+      expect(saved, contains('{ i skakač ide na f3. [%cal Gg1f3] }'));
       await _close(tester);
     });
 

@@ -12,16 +12,18 @@
 /// sketch this follows and not a second home: it is a measurement tool and
 /// nothing loads it). In short:
 ///
-///   * R1 — text is cut at sentences and nowhere else: a sentence is the
-///     transcript's, whole;
+///   * R1 — text is cut at sentences, and inside a sentence only where the
+///     board changed while it was being said (phase 8b, the owner's word of
+///     27.9.2026): at the start of the clause being said, or at the word
+///     itself where that clause began more than [cutMaxEarlyMs] before;
 ///   * R2 — the board's timeline is positions, each with the stretches of
 ///     marks that stood on it; the marks are what the latest event said,
 ///     whatever its kind (the player's and the film's rule, `replayFrameAt`);
-///   * R3 — a sentence belongs to the position standing when it **ends**
-///     (D15): a trainer names a move and then plays it;
-///   * R4 — on one position a new beat begins where the marks at a sentence's
-///     end differ from those at the end of the one before, or where the
-///     caption would pass its four lines;
+///   * R3 — a sentence, or the piece of one, belongs to the position standing
+///     when it **ends** (D15): a trainer names a move and then plays it;
+///   * R4 — on one position a new beat begins where the marks at the end of
+///     what was said differ from those at the end of what was said before
+///     it, or where the caption would pass its four lines;
 ///   * R5 — a move nobody spoke over is still a beat, wordless, because the
 ///     line has to be seen; a position merely passed through on the way to a
 ///     jump is not;
@@ -52,6 +54,16 @@ import 'package:chess_app/move_tree.dart';
 /// A caption's room: four lines of about 42 letters (R4). Phase 5 measured
 /// the longest caption the rules made on the owner's recordings at 160.
 const int captionRoomLetters = 4 * 42;
+
+/// How far back a cut may go to reach the start of the clause being said
+/// (R1). Measured on the owner's five recordings, 27.9.2026: with whole
+/// sentences a mark was on screen a median 6.7 s before it was drawn and up to
+/// 15.3 s; with this, 1.4 s and at most 5.9 s, and no mark is dropped.
+const int cutMaxEarlyMs = 6000;
+
+/// The shortest piece a cut may leave in front of it (R1): marks drawn a word
+/// apart are one picture, not a caption that flashes.
+const int cutMinPieceMs = 1000;
 
 /// A tutorial made from a recording, and the recording's voice laid over it.
 class RecordingTutorial {
@@ -115,7 +127,7 @@ RecordingTutorial recordingTutorialOf({
         'This recording has no board to make a tutorial of.');
   }
 
-  final beats = _beatsOf(positions, sentences);
+  final beats = _beatsOf(positions, _saidOf(sentences, _changesOf(positions)));
   final parts = _partsOf(beats, positions);
   final turns = _turnsOf(events);
 
@@ -166,7 +178,7 @@ RecordingTutorial recordingTutorialOf({
     draft: readBack,
     markersMs: _markersOf(expected, positions, durationMs),
     signature: filmPositionsSignatureOf(stops),
-    wordlessBeats: expected.where((b) => b.sentences.isEmpty).length,
+    wordlessBeats: expected.where((b) => b.said.isEmpty).length,
   );
 }
 
@@ -346,6 +358,232 @@ String _placementAndSide(String fen) =>
   return null;
 }
 
+// ------------------------------------------------------------------- said
+
+/// A moment the board changed: a position arising, or marks that differ from
+/// the ones standing before them.
+class _Change {
+  const _Change(this.ms, {required this.board, required this.bare});
+  final int ms;
+
+  /// A position arose — a move, a jump, a board set.
+  final bool board;
+
+  /// Marks were taken off and none put on.
+  final bool bare;
+}
+
+List<_Change> _changesOf(List<_Position> positions) {
+  final changes = <_Change>[];
+  for (var i = 0; i < positions.length; i++) {
+    final stretches = positions[i].stretches;
+    for (var j = 0; j < stretches.length; j++) {
+      final marks = stretches[j].marks;
+      final bare = marks.arrows.isEmpty && marks.squares.isEmpty;
+      if (j == 0) {
+        if (i > 0) {
+          changes.add(_Change(stretches[j].startMs, board: true, bare: bare));
+        }
+        continue;
+      }
+      final before = stretches[j - 1].marks;
+      if (_marksKey(marks.arrows, marks.squares) !=
+          _marksKey(before.arrows, before.squares)) {
+        changes.add(_Change(stretches[j].startMs, board: false, bare: bare));
+      }
+    }
+  }
+  return changes;
+}
+
+/// What was said in one breath of the board: a sentence, or the piece of one
+/// between two cuts.
+class _Said {
+  const _Said(this.text, this.startMs, this.endMs);
+  final String text;
+  final int startMs;
+  final int endMs;
+}
+
+/// R1. Everything said, in order, cut where the rule cuts.
+List<_Said> _saidOf(
+        List<TranscriptSentence> transcript, List<_Change> changes) =>
+    [
+      for (final s in transcript)
+        // A sentence emptied by the trainer is one the vendor invented over
+        // silence (phase 7): it has nothing to say, so it stands on no beat.
+        if (s.text.trim().isNotEmpty) ..._piecesOf(s, changes),
+    ];
+
+final _space = RegExp(r'\s+');
+final _notLetters = RegExp(r'[^\p{L}\p{N}]+', unicode: true);
+final _endsClause = RegExp(r'[,;:]$');
+
+String _bare(String word) => word.toLowerCase().replaceAll(_notLetters, '');
+
+/// The words of [s] **as they stand**, each with the time it was said.
+///
+/// The server sends the words as heard. Where the trainer corrected the
+/// sentence, the words that were left alone keep their times and hold the
+/// rest in place: between two of them, as many new words as old ones take
+/// the old ones' times one for one, and any other number shares the stretch
+/// evenly. A correction changes text and never a time (phase 7), so this is
+/// the only place a corrected word gets one.
+///
+/// Empty when the sentence came without its words.
+List<TranscriptWord> _wordsOf(TranscriptSentence s) {
+  final heard = s.words;
+  if (heard.isEmpty) return const [];
+  final tokens = [
+    for (final t in s.text.trim().split(_space))
+      if (t.isNotEmpty) t
+  ];
+  if (tokens.isEmpty) return const [];
+
+  // The longest run of words the two share, in order.
+  final a = [for (final w in heard) _bare(w.text)];
+  final b = [for (final t in tokens) _bare(t)];
+  final longest =
+      List.generate(a.length + 1, (_) => List.filled(b.length + 1, 0));
+  for (var i = a.length - 1; i >= 0; i--) {
+    for (var j = b.length - 1; j >= 0; j--) {
+      longest[i][j] = a[i].isNotEmpty && a[i] == b[j]
+          ? longest[i + 1][j + 1] + 1
+          : (longest[i + 1][j] >= longest[i][j + 1]
+              ? longest[i + 1][j]
+              : longest[i][j + 1]);
+    }
+  }
+
+  final timed = <TranscriptWord>[];
+  // What stands between two words that were left alone.
+  void between(int fromHeard, int toHeard, int fromToken, int toToken) {
+    final count = toToken - fromToken;
+    if (count == 0) return;
+    if (count == toHeard - fromHeard) {
+      for (var k = 0; k < count; k++) {
+        timed.add(TranscriptWord(
+            text: tokens[fromToken + k],
+            startMs: heard[fromHeard + k].startMs,
+            endMs: heard[fromHeard + k].endMs));
+      }
+      return;
+    }
+    final from = toHeard > fromHeard
+        ? heard[fromHeard].startMs
+        : (fromHeard > 0 ? heard[fromHeard - 1].endMs : s.startMs);
+    var to = toHeard > fromHeard
+        ? heard[toHeard - 1].endMs
+        : (toHeard < heard.length ? heard[toHeard].startMs : s.endMs);
+    if (to < from) to = from;
+    for (var k = 0; k < count; k++) {
+      timed.add(TranscriptWord(
+          text: tokens[fromToken + k],
+          startMs: from + (to - from) * k ~/ count,
+          endMs: from + (to - from) * (k + 1) ~/ count));
+    }
+  }
+
+  var i = 0;
+  var j = 0;
+  var heldHeard = 0;
+  var heldToken = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i].isNotEmpty && a[i] == b[j]) {
+      between(heldHeard, i, heldToken, j);
+      timed.add(TranscriptWord(
+          text: tokens[j], startMs: heard[i].startMs, endMs: heard[i].endMs));
+      i++;
+      j++;
+      heldHeard = i;
+      heldToken = j;
+    } else if (longest[i + 1][j] >= longest[i][j + 1]) {
+      i++;
+    } else {
+      j++;
+    }
+  }
+  between(heldHeard, a.length, heldToken, b.length);
+  return timed;
+}
+
+/// R1. [s] whole, or cut where the board changed while it was being said.
+///
+/// For each change, in order: the cut goes to the start of the clause being
+/// said — after a comma, a semicolon or a colon, or where the piece that is
+/// open began — when that is no more than [cutMaxEarlyMs] before the change,
+/// and to the word being said otherwise. A cut that would leave less than
+/// [cutMinPieceMs] in front of it is not made, and the change joins the piece
+/// that is open.
+///
+/// **A move never takes the piece in which something was drawn before it.**
+/// A piece belongs to the position standing when it ends (R3), so a clause
+/// that holds an arrow and then the move would go to the new position and the
+/// arrow to no beat at all; there the cut is at the move's own word. Marks
+/// that arrive with a position — a jump to a move that holds an arrow — are
+/// kept for as marks drawn by hand are.
+List<_Said> _piecesOf(TranscriptSentence s, List<_Change> changes) {
+  final whole = [_Said(s.text, s.startMs, s.endMs)];
+  final words = _wordsOf(s);
+  if (words.length < 2) return whole;
+
+  final cuts = <({int word, int changeMs})>[];
+  var open = 0;
+  int? drawnAt;
+  for (final change in changes) {
+    // A change before the sentence falls in none of its words and cuts
+    // nothing; one after it would fall in its last.
+    if (change.ms >= s.endMs) continue;
+    var said = 0;
+    for (var i = 0; i < words.length; i++) {
+      if (words[i].startMs <= change.ms) said = i;
+    }
+    var at = open;
+    if (said > open) {
+      var clause = open;
+      for (var i = open + 1; i <= said; i++) {
+        if (_endsClause.hasMatch(words[i - 1].text)) clause = i;
+      }
+      at = change.ms - words[clause].startMs <= cutMaxEarlyMs ? clause : said;
+      final drawn = drawnAt;
+      var keeps = false;
+      if (change.board && drawn != null && words[at].startMs <= drawn) {
+        at = said;
+        keeps = words[at].startMs > drawn;
+      }
+      if (!keeps && words[at].startMs - words[open].startMs < cutMinPieceMs) {
+        at = open;
+      }
+    }
+    if (at > open) {
+      cuts.add((word: at, changeMs: change.ms));
+      open = at;
+    }
+    drawnAt = change.bare ? null : change.ms;
+  }
+  if (cuts.isEmpty) return whole;
+
+  final pieces = <_Said>[];
+  var from = 0;
+  for (var k = 0; k <= cuts.length; k++) {
+    final last = k == cuts.length;
+    final to = last ? words.length : cuts[k].word;
+    final mine = words.sublist(from, to);
+    final startMs = k == 0 ? s.startMs : mine.first.startMs;
+    // A piece ends before the change its cut was made for, so that change is
+    // the next piece's and never this one's.
+    var endMs = last
+        ? s.endMs
+        : (mine.last.endMs < cuts[k].changeMs
+            ? mine.last.endMs
+            : cuts[k].changeMs - 1);
+    if (endMs < startMs) endMs = startMs;
+    pieces.add(_Said(mine.map((w) => w.text).join(' '), startMs, endMs));
+    from = to;
+  }
+  return pieces;
+}
+
 // ------------------------------------------------------------------ beats
 
 class _Beat {
@@ -354,16 +592,16 @@ class _Beat {
   final int position;
   _Marks marks;
 
-  /// Where the beat's first sentence begins; where its position arose when
-  /// it has none.
+  /// Where the first thing said on the beat begins; where its position arose
+  /// when it has none.
   final int startMs;
-  final List<TranscriptSentence> sentences = [];
+  final List<_Said> said = [];
 
   /// What the film writes under the board. Braces would close the PGN
   /// comment the sentence is kept in, and the reader gives a comment back
   /// with its spaces and line breaks as single spaces — so a corrected
   /// sentence with a line break in it is written the way it will be read.
-  String get caption => sentences
+  String get caption => said
       .map((s) => s.text.trim())
       .join(' ')
       .replaceAll(RegExp(r'\s+'), ' ')
@@ -371,20 +609,11 @@ class _Beat {
       .replaceAll('}', ')');
 }
 
-/// R3, R4 and R5.
-List<_Beat> _beatsOf(
-    List<_Position> positions, List<TranscriptSentence> transcript) {
-  // A sentence emptied by the trainer is one the vendor invented over
-  // silence (phase 7): it has nothing to say, so it stands on no beat.
-  final spoken = [
-    for (final s in transcript)
-      if (s.text.trim().isNotEmpty) s
-  ];
-
+/// R3, R4 and R5, over what was said as R1 cut it.
+List<_Beat> _beatsOf(List<_Position> positions, List<_Said> spoken) {
   // R3 — the position standing when the sentence ends. A move played at the
   // sentence's last millisecond has been played by then.
-  final byPosition =
-      List.generate(positions.length, (_) => <TranscriptSentence>[]);
+  final byPosition = List.generate(positions.length, (_) => <_Said>[]);
   for (final s in spoken) {
     var at = 0;
     for (var i = 0; i < positions.length; i++) {
@@ -416,11 +645,11 @@ List<_Beat> _beatsOf(
           _marksKey(open.marks.arrows, open.marks.squares) ==
               _marksKey(marks.arrows, marks.squares) &&
           letters <= captionRoomLetters) {
-        open.sentences.add(s);
+        open.said.add(s);
         open.marks = marks;
       } else {
         open = _Beat(position: i, marks: marks, startMs: s.startMs)
-          ..sentences.add(s);
+          ..said.add(s);
         beats.add(open);
       }
     }
