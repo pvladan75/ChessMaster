@@ -4,7 +4,20 @@
 // Drafted by the lead on 27.9.2026 while phase 1 was being built, and kept
 // here, outside `chess_app/test/`, because it names an API that does not exist
 // yet. It moves to `chess_app/test/core/node_beats_test.dart` when the phase is
-// briefed. **Not yet compiled and not yet watched going red.**
+// briefed.
+//
+// **Compiled against `master` on 27.9.2026**: every error is a name of the
+// contract below (`NodeBeat`, `beats`, `lastBeat`, `addBeat`, `removeBeatAt`,
+// `rootLike`) and nothing else. Its two literals — the PGN of a tree with one
+// beat to a position, and that tree's signature — are what `master` wrote in
+// that run. The random-tree harness, run there with one beat to a position,
+// passes all 400 seeds through every door, so a red on the branch is the
+// beats and not the harness. The source guard, run there, finds five
+// hand-overs: `section_split.dart` twice, `step_tree.dart` (`_convert`),
+// `tutorial_draft_controller.dart` and `tutorial_tree.dart` — the list this
+// phase has to empty. `_joinOnto` copies marks with `.add` and builds no
+// node, so the guard cannot see it; `tutorial_beats_film_test.dart` holds it
+// by what it writes.
 //
 // ---------------------------------------------------------------------------
 // THE FROZEN CONTRACT
@@ -116,15 +129,13 @@ AnalysisNode _fixture() {
     ..squares.add(_square('Rf7'));
 
   final e5 = e4.addChild(
-      childFen:
-          'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+      childFen: 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
       san: 'e5',
       uci: 'e7e5');
   e5.comment = 'Black answers in kind.';
 
   final c5 = e4.addChild(
-      childFen:
-          'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
+      childFen: 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2',
       san: 'c5',
       uci: 'c7c5');
   c5.squares.add(_square('Gd4'));
@@ -138,7 +149,16 @@ AnalysisNode _fixture() {
 /// A random tree of legal moves with random beats, from [seed].
 AnalysisNode _random(int seed) {
   final r = Random(seed);
-  const words = ['look', 'here', 'the', 'knight', 'weak', 'square', 'e4', 'Nf3'];
+  const words = [
+    'look',
+    'here',
+    'the',
+    'knight',
+    'weak',
+    'square',
+    'e4',
+    'Nf3'
+  ];
   const colours = ['R', 'O', 'G', 'B', 'P'];
   const files = 'abcdefgh';
   String sq() => '${files[r.nextInt(8)]}${1 + r.nextInt(8)}';
@@ -159,7 +179,8 @@ AnalysisNode _random(int seed) {
     for (var i = r.nextInt(3); i > 0; i--) {
       final at = sq();
       if (beat.squares.any((s) => s.square == at)) continue;
-      beat.squares.add(SquareMark(colorCode: colours[r.nextInt(5)], square: at));
+      beat.squares
+          .add(SquareMark(colorCode: colours[r.nextInt(5)], square: at));
     }
   }
 
@@ -170,6 +191,13 @@ AnalysisNode _random(int seed) {
       fill(beat);
       // An empty beat is not kept, so a fixture must not count on one.
       if (beat.isEmpty) beat.comment = 'then';
+    }
+    // Nor on an empty first one with others after it: it is not written
+    // either, so no reader can give it back. The first draft guarded only the
+    // added beats, and 111 seeds asked for a round trip the rule forbids —
+    // found by the worker of phase 6.
+    if (node.beats.length > 1 && node.beats.first.isEmpty) {
+      node.beats.first.comment = 'first';
     }
   }
 
@@ -281,8 +309,8 @@ void main() {
 
     test('and come back as they were', () {
       final tree = _fixture();
-      final read = readStepTree(
-          fen: _start, pgn: PgnExporterService.exportToPgn(tree));
+      final read =
+          readStepTree(fen: _start, pgn: PgnExporterService.exportToPgn(tree));
       expect(read.rejectedMoves, 0);
       expect(_shape(read.root), _shape(tree));
     });
@@ -337,12 +365,14 @@ void main() {
       final again = MoveTree.parsePgn(tree.exportToPgn(), startingFen: _start)!;
       expect([for (final b in again.root.children.single.beats) b.comment],
           ['The pawn takes the centre.', 'And it opens the bishop.']);
-      expect(
-          [
-            for (final b in again.root.children.single.children[1].beats)
-              '${b.comment}|${b.arrows.join(',')}|${b.squares.join(',')}'
-          ],
-          ['||Gd4', 'The Sicilian.||', 'It fights for d4 from the side.|Rc5d4|']);
+      expect([
+        for (final b in again.root.children.single.children[1].beats)
+          '${b.comment}|${b.arrows.join(',')}|${b.squares.join(',')}'
+      ], [
+        '||Gd4',
+        'The Sicilian.||',
+        'It fights for d4 from the side.|Rc5d4|'
+      ]);
     });
 
     test('a tree with one beat to a position is written as it is today', () {
@@ -476,11 +506,12 @@ void main() {
 
         final room = MoveTree.parsePgn(_body(text), startingFen: _start)!;
         final viaRoom = readStepTree(fen: _start, pgn: room.exportToPgn());
-        expect(_shape(viaRoom.root), shape, reason: 'through the room\'s model');
+        expect(_shape(viaRoom.root), shape,
+            reason: 'through the room\'s model');
 
         final json = jsonDecode(jsonEncode(tree.toJson()));
-        expect(_shape(AnalysisNode.fromJson(json as Map<String, dynamic>)),
-            shape,
+        expect(
+            _shape(AnalysisNode.fromJson(json as Map<String, dynamic>)), shape,
             reason: 'the saved tree');
         expect(_shape(copyTree(tree)), shape, reason: 'copyTree');
       });

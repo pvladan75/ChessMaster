@@ -8565,6 +8565,68 @@ odlazi na kraj spiska u alatu.
     „— held back" za ovaj ekran.
     Potrebno: Windows; release build; Narrator ili tastatura na dodir.
 
+13. [ ] **Više rečenica na jednoj poziciji u studiju tutorijala.** [250.10]
+    O čemu se radi: Faza 6 plana `PLAN-PRIPREMA.md` (27.9.2026), D16. Jedna
+    pozicija može da nosi više rečenica, svaku sa svojim strelicama i
+    kvadratima. Film ih pokazuje jednu za drugom, bez novog poteza.
+    Gde: `Teach` → `Library` → red tutorijala → otvori ga; tab `Flow`.
+    Uradi: Klikni karticu nekog poteza, pa `Add a sentence here`. Napiši
+    rečenicu i nacrtaj strelicu. Klikni prvu rečenicu tog poteza, pa drugu.
+    Obriši jednu sa ✕, pa `Undo`. Sačuvaj, zatvori i ponovo otvori tutorijal.
+    Treba da vidiš: Nova kartica stoji uvučena ispod prve kartice istog
+    poteza, obe kažu `1 of 2` / `2 of 2`. Tabla se ne pomera kad prelaziš sa
+    rečenice na rečenicu, menjaju se samo oznake — nova rečenica počinje sa
+    oznakama prethodne. ✕ postoji samo gde potez ima više od jedne rečenice.
+    `Undo` vraća obrisanu. Posle ponovnog otvaranja sve rečenice su tu, svaka
+    sa svojim oznakama.
+    Potrebno: Windows.
+
+14. [ ] **Rečenice na telefonu: čip „·2" i strelice ‹ ›.** [250.11]
+    O čemu se radi: Faza 6 plana `PLAN-PRIPREMA.md` (27.9.2026), D16 D.
+    Gde: telefon → `Teach` → `Library` → tutorijal iz [250.10] → tab `Line`.
+    Uradi: U traci poteza ispod table dodirni uzan čip `·2` iza poteza sa dve
+    rečenice. Prođi ‹ › između rečenica. Na potezu sa jednom rečenicom
+    dodirni `Add a sentence here`, napiši nešto i sačuvaj.
+    Treba da vidiš: Naslov kaže `Comment on <potez> · sentence 2 of 2`; polje
+    i oznake na tabli su te rečenice. Tamo gde je samo jedna rečenica nema ‹ ›
+    ni `Remove this sentence`, a naslov je kao ranije. Posle čuvanja nova
+    rečenica je tu i na Windowsu.
+    Potrebno: telefon; isti nalog na Windowsu.
+
+15. [ ] **Preparation: komentar prati otvorenu rečenicu, i snimanje to beleži.**
+    [250.12]
+    O čemu se radi: Faza 6 plana `PLAN-PRIPREMA.md` (27.9.2026), D16 E.
+    Preparation nema svoje „poništi", pa brisanje rečenice nudi `Undo` u
+    poruci.
+    Gde: `Teach` → `Preparation` → `Open`.
+    Uradi: Odigraj potez, nacrtaj strelicu, `Add a sentence here`, obriši
+    strelicu (`Clear marks`), pa ‹. Zatim pokreni `Record`, ponovi isto, obriši
+    drugu rečenicu i dodirni `Undo` u poruci; zaustavi i sačuvaj snimak, pa ga
+    pusti.
+    Treba da vidiš: Nad poljem piše `Comment for <potez> · sentence 2 of 2`;
+    ‹ › menjaju tekst i oznake, tabla se ne pomera. Posle brisanja piše
+    `Sentence removed.` sa `Undo`, koji je vraća. U snimku se strelica
+    pojavljuje i nestaje tačno kad si prelazio između rečenica.
+    Potrebno: Windows; upaljen server.
+
+16. [ ] **Film: druga rečenica na istoj poziciji, i povratak na poziciju.**
+    [250.13]
+    O čemu se radi: Faza 6 plana `PLAN-PRIPREMA.md` (27.9.2026). Druga
+    rečenica je u filmu nov kadar sa istom pozicijom i istim poslednjim
+    potezom; na poziciji na koju se film vratio natpis `Back to the position
+    after …` ostaje i kroz drugu rečenicu.
+    Gde: tutorijal iz [250.10] sa bar jednim delom koji se vraća na raniju
+    poziciju i ima dve rečenice na njoj → `Export video`; zatim
+    `Record narration` sa svojim glasom.
+    Uradi: Izvezi film, pa snimi naraciju svojim glasom i izvezi ponovo.
+    Treba da vidiš: Svaka rečenica ima svoj kadar; tabla i poslednji potez se
+    ne menjaju između dve rečenice iste pozicije, menjaju se tekst i oznake.
+    Na delu koji se vraća, ispod table obe rečenice stoje uz `Back to the
+    position after …`, ne uz `Starting position`. Pri snimanju naracije
+    svaka rečenica traži svoj marker, i izvoz ne kaže da se broj ne slaže.
+    Potrebno: Windows; server **restartovan posle spajanja** (promenjen
+    `videoRenderer.js`).
+
 ### Teach — Učenici, grupe i obaveštenja
 
 1. [ ] **Bedž na Teach imenuje šta čeka pregled, ne samo broj.** [177.6]

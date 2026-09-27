@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4335 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4796 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1936 with TEST_DATABASE_URL, 1778 without (both measured 27.9.2026)
+cd chess_backend && npm test          # node --test, 1784 without TEST_DATABASE_URL (measured 27.9.2026), 1942 with it (derived: the six new cases are pure)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1010,7 +1010,22 @@ the room and four cases to their successors by name. And the sweep for the
 screen reader's rule, run on the new screen for the first time, found three
 tooltips in the marking bar sending a node no parent lists — **when a test
 leaves with a screen, ask whether the new screen has the same thing**
-(rule 14: phases 1–3 built a screen no door opened). Phase 6 of
+(rule 14: phases 1–3 built a screen no door opened). Then its phase 6,
+several sentences on one position (→ **4796**, a full run in the worktree
+with nothing else running and predicted before it; backend → **1784**
+measured without a database; analyze the same 22): a node holds `beats`,
+`comment`/`arrows`/`squares` are the first so no screen that knows nothing of
+them can flatten the rest, a second PGN comment is a second sentence instead of
+replacing the first, the film has an event of kind `beat`, and the owner's D16
+editor on the studio, the phone and Preparation. The worker stopped on two
+faults of the lead's gate rather than special-case them — **a property over
+random trees must draw only trees the rule can write**: an empty first beat is
+not written, so 111 seeds asked for a round trip the rule forbids. Grading
+found three more by walking the doors: removing an earlier sentence opened the
+wrong one (**„which opens next" is relative to the open one, not the removed
+one** — every case had removed the open or the first), and in Preparation a
+removal and its Undo changed the board without a stamp in the take (**every
+new way to change what is drawn is a door the recording must see**). Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

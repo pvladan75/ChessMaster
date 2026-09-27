@@ -1,0 +1,320 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sentences on one position</title>
+<!--
+  Phase 6 of docs/PLAN-PRIPREMA.md: the editor for several beats on one
+  position, drawn for the owner before the brief. Two frames:
+    ?f=desk   the Tutorial Studio at the owner's window, 1536 x 792
+    ?f=more   the phone, Preparation's comment box, and the questions
+  Rendered with headless Edge at 1536 x 836 (44 px of caption on top).
+-->
+<style>
+:root{
+  --canvas:#0f172a; --surface:#1e293b; --raised:#334155; --recess:#020617;
+  --border:rgba(255,255,255,.12); --borderS:rgba(255,255,255,.24);
+  --t1:#f8fafc; --t2:#cbd5e1; --t3:#94a3b8;
+  --accent:#2dd4bf; --brand:#a78bfa; --danger:#fda4af;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#000;color:var(--t1);
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;overflow:hidden}
+#cap{height:44px;display:flex;align-items:center;gap:18px;padding:0 14px;
+  background:#fff;color:#111;font-size:15px;white-space:nowrap;overflow:hidden}
+#cap b{font-size:16px}
+#win{position:relative;background:var(--canvas);overflow:hidden;width:1536px;height:792px}
+.bar{height:56px;background:var(--surface);display:flex;align-items:center;
+  padding:0 12px;gap:8px;border-bottom:1px solid var(--border);white-space:nowrap}
+.title{font-size:18px;font-weight:600}
+.sub{color:var(--t2);font-size:13px}
+.sp{flex:1}
+.btn{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;
+  border:1px solid var(--borderS);border-radius:6px;color:var(--t1);background:transparent;
+  font-size:14px;white-space:nowrap}
+.btn.sm{height:30px;font-size:13px;padding:0 10px}
+.btn.icon{width:36px;padding:0;justify-content:center;font-size:16px}
+.btn.icon.sm{width:28px;height:28px;font-size:14px;border-color:transparent;color:var(--t3)}
+.btn.add{border:2px solid var(--t1);font-weight:700}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  display:flex;flex-direction:column;min-width:0;min-height:0;overflow:hidden}
+.ph{height:40px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;
+  border-bottom:1px solid var(--border);font-weight:600}
+.tabs{display:flex;height:40px;flex:none;border-bottom:1px solid var(--border)}
+.tab{padding:0 16px;display:flex;align-items:center;color:var(--t3);font-size:14px;
+  border-bottom:3px solid transparent}
+.tab.sel{color:var(--t1);font-weight:700;border-bottom-color:var(--accent);background:var(--raised)}
+.board{position:relative;border-radius:4px;overflow:hidden;box-shadow:0 0 0 1px var(--borderS);flex:none}
+.sq{position:absolute;display:flex;align-items:center;justify-content:center;line-height:1}
+.pw{position:relative;display:inline-block}
+.pw i{font-style:normal;color:#fff}
+.pw em{font-style:normal;color:#000;position:absolute;left:0;top:0}
+.pb{color:#141414;text-shadow:0 0 2px #fff,0 0 2px #fff}
+.pw,.pb{font-family:"Segoe UI Symbol"}
+.row{display:flex;align-items:center;gap:6px;flex:none}
+.sw{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;
+  justify-content:center;font-weight:700;font-size:13px;border:2px solid #fff;color:#fff;
+  text-shadow:0 0 2px #000,0 0 2px #000}
+.sw.sel{outline:3px solid var(--t1);outline-offset:2px}
+.sep{width:1px;height:26px;background:var(--borderS);margin:0 4px}
+.dim{color:var(--t3);font-size:12px}
+.field{border:1px solid var(--borderS);border-radius:6px;padding:7px 10px;color:var(--t1);
+  background:var(--canvas);line-height:1.4}
+.flow{padding:10px 12px;display:flex;flex-direction:column;gap:6px;overflow:hidden;flex:1;min-height:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;
+  display:flex;flex-direction:column;gap:6px}
+.card .h{display:flex;align-items:center;gap:6px;min-height:22px}
+.card .h .t{flex:1;min-width:0}
+.card .txt{color:var(--t2);line-height:1.35}
+.card.open{background:var(--raised);border:2px solid var(--t1)}
+.card.open .h .t{font-weight:700}
+.ofn{font-size:12px;border:1px solid var(--borderS);border-radius:10px;padding:1px 8px;color:var(--t2);flex:none}
+.card.open .ofn{border:2px solid var(--t1);color:var(--t1);font-weight:700}
+.more{margin-left:22px;position:relative}
+.more:before{content:"";position:absolute;left:-14px;top:-8px;bottom:50%;width:10px;
+  border-left:2px solid var(--borderS);border-bottom:2px solid var(--borderS);border-bottom-left-radius:6px}
+.plays{font-size:12px;color:var(--t2)}
+.ring{width:14px;height:14px;border-radius:50%;border:2px solid var(--t1);display:inline-flex;
+  align-items:center;justify-content:center;flex:none}
+.ring:after{content:"";width:6px;height:6px;border-radius:50%;background:var(--t1)}
+.lbl{font-size:12px;color:var(--t2);margin-bottom:-2px}
+.map{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.mrow{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:6px;border:1px solid var(--border)}
+.mrow.sel{border:2px solid var(--t1);background:var(--raised)}
+.mk{width:14px;height:14px;border-radius:50%;border:2px solid var(--t2);flex:none;margin-top:2px}
+.mrow b{display:block;font-size:13px}
+.mrow span{display:block;font-size:12px;color:var(--t3)}
+.note{position:absolute;background:#fef9c3;color:#1c1917;border-radius:6px;padding:8px 10px;
+  font-size:13px;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:5}
+.note b{font-weight:700}
+.note:before{content:attr(data-n);position:absolute;left:-12px;top:-12px;width:24px;height:24px;
+  border-radius:50%;background:#1c1917;color:#fef9c3;font-weight:700;display:flex;
+  align-items:center;justify-content:center;font-size:13px}
+.bdg{width:22px;height:22px;border-radius:50%;background:#fef9c3;color:#1c1917;font-weight:700;
+  font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none;
+  box-shadow:0 0 0 2px #1c1917}
+#legend{background:#fff;color:#111;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;
+  padding:12px 14px;font-size:13px;line-height:1.35}
+#legend div{display:flex;gap:8px;align-items:flex-start}
+#legend .bdg{box-shadow:0 0 0 2px #111}
+.q{border:1px solid var(--borderS);border-radius:8px;padding:10px 12px;background:var(--surface)}
+.q h4{margin:0 0 6px;font-size:14px}
+.q p{margin:0;color:var(--t2);line-height:1.4;font-size:13px}
+.q .rec{color:var(--t1)}
+.q .rec b{border:1px solid var(--t1);border-radius:4px;padding:0 5px;font-size:11px;margin-right:4px}
+.chipm{height:26px;display:inline-flex;align-items:center;padding:0 8px;border:1px solid var(--border);
+  border-radius:4px;font-size:13px;color:var(--t2);white-space:nowrap;flex:none}
+.chipm.cur{border:2px solid var(--t1);color:var(--t1);font-weight:700;background:var(--raised)}
+.chipm.u{text-decoration:underline}
+.chipm.two{padding:0 6px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="cap"></div>
+<div id="win"></div>
+<div id="legend"></div>
+<script>
+const Q = new URLSearchParams(location.search);
+const F = Q.get('f') || 'desk';
+
+/* ---------- the board, with the open sentence's marks ---------- */
+const FEN = 'r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R';
+const GLYPH = {k:'♚',q:'♛',r:'♜',b:'♝',n:'♞',p:'♟'};
+const HOLLOW = {k:'♔',q:'♕',r:'♖',b:'♗',n:'♘',p:'♙'};
+const COL = {G:'#85ff85', O:'#ff9429', R:'#ff2929'};
+function xy(sq){ return [sq.charCodeAt(0) - 97, 8 - (+sq[1])]; }
+function board(size, marks){
+  const s = size / 8; let h = '';
+  const rows = FEN.split('/');
+  const last = ['f1','b5'].map(xy);
+  for (let r = 0; r < 8; r++){
+    let f = 0;
+    for (const ch of rows[r]){
+      const n = +ch;
+      for (let i = 0; i < (n || 1); i++, f++){
+        const dark = (r + f) % 2 === 1;
+        const isLast = last.some(p => p[0] === f && p[1] === r);
+        const piece = n ? '' :
+          (ch === ch.toUpperCase()
+            ? `<span class="pw" style="font-size:${s*0.8}px"><i>${GLYPH[ch.toLowerCase()]}&#xFE0E;</i><em>${HOLLOW[ch.toLowerCase()]}&#xFE0E;</em></span>`
+            : `<span class="pb" style="font-size:${s*0.8}px">${GLYPH[ch.toLowerCase()]}&#xFE0E;</span>`);
+        h += `<div class="sq" style="left:${f*s}px;top:${r*s}px;width:${s}px;height:${s}px;background:${dark ? '#b58763' : '#f0dab5'}">`
+           + (isLast ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,.22)"></div>` : '')
+           + `<div style="position:relative">${piece}</div></div>`;
+      }
+    }
+  }
+  for (const sq of marks.squares || []){
+    const [ex, ey] = xy(sq.slice(1));
+    h += `<div style="position:absolute;left:${ex*s}px;top:${ey*s}px;width:${s}px;height:${s}px;
+            border:${Math.max(3,s*0.07)}px solid ${COL[sq[0]]};outline:1.5px solid #fff;outline-offset:-1.5px"></div>`;
+  }
+  const arrow = a => {
+    const [ax, ay] = xy(a.slice(1,3)), [bx, by] = xy(a.slice(3,5));
+    const x1 = (ax+.5)*s, y1 = (ay+.5)*s, x2 = (bx+.5)*s, y2 = (by+.5)*s;
+    const L = Math.hypot(x2-x1, y2-y1), ux = (x2-x1)/L, uy = (y2-y1)/L, nx = -uy, ny = ux;
+    const w = s*0.07, hl = s*0.36, hw = s*0.2, st = s*0.3;
+    const sx = x1 + ux*st, sy = y1 + uy*st, ex2 = x2 - ux*s*0.18, ey2 = y2 - uy*s*0.18;
+    const mx = ex2 - ux*hl, my = ey2 - uy*hl;
+    const pts = [[sx+nx*w,sy+ny*w],[mx+nx*w,my+ny*w],[mx+nx*hw,my+ny*hw],[ex2,ey2],
+                 [mx-nx*hw,my-ny*hw],[mx-nx*w,my-ny*w],[sx-nx*w,sy-ny*w]].map(p => p.join(',')).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+      <polygon points="${pts}" fill="${COL[a[0]]}" fill-opacity=".92" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>`;
+  };
+  h += `<svg width="${size}" height="${size}" style="position:absolute;left:0;top:0">${(marks.arrows || []).map(arrow).join('')}</svg>`;
+  return `<div class="board" style="width:${size}px;height:${size}px">${h}</div>`;
+}
+const ONE = {arrows:['Gb5c6']};
+const TWO = {arrows:['Oc6e5'], squares:['Re5']};
+
+function markBar(){
+  const sw = [['R','#ff2929'],['O','#ff9429'],['G','#85ff85'],['B','#00188f'],['P','#910fb3']];
+  return `<div class="row" style="height:44px">
+    <span class="btn icon">↗</span><span class="btn icon">▢</span><span class="btn icon">⋯</span>
+    <span class="sep"></span>
+    ${sw.map((c,i) => `<span class="sw ${i===1?'sel':''}" style="background:${c[1]}">${c[0]}</span>`).join('')}
+    <span class="sp"></span><span class="btn icon">↶</span><span class="btn icon">✕</span></div>`;
+}
+
+/* ---------- the Flow panel ---------- */
+function card(o){
+  const cls = ['card', o.open ? 'open' : '', o.more ? 'more' : ''].join(' ');
+  return `<div class="${cls}">
+    <div class="h">
+      ${o.open ? '<span class="ring"></span>' : ''}
+      ${o.b2 ? '<span class="bdg">2</span>' : ''}
+      <span class="t">${o.head}</span>
+      ${o.of ? `<span class="ofn">${o.of}</span>` : ''}
+      ${o.insert ? '<span class="btn icon sm" title="Insert a line here">⑂</span>' : ''}
+      ${o.delMove ? '<span class="btn icon sm" title="Delete this move">⌫</span>' : ''}
+      ${o.remove ? '<span class="btn icon sm" title="Remove this sentence">✕</span>' : ''}
+      ${o.b3 ? '<span class="bdg">3</span>' : ''}
+    </div>
+    ${o.open ? `<div class="lbl">${o.label}</div><div class="field">${o.text}</div>`
+             : `<div class="txt">${o.text}</div>`}
+    ${o.open ? `<div class="row"><span class="btn sm add">＋ Add a sentence here</span><span class="bdg">1</span></div>` : ''}
+    ${o.plays ? `<div class="plays" style="display:flex;gap:6px;align-items:center">then plays: ${o.plays}${o.b4 ? '<span class="bdg">4</span>' : ''}</div>` : ''}
+  </div>`;
+}
+
+function desk(){
+  document.getElementById('cap').innerHTML =
+    `<b>Tutorial Studio · 1536 × 792</b><span>3. Bb5 has two sentences; the second is open, so the board shows its marks</span>`;
+  const BOARD = 560;
+  document.getElementById('legend').innerHTML = [
+    ['1', '<b>„Add a sentence here"</b> sits on the open card, under its text: a new sentence on the <b>same position</b>, right after this one. The board does not move.'],
+    ['2', `A position's later sentences hang <b>under its first card</b>, joined by a line, and say <b>„1 of 2" / „2 of 2"</b> in words, not in colour.`],
+    ['3', '<b>✕ Remove this sentence</b>, only where the position has more than one. The move stays; Undo brings the sentence back.'],
+    ['4', `„then plays" and the branch chips stand under the position's <b>last</b> sentence, where the film moves on.`],
+    ['5', `The board draws the <b>open sentence's</b> marks only. Click sentence 1 and the arrow b5→c6 is back; what you draw goes to the open one.`],
+  ].map(([n, t]) => `<div><span class="bdg">${n}</span><span>${t}</span></div>`).join('');
+  return `
+  <div class="bar"><span class="btn icon">←</span><span class="title">Ruy Lopez: the first ideas</span>
+    <span class="sub">· Details…</span><span class="sp"></span>
+    <span class="btn">↶</span><span class="btn">↷</span><span class="btn">Save</span><span class="btn icon">⋮</span></div>
+  <div style="display:flex;gap:12px;padding:12px;height:736px">
+    <div class="panel" style="width:240px;flex:none">
+      <div class="ph">Parts</div>
+      <div class="map">
+        <div class="mrow sel"><span class="mk"></span><div><b>1 · The main line</b><span>1. e4 e5 2. Nf3 Nc6 3. Bb5 a6</span></div></div>
+        <div class="mrow"><span class="mk"></span><div><b>2 · back to after 3. Bb5</b><span>3... Nf6 4. O-O</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;flex:none">
+      ${board(BOARD, TWO)}
+      <div style="width:${BOARD}px;position:relative">${markBar()}<span class="bdg" style="position:absolute;left:${BOARD/2-11}px;top:-${BOARD/2+30}px">5</span></div>
+      <div class="row" style="width:${BOARD}px;height:44px"><span class="btn icon">⏮</span><span class="btn icon">◀</span>
+        <span style="padding:0 6px;font-weight:600">3. Bb5 · sentence 2 of 2</span>
+        <span class="btn icon">▶</span><span class="btn icon">⏭</span><span class="sp"></span><span class="btn icon">⇅</span></div>
+    </div>
+    <div class="panel" style="flex:1;position:relative">
+      <div class="tabs"><div class="tab sel">Flow</div><div class="tab">Tree</div><div class="tab">PGN</div></div>
+      <div class="flow">
+        ${card({head:'after 2. Nf3', text:'The knight attacks e5 at once.'})}
+        ${card({head:'after 2... Nc6', text:'Black defends it with the knight.', plays:'3. Bb5'})}
+        ${card({head:'after 3. Bb5', of:'1 of 2', delMove:true, remove:true,
+                text:'The bishop goes straight for that knight.'})}
+        ${card({head:'3. Bb5 — sentence 2', of:'2 of 2', open:true, more:true, insert:true, remove:true, b2:true, b3:true, b4:true,
+                label:'Sentence 2 on 3. Bb5',
+                text:'Because the knight on c6 is what defends e5. Take it, and the pawn hangs.',
+                plays:'3... a6'})}
+        ${card({head:'after 3... a6', text:'Black asks the bishop at once.', plays:'4. Ba4'})}
+      </div>
+  </div>
+`;
+}
+
+/* ---------- the phone, Preparation, the questions ---------- */
+function phone(){
+  const B = 336;
+  return `<div style="width:360px;height:640px;border:2px solid var(--borderS);border-radius:14px;overflow:hidden;background:var(--canvas);flex:none;position:relative">
+    <div class="bar" style="height:48px"><span class="btn icon">←</span><span class="title" style="font-size:16px">Ruy Lopez: the first…</span><span class="sp"></span><span class="btn icon">✓</span><span class="btn icon">⋮</span></div>
+    <div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px">
+      ${board(B, TWO)}
+      <div class="row" style="overflow:hidden;gap:4px">
+        <span class="chipm u">2. Nf3</span><span class="chipm u">2... Nc6</span><span class="chipm u">3. Bb5</span>
+        <span class="chipm cur two">·2</span><span class="chipm u">3... a6</span><span class="chipm">4. Ba4</span></div>
+      <div class="tabs" style="height:34px"><div class="tab sel">Line</div><div class="tab">Parts</div></div>
+      <div style="display:flex;align-items:center;gap:6px"><b>3. Bb5 · sentence 2 of 2</b><span class="sp"></span>
+        <span class="btn icon sm" style="border-color:var(--borderS);color:var(--t1)">‹</span><span class="btn icon sm" style="color:var(--t3)">›</span></div>
+      <div class="field" style="font-size:13px">Because the knight on c6 is what defends e5. Take it, and the pawn hangs.</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap"><span class="btn sm add">＋ Add a sentence here</span><span class="btn sm">Remove this sentence</span></div>
+    </div>
+  </div>`;
+}
+
+function prep(){
+  const box = (after) => `<div class="panel" style="width:430px;padding:10px 12px;gap:6px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="dim" style="color:var(--t2)">Comment for <b style="color:var(--t1)">3. Bb5</b>${after ? ' · sentence 2 of 2' : ''}</span>
+        <span class="sp"></span>
+        ${after ? '<span class="btn icon sm" style="border-color:var(--borderS);color:var(--t1)">‹</span><span class="btn icon sm">›</span>' : ''}
+      </div>
+      <div class="field" style="min-height:52px">${after ? 'Because the knight on c6 is what defends e5. Take it, and the pawn hangs.' : 'The bishop goes straight for that knight.'}</div>
+      ${after ? '<div class="row"><span class="btn sm add">＋ Add a sentence here</span><span class="sp"></span><span class="btn icon sm" title="Remove this sentence">✕</span></div>' : ''}
+    </div>`;
+  return `<div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-weight:700">Preparation's comment box</div>
+    <div class="dim" style="font-size:13px;color:var(--t2)">Today — it shows and edits the first sentence only; the second is there and nobody can see it:</div>
+    ${box(false)}
+    <div class="dim" style="font-size:13px;color:var(--t2);margin-top:6px">Proposed — the same open sentence, ‹ › between them, the same button:</div>
+    ${box(true)}
+  </div>`;
+}
+
+function questions(){
+  const q = (n, title, rec, alt) => `<div class="q"><h4>${n}. ${title}</h4>
+    <p class="rec"><b>Recommended</b>${rec}</p>${alt ? `<p style="margin-top:4px">Or: ${alt}</p>` : ''}</div>`;
+  return `<div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1">
+    <div style="font-weight:700">To decide</div>
+    ${q('A', 'Where „Add a sentence here" stands',
+        'on the open card, under its text, as a button with words (desktop and phone).',
+        'a small icon in the card\'s header, beside „Insert a line here", with the words in its tooltip.')}
+    ${q('B', 'What a new sentence starts with',
+        'the marks of the sentence before it — nothing vanishes from the board unless you take it away (✕ Clear is one tap).',
+        'a clean board: the new sentence draws only what you draw for it.')}
+    ${q('C', 'Taking a sentence away',
+        '✕ „Remove this sentence" on a card, only where the position has more than one; no question asked, Undo brings it back.', '')}
+    ${q('D', 'The phone\'s row of moves',
+        'a narrow „·2" chip after the move for each later sentence, so the row walks every sentence the film has.',
+        'one chip per move, and the sentences only in the Line tab.')}
+    ${q('E', 'Preparation\'s comment box',
+        'it follows the open sentence too (the proposed box, middle) — otherwise a sentence after the first is invisible there.',
+        'it stays on the first sentence, and says „+1 more sentence — open in the Tutorial Studio".')}
+  </div>`;
+}
+
+function more(){
+  document.getElementById('cap').innerHTML =
+    `<b>The phone (360 × 640), Preparation, and five questions</b><span>the same tutorial, the same open sentence</span>`;
+  return `<div style="display:flex;gap:24px;padding:20px 24px;height:792px">
+    ${phone()}
+    <div style="width:440px;flex:none">${prep()}</div>
+    ${questions()}
+  </div>`;
+}
+
+document.getElementById('win').innerHTML = F === 'more' ? more() : desk();
+</script>
+</body>
+</html>

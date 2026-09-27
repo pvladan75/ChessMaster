@@ -3,7 +3,13 @@
 //
 // Drafted by the lead on 27.9.2026. It moves to
 // `chess_app/test/tutorial_beats_film_test.dart` when the phase is briefed.
-// **Not yet compiled and not yet watched going red.**
+//
+// **Compiled against `master` on 27.9.2026**: every error is a name of the
+// contract below (`addBeat`, `beats`, `TutorialBeat.at` / `of` / `say`,
+// `currentAt`) and nothing else. Everything it takes from `master` — the
+// film's events, `partOpeningsOf`, `partMapOf`, `filmSignatureOf`,
+// `gameTreesOfTutorial` — was run there with one beat to a position and
+// answers as these cases assume; `_signatureOnMaster` is that run's output.
 //
 // ---------------------------------------------------------------------------
 // THE FROZEN CONTRACT
@@ -42,16 +48,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_beat.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
+import 'package:chess_app/features/tutorial_studio/services/pgn_tutorial_export.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_part_map.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/move_tree.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const _afterE4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
-const _afterE5 =
-    'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
-const _afterC5 =
-    'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
+const _afterE5 = 'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
+const _afterC5 = 'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2';
 
 ChessArrow _arrow(String s) =>
     ChessArrow(colorCode: s[0], from: s.substring(1, 3), to: s.substring(3, 5));
@@ -131,7 +136,9 @@ void main() {
   group('the film', () {
     test('has a stop for every beat, each with its own sentence', () {
       final stops = filmBeatsOf(_draft());
-      expect([for (final s in stops) s.caption], [
+      expect([
+        for (final s in stops) s.caption
+      ], [
         'This is where it begins.',
         'Both sides want the centre.',
         'The pawn takes it.',
@@ -146,7 +153,9 @@ void main() {
     test('puts a position on the board once, and then only speaks and draws',
         () {
       final events = tutorialVideoOf(_draft()).events;
-      expect([for (final e in events) e['eventType']], [
+      expect([
+        for (final e in events) e['eventType']
+      ], [
         'init', 'beat', 'move', 'beat', 'move', // part 1
         'init', 'beat', 'move', // part 2
       ]);
@@ -188,7 +197,9 @@ void main() {
     test('a part opens on the first beat of its opening position only', () {
       final stops = filmBeatsOf(_draft());
       final openings = partOpeningsOf(stops);
-      expect([for (final o in openings) o?.entry], [
+      expect([
+        for (final o in openings) o?.entry
+      ], [
         PartEntry.fresh, null, null, null, null, //
         PartEntry.returns, null, null,
       ]);
@@ -196,8 +207,8 @@ void main() {
       // It hangs from the move it names: the first beat of 1. e4.
       expect(openings[5]!.from, 2);
 
-      final second = (tutorialVideoOf(_draft()).events[5]['data']
-          as Map<String, dynamic>);
+      final second =
+          (tutorialVideoOf(_draft()).events[5]['data'] as Map<String, dynamic>);
       expect(second['join'], 'returns');
       expect(second['afterMove'], '1. e4');
     });
@@ -210,6 +221,63 @@ void main() {
       expect(map.entries[1].from, (part: 0, beat: 1),
           reason: 'the place on the line, which a second sentence does not '
               'move');
+    });
+  });
+
+  group('a tutorial written out as one game', () {
+    // `_joinOnto` (pgn_tutorial_export.dart) hangs a part that continues on
+    // the position the part before it ended at onto that position. On
+    // `master` it glues the two sentences into one comment, because a
+    // position had room for one. With beats it has room for both, and a
+    // tutorial written out as a game comes back into the app as the stops it
+    // had: each part's sentences are beats of the join, in order.
+    AnalysisNode continuation(
+        {required String words, List<String> marks = const []}) {
+      final root = AnalysisNode(fen: _afterE4, comment: words);
+      root.arrows.addAll(marks.map(_arrow));
+      root.addBeat().comment = 'From the side.';
+      root.addChild(childFen: _afterE5, san: 'e5', uci: 'e7e5').comment =
+          'Black answers in kind.';
+      return root;
+    }
+
+    AnalysisNode opening() {
+      final root = AnalysisNode(fen: _start, comment: 'Start.');
+      root.addChild(childFen: _afterE4, san: 'e4', uci: 'e2e4')
+        ..comment = 'The pawn takes it.'
+        ..arrows.add(_arrow('Ge2e4'));
+      return root;
+    }
+
+    List<String> beatsOfJoin(AnalysisNode continuing) {
+      final games = gameTreesOfTutorial([
+        TutorialSection(root: opening()),
+        TutorialSection(root: continuing),
+      ]);
+      expect(games, hasLength(1), reason: 'the second part continues');
+      final e4 = games.single.children.single;
+      expect(e4.children.single.comment, 'Black answers in kind.');
+      return [
+        for (final b in e4.beats) '${b.comment}|${b.arrows.join(',')}',
+      ];
+    }
+
+    test("keeps each part's sentences as beats of the position they share", () {
+      expect(
+          beatsOfJoin(continuation(words: 'There was more.', marks: ['Ge2e4'])),
+          [
+            'The pawn takes it.|Ge2e4',
+            'There was more.|Ge2e4',
+            'From the side.|',
+          ]);
+    });
+
+    test('and adds nothing for the copy of the marks a cut left there', () {
+      // „Insert a line here" copies the cursor's marks onto the part it makes
+      // (`AnalysisNode.rootLike`): a beat with no words and the marks of the
+      // beat before it says nothing the film has not already drawn.
+      expect(beatsOfJoin(continuation(words: '', marks: ['Ge2e4'])),
+          ['The pawn takes it.|Ge2e4', 'From the side.|']);
     });
   });
 
@@ -240,6 +308,6 @@ void main() {
   });
 }
 
-/// Filled in from a run on `master` before the phase is briefed — the gate is
-/// not handed over with this empty.
-const _signatureOnMaster = '';
+/// Taken from a run on `master` on 27.9.2026.
+const _signatureOnMaster =
+    '71d5d9d23520ed6b28ba60e387930bc147baeff699c11286f745aa21e5013574';

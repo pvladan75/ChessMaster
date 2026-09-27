@@ -8728,7 +8728,48 @@ na rečenicama") dve trećine taktova ostalo bez reči; Groq seče gde govornik
 zastane, i ostaje trećina. R1 stoji samo na servisu koji seče na pauzama.
 
 **Dva puta sam pokvario sopstvenu skriptu** menjajući je Pythonom iz bash
-heredoc-a: obrnuta kosa crta u `?
+heredoc-a: obrnuta kosa crta u `
+?
 ` je stigla kao pravi prelom reda.
 Izmene izvornog koda idu alatom za pisanje i izmenu fajla, ne kroz dva sloja
 navodnika.
+
+## 27.9.2026 — Phase 6 of PLAN-PRIPREMA: several sentences on one position (4335 → 4796; backend 1778 → 1784)
+
+App **4335 → 4796** passed, 1 skipped — a full run in the worktree with nothing
+else running, predicted before it: + 420 `node_beats_test` (20 cases and 400
+seeds), + 13 `tutorial_beats_film_test`, + 23 `sentence_editor_test` (22 of the
+gate and one of grading), + 2 in `preparation_recording_test` (the gate's and
+one of grading), + 2 in `tutorial_narration_screen_test` (the worker's), + 1 in
+`preparation_material_test` (grading). Backend **1778 → 1784** measured without
+a database: + 5 `film_beat_event.test.js`, + 1 in `narration_plan.test.js`;
+1942 with a database derived, the six being pure. Analyze the same 22 infos.
+
+**A property over random trees must draw only trees the rule can write.** The
+lead's generator guarded the *added* beats against being empty and left the
+first one to chance; the model's own rule says an empty beat is not written, so
+a position with an empty first beat and a sentence after it cannot come back as
+it went in, and 111 of 400 seeds asked it to. The worker said so, and refused
+to write a special case that would have broken the same file's explicit
+„an empty beat is not written" case. Two editor cases had the same fault in a
+different coat (`['', …]` expected back after save).
+
+**„Which opens next" is relative to the open one, not to the removed one.**
+Every case removed either the open sentence or the first, and the controller's
+`at == 0 ? 0 : at - 1` is right for both; removing an earlier sentence while
+standing on a later one opened a different sentence. Found by walking the
+doors on grading, not by mutation.
+
+**Every new way to change what is drawn is a door the recording must see.**
+Preparation's take stamps `arrow_drawn` on every change of the marks, and the
+worker wired that for opening another sentence; removing the open sentence,
+and the message's Undo, also change what the board shows, and neither was
+stamped. Same shape as phase 3's list of ways onto the board.
+
+**A SnackBar's action is not where it will be for its first few hundred
+milliseconds** — tapped 50 ms after it was shown, it stood below a 792 px
+window and the tap missed.
+
+Nine mutations, each red on the right case; one survived first (the bare-board
+check reading the first sentence only, the lead's own fix) and got its case.
+

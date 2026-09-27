@@ -1,8 +1,11 @@
 // The gate for phase 6 of docs/PLAN-PRIPREMA.md, the film's half on the server.
 //
 // Drafted by the lead on 27.9.2026. It moves to
-// chess_backend/test/film_beat_event.test.js when the phase is briefed. Not yet
-// run.
+// chess_backend/test/film_beat_event.test.js when the phase is briefed.
+//
+// Run against master on 27.9.2026: 4 pass, 1 fails — the third, at
+// `assert.equal(state.rewound, true)`, which is the red this file is for. The
+// four that pass hold what a `beat` must not disturb.
 //
 // A position may hold several beats — a sentence and the marks that stand
 // while it is said. In a film the first beat of a position is the `init` or

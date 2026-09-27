@@ -376,6 +376,19 @@ za engleski", 27.9.2026, after phase 5's numbers:
 - **English is measured on the app's own voice**, because he teaches in
   Serbian and would not record a lesson in English.
 
+**D16. The editor of several sentences on one position** — „Slažem se sa
+svih pet preporuka", 27.9.2026, from the sketch `docs/skice/taktovi.html`:
+
+- **A** — „Add a sentence here" is a button with words on the open card,
+  under its text (the phone and Preparation likewise);
+- **B** — a new sentence starts with the marks of the one before it;
+- **C** — ✕ „Remove this sentence" only where the position has more than one,
+  no question asked, and Undo brings it back;
+- **D** — the phone's row of moves has a narrow „·2" chip for each later
+  sentence;
+- **E** — Preparation's comment box follows the open sentence, with ‹ › and
+  the same button.
+
 ### The lead's, stated so they can be overruled
 
 **T1. The new screen stands on `AnalysisNode`.** The graphical tree, its menu
@@ -863,7 +876,7 @@ jump.
 (Q1) and accepts or changes the thresholds. If the numbers say a rule is wrong,
 the rule changes here, before phase 8 is briefed.
 
-### Phase 6 — several beats on one position [deep-debug: the model and its readers; implementer: the editor] — prepared 27.9.2026
+### Phase 6 — several beats on one position [implementer, the whole phase — on the owner's word of 27.9.2026, „pokreni izvođača"; the plan had deep-debug for the model] — built, graded and **merged into `master` 27.9.2026** (`docs/briefs/BRIEF-PRIPREMA-FAZA6.md`)
 
 **Where it stands.** On the owner's word („Kreni sa pripremom faze 6"), while
 phase 1 was being built: every reader, writer and copier was listed, the model
@@ -871,10 +884,99 @@ was decided, and three gates were drafted in `docs/gates/` —
 `node_beats_test.dart` (the model, both PGN writers and the reader, the saved
 tree, the copiers, 400 random trees through every door, a source guard),
 `tutorial_beats_film_test.dart` (the film's walk, its events, its signature,
-the map of the parts) and `film_beat_event.test.js` (the renderer). **None has
-been compiled or watched going red**: no test was run while the worker of
-phase 1 was measuring. Two literals in them are taken from a run on `master`
-before the phase is briefed. The editor's gate is not written yet.
+the map of the parts) and `film_beat_event.test.js` (the renderer).
+
+**Compiled and run against `master` on 27.9.2026**, in a worktree:
+
+- the two Dart gates fail to compile on the contract's own names and on
+  nothing else (`NodeBeat`, `beats`, `lastBeat`, `addBeat`, `removeBeatAt`,
+  `rootLike`, `TutorialBeat.at` / `of` / `say`, `currentAt`) — no name they
+  take from `master` is wrong;
+- a copy with one beat to a position, run on `master`: the one-beat PGN and
+  the tree's signature are the gate's literals, the film's signature
+  (`71d5d9d2…`) is now the third, and **all 400 random seeds pass every door**
+  — the harness can pass, so a red on the branch is the beats;
+- the source guard finds **five** hand-overs on `master` (`section_split.dart`
+  twice, `step_tree.dart`'s `_convert`, `tutorial_draft_controller.dart`,
+  `tutorial_tree.dart`) — the list the phase empties;
+- the server's gate: 4 pass, 1 fails, the one it is for (`rewound` cleared by
+  a `beat`).
+
+**A sixth copier the table had missed**: `_joinOnto`
+(`pgn_tutorial_export.dart`), which writes a tutorial out as one game and
+glues a continuing part's sentence onto the join's comment and its marks onto
+the join's with `.add` — the guard cannot see it, because it builds no node.
+**The lead's rule, stated so it can be overruled**: the continuing part's
+beats become further beats of the join, and a first beat with no words and
+the marks of the beat before it — the copy a cut leaves — adds nothing. A
+tutorial written out as a game then comes back in as the stops it had. Two
+cases in `tutorial_beats_film_test.dart` hold it; the two export tests that
+exist (`pgn_tutorial_export_test.dart`, „a joined part's own sentence lands on
+the position it describes" and „a drawing that both parts carry is drawn
+once") stay true under it. The editor's gate is not written yet: it waits
+for the owner's answers to the sketch.
+
+**The editor's gate is written, 27.9.2026**, after D16:
+`docs/gates/sentence_editor_test.dart` (22 cases: the model's one home for a
+new sentence, twelve in the Tutorial Studio, four on the phone, five in
+Preparation) and `docs/gates/preparation_recording_beats.part.dart` (one case
+for the timeline group of `preparation_recording_test.dart`). The contract is
+at the head of the first. It asserts on what is **saved** — the studio's one
+save request, read back through `readStepTree` — and on Preparation's tree,
+not on what is drawn.
+
+Proved as far as `master` allows: the gate fails to compile on `addBeat` and
+`beats` only; a probe built from its own helpers opens the studio on a
+desktop and on a phone, walks the phone's row, saves and reads back, and
+steps Preparation to 3. Bb5, all green on `master`; the recording case, which
+needs no new API, runs on `master` and goes red exactly at the missing
+`prep-add-sentence`, after the move and the arrow were recorded. Two faults of
+the lead's own were found that way: the phone's row is a lazy list, so a
+helper that only looked read three chips of seven (both helpers now scroll
+it); and a platform override reset in a teardown is checked before the
+teardown runs (the phone's cases are a `TargetPlatformVariant` now).
+
+**Three rules of the lead's in it, stated so they can be overruled**:
+
+- **Preparation has no undo of its own**, so C's „Undo brings it back" is a
+  message there: „Sentence removed." with an „Undo" action.
+- **The move strip walks moves, as today**, and a step onto a position opens
+  its first sentence; sentences are walked by their cards, ‹ › and „·2".
+- **„A new sentence" has one home**, the model's
+  `addBeat(after:, keepMarks: true)`; neither screen copies marks by hand.
+
+Not held by the gate, and left to grading: the line that joins a later card
+to its position's first, and the gate's own mutation round, which needs the
+phase built.
+
+**Built and graded 27.9.2026.** The implementer returned 4679 of 4793 and
+named the rest as the gate's, rightly: `node_beats_test`'s random fixture
+guarded only the *added* beats against being empty, so a position whose
+**first** beat was empty with others after it asked for a round trip the
+model's own rule forbids (an empty beat is not written) — 111 seeds; two
+editor cases asked for the same (`['', …]` back); and a SnackBar's „Undo" was
+tapped 50 ms into its slide, below the window. All three fixed in the gate,
+each with a comment. Grading then:
+
+- **nine mutations**, each red on the right case — the writer, the reader,
+  the signature, `keepMarks`, the board drawing the first sentence,
+  Preparation's stamp, the join both ways, and the bare-board check (which
+  survived first and got its case in `preparation_material_test.dart`);
+- **three faults found by walking the doors**, each with a case watched red:
+  removing an earlier sentence of the open position opened the wrong one
+  (the controller used „the one before the removed one" for every removal);
+  in Preparation removing the open sentence, and its Undo, changed the board
+  with no `arrow_drawn` in a running take; and `_boardIsBare` read the first
+  sentence's marks only;
+- the worker's one rewrite of an existing test —
+  `tutorial_tok_test.dart`'s window raised from 1000 to 1200 px tall,
+  because the open card is one row taller with „Add a sentence here" — was
+  read and kept: the check it protects (every card reachable) holds.
+
+Measured on the branch with nothing else running: **4796 passed, 1
+skipped** (4335 + 456 in the gates + 2 of the worker's + 3 of grading), backend
+**1784** without a database, analyze the same 22 infos. Live items
+[250.10]–[250.13] in `docs/TODO-provera.md`.
 
 **The model.** `NodeBeat` — a sentence, its arrows, its squares — lives beside
 `ChessArrow` in `lib/move_tree.dart`. Both tree models hold `beats`, never
@@ -912,20 +1014,48 @@ its tutorial.
 | `tutorialVideoOf` (`tutorial_video.dart:257`) | `init` or `move` for every stop | those for a position's first beat, `beat` for the rest |
 | `partOpeningsOf` (`tutorial_video.dart:144`) | a part opens where `index == 0` | where `index == 0` **and** it is the position's first beat |
 | `applyEvent` (`videoRenderer.js:533`) | clears „Back to the position after …" at every event | **keeps it through a `beat`** — the second sentence on a position the film went back to would stand over „Starting position" |
+| `_joinOnto` (`pgn_tutorial_export.dart:119`) — found 27.9.2026 when the gates were compiled | glues a continuing part's sentence onto the join's comment and merges its marks | the part's beats become further beats of the join; a wordless first beat with the marks of the beat before it adds nothing |
 | `tools/tutorial_translate/translate.py` | numbers a part's comments in order | nothing: a beat is a comment |
 | `chess_backend/services/lessonSteps.js` | keeps a part's PGN as text | nothing |
 
 Fourteen files build an `AnalysisNode` and six places build a `MoveNode`;
-seven of them hand the new node another node's marks. The source guard in the
-gate fails on an eighth.
+seven of them hand the new node another node's marks. *(Measured 27.9.2026:
+the gate's source guard, run on `master`, walks 366 files and 33
+constructions and names **five** construction sites — `section_split.dart`
+twice, `_convert`, the draft controller, `tutorial_tree.dart`; how the
+„seven" above was counted is not recorded. `_joinOnto` is
+the copier the guard cannot see, and has cases of its own.)*
 
 **The server changes after all**, by one rule in `applyEvent`. §2 said the
 film already draws a change of marks with no move behind it; that is true of
 the marks and not of the line under the board.
 
-**Still to decide before the brief**: the editor — where „Add a sentence here"
-stands on a card, how the open beat is shown, what the phone does — drawn as
-a sketch for the owner first, as the screen was.
+**Still to decide before the brief**: the editor. **Sketched and sent to the
+owner 27.9.2026** — two PNGs from `docs/skice/taktovi.html` (`?f=desk`, the
+Tutorial Studio at 1536 × 792; `?f=more`, the phone at 360 × 640 and
+Preparation's comment box), with five questions and the lead's
+recommendation on each:
+
+- **A** — „Add a sentence here" on the open card, under its text, in words
+  (or: an icon in the card's header, the words in its tooltip);
+- **B** — a new sentence starts with the marks of the one before it (or:
+  clean);
+- **C** — ✕ „Remove this sentence" only where the position has more than
+  one, no question, Undo brings it back;
+- **D** — the phone's row of moves gets a narrow „·2" chip for every later
+  sentence (or: one chip per move, sentences only in the Line tab);
+- **E** — Preparation's comment box follows the open sentence too, with ‹ ›
+  and the same button (or: it stays on the first and says how many more there
+  are). **Not in the plan until now**: Preparation reads and writes
+  `comment`, which is the first beat, so without E a sentence after the first
+  is invisible there.
+
+Drawn as sketched whatever the answers: one card per sentence, later ones
+indented under the position's first card and joined to it by a line; „1 of
+2" / „2 of 2" in words; the open sentence marked by a border, a ring and its
+label, not by colour; „then plays" and the branch chips under the position's
+last sentence; the board draws the open sentence's marks and a mark drawn
+goes to it.
 
 
 A node holds a list of beats, each a text and its marks. Both tree models, the

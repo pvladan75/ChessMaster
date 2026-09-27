@@ -189,10 +189,28 @@ Biblioteku u fioci.
    (`tools/stt_measure/out/proba4.groq.html`). **Otvoren nalaz**: svaki snimak
    napravljen na Windowsu je tih (vrh −20 do −26 dBFS, telefon −2,5), na dva
    različita mikrofona — uzrok nije tražen.
-4. **Faza 6 je pripremljena, ne i započeta**: tri nacrta kapije u `docs/gates/`
-   (`node_beats_test.dart`, `tutorial_beats_film_test.dart`,
-   `film_beat_event.test.js`) **nisu ni kompajlirana**; dva literala se uzimaju
-   iz prolaza na `master`; duguje se skica editora („Add a sentence here").
+4. **Faza 6: kapije su kompajlirane i skica je poslata (27.9.2026).** Obe
+   Dart kapije padaju samo na imenima iz ugovora; kopija sa jednim taktom po
+   poziciji prolazi na `master`u (svih 400 nasumičnih stabala), a literali su
+   iz tog prolaza. Serverska kapija: 4 prolaze, 1 pada, baš ona zbog koje
+   postoji. Nađen šesti kopirant koga tabela nije imala — `_joinOnto`
+   (tutorijal izvezen kao jedna partija); pravilo vođe i dva slučaja su u
+   planu i u `tutorial_beats_film_test.dart`. Vlasnik je prihvatio svih pet
+   preporuka sa skice (D16, 27.9.2026). **Kapija editora je napisana**:
+   `docs/gates/sentence_editor_test.dart` (22 slučaja) i jedan slučaj za
+   snimanje (`preparation_recording_beats.part.dart`); pada samo na imenima
+   iz ugovora, njen harness radi na `master`u, a slučaj snimanja je crven
+   baš na dugmetu koje fali. Tri pravila vođe su u planu (poruka „Undo" u
+   Preparation-u, traka hoda po potezima, jedan dom za novu rečenicu).
+   **Faza 6 je izgrađena, ocenjena i spojena u `master` 27.9.2026** i
+   poslata na `origin`: aplikacija **4796** (1 preskočen), server **1784**
+   bez baze, analiza istih 22. Izvođač je stao na tri greške kapije
+   (prazan prvi takt koji pisac ne piše; SnackBar dodirnut usred ulaska);
+   ocenjivanje je našlo još tri greške u kodu i svaka ima slučaj (vidi
+   plan, faza 6). **Sledeće**: vlasnikova provera uživo [250.10]–[250.13],
+   posle novog builda; zatim faza 7 (govor u tekst).
+   **Posle spajanja server se jednom restartuje** — `videoRenderer.js` je
+   promenjen (natpis „Back to the position after …" kroz takt).
 
 Faza 1 je bila na grani `priprema-faza-1`
 (radno stablo `.claude/worktrees/priprema-faza-1`, nalog
