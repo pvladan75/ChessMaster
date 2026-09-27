@@ -7,6 +7,9 @@
 // and the sound, not what a vendor heard. Anybody else reads not found — never
 // a refusal that would say the recording exists.
 
+const logger = require('./logger');
+const { wordsBySentence } = require('./transcript');
+
 /// The host's own recording, with what transcribing it needs — or null.
 async function hostRecording(pool, recordingId, hostId) {
   const id = Number(recordingId);
@@ -28,14 +31,26 @@ function transcribable(row) {
 }
 
 /// The transcript as the app reads it, or null.
+///
+/// Each sentence carries its own words with their times (phase 8b: the app
+/// cuts a sentence where the board changed inside it). They are worked out
+/// from the words as heard on the way out and never stored a second time; a
+/// transcript whose words do not tally with its sentences goes out with its
+/// sentences whole, and says so in the log.
 function wireOf(row) {
   if (!row) return null;
+  const words = wordsBySentence(row.sentences, row.words);
+  if (!words && Array.isArray(row.words) && row.words.length > 0) {
+    logger.error(`[TRANSCRIPT] The words of recording ${row.recording_id} do not tally with its sentences; they are sent whole.`);
+  }
   return {
     language: row.language,
     vendor: row.vendor,
     model: row.model,
     durationMs: row.duration_ms,
-    sentences: row.sentences,
+    sentences: words
+      ? row.sentences.map((s, i) => ({ ...s, words: words[i] }))
+      : row.sentences,
     updatedAt: row.updated_at,
   };
 }

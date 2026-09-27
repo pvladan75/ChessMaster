@@ -4,17 +4,48 @@
 /// `chess_backend/routes/recordingTranscript.js`): `language`, `vendor`,
 /// `model`, `durationMs` and `sentences`, each a `startMs`, `endMs`, `text`
 /// (what stands, corrected or not) and `heard` (what the vendor answered,
-/// never edited). A sentence is `corrected` when the two differ.
+/// never edited). A sentence is `corrected` when the two differ. Since phase
+/// 8b each also carries `words`: the words of `heard`, each with the time it
+/// was said.
+class TranscriptWord {
+  const TranscriptWord({
+    required this.text,
+    required this.startMs,
+    required this.endMs,
+  });
+
+  final String text;
+  final int startMs;
+  final int endMs;
+
+  /// Null for anything that is not a word with its two times.
+  static TranscriptWord? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final text = json['text'];
+    final start = json['startMs'];
+    final end = json['endMs'];
+    if (text is! String || start is! num || end is! num) return null;
+    return TranscriptWord(
+        text: text, startMs: start.toInt(), endMs: end.toInt());
+  }
+}
+
 class TranscriptSentence {
   const TranscriptSentence({
     required this.startMs,
     required this.endMs,
     required this.text,
     required this.heard,
+    this.words = const [],
   });
 
   final int startMs;
   final int endMs;
+
+  /// The words of [heard] with the times they were said, in order — empty
+  /// when the server did not send them, and then the sentence is never cut
+  /// (`recording_tutorial.dart`, R1).
+  final List<TranscriptWord> words;
 
   /// What is shown and sent — the trainer's correction, or the vendor's own
   /// answer when nobody has touched it.
@@ -28,11 +59,26 @@ class TranscriptSentence {
   bool get corrected => text != heard;
 
   factory TranscriptSentence.fromJson(Map<String, Object?> json) {
+    final rawWords = json['words'];
+    final words = <TranscriptWord>[];
+    if (rawWords is List) {
+      for (final raw in rawWords) {
+        final word = TranscriptWord.fromJson(raw);
+        // One word that cannot be read and the times of the rest say nothing
+        // about where in the sentence they fall.
+        if (word == null) {
+          words.clear();
+          break;
+        }
+        words.add(word);
+      }
+    }
     return TranscriptSentence(
       startMs: (json['startMs'] as num?)?.toInt() ?? 0,
       endMs: (json['endMs'] as num?)?.toInt() ?? 0,
       text: json['text'] as String? ?? '',
       heard: json['heard'] as String? ?? '',
+      words: words,
     );
   }
 }

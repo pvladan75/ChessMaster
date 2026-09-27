@@ -8353,6 +8353,27 @@ odlazi na kraj spiska u alatu.
     rečenice na jeziku kopije.
     Potrebno: Windows; server sa glasom (Azure ili piper) i DeepSeek ključem.
 
+76. [ ] **Strelica povučena usred duge rečenice dolazi kad je pomeneš, ne sa
+    potezom.** [250.26]
+    O čemu se radi: Faza 8b plana `PLAN-PRIPREMA.md`, odluka D19, posle tvoje
+    prijave na „Proba 5": rečenica se seče tamo gde se tabla promenila dok si
+    je govorio — na početku dela rečenice (posle zareza) u kome si crtao, a
+    ako je taj deo počeo više od šest sekundi ranije, na samoj reči. Važi samo
+    za tutorijale napravljene posle ove izmene; postojeći se ne menjaju.
+    Gde: `Library` → `Recordings` → „Proba 5" → `Make a tutorial` (novi
+    tutorijal, stari „Proba 5" ostaje kakav jeste), pa `Export video` sa
+    glasom `From the recording`.
+    Uradi: Pusti film od poteza `Qxe5+` i gledaj kada se koja strelica
+    pojavi. Uporedi sa starim tutorijalom „Proba 5" na istom mestu.
+    Treba da vidiš: Posle `Qxe5+` tabla je prvo bez strelica („Ako blokira
+    šah,"), pa strelica d8–e7 uz „može da postavi damu…", pa f8–e7 uz
+    lovca, pa g8–e7 i e8–f7 uz skakača i kralja, pa e5–h8 uz „dama može da
+    uzme topa". Titl se menja sa svakim od tih delova. Potez `g6` se pojavi
+    kad ga pomeneš, a ne šesnaest sekundi ranije, i strelica g7–g6 pre njega
+    se vidi. Nijedna strelica nije na tabli više od šest sekundi pre nego
+    što si je povukao.
+    Potrebno: Windows; server (restartovan posle spajanja).
+
 ### Teach — Domaći i napredak učenika
 
 1. [ ] **`Send a video` na stranici učenika.** [246.7]

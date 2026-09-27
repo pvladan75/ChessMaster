@@ -231,9 +231,17 @@ is compressed before it is sent wherever it goes.
 **The rules by which a recording becomes beats.** Thresholds are phase 5's to
 measure; the rules are the owner's decisions D5–D7.
 
-- **R1. Text is cut at sentences and nowhere else.** A sentence is what speech
-  to text returns between two sentence ends, with the time of its first and
-  last word.
+- **R1. Text is cut at sentences, and inside a sentence only where the board
+  changed while it was being said** (D19, 27.9.2026; until then „at sentences
+  and nowhere else"). A sentence is what speech to text returns between two
+  sentence ends, with the time of its first and last word. Inside it, for each
+  move played or mark drawn, the cut goes to the start of the clause being
+  said — after a comma, a semicolon or a colon — when that is no more than
+  six seconds before the change, and to the word being said otherwise; a cut
+  that would leave less than a second in front of it is not made; and a move
+  never takes the piece in which something was drawn before it. R3 and R4
+  then read „sentence" as „sentence, or the piece of one". A transcript that
+  comes without the times of its words is cut at sentences only.
 - **R2. The board's timeline is cut into stretches**: a time during which one
   position and one set of marks stood.
 - **R3. A sentence belongs to the position standing when it ends** (D15,
@@ -278,7 +286,8 @@ therefore in the Tutorial Studio too. Not several parts.
 
 **D5. Text is cut at sentences; a mark or a move made in mid-sentence is
 snapped to a sentence.** Accepted knowing an arrow may appear a few seconds
-before it is mentioned.
+before it is mentioned. *Amended by D19 the same day, once a real recording
+showed what „a few seconds" was.*
 
 **D6. No time is carried over from the recording** to a synthesised or a
 translated voice.
@@ -399,6 +408,19 @@ does not make the voice wrong. Such a voice is signed with
 `filmPositionsSignatureOf` — the position of every beat, in order — and
 `saved_lessons.narration_follows` says which kind a tutorial's voice is. A
 move replaced, a part moved, or a sentence added or removed still refuses it.
+
+**D19. A sentence is cut where the board changed inside it** — „Slažem se sa
+predlozima", 27.9.2026, after his own tutorial from „Proba 5": four arrows
+drawn at the end of what he said after `Qxe5+` stood on the board from the
+move itself, because speech to text had returned those sixteen seconds as one
+sentence. Of the four ways out put to him — cut the sentence; keep the beats
+and store each mark's moment beside the voice's markers; snap a mark to the
+*next* beat; correct it by hand in the studio — he took the first, knowing its
+costs: shorter captions that change faster, a synthesised voice that reads
+the pieces as separate clips, and a translation that is handed pieces. **No
+tutorial that exists is changed** („Ne moraš ništa da prilagođavaš postojećim
+tutorijalima"); the rule is for the ones made from now on. R1 is amended;
+phase 8b builds it.
 
 ### The lead's, stated so they can be overruled
 
@@ -1304,6 +1326,122 @@ rule's boundary:
   both render, the second with no time in it that came from the recording;
 - deleting the tutorial leaves the recording's sound on disk.
 
+### Phase 8b — a sentence cut where the board changed [lead] — built 27.9.2026, merged into `master` the same day on the owner's word
+
+**What was reported.** The owner made a tutorial of „Proba 5" and watched it:
+after `Qxe5+` „three arrows, and a little later one more" were on the board
+with the move, though he speaks of them at the end of that part; a fifth, on
+the same move, came when it should.
+
+**What was measured** (the recording's own timeline and transcript, read from
+the database and never written to). Everything he said after `Qxe5+` came
+back as **one sentence of 16.6 s** — commas, no full stop — from 82.8 s to
+99.4 s. The four arrows were drawn at 92.1, 93.3, 95.4 and 98.1 s, inside it,
+so R4 put all four on its beat and R8 began that beat at 82.8 s. The fifth was
+drawn 1.2 s into a short sentence, which is why it looked right. Nothing was
+broken: D5 had accepted „a few seconds" and the sentences were longer than
+anybody had asked. On all five of his recordings, 113 sentences, **25 are
+longer than ten seconds** and the longest is 24.0 s.
+
+| five recordings, 44 marks drawn and 98 positions | whole sentences | cut (8b) |
+|---|---|---|
+| beats | 119 | 141 |
+| a mark on screen before it was drawn: median | 6.7 s | 1.4 s |
+| … the most | 15.3 s | 5.9 s |
+| … more than 3 s / more than 6 s | 35 / 25 | 15 / 0 |
+| marks drawn that no beat shows | 1 | 0 |
+| a move on screen before it was played: median | 0.0 s | 0.8 s |
+| … the most | 15.9 s | 5.8 s |
+| … more than 3 s / more than 6 s | 7 / 2 | 13 / 0 |
+
+Moves are a little earlier at the median and much less early at the worst:
+whole, a move inside a sentence was shown when it was played and the
+sentence's words waited for the last of its moves; cut, the words are said
+over the position they are about and the move comes with the clause that
+names it.
+
+**The rule** (R1 as amended; its home is `_piecesOf` in
+`APP/features/tutorial_studio/services/recording_tutorial.dart`):
+
+- for each change of the board inside a sentence, in order, the cut goes to
+  **the start of the clause being said** — the word after a comma, a
+  semicolon or a colon, or where the piece that is open began — when that is
+  no more than `cutMaxEarlyMs` = 6000 before the change, and to **the word
+  being said** otherwise;
+- a cut that would leave less than `cutMinPieceMs` = 1000 in front of it is
+  not made, and the change joins the piece that is open;
+- **a move never takes the piece in which something was drawn before it**: a
+  piece belongs to the position standing when it ends (R3), so a clause that
+  holds an arrow and then the move would carry the arrow to no beat; there
+  the cut is at the move's own word. Marks that arrive with a position — a
+  jump to a move the tree already holds with its arrows — count as drawn;
+- a piece ends before the change its cut was made for, so that change is the
+  next piece's; the first piece begins where the sentence does and the last
+  ends where it does, whatever words a correction took from its ends;
+- pieces are beats by R4 as sentences are — two pieces over the same marks on
+  the same position are one beat — so a cut never makes a beat that shows
+  nothing new.
+
+**Where the times of the words come from.** `recording_transcripts.words` has
+held the vendor's words since phase 7. The wire now hands each sentence its
+own (`wordsBySentence` in `BE/services/transcript.js`, added by `wireOf`):
+worked out on the way out by walking the words in order, **never stored a
+second time**, and checked rather than trusted — a transcript whose words do
+not tally goes out with its sentences whole, and the log says so. **A
+corrected sentence is still cut**: the words the trainer left alone keep
+their times and hold the rest in place; between two of them, as many new
+words as old take the old ones' times one for one, and any other number
+shares the stretch evenly (`_wordsOf`). The owner's own correction in
+„Proba 5" — „1." into „uzima na" — is of that kind, in the sentence that holds
+three moves and an arrow.
+
+**What was tried and not built, each measured:**
+
+- *a pause between two words as a clause's start* — Whisper stretches a word
+  over the silence after it, so a gap is rare: two or three cuts in 113
+  sentences, and neither the medians nor the worst cases moved;
+- *a tolerance* of 300 ms for a change a hair before a word's start — two
+  cuts more, the median 80 ms better;
+- *the clause alone, never the word* — the median 4.3 s and the most 10.2 s,
+  which is the report again in a milder form;
+- *a change before the sentence's first word skipped by a test of its own* —
+  a mutation showed the test could not change an answer, and it was deleted.
+
+**The gate** `T/recording_tutorial_cut_test.dart`, 45 cases, and one in
+`T/recording_tutorial_doors_test.dart`:
+
+- the owner's five recordings (`T/fixtures/recording_tutorial/cut/`: the
+  timeline as recorded, the transcript as the server sends it, every letter
+  and digit replaced by „w" — the times and the commas are the recording's)
+  against `tools/stt_measure/cuts.js`, a second reading of the rule written
+  from this plan: **beat for beat — position, caption, marks and marker**;
+  every word written once and in order; no mark that was drawn left off;
+- „Proba 5" after `Qxe5+`: five beats at 82.8, 86.9, 93.1, 95.3 and 99.2 s
+  holding 0, 1, 2, 4 and 5 arrows;
+- a built case on each boundary: six seconds and a millisecond more; a second
+  and a millisecond less; the sentence's last millisecond; a change as a word
+  begins; a stamp that repeats the marks standing; each of `, ; :` and a full
+  stop that ends nothing; a move after an arrow, under and over a second;
+  marks taken off; a corrected sentence with more words, with as many, with
+  its ends taken off, and written anew;
+- the door: a transcript with its words, through the real client, makes the
+  cut tutorial and sends the markers of its four beats.
+
+`recording_to_tutorial_test.dart` is unchanged and green: its four fixtures
+carry no words, so they hold the rule for a transcript that comes without
+them — sentences and nowhere else, phase 5's 99 beats.
+
+**Mutations**: see `docs/LESSONS.md` for the round and what its survivors
+were.
+
+**Not changed**: the voice's route, the film, the studio, the translation and
+every tutorial that exists. A tutorial made from a recording before this
+phase keeps its beats; making one again from the same recording gives a new
+tutorial by the new rule. **Merging needs one restart of the server** (the
+wire's new field; no schema change).
+
+Live item `[250.26]`.
+
 ### Phase 9 — translation [lead: the route; implementer: the app] — built and graded 27.9.2026 on branch `priprema-faza-9`, not yet merged
 
 **Where it stands, 27.9.2026**, on branch `priprema-faza-9`:
@@ -1417,7 +1555,9 @@ student and put in a homework.
   session.
 - **Where in a sentence a mark appeared.** R4 puts it at the sentence's start.
   If the films look wrong, a mark can later carry its share of the sentence,
-  which any voice can honour; it is not built first.
+  which any voice can honour; it is not built first. *The films did look
+  wrong, and phase 8b answered it the other way round: the sentence is cut,
+  so a mark is at the start of its own piece (D19).*
 - **A door from a recording straight into a homework** (D7).
 - **Editing a transcript's times**, or cutting the recording's sound.
 - **A translated tutorial in the trainer's own voice.**

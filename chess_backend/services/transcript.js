@@ -146,6 +146,44 @@ function sentencesFrom({ words = [], segments = [] }, { language } = {}) {
   return sentences;
 }
 
+/// The words of each sentence with their times, in the sentences' order — or
+/// null when the two do not tally. Phase 8b of docs/PLAN-PRIPREMA.md: the app
+/// cuts a sentence where the board changed inside it, and needs to know when
+/// each of its words was said.
+///
+/// **Nothing is stored for this**: a sentence is a run of the vendor's words
+/// (`sentencesFrom`), so walking the words in order and handing each sentence
+/// as many as its `heard` has gives them back. The text of a word is the
+/// sentence's own — Latin where the vendor wrote Cyrillic, with the closing
+/// mark a segment gave it — and its times are the vendor's, brought inside
+/// the sentence where `judgeSentences` brought the sentence inside the sound.
+///
+/// The walk is checked, not trusted: every sentence must begin where its
+/// first word does, and every word must be used. A word with a space in it
+/// would break the count, and a transcript whose words were replaced would
+/// break the times; either way the answer is null and the sentences stay
+/// whole, which is the rule before phase 8b.
+function wordsBySentence(sentences, words) {
+  if (!Array.isArray(sentences) || !Array.isArray(words)) return null;
+  const clean = words.filter((w) => w && String(w.text || '').trim() !== ''
+    && isTime(w.startMs) && isTime(w.endMs));
+  const result = [];
+  let at = 0;
+  for (const s of sentences) {
+    const tokens = typeof s.heard === 'string' ? s.heard.split(' ') : [];
+    const mine = clean.slice(at, at + tokens.length);
+    if (tokens.length === 0 || mine.length !== tokens.length) return null;
+    if (Math.min(mine[0].startMs, s.endMs) !== s.startMs) return null;
+    result.push(mine.map((w, i) => ({
+      text: tokens[i],
+      startMs: Math.min(w.startMs, s.endMs),
+      endMs: Math.min(w.endMs, s.endMs),
+    })));
+    at += tokens.length;
+  }
+  return at === clean.length ? result : null;
+}
+
 const isTime = (v) => Number.isInteger(v) && v >= 0;
 
 /// Whether [sentences] can stand as a recording's transcript, and the
@@ -228,4 +266,5 @@ module.exports = {
   judgeSentences,
   latinOf,
   sentencesFrom,
+  wordsBySentence,
 };
