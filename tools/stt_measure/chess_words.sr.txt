@@ -1,0 +1,32 @@
+# Words a chess lesson in Serbian is made of, for a vendor that takes a list
+# of words to expect. Cyrillic, because that is what Azure's sr-RS writes.
+краљ
+дама
+топ
+ловац
+скакач
+пешак
+пион
+шах
+мат
+пат
+рокада
+мала рокада
+велика рокада
+гамбит
+Евансов гамбит
+италијанска партија
+отварање
+центар
+дијагонала
+линија
+ред
+поље
+жртва
+узима
+напада
+брани
+развој
+темпо
+бели
+црни

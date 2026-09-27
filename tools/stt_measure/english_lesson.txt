@@ -1,0 +1,15 @@
+Let us look at the Italian Game and at the Evans Gambit that grows out of it.
+White opens with the king's pawn, e4, and Black answers e5.
+The knight comes to f3 and attacks the pawn, and the knight on c6 defends it.
+Now the bishop goes to c4, where it looks at the weak square f7.
+Black develops his own bishop to c5.
+Here White offers a pawn: b4, the Evans Gambit.
+After bishop takes b4, White plays c3 and wins a tempo.
+Black has three retreats: bishop to a5, bishop to e7, and bishop back to c5.
+We will look at bishop c5.
+White strikes in the centre with d4, and after the pawn is taken he castles kingside.
+If Black is greedy and takes on c3, the queen threatens to come to d5.
+From d5 the queen attacks the bishop and threatens checkmate on f7.
+Black defends both with queen to e7.
+So White does better to sacrifice the bishop on f7 at once.
+After the king takes, the queen gives check on d5 and wins the bishop on c5.

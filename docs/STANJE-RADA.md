@@ -179,9 +179,16 @@ Biblioteku u fioci.
    sledeće je vlasnikova provera uživo.
 2. **Provera uživo faza 1–4**: stavke `[250.1]`–`[250.9]`, posle spajanja i
    novog builda.
-3. **Faza 5** čeka vlasnika: tri snimka koja snima 28.9.2026 u današnjem
-   Preparation, njegovu reč da se pošalju Groq-u i Azure-u, i Groq ključ koji
-   sam upisuje u `.env`.
+3. **Faza 5 je izmerena 27.9.2026** na četiri vlasnikova snimka („Proba 1" –
+   „proba 4") i na engleskom tekstu koji izgovara glas aplikacije; tabele su u
+   planu. **Odlučio je (D15)**: sluša Groq, rečenica pripada poziciji koja
+   stoji kad se rečenica završi, engleski se meri na sintetičkom glasu.
+   Skripte su u `tools/stt_measure/`, odgovori servisa u `out/` koji git ne
+   prati. **Ostalo dužno**: cena sa računa, snimak sa boljim mikrofonom
+   (kupuje ga 28.9), i njegova ispravka jednog transkripta
+   (`tools/stt_measure/out/proba4.groq.html`). **Otvoren nalaz**: svaki snimak
+   napravljen na Windowsu je tih (vrh −20 do −26 dBFS, telefon −2,5), na dva
+   različita mikrofona — uzrok nije tražen.
 4. **Faza 6 je pripremljena, ne i započeta**: tri nacrta kapije u `docs/gates/`
    (`node_beats_test.dart`, `tutorial_beats_film_test.dart`,
    `film_beat_event.test.js`) **nisu ni kompajlirana**; dva literala se uzimaju

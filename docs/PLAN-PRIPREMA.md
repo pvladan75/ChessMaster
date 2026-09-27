@@ -236,8 +236,11 @@ measure; the rules are the owner's decisions D5–D7.
   last word.
 - **R2. The board's timeline is cut into stretches**: a time during which one
   position and one set of marks stood.
-- **R3. A sentence belongs to the position that stood for most of it**; on a
-  tie, the later one. A move played in mid-sentence does not cut the sentence.
+- **R3. A sentence belongs to the position standing when it ends** (D15,
+  27.9.2026). A move played in mid-sentence does not cut the sentence. Until
+  phase 5 measured it this read „the position that stood for most of it"; a
+  trainer names a move and then plays it, so that rule put the sentence on
+  the position before the move it names.
 - **R4. On one position, a new beat begins when the marks at the end of a
   sentence differ from the marks at the end of the one before it**, or when the
   caption would pass its four lines. A beat's marks are the ones standing when
@@ -361,6 +364,17 @@ drafting phase 2's gate.
   position loaded in mid-recording is part of the recording.
 - **The button that adds a beat on a position reads „Add a sentence here"**
   (Q6 of §8, for phase 6).
+
+**D15. The vendor, the sentence's position, and English** — „Idemo sa Groq, a
+rečenica neka pripada poziciji na kraju, a slobodno napravi sintetički govor
+za engleski", 27.9.2026, after phase 5's numbers:
+
+- **Groq hears the recordings** (Q1). It is a new processor of a trainer's
+  voice; the sentence in the privacy policy is the owner's and the lawyer's,
+  before anybody but him uses it (D8 stands).
+- **A sentence belongs to the position standing when it ends** (R3).
+- **English is measured on the app's own voice**, because he teaches in
+  Serbian and would not record a lesson in English.
 
 ### The lead's, stated so they can be overruled
 
@@ -749,7 +763,80 @@ room's own tests are green **untouched**. It is
 in that file, which enters a room by the old code to show it is an ordinary
 room.
 
-### Phase 5 — a measurement: speech to text on real recordings, and the rules on paper [lead, owner]
+### Phase 5 — a measurement: speech to text on real recordings, and the rules on paper [lead, owner] — measured 27.9.2026
+
+**Where it stands.** Measured on four of the owner's recordings in Serbian
+(„Proba 1"–„proba 4": two with a headset and one with a laptop's microphone
+on Windows, one on a phone) and on an English text spoken by the app's voice.
+The scripts are `tools/stt_measure/` (`azure.js`, `groq.js`, `beats.js`,
+`english.js`); what a vendor returned is kept under `tools/stt_measure/out/`,
+which git ignores — a transcript is what somebody said. **Still owed**: the
+price read from a bill, a recording with the better microphone, and the
+owner's correction of one transcript, which is the only exact count of words
+heard right in Serbian.
+
+**Serbian, the same four recordings to both vendors.**
+
+| | Azure fast transcription, `sr-RS` | Groq, `whisper-large-v3` |
+|---|---|---|
+| set up beforehand | nothing — the voice's key and region | a key |
+| script | Cyrillic only; `sr-Latn-RS` is refused (400) | Latin; one segment of one recording in Cyrillic |
+| squares, as written | „ц 4", „це 5", „ф с" | „E4", „C5", „f7" |
+| a played move's square heard within 8 s of the move — a floor | 2 of 17, 6 of 11, 11 of 19, 7 of 19 | 4 of 17, 9 of 11, 14 of 19, 10 of 19 |
+| a time on every word | yes | yes |
+| times running backwards | never | once to three times a recording, by 20–260 ms |
+| what comes back as a sentence | up to 30 s and 50 words | a few seconds, cut where he pauses |
+| size sent, of 4.5–5.6 MB recorded | the recording as it is | 1.0–1.9 MB, as FLAC |
+| the answer took | 3.3–5.5 s | 1.3–1.6 s |
+| a list of words to expect | accepted, and changed nothing | not tried |
+
+Azure's newer mode (`enhancedMode`) refuses Serbian by name and, left to
+guess, answered in Russian, Serbian and Czech by turns. Azure's custom speech
+is set up on its website and serves real-time and batch transcription, not the
+fast one measured here; it was not tried.
+
+Groq's cheaper model, `whisper-large-v3-turbo` ($0.04 an hour against $0.111,
+as its page says), read „Proba 2" and „proba 4" as well as the larger one, in
+0.9 s, with no Cyrillic segment. **Which of the two models** is for phase 7 to
+settle on the corrected transcript.
+
+**The sound.** Every recording made on Windows is quiet — its loudest sample
+at −26, −24 and −20 dBFS — with the same near-silent background on two
+different microphones; the phone's peaks at −2.5. Raising „Proba 1" by 22 dB
+changed almost nothing in what Azure heard, so the level is not what costs
+words. It is a fault of the capture on Windows all the same, and a student
+would hear it. **Not investigated yet.**
+
+**English, on the app's own voice** (`en-US-JennyNeural`, 184 words, 70 s, 23
+squares): Azure `en-US`, Groq large and Groq turbo each returned **the same
+182 words right of 184**. The two differences are „centre" written „center"
+and „a5" heard as „f5" by all three — the voice reads „a" as the article. A
+synthetic voice is steadier than a person, so this is the best either does on
+chess English, not what it will do on a recording.
+
+**R1–R8 applied**, with Groq's text, all four recordings together:
+
+| R3 as | sentences that name a played move | on that move's position | before it | after it | beats | wordless |
+|---|---|---|---|---|---|---|
+| the position that stood for most of it | 34 | 16 | 17 | 1 | 96 | 31 |
+| **the position standing when it ends** (D15) | 34 | **25** | 6 | 3 | 99 | 36 |
+| … or within 1 s after its end | 34 | 19 | 6 | 9 | 98 | 37 |
+| … within 2 s | 34 | 16 | 4 | 14 | 97 | 35 |
+| … within 3 s | 34 | 19 | 1 | 14 | 95 | 32 |
+
+Looking past the sentence's end makes it worse at every distance tried, so R3
+has no threshold. Per recording, with R3 as decided: 1, 5, 2 and 2 parts —
+„Proba 2", with its fifteen steps through the line, is the five; the longest
+caption is 160 letters where four lines hold about 168; a position merely
+passed through on the way to a jump stood for up to 2.4 s.
+
+**What the numbers say about the rules.** About a third of the beats are
+wordless with either rule: a trainer plays several moves inside one sentence,
+and R5 shows each of them. With Azure's sentences it was two thirds, which is
+a reason for the vendor as much as the words are. **R1 stands only on a
+vendor that cuts where the speaker pauses.**
+
+*As planned:*
 
 No app code and no server code. A script under `tools/`.
 
@@ -970,8 +1057,8 @@ student and put in a homework.
 
 ## 8. Open, each with the phase that needs it
 
-**Q1. Which vendor hears the recordings** — after phase 5's tables. Azure is
-already the voice and already metered; Groq is the cheaper page.
+**Q1. Which vendor hears the recordings** — *answered 27.9.2026*: Groq (D15).
+Azure stays the voice.
 
 **Q2. Does correcting the transcript keep the trainer's own voice?** Today a
 changed sentence makes a recorded take „no longer follow" its tutorial, which
@@ -986,7 +1073,12 @@ holds the answer.
 
 **Q4. Serbian in which script**, when the vendor returns the other one.
 *Recommended*: the trainer's choice at „Transcribe", turned by rule where the
-vendor disagrees. After phase 5 says what comes back.
+vendor disagrees. *Phase 5 measured*: Groq returns Latin, and now and then a
+passage in Cyrillic; Cyrillic turns into Latin by rule without loss, the
+other way does not („nj" is „њ" or „нј").
+
+*(Phase 5 measured the wait: Groq answered in 0.9–1.6 s for recordings of two
+to three minutes.)*
 
 **Q5. How long a recording may wait for its transcript** — whether
 „Transcribe" holds the screen or tells the trainer when it is done. After

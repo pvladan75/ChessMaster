@@ -8693,3 +8693,42 @@ izmerena još jednom, u radnom stablu na spojenom kodu.
 Brojevi: 4336 → **4335** (12 obrisano, 11 dodato, 5 preimenovano — po imenima
 17 otišlo, 16 došlo), predviđeno pre prolaza; `analyze` 22; server netaknut,
 1778 / 1936.
+
+## 27.9.2026 — Preparation: faza 5, govor u tekst izmeren na vlasnikovim snimcima
+
+`docs/PLAN-PRIPREMA.md`, faza 5: četiri vlasnikova snimka na srpskom i jedan
+engleski tekst koji izgovara glas aplikacije, poslati Azure-u i Groq-u.
+Skripte u `tools/stt_measure/`; ništa u aplikaciji ni na serveru. Brojevi
+testova se nisu menjali.
+
+**Pravilo o govoru je tvrdnja o tome kako čovek govori, i meri se na njegovom
+snimku.** R3 je glasilo „rečenica pripada poziciji koja je stajala najveći deo
+rečenice". Vlasnik potez prvo kaže, pa ga odigra — pa je od 34 rečenice koje
+imenuju odigran potez samo 16 palo na poziciju tog poteza, a 17 na poziciju
+pre njega. „Pozicija koja stoji kad se rečenica završi" daje 25. Gledanje
+sekundu, dve ili tri posle kraja rečenice je svaki put gore, pa pravilo nema
+prag koji bi se štelovao. Pravilo je promenjeno pre nego što je išta na njemu
+sagrađeno, što je i bio smisao faze.
+
+**Sumnja se meri pre nego što se okrivi.** Prvi snimak je bio vrlo tih (vrh
+−26 dBFS) i Azure ga je pročitao loše, pa je tišina izgledala kao uzrok. Kopija
+pojačana 22 dB dala je skoro isti tekst i istu rupu od pola minuta. Uzrok je
+bio govor i servis, ne nivo. Tih zvuk je ipak greška — svaki snimak sa
+Windowsa je tih, na dva mikrofona, a sa telefona nije — ali druga greška, i
+nije ono što je koštalo reči.
+
+**Kad tri instrumenta pogreše isto, greška je u onome što mere.** Sva tri
+čitanja engleskog teksta čula su „a5" kao „f5". Tri servisa ne greše isto
+slučajno: sintetički glas čita „a" kao član. Bez drugog i trećeg čitanja to
+bi bilo upisano kao greška servisa.
+
+**Šta servis vraća kao rečenicu odlučuje više nego koliko reči pogodi.**
+Azure vraća rečenice do 30 sekundi i 50 reči, pa je sa R1 („tekst se seče samo
+na rečenicama") dve trećine taktova ostalo bez reči; Groq seče gde govornik
+zastane, i ostaje trećina. R1 stoji samo na servisu koji seče na pauzama.
+
+**Dva puta sam pokvario sopstvenu skriptu** menjajući je Pythonom iz bash
+heredoc-a: obrnuta kosa crta u `?
+` je stigla kao pravi prelom reda.
+Izmene izvornog koda idu alatom za pisanje i izmenu fajla, ne kroz dva sloja
+navodnika.
