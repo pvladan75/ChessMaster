@@ -25,15 +25,18 @@ bool boardIsOpen(String? boardControl) =>
     boardControl != 'host_only' && boardControl != 'trainer_only';
 
 /// True when this seat **leads** the room: the person who started the session,
-/// seated 'trener' by the server and by nobody else — or the local Preparation
-/// board, which has nobody to share with.
+/// seated 'trener' by the server and by nobody else.
 ///
 /// One answer, in one place. The room screen used to hold four: a getter, two
 /// locals that added the *account's* role, and one that left out the co-host
 /// seat. There is no co-host any more, and `users.role` plays no part in
 /// teaching: a trainer is a position in a relationship.
-bool leadsRoom({required String? seatRole, bool isStudio = false}) =>
-    isStudio || seatRole == 'trener';
+///
+/// Until phase 4 of `docs/PLAN-PRIPREMA.md` this and the two rules below took
+/// an `isStudio` that answered yes to everything: Preparation was a room
+/// entered by a code no room has. It is a screen of its own now, and a room is
+/// asked only about its seats.
+bool leadsRoom({required String? seatRole}) => seatRole == 'trener';
 
 /// True when a client holding [seatRole] in a room whose board is set to
 /// [boardControl] may move pieces and navigate the move tree.
@@ -44,10 +47,8 @@ bool leadsRoom({required String? seatRole, bool isStudio = false}) =>
 bool canDriveSharedBoard({
   required String? seatRole,
   required String boardControl,
-  bool isStudio = false,
 }) =>
-    leadsRoom(seatRole: seatRole, isStudio: isStudio) ||
-    boardIsOpen(boardControl);
+    leadsRoom(seatRole: seatRole) || boardIsOpen(boardControl);
 
 /// True when this account **teaches** in the room — the rule behind the
 /// room's teaching actions („Make exercise", and what a tutorial row offers),
@@ -72,13 +73,11 @@ bool canDriveSharedBoard({
 /// anything, it only decides what the panel offers, and every such action
 /// writes to the actor's own library.
 bool mayTeachInRoom({
-  required bool isStudio,
   required int myId,
   required Set<int> myStudentIds,
   required Iterable<int> memberIds,
   required bool openedRoom,
 }) {
-  if (isStudio) return true;
   final students = myStudentIds.where((id) => id != myId).toSet();
   if (openedRoom && students.isNotEmpty) return true;
   return memberIds.any((id) => id != myId && students.contains(id));

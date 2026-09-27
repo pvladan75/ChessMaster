@@ -1,3 +1,9 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected: the room's ☰ is a target that can be hit.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 // The room's ☰ is a target you can hit.
 //
 // Reported live by the owner, 20.9.2026, against TODO-provera 205 point 8:
@@ -37,6 +43,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
+import 'support/trainer_room.dart';
 
 http.Client _server() => MockClient((req) async {
       final path = req.url.path;
@@ -66,8 +73,9 @@ Future<void> _room(
     home: ChessGamePage(
       userSession: UserSession(
           id: 1, token: 'tok', email: 'e', name: 'N', role: 'trener'),
-      roomCode: 'STUDIO',
-      initialRole: 'trener',
+      roomCode: trainerRoomCode,
+      initialRole: trainerSeat,
+      groupApi: teachingSomebody(),
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
     ),

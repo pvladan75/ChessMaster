@@ -1,3 +1,10 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected: „Save position" writes a `fen` and a `pgn` that
+// belong together.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -11,6 +18,7 @@ import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'support/trainer_room.dart';
 
 /// The room's „Save position" writes a `fen` and a `pgn` that belong together.
 ///
@@ -53,7 +61,9 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       home: ChessGamePage(
-        roomCode: 'STUDIO',
+        roomCode: trainerRoomCode,
+        initialRole: trainerSeat,
+        groupApi: teachingSomebody(),
         userSession: UserSession(
             token: 't', id: 7, email: 'a@b.c', name: 'Trener', role: 'trener'),
         lessonApi: LessonApiService(authToken: 'tok', client: client),

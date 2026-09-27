@@ -1,3 +1,10 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected there: the room's column, the narrow caller of
+// `LibraryList`, draws one card per line and puts a row on the board.
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 // Gate — `docs/PLAN-LISTE.md`, phase 3b: `LibraryList`'s rows onto
 // `AdaptiveCardGrid`.
 //
@@ -37,6 +44,7 @@ import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
 import 'support/shelf_over_lessons.dart';
+import 'support/trainer_room.dart';
 
 const _fen = '8/8/8/8/8/4k3/8/R3K3 w - - 0 1';
 
@@ -156,8 +164,9 @@ Future<void> _room(WidgetTester tester, Size size) async {
     size,
     ChessGamePage(
       userSession: _session(),
-      roomCode: 'STUDIO',
-      initialRole: 'trener',
+      roomCode: trainerRoomCode,
+      initialRole: trainerSeat,
+      groupApi: teachingSomebody(),
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
     ),

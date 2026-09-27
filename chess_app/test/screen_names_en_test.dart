@@ -5,7 +5,7 @@
 // of names, one guard, one language.
 //
 //   „Soba"                 -> Room             the live session, with a student
-//   „Priprema"             -> Preparation      the same room alone, your library
+//   „Priprema"             -> Preparation      your own board, alone, your library
 //   „Analiza"              -> Analysis         the engine, the database, the tree
 //   „Studio za tutorijal"  -> Tutorial Studio  and the only „studio" there is
 //
@@ -111,15 +111,16 @@ void main() {
   test('and the two doors that read alike still say what is different', () {
     // Before 8.9.2026 the cards for Preparation and Analysis described the
     // same thing. Since phase 5 of docs/PLAN-REORGANIZACIJA.md (17.9.2026)
-    // Analysis is a tab, not a card, and the two doors that share a room are
-    // Preparation and New session on the Teach tab: one is the room alone,
-    // the other the room with a student. Each must say which.
+    // Analysis is a tab, not a card, and the two doors that read alike are
+    // Preparation and New session on the Teach tab: one is a board alone —
+    // a screen of its own since phase 4 of docs/PLAN-PRIPREMA.md — the other
+    // a room with a student. Each must say which.
     final teach = File('lib/widgets/home/teach_tab.dart').readAsStringSync();
 
     expect(teach, contains("'Preparation'"));
     expect(teach.toLowerCase(), contains('no student'),
         reason: 'the card for Preparation has to say what is different about '
-            'it — the same room without anybody to teach');
+            'it — a board with nobody to teach');
     expect(teach, contains("'New session'"));
     expect(teach.toLowerCase(), contains('invite your student'),
         reason: 'the card for New session has to say the student is the '

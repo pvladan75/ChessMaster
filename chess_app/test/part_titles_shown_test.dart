@@ -1,3 +1,10 @@
+// Phase 4 of docs/PLAN-PRIPREMA.md: the room in this file was pumped as
+// `STUDIO`, the code Preparation was entered by, because that seat led a
+// room without a server. What is protected there: the room loads, steps and lists a stored
+// „Deo N" as „Part N".
+// That is the live room's and stays the room's, so it is asked of whoever
+// opened the room (`support/trainer_room.dart`). No assertion changed.
+
 // A part the trainer did not name is „Part 3" — on every screen that shows one.
 //
 // It was „Deo 3" until 11.9.2026: the one Serbian word the English pivot left
@@ -22,6 +29,7 @@ import 'package:chess_app/features/library/services/position_library_service.dar
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
+import 'support/trainer_room.dart';
 
 const _fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -98,8 +106,9 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         home: ChessGamePage(
           userSession: _trainer,
-          roomCode: 'STUDIO',
-          initialRole: 'trener',
+          roomCode: trainerRoomCode,
+          initialRole: trainerSeat,
+          groupApi: teachingSomebody(),
           lessonApi: api,
           positionLibrary:
               PositionLibraryService(authToken: 'tok', client: client),

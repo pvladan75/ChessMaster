@@ -139,10 +139,10 @@ void main() {
     });
   });
 
-  test('the studio has no voice at all', () {
-    final join = withoutComments(bodyOf('Future<void> _joinVoice() async'));
-    expect(join, contains("widget.roomCode == 'STUDIO'"),
-        reason: 'u studiju nema s kim da se priča, a kanal se svejedno '
-            'naplaćuje');
-  });
+  // Deleted in phase 4 of docs/PLAN-PRIPREMA.md: „the studio has no voice at
+  // all", which read `_joinVoice` for a comparison with the room code
+  // `STUDIO`. It protected a trainer alone from a channel that bills by the
+  // minute with nobody to talk to. Preparation is a screen of its own and
+  // opens neither a voice channel nor a socket (`preparation_screen_test.dart`,
+  // „no server"), and a room has no code that means „alone".
 }

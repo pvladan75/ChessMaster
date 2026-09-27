@@ -1,4 +1,11 @@
-/// Preparation keeps its work: „Save analysis" and „Export PGN".
+/// The room keeps its work: „Save analysis" and „Export PGN".
+///
+/// **Phase 4 of docs/PLAN-PRIPREMA.md.** This file was written for Preparation
+/// while Preparation was the room entered as `STUDIO`. Preparation is a screen
+/// of its own now and keeps its work through „Save as…"
+/// (`preparation_material_test.dart`); the two doors held here are the live
+/// room's, where anybody seated may keep their own copy, so they are asked of
+/// whoever opened the room. No assertion changed.
 ///
 /// Until now the room's tree left the screen only as something a student is
 /// given — a lesson step, an exercise — or as a single board („Save position").
@@ -30,6 +37,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'support/trainer_room.dart';
 
 const _startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -216,7 +224,9 @@ void main() {
 
       await tester.pumpWidget(MaterialApp(
         home: ChessGamePage(
-          roomCode: 'STUDIO',
+          roomCode: trainerRoomCode,
+          initialRole: trainerSeat,
+          groupApi: teachingSomebody(),
           userSession: UserSession(
               token: 't',
               id: 7,

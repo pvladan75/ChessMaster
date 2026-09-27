@@ -72,11 +72,11 @@ Future<Exercise?> openMakeExerciseSheet(
   );
 }
 
-/// Beside „Save position" in the studio room: opens [MakeExerciseSheet] on
+/// Beside „Save position" in the room: opens [MakeExerciseSheet] on
 /// the tree in front of the trainer.
 ///
 /// Its own widget, rather than an inline `onPressed` in the screen that hosts
-/// it, so the door can be pumped and tapped on its own — the full studio room
+/// it, so the door can be pumped and tapped on its own — the full room
 /// needs a live Socket.IO connection a widget test cannot give it (CLAUDE.md
 /// rule 10: every layer can be right and a feature still unreachable).
 class MakeExerciseButton extends StatelessWidget {

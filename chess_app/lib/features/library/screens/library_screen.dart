@@ -767,8 +767,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         // The sheet that makes one lives in Preparation, not here —
         // this is a door, not a second editor (`docs/PLAN-EXERCISE.md`,
         // phase 4). Same call as the Teach tab's own „Preparation" card.
-        onNewExercise: () =>
-            context.push(AppRoutes.roomPath('STUDIO', role: 'host')),
+        onNewExercise: () => context.push(AppRoutes.preparation),
       );
       if (!wide) return shelf;
 

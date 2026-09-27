@@ -10,6 +10,12 @@ abstract final class AppRoutes {
   /// query parameter seeds the local role until the server confirms it.
   static const String room = '/room/:roomCode';
 
+  /// Preparation: the trainer's own board, alone — what is made here is kept
+  /// in the Library or recorded. A place of its own since phase 4 of
+  /// `docs/PLAN-PRIPREMA.md`; until then it was the room entered with a code
+  /// no room has.
+  static const String preparation = '/preparation';
+
   /// Analysis board. Optional `fen` query parameter opens a specific position;
   /// without it the screen restores the user's autosaved draft.
   static const String analysis = '/analysis';

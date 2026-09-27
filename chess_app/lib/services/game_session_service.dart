@@ -13,9 +13,6 @@ import 'room_session_api.dart';
 /// an explicit "leave" action, never by the widget simply being popped/
 /// disposed (see chess_game_screen.dart's AppBar leave action vs. its
 /// PopScope back-button handling).
-///
-/// 'STUDIO' (the solo analysis sandbox room code) never counts as an active
-/// session — it has no other participant and never touches the backend.
 class GameSessionService extends ChangeNotifier {
   GameSessionService._();
   static final GameSessionService instance = GameSessionService._();
@@ -40,9 +37,8 @@ class GameSessionService extends ChangeNotifier {
   }
 
   /// Marks [roomCode] as the active session, persisting it so it survives
-  /// navigation and app restarts. A no-op for the Studio sandbox.
+  /// navigation and app restarts.
   Future<void> setActive(String roomCode, String role) async {
-    if (roomCode == 'STUDIO') return;
     _roomCode = roomCode;
     _role = role;
     _notifyAfterThisFrame();

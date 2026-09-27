@@ -4,7 +4,7 @@
 //
 // The rule itself is `mayTeachInRoom`, and every relationship the owner asked
 // about is a case in `board_control_rules_test.dart`. This file holds the
-// wiring: that a real room (not `STUDIO`, where everything is allowed) reads
+// wiring: that a room reads
 // the account's accepted students and the room it opened, and hides „Make
 // exercise" and the tutorial actions from someone who teaches nobody there —
 // on a wide window, where the Board column is drawn for every seat.
@@ -163,10 +163,9 @@ void main() {
     await _close(tester);
   });
 
-  testWidgets('Preparation keeps everything, students or not', (tester) async {
-    await _room(tester, roomCode: 'STUDIO', role: 'host');
-    expect(_makeExercise, findsOneWidget);
-    expect(_tutorialAction('Options'), findsOneWidget);
-    await _close(tester);
-  });
+  // Deleted in phase 4 of docs/PLAN-PRIPREMA.md: „Preparation keeps
+  // everything, students or not", which entered the room as `STUDIO`. What it
+  // protected — a trainer preparing alone is never asked whom they teach — is
+  // the new screen's: „Save as…" → „Exercise…" is offered whoever is signed in
+  // (`preparation_material_test.dart`).
 }

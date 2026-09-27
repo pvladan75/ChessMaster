@@ -40,6 +40,10 @@ import 'package:chess_app/services/semantics_shadow.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
+import 'package:chess_app/features/preparation/screens/preparation_screen.dart';
+import 'package:chess_app/features/preparation/services/preparation_engine.dart';
+
+import 'support/trainer_room.dart';
 
 class _SpyBinding extends AutomatedTestWidgetsFlutterBinding {
   @override
@@ -214,6 +218,12 @@ Future<List<String>> _hoverEveryTooltip(WidgetTester tester) async {
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
+/// Preparation's engine, with no process behind it: a widget test has none.
+class _SilentEngine extends PreparationEngine {
+  @override
+  void triggerAnalysis(String fen) {}
+}
+
 void main() {
   _SpyBinding();
 
@@ -382,7 +392,13 @@ void main() {
     );
   });
 
-  testWidgets('no tooltip in Preparation orphans a node when it shows', (
+  // Until phase 4 of docs/PLAN-PRIPREMA.md this case was named for
+  // Preparation and pumped the room as `STUDIO`, which is where Preparation
+  // was and where the crash was found. What it protects is the room's own
+  // tooltips, and the room is still here — so it is asked of the room, in the
+  // seat that draws the most of them. Preparation is a screen of its own now
+  // and has the case under this one.
+  testWidgets('no tooltip in the room orphans a node when it shows', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -405,18 +421,14 @@ void main() {
             name: 'N',
             role: 'x',
           ),
-          roomCode: 'STUDIO',
-          initialRole: 'trener',
+          roomCode: trainerRoomCode,
+          initialRole: trainerSeat,
           lessonApi: LessonApiService(authToken: 'tok', client: client),
           positionLibrary: PositionLibraryService(
             authToken: 'tok',
             client: client,
           ),
           groupApi: GroupApiService(client: client),
-          lessonRecordingApi: LessonRecordingApi(
-            authToken: 'tok',
-            client: client,
-          ),
         ),
       ),
     );
@@ -430,6 +442,62 @@ void main() {
     );
     expect(await _hoverEveryTooltip(tester), isEmpty);
     handle.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
+  });
+
+  // The screen a trainer is actually on since phase 4. Its bar is icons with
+  // tooltips where labels do not fit (D12), so it has more of them than the
+  // room had, and nothing had swept them: phases 1–3 built a screen no door
+  // opened.
+  testWidgets('no tooltip in Preparation orphans a node when it shows', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await AppSettingsService.instance.init();
+    tester.view.physicalSize = const Size(1280, 760);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final handle = tester.ensureSemantics();
+    final client = MockClient((_) async => http.Response('[]', 200));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark().copyWith(
+          extensions: const [AppColorTokens.dark],
+        ),
+        home: PreparationScreen(
+          userSession: UserSession(
+            id: 1,
+            token: 'tok',
+            email: 'e',
+            name: 'N',
+            role: 'x',
+          ),
+          engine: _SilentEngine(),
+          lessonApi: LessonApiService(authToken: 'tok', client: client),
+          positionLibrary: PositionLibraryService(
+            authToken: 'tok',
+            client: client,
+          ),
+          lessonRecordingApi: LessonRecordingApi(
+            authToken: 'tok',
+            client: client,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(
+      find.byType(Tooltip),
+      findsAtLeastNWidgets(5),
+      reason: 'the screen and its tooltips were built',
+    );
+    expect(await _hoverEveryTooltip(tester), isEmpty);
+    handle.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(const Duration(seconds: 1));
   });
 
   testWidgets('no tooltip on Analysis orphans a node when it shows', (

@@ -45,7 +45,7 @@ place the word appears and it never reaches a screen.
 | Serbian | English | What it is |
 |---|---|---|
 | Soba | **Room** | The live session, with a student in it |
-| Priprema | **Preparation** | The same room alone, with your own library — your material |
+| Priprema | **Preparation** | Your own board, alone, with your own library — a screen of its own since 27.9.2026, no longer the room |
 | Analiza | **Analysis** | The engine, the opening database, the tree — one position |
 | Studio za tutorijal | **Tutorial Studio** | Writing a tutorial, and the only „studio" there is |
 

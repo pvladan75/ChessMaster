@@ -1,6 +1,28 @@
 // The gate for phase 3 of `docs/PLAN-PRIPREMA.md` — recording on
 // Preparation's own screen, and squares in the timeline.
 //
+// **Since phase 4 this is the only recording there is.** The room's own
+// (`lesson_recording_ui_test.dart`, eight cases) went with the room's
+// recording, each of them held here under the name beside it:
+//
+//   Preparation offers „Start recording",   „offers „Record" at …"; the room's
+//     a room does not                       half is `room_not_recorded_test`
+//                                           and `preparation_doors_test`
+//   a refusal is said before the            the same name
+//     microphone opens
+//   a lesson goes to the server with the    „is the board's events, each
+//     board stamped on the audio's clock    stamped on the audio's clock"
+//   a failed upload keeps the take and      the same name
+//     offers to try again
+//   discard sends nothing and keeps         the same name
+//     nothing
+//   back does not leave while a lesson      „back does not leave while a take
+//     is recording                          runs"
+//   the strip fits at 360×640, 760×360      there is no strip (D11): „the
+//                                           board is the size it was, recording
+//                                           or not, at …" and the two phone
+//                                           cases of „the bar"
+//
 // ---------------------------------------------------------------------------
 // THE FROZEN CONTRACT
 //

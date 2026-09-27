@@ -10,6 +10,7 @@ import 'package:chess_app/screens/chess_game_screen.dart';
 import 'package:chess_app/theme/arrow_colors.dart';
 import 'package:chess_app/widgets/game_screen/arrow_color_button.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'support/trainer_room.dart';
 
 /// What the room's drawing does today — written **before** P7b moves it onto
 /// `BoardAnnotationController`, and green before a line of that move was
@@ -30,9 +31,14 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 /// and the refactor has to keep the publish calls where they are by inspection
 /// — which is stated here rather than left for someone to assume it was covered.
 ///
-/// The room is opened in `STUDIO` mode, which is the one entry that asks for no
-/// server, no session registration and no partner: `initState` takes a
-/// different branch for it, and everything about drawing is identical.
+/// **The seat, since phase 4 of docs/PLAN-PRIPREMA.md.** This file opened the
+/// room as `STUDIO`, the entry that asked for no server and no partner. That
+/// entry was Preparation and is a screen of its own now; what is protected
+/// here — the room's arrows — is the live room's and stays, so it is asked of
+/// whoever opened the room. One word changed with the seat and nothing else:
+/// the button reads „Draw arrows" for a trainer in a room where Preparation's
+/// read „Draw arrow". The new screen's marks are held by
+/// `preparation_screen_test.dart`.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -44,7 +50,9 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(
       home: ChessGamePage(
-        roomCode: 'STUDIO',
+        roomCode: trainerRoomCode,
+        initialRole: trainerSeat,
+        groupApi: teachingSomebody(),
         userSession: UserSession(
           token: 't',
           id: 7,
@@ -99,7 +107,7 @@ void main() {
   }
 
   Future<void> startDrawing(WidgetTester tester) =>
-      pressText(tester, 'Draw arrow');
+      pressText(tester, 'Draw arrows');
 
   group('entering and leaving drawing mode', () {
     testWidgets('the button turns the board over to drawing and back',
