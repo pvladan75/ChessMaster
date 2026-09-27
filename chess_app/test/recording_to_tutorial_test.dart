@@ -551,6 +551,39 @@ void main() {
     });
   });
 
+  test('the film the server is handed is this core\'s own output', () {
+    // chess_backend/test/fixtures/recording_tutorial_film.json is what the
+    // server's test lays the copied voice over (rule 12: two ends, one
+    // fixture). Written from here, never by hand:
+    //   WRITE_FILM_FIXTURE=1 flutter test test/recording_to_tutorial_test.dart
+    final made = _fromFixture(_fixture('proba2'));
+    final video = tutorialVideoOf(made.draft);
+    final film = {
+      'about': [
+        'Phase 8 of docs/PLAN-PRIPREMA.md. The tutorial the app makes of the '
+            'recording „proba 2" (chess_app/test/fixtures/recording_tutorial/'
+            'proba2.json): its film as tutorialVideoOf writes it, one marker '
+            'per beat of that film for the recording\'s own voice, and the '
+            'positions signature the voice is held to.',
+        'Written by chess_app/test/recording_to_tutorial_test.dart and held '
+            'to it there; never edited by hand.',
+      ],
+      'durationMs': _fixture('proba2')['durationMs'],
+      'beats': made.beats,
+      'markersMs': made.markersMs,
+      'signature': made.signature,
+      'seconds': video.seconds,
+      'events': video.events,
+    };
+    final text = '${const JsonEncoder.withIndent(' ').convert(film)}\n';
+    final file =
+        File('../chess_backend/test/fixtures/recording_tutorial_film.json');
+    if (Platform.environment['WRITE_FILM_FIXTURE'] == '1') {
+      file.writeAsStringSync(text);
+    }
+    expect(file.readAsStringSync().replaceAll('\r\n', '\n'), text);
+  });
+
   group('refusals', () {
     test('a recording with no sound or no board is refused with a sentence',
         () {

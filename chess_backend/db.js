@@ -223,6 +223,17 @@ async function initDB(target = pool) {
       ALTER TABLE saved_lessons
       ADD COLUMN IF NOT EXISTS narration_signature VARCHAR(64);
     `);
+    // What the narration's signature is taken over — phase 8 of
+    // docs/PLAN-PRIPREMA.md, D18. NULL is a take recorded over the tutorial,
+    // held to its sentences as since phase 5 of PLAN-SNIMANJE; 'positions' is
+    // a voice copied from a recording in Preparation, whose sentences were
+    // written from the voice and so are held to the positions of the beats
+    // alone. Added, never altered: a server starting on it adds one nullable
+    // column and touches no row.
+    await client.query(`
+      ALTER TABLE saved_lessons
+      ADD COLUMN IF NOT EXISTS narration_follows VARCHAR(12);
+    `);
     logger.info('Verified database table: saved_lessons (with user_id & position_list)');
 
     // A tutorial's film being drawn, or what became of it — item 5 of part two
