@@ -53,6 +53,12 @@ const METRIC = {
   // attempt, refused ones included — the same pair, for the same reason.
   AI_REVIEW_WORDS: 'ai_review_words',
   AI_REVIEW_TOKENS: 'ai_review_tokens',
+  // One per tutorial translated into a copy, and the tokens of every attempt,
+  // refused ones included (phase 9 of docs/PLAN-PRIPREMA.md). Counted and not
+  // limited, as speech to text is (Q3 of that plan): a limit is the pricing
+  // document's to set.
+  AI_TRANSLATIONS: 'ai_translations',
+  AI_TRANSLATION_TOKENS: 'ai_translation_tokens',
 };
 
 /// The voices a narrated film can be spoken by, as `services/tts/index.js`
@@ -254,6 +260,7 @@ function loadUnitCosts() {
     [METRIC.MP4_RENDERS]: 0,
     [METRIC.AI_TUTORIAL_TOKENS]: 0,
     [METRIC.AI_REVIEW_TOKENS]: 0,
+    [METRIC.AI_TRANSLATION_TOKENS]: 0,
     ...Object.fromEntries(TTS_PROVIDERS.map((p) => [ttsCharactersMetric(p), 0])),
     ...Object.fromEntries(STT_PROVIDERS.map((p) => [sttSecondsMetric(p), 0])),
   };

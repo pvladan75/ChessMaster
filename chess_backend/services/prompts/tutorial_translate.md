@@ -23,6 +23,12 @@ What the ids mean:
 - `p<n>.c<m>` - a sentence said about the position or the move just played on
   the board.
 
+## The answer
+
+Answer with one JSON object and nothing else:
+`{"items": [{"id": "...", "text": "..."}]}` — every id you were given, each
+exactly once, with its translated text.
+
 ## Chess notation is not text
 
 Copy every piece of chess notation **character for character**, exactly as it

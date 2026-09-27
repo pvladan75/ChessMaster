@@ -62,7 +62,10 @@ import sys
 from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PROMPT_FILE = os.path.join(HERE, 'prompt.md')
+# One prompt for this tool and the server's „Translate…" (phase 9 of
+# docs/PLAN-PRIPREMA.md), kept where the server reads it.
+PROMPT_FILE = os.path.join(HERE, '..', '..', 'chess_backend', 'services', 'prompts',
+                           'tutorial_translate.md')
 
 # The seven languages a tutorial may say it is written in — the app's
 # `TutorialLanguage` and the server's `services/tutorialLanguage.js`. A code
@@ -206,7 +209,10 @@ def prove_untouched(src, new):
 def judge(src, tr, language):
     """(faults, warnings), each a {id: reason}."""
     faults, warnings = {}, {}
-    latin = 'latin' in language.lower()
+    # Every language offered but Serbian in Cyrillic is written in Latin
+    # letters — the server's rule too (services/tutorialTranslation.js), held
+    # to it by chess_backend/test/fixtures/translation_cases.json.
+    latin = 'cyrillic' not in language.lower()
     for key, text in src.items():
         if key not in tr:
             faults[key] = 'missing from the translation'

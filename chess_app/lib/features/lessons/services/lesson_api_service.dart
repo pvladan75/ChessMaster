@@ -483,6 +483,41 @@ class LessonApiService {
     }
   }
 
+  /// Translates the tutorial [lessonId] into [language], and answers the new
+  /// tutorial's row (a copy — the tutorial itself is not touched) or the
+  /// server's sentence — phase 9 of `docs/PLAN-PRIPREMA.md`,
+  /// `POST /lessons/:id/translate`
+  /// (`chess_backend/routes/lessonTranslation.js`).
+  ///
+  /// **The timeout is generous because the server's work is.** It asks the
+  /// model once, and if the model's answer fails the checks it asks a second
+  /// time before giving up — the brief's own words are "up to a minute or so"
+  /// per call, and a slow call can run past that, so two of them back to back
+  /// can be closer to three minutes than one. Three minutes leaves room for
+  /// that without turning a request the server is still honestly working on
+  /// into a `TimeoutException` on this side.
+  Future<LessonWriteResult> translateTutorial({
+    required int lessonId,
+    required String language,
+  }) async {
+    try {
+      final res = await _client
+          .post(
+            Uri.parse('$backendUrl/lessons/$lessonId/translate'),
+            headers: _headers,
+            body: jsonEncode({'language': language}),
+          )
+          .timeout(const Duration(minutes: 3));
+      if (res.statusCode == 201) return _rowFrom(res.body);
+      return LessonWriteResult(
+        error: _errorFrom(res.body, 'Translation failed (${res.statusCode}).'),
+      );
+    } catch (e) {
+      AppLogger.log('[Lessons] Translate failed: $e');
+      return const LessonWriteResult(error: 'Cannot connect to server.');
+    }
+  }
+
   /// Updates a lesson. Returns the server's error, or null.
   ///
   /// **[positionList] is omitted from the body when it is null, and that is not

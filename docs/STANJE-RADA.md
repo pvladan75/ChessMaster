@@ -204,6 +204,21 @@ tutorijal bez reči, posle pitanja; vrata u plejeru su u panelu prepisa).
 komentaru su se posle svakog čuvanja vraćale sa razmacima. Stavke za proveru
 uživo `[250.19]`–`[250.23]`. **Spajanje traži restart servera** (nova kolona,
 nova ruta; `initDB` samo dodaje kolonu). **Sledeće**: faza 9 (prevod).
+Faza 8 je spojena u `master` i poslata 27.9.2026.
+
+**Faza 9 (prevod tutorijala) je izgrađena i ocenjena 27.9.2026** na grani
+`priprema-faza-9`, **još nije spojena**: aplikacija **4908** (1 preskočen),
+server **1860** bez baze i **2019** sa bazom, analiza istih 22, sve mereno.
+`POST /lessons/:id/translate` šalje DeepSeek-u samo reči, proverava prevod
+kao alat za serije, traži odbijeno još jednom i pravi kopiju jednim upisom
+ili nikako; original se ne dira. Alat i server čitaju **isti upit**
+(`chess_backend/services/prompts/tutorial_translate.md`, premešten iz
+`tools/`) i drže se **istog fajla slučajeva**. Vođina odluka (Q3):
+brojano, bez limita, kao govor u tekst. Ocenjivanje je izbacilo izvođačevo
+oslobađanje zaštite pri zatvaranju dijaloga (propuštalo je drugi prevod dok
+prvi traje). Stavke za proveru uživo `[250.24]`–`[250.25]`. **Spajanje traži
+restart servera** (nova ruta; bez promene šeme). **Sledeće**: faza 10 (reči:
+priručnik, rečnik, format, cene), pa vlasnikova provera uživo (faza 11).
 
 
 1. **Faze 1–4 su u `master` i na `origin`** (27.9.2026). Ekran je gotov;

@@ -1304,7 +1304,59 @@ rule's boundary:
   both render, the second with no time in it that came from the recording;
 - deleting the tutorial leaves the recording's sound on disk.
 
-### Phase 9 — translation [lead: the route; implementer: the app]
+### Phase 9 — translation [lead: the route; implementer: the app] — built and graded 27.9.2026 on branch `priprema-faza-9`, not yet merged
+
+**Where it stands, 27.9.2026**, on branch `priprema-faza-9`:
+
+- **The route, built by the lead** — `BE/routes/lessonTranslation.js` over
+  `BE/services/tutorialTranslation.js`, a port of the batch tool's method:
+  only prose leaves the tutorial (found by **braces**, never by reading a
+  move — the server still has no PGN reader), every item is judged, what was
+  refused is asked for once more with the reasons, and the copy is **one
+  INSERT** made only when every item passed and the merge was proved to have
+  changed nothing but words. The source is never written to.
+- **One prompt, one fixture.** The tool's prompt moved to
+  `BE/services/prompts/tutorial_translate.md`, which the tool and the server
+  both read; it gained the answer's JSON shape. The two judges are held to
+  `BE/test/fixtures/translation_cases.json` (13 cases, written by hand from
+  the rules), read by `BE/test/lesson_translation.test.js` and
+  `tools/tutorial_translate/test_translate.py` (run by hand:
+  `python -m unittest tools/tutorial_translate/test_translate.py`; CI does not
+  run Python). One case exists because Python's `\w` is Unicode and
+  JavaScript's is not: a square glued to „ć" is not a square to either now.
+- Backend **1860** without a database, **2019** with one (both measured;
+  1841 / 2000 + 19). Sixteen mutations, fifteen red on their case; the one
+  survivor is the proof's call, which only a broken merge can reach (the
+  proof itself has its own cases). One of the reds was first a **hang** —
+  the one-at-a-time case awaited a second request held by the same fake —
+  and was rewritten to decide without waiting.
+- **The app's half, built by the implementer and graded** — brief
+  `docs/briefs/BRIEF-PRIPREMA-FAZA9.md`, gate
+  `docs/gates/tutorial_translation_doors_test.dart` (10 cases, one added at
+  grading), plus six of the worker's. Grading took out a guard release the
+  worker had put in the language dialog's `dispose`: it let a second start
+  through for the whole minute the server works, and the leak it answered was
+  the gate's own (a case that left its dialog open). App **4908**, 1 skipped;
+  analyze the same 22. Live items `[250.24]`–`[250.25]`.
+
+**The lead's decisions, stated so they can be overruled:**
+
+- **Q3 for translation, as for speech to text**: whoever owns a tutorial may
+  translate it, **counted and not limited** — `ai_translations` per copy,
+  `ai_translation_tokens` per attempt, refused ones included. A limit is the
+  pricing document's to set.
+- **An invented item refuses the translation** (the gate's rule). With
+  nothing else wrong there is nothing to ask again, so it is refused after
+  one request.
+- **Every language but Serbian in Cyrillic must be free of Cyrillic
+  letters**; the tool read „Latin" in the language's name, which let a German
+  translation with a Cyrillic word pass. The tool now follows the server.
+- **The copy opens in the studio**, and the dialog says the words go to
+  DeepSeek and that the tutorial itself is not changed. In the studio the
+  door is in the Details sheet, beside the language, and refuses while there
+  are changes not saved: the translation is made of what is saved.
+
+*As planned:*
 
 `POST /lessons/:id/translate` makes a copy in the language asked for: the
 title, the description, each part's title and each beat's text, through the
