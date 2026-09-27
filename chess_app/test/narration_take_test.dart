@@ -362,6 +362,63 @@ void main() {
     });
   });
 
+  // Phase 8 of docs/PLAN-PRIPREMA.md, D18: a voice copied from a recording is
+  // held to the positions its beats stand on, never to their words — unlike
+  // an ordinary take (`takeMismatchOf`), which is judged against
+  // `filmSignatureOf` because it was recorded over those very sentences.
+  group('a voice copied from a recording is judged by its positions (D18)', () {
+    TutorialDraft draftOf(String pgn) =>
+        TutorialDraft(title: 'Film', sections: [partFrom(pgn: pgn)]);
+
+    const said = '{ White takes the centre. } 1. e4 { Black answers. } e5';
+    final takenStops = filmBeatsOf(draftOf(said));
+    final takenSignature = filmPositionsSignatureOf(takenStops);
+    final takenBeats = takenStops.length;
+
+    test('the same positions with other words is usable', () {
+      final now = filmBeatsOf(
+          draftOf('{ Beli zauzima centar. } 1. e4 { Crni odgovara. } e5'));
+      expect(
+        recordingVoiceMismatchOf(
+          takenBeats: takenBeats,
+          takenSignature: takenSignature,
+          beats: now.length,
+          positionsSignature: filmPositionsSignatureOf(now),
+        ),
+        RecordingVoiceMismatch.none,
+      );
+    });
+
+    test('one position moved is not', () {
+      final now = filmBeatsOf(
+          draftOf('{ White takes the centre. } 1. d4 { Black answers. } d5'));
+      expect(
+        recordingVoiceMismatchOf(
+          takenBeats: takenBeats,
+          takenSignature: takenSignature,
+          beats: now.length,
+          positionsSignature: filmPositionsSignatureOf(now),
+        ),
+        RecordingVoiceMismatch.edited,
+      );
+    });
+
+    test('one beat more is not', () {
+      final now = filmBeatsOf(
+          draftOf('{ White takes the centre. } { And holds it. } 1. e4 '
+              '{ Black answers. } e5'));
+      expect(
+        recordingVoiceMismatchOf(
+          takenBeats: takenBeats,
+          takenSignature: takenSignature,
+          beats: now.length,
+          positionsSignature: filmPositionsSignatureOf(now),
+        ),
+        RecordingVoiceMismatch.beatsChanged,
+      );
+    });
+  });
+
   group('on disk', () {
     late Directory temp;
     late NarrationTakeStore store;

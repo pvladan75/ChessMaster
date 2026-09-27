@@ -788,6 +788,44 @@ void main() {
       await _close(tester);
     });
 
+    // Case 3 of the phase 8 brief: the player's door
+    // (`transcript-make-tutorial`), measured in the sheet a phone upright
+    // opens the panel into — the corner this codebase has clipped a button
+    // in before (`CLAUDE.md`, 20.8.2026).
+    testWidgets(
+        'on a phone upright, in the sheet: „Make a tutorial" is on screen '
+        'whole and its words are not clipped, and the list above it keeps '
+        'its room', (tester) async {
+      final server = _Server(transcript: _transcript());
+      await _player(tester, server, size: const Size(360, 640));
+      final open = find.byKey(const Key('replay-transcript-open'));
+      await tester.tap(open);
+      await _settle(tester);
+      expect(_panel, findsOneWidget);
+
+      final list = find.byKey(const Key('transcript-sentence-list'));
+      expect(list, findsOneWidget);
+      final listRect = tester.getRect(list);
+      expect(listRect.height, greaterThan(0),
+          reason: 'the list above the door keeps its room');
+
+      final door = find.byKey(const Key('transcript-make-tutorial'));
+      expect(door, findsOneWidget);
+      final doorRect = tester.getRect(door);
+      expect(doorRect.right, lessThanOrEqualTo(360),
+          reason: 'the button is on screen whole');
+      expect(doorRect.bottom, lessThanOrEqualTo(640),
+          reason: 'the button is on screen whole');
+
+      final label =
+          find.descendant(of: door, matching: find.text('Make a tutorial'));
+      expect(label, findsOneWidget);
+      final paragraph = tester.renderObject<RenderParagraph>(label);
+      expect(paragraph.didExceedMaxLines, isFalse,
+          reason: '„fits" is not „can be read" (CLAUDE.md, 27.9.2026)');
+      await _close(tester);
+    });
+
     testWidgets('on a phone on its side the sentences stand beside the board', (
       tester,
     ) async {

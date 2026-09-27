@@ -245,6 +245,46 @@ TakeMismatch takeMismatchOf(
   return TakeMismatch.none;
 }
 
+/// Why a voice copied from a recording (`follows: 'positions'`, phase 8 of
+/// `docs/PLAN-PRIPREMA.md`) cannot still be the voice of the film in front of
+/// it.
+///
+/// **Beside [takeMismatchOf] and not inside it**, because the two are held to
+/// different things (D18): an ordinary take is judged against the words it
+/// was recorded over (`filmSignatureOf`), a copied voice against the
+/// positions its beats stand on (`filmPositionsSignatureOf`) — a corrected
+/// spelling must not cost the hour the recording took, and only a replaced
+/// move, a reordered part or an added or removed beat does.
+enum RecordingVoiceMismatch {
+  /// It can.
+  none,
+
+  /// A different number of beats — the film has grown or shrunk since the
+  /// voice was laid over it.
+  beatsChanged,
+
+  /// The same number of beats standing on other positions: a move replaced,
+  /// a part reordered, a beat opened on another board.
+  edited,
+}
+
+/// Whether a voice copied from a recording, laid over [takenBeats] beats and
+/// signed [takenSignature] (`filmPositionsSignatureOf` at the time it was
+/// made), can still be the voice of a film of [beats] beats whose positions
+/// sign as [positionsSignature].
+RecordingVoiceMismatch recordingVoiceMismatchOf({
+  required int takenBeats,
+  required String takenSignature,
+  required int beats,
+  required String positionsSignature,
+}) {
+  if (takenBeats != beats) return RecordingVoiceMismatch.beatsChanged;
+  if (takenSignature != positionsSignature) {
+    return RecordingVoiceMismatch.edited;
+  }
+  return RecordingVoiceMismatch.none;
+}
+
 /// The microphone, as this file needs it. `RecordPcmSource` is the real one.
 abstract class PcmSource {
   Future<bool> hasPermission();
