@@ -440,6 +440,10 @@ void main() {
         'lib/services/engine_download_service.dart',
         'lib/services/stockfish_service_native.dart',
         'lib/widgets/engine_settings_dialog.dart',
+        // Phase 2 of `docs/PLAN-PRIPREMA.md`: the same engine settings
+        // dialog the room opens on Windows, wired for Preparation's own
+        // engine panel.
+        'lib/features/preparation/screens/preparation_screen.dart',
       };
 
       final asking = <String>{};

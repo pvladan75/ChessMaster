@@ -344,10 +344,28 @@ void main() {
 
         final tree = find.byType(AnalysisMoveTreeWidget);
         final comment = find.byKey(const Key('prep-comment'));
-        final engine = find.byType(StockfishAnalysisWidget);
+        // The engine's panel stands in a box of its own that scrolls:
+        // with its dials and three lines it is taller than its place, and
+        // that is what the box is for. So it is the **box** that has to be
+        // on the screen, with the panel's head in it. Until phase 2 this
+        // held the panel itself to the window, which the dials could not
+        // meet at 900 × 700 — and the worker had answered by taking the
+        // dials away there. Changed by the lead, 27.9.2026.
+        final engine = find.byKey(const Key('prep-engine-box'));
+        final panel = find.byType(StockfishAnalysisWidget);
         expectOnScreen(tester, w.size, tree);
         expectOnScreen(tester, w.size, comment);
         expectOnScreen(tester, w.size, engine);
+        expect(panel, findsOneWidget);
+        expect(tester.getTopLeft(panel).dy,
+            closeTo(tester.getTopLeft(engine).dy, 0.5),
+            reason: 'the engine\'s panel does not start where its box does');
+        expect(tester.getSize(engine).height, greaterThanOrEqualTo(170),
+            reason: 'the box is too low to read the engine in');
+        expect(panel.evaluate().single.widget, isA<StockfishAnalysisWidget>());
+        expect(tester.widget<StockfishAnalysisWidget>(panel).analysisDepth,
+            isNotNull,
+            reason: 'the engine\'s dials are not drawn at ${_name(w.size)}');
         expect(find.byType(VisualMoveTreeWidget), findsOneWidget,
             reason: 'a desktop window opens on the graphical tree');
 
@@ -971,6 +989,45 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       expect(_tree(tester).rootNode.children, hasLength(1));
       expect(find.text('Line was already in the tree.'), findsOneWidget);
+    }, variant: windows);
+
+    // Phase 2 of `docs/PLAN-PRIPREMA.md`: the engine's own dials, left out of
+    // phase 1 and wired here „as the room does"
+    // (`chess_game_screen._buildStockfishAnalysisWidget`) — through
+    // `PreparationEngine`, which is why the cases are written against
+    // `_AskedEngine` rather than `StockfishAnalysisWidget`'s own fields: a
+    // dial that changed nothing on the engine it drives would still show the
+    // right number on the panel.
+    testWidgets('a changed depth is kept and asks the engine again',
+        (tester) async {
+      final engine = _AskedEngine();
+      await _open(tester, size, engine: engine);
+      await _switchEngineOn(tester);
+      final asked = engine.asked.length;
+
+      _engine(tester).onAnalysisDepthChanged!(30);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.analysisDepth, 30,
+          reason: 'the dial\'s new value was not kept on the engine');
+      expect(engine.asked.length, asked + 1,
+          reason: 'a changed depth did not ask the engine again');
+    }, variant: windows);
+
+    testWidgets('a changed number of lines is kept and asks the engine again',
+        (tester) async {
+      final engine = _AskedEngine();
+      await _open(tester, size, engine: engine);
+      await _switchEngineOn(tester);
+      final asked = engine.asked.length;
+
+      _engine(tester).onAnalysisLinesChanged!(4);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.analysisLines, 4,
+          reason: 'the dial\'s new value was not kept on the engine');
+      expect(engine.asked.length, asked + 1,
+          reason: 'a changed line count did not ask the engine again');
     }, variant: windows);
   });
 

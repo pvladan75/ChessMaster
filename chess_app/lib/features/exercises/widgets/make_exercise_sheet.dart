@@ -49,6 +49,29 @@ const Map<String, String> _kEngineLevelLabels = {
   'tesko': 'Hard',
 };
 
+/// Opens [MakeExerciseSheet] on [moveTree] and answers with the exercise it
+/// saved, or null when the sheet was dismissed.
+///
+/// The one door both [MakeExerciseButton] (the room) and Preparation's
+/// „Exercise…" call — lifted out in phase 2 of `docs/PLAN-PRIPREMA.md` so the
+/// sheet keeps exactly one opener rather than each caller building its own
+/// `showDialog`.
+Future<Exercise?> openMakeExerciseSheet(
+  BuildContext context, {
+  required ExerciseApiService api,
+  required MoveTree moveTree,
+  required List<String> availableUserLabels,
+}) {
+  return showDialog<Exercise>(
+    context: context,
+    builder: (_) => MakeExerciseSheet(
+      api: api,
+      moveTree: moveTree,
+      availableUserLabels: availableUserLabels,
+    ),
+  );
+}
+
 /// Beside „Save position" in the studio room: opens [MakeExerciseSheet] on
 /// the tree in front of the trainer.
 ///
@@ -74,13 +97,11 @@ class MakeExerciseButton extends StatelessWidget {
   final ValueChanged<Exercise>? onSaved;
 
   Future<void> _open(BuildContext context) async {
-    final saved = await showDialog<Exercise>(
-      context: context,
-      builder: (_) => MakeExerciseSheet(
-        api: api,
-        moveTree: moveTree,
-        availableUserLabels: availableUserLabels,
-      ),
+    final saved = await openMakeExerciseSheet(
+      context,
+      api: api,
+      moveTree: moveTree,
+      availableUserLabels: availableUserLabels,
     );
     if (saved != null) onSaved?.call(saved);
   }
