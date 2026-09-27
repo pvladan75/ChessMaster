@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4954 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 4959 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1863 without TEST_DATABASE_URL, 2022 with it (both measured 27.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1088,7 +1088,14 @@ a sentence's **word count**, in the sentence with three moves in it: **read
 the real row before deciding what a user's edits look like.** And a surviving
 mutation asked what „drawn" means when a position arrives with its marks;
 the answer removed a special case and changed one real recording for the
-better. Phase 6 of
+better. Then the owner's phone (→ **4959**, a full run in a worktree with
+nothing else running; analyze the same 22): he corrected a sentence in the
+player and could not see it, because the sheet is a share of what the
+keyboard leaves and the controls are not — at 360 x 640 the column overflowed
+by 96 px, clipped in release. On a phone a correction now has the screen to
+itself, decided by the pencil and not by the keyboard, and the upright player
+is never laid out shorter than 480. **A screen with a text field is tested
+with the keyboard up.** Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

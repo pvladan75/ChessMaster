@@ -255,6 +255,18 @@ odgovoru; bez promene šeme). Izmereno a nije građeno: pauza kao početak dela 
 tolerancija od 300 ms, i sečenje samo na zarezu — brojevi su u planu, faza
 8b.
 
+**Ispravka rečenice na telefonu (27.9.2026, vlasnikova prijava sa slikom)**:
+posle olovke u plejeru tastatura je pokrila list i rečenica u koju se kuca
+nije se videla — list je udeo onoga što tastatura ostavi, a kontrole nisu, pa
+je na 360 x 640 kolona prelivala 96 px. Na telefonu ispravka sada ima ceo
+ekran (polje, „Heard: …", `Save`, `Cancel`), a uspravni plejer se nikad ne
+slaže niže od 480 nego se pomera. Aplikacija **4959** (1 preskočen), analiza
+istih 22; server nije diran. Spojeno u `master` i poslato 28.9.2026 na vlasnikovu reč; stavka `[250.27]`.
+**Otvoreno za vlasnika**: `Tutorial studio` položeno sa tastaturom prikazuje
+dva reda komentara i dva reda table — tekst se vidi, a tabla je ono o čemu se
+piše, pa njeno sklanjanje čeka njegovu reč. Nalog „učenik 1" je na njegovu
+reč postavljen na `pro` (ručno, `users.account_type`).
+
 
 1. **Faze 1–4 su u `master` i na `origin`** (27.9.2026). Ekran je gotov;
    sledeće je vlasnikova provera uživo.

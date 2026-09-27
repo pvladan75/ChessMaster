@@ -9001,3 +9001,51 @@ the median), and the clause alone without the word (a median of 4.3 s and
 the first run, beat for beat — after which every change to the rule was made
 in both and the fixtures written again. The fixtures keep the commas: **the
 times and the commas are the data; the words are somebody's.**
+
+## 27.9.2026 — A correction on a phone has the screen to itself (app 4954 → 4959)
+
+The owner, with a picture of his phone: he tapped the pencil on a sentence in
+the player, the keyboard came up, and the screen showed the board, „Make a
+tutorial", „Transcribe again…" and the player's controls — not the sentence he
+was typing into. Five cases added to `replay_transcript_test.dart`
+(4954 + 5); no server change.
+
+**The sheet was a share of what is left, and the keyboard decides what is
+left.** Upright the sheet takes 55% of the board's area, and that area is what
+remains once the controls have their fixed height. At 360 x 640 with a 300 px
+keyboard the body is 284 px and the controls alone want more: measured, the
+column overflowed by 96 px, which a release build clips without a word. Phase
+7's gate had measured the sheet at rest — list taller than zero, buttons on
+screen — and never with the one thing a text field always brings with it.
+**A screen with a text field is tested with the keyboard up**
+(`tester.view.viewInsets`), or its gate has looked at a state the user is
+never in while typing.
+
+**Decided by the pencil, not by the keyboard.** The correction takes the
+screen when editing starts, and gives it back on Save or Cancel. Switching on
+the keyboard's arrival instead would rebuild the field being typed into as the
+keyboard came up and drop its focus — the reason `LandscapeBoardLayout` always
+scrolls rather than only when it must.
+
+**The way back has a moment of its own.** After Save the field is gone and
+the keyboard is still on its way down, so for a few frames the ordinary player
+is laid out in what the keyboard leaves. The upright player is now never laid
+out shorter than 480 and scrolls under that, as the sideways layout has done
+since it was written. The gate leaves the keyboard up through Save, which is
+the worst case of that moment.
+
+**A sideways case at 800 wide could not see the sideways rule.** 800 is under
+the wide breakpoint, so „not wide" already sent it to the correction page and
+the mutation that dropped „or sideways" would have survived. It stands at
+915 x 412 now — a large phone on its side is wider than 840 — and that
+mutation is red. **Stand a case where only the rule it is for can decide it.**
+
+Eight mutations, seven red on a named case. The survivor is `expands` on the
+field: inside an `Expanded` the field is handed a tight height either way, so
+the flag changes where the text sits, not what the gate measures. Kept, and
+recorded as not guarded.
+
+Not done, and said to the owner: the Tutorial Studio held sideways with the
+keyboard up shows two lines of the comment and two ranks of the board. The
+text can be seen there, and the board is what the comment is about, so taking
+it away is his decision and not a repair.
