@@ -1099,6 +1099,27 @@ the host mutation. The app's gate is `docs/gates/replay_transcript_test.dart`
 (24 cases, one of them a loop over three window sizes), its brief
 `docs/briefs/BRIEF-PRIPREMA-FAZA7.md`.
 
+**The app's half, built and graded the same day** (implementer, then the
+lead): the model, one client over the three routes, the panel beside the
+board from 840 wide, in the sideways column on a phone on its side, and in a
+sheet above the controls upright; „Recordings transcribed" in Usage this
+month. App **4828 passed, 1 skipped** (4796 + 26 of the gate + 6 of the
+worker's), analyze the same 22 infos. Twelve mutations, each red on its case.
+
+The worker stopped on two faults of the lead's gate, rightly: canned answers
+with no charset (package:http encodes a string body as latin1, and the
+fixtures' ć, č, š are not latin1), and `hitTestable()` on the board, which no
+screen can satisfy — the marks' `CustomPaint` lies over it and takes every
+hit. **Grading then found two faults the gate could not see, both by
+rendering the real screen with a transcript longer than the gate's four
+sentences**: the list asked for a fixed 420 px, so at 900 x 700 the panel
+overflowed by 31 px (a release build clips „Transcribe again…" away) and at
+1536 x 792 it showed half its sentences over empty space; and upright the
+sheet lay over the control deck, which holds the only button that closes it.
+The list now takes the column's height where it has one, the sheet is a layer
+of the board's area (the board shrinks, whole, to 45%), the opener is an icon
+in the controls' row, and the gate has three more checks, each watched red.
+
 **D17. The owner's answers of 27.9.2026**, after the lead measured both
 models against his own correction of „proba 4" (`proba4.groq.corrected.json`,
 185 words, two sentences changed):

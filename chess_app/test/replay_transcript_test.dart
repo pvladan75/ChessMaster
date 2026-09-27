@@ -65,67 +65,65 @@ const _host = 1;
 const _student = 3;
 
 Map<String, Object?> _row({String source = 'preparation'}) => {
-  'id': 5,
-  'room_id': null,
-  'source': source,
-  'host_id': _host,
-  'host_name': 'Vladan',
-  'title': 'Italijanska',
-  'audio_url': null,
-  'video_download_url': null,
-  'duration_ms': 95000,
-  'timeline_json': [
-    {
-      'timestampMs': 0,
-      'eventType': 'init',
-      'data': {
-        'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-      },
-    },
-  ],
-  'created_at': '2026-09-27T12:00:00.000Z',
-};
+      'id': 5,
+      'room_id': null,
+      'source': source,
+      'host_id': _host,
+      'host_name': 'Vladan',
+      'title': 'Italijanska',
+      'audio_url': null,
+      'video_download_url': null,
+      'duration_ms': 95000,
+      'timeline_json': [
+        {
+          'timestampMs': 0,
+          'eventType': 'init',
+          'data': {
+            'fen': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+          },
+        },
+      ],
+      'created_at': '2026-09-27T12:00:00.000Z',
+    };
 
 /// The measured shape: sentence 2 starts before sentence 1 has ended.
 List<Map<String, Object?>> _sentences() => [
-  {
-    'startMs': 480,
-    'endMs': 6300,
-    'text':
-        'Ovo ćemo sada da vidimo kako izgleda najčešća italijanska '
-        'partija posle uvodnih poteza, i koji su planovi za obe strane.',
-    'heard':
-        'Ovo ćemo sada da vidimo kako izgleda najčešća italijanska '
-        'partija posle uvodnih poteza, i koji su planovi za obe strane.',
-  },
-  {
-    'startMs': 12000,
-    'endMs': 15740,
-    'text': 'Ona počinje potezom lovac c4.',
-    'heard': 'Ona počinje potezom lovac c4.',
-  },
-  {
-    'startMs': 15500,
-    'endMs': 21780,
-    'text': 'Najčešći odgovor crnog je lovac c5.',
-    'heard': 'Najčešći odgovor crnog je lovac c5.',
-  },
-  {
-    'startMs': 50280,
-    'endMs': 52120,
-    'text': 'Dakle, lovat c5.',
-    'heard': 'Dakle, lovat c5.',
-  },
-];
+      {
+        'startMs': 480,
+        'endMs': 6300,
+        'text': 'Ovo ćemo sada da vidimo kako izgleda najčešća italijanska '
+            'partija posle uvodnih poteza, i koji su planovi za obe strane.',
+        'heard': 'Ovo ćemo sada da vidimo kako izgleda najčešća italijanska '
+            'partija posle uvodnih poteza, i koji su planovi za obe strane.',
+      },
+      {
+        'startMs': 12000,
+        'endMs': 15740,
+        'text': 'Ona počinje potezom lovac c4.',
+        'heard': 'Ona počinje potezom lovac c4.',
+      },
+      {
+        'startMs': 15500,
+        'endMs': 21780,
+        'text': 'Najčešći odgovor crnog je lovac c5.',
+        'heard': 'Najčešći odgovor crnog je lovac c5.',
+      },
+      {
+        'startMs': 50280,
+        'endMs': 52120,
+        'text': 'Dakle, lovat c5.',
+        'heard': 'Dakle, lovat c5.',
+      },
+    ];
 
 Map<String, Object?> _transcript({List<Map<String, Object?>>? sentences}) => {
-  'language': 'sr-Latn',
-  'vendor': 'groq',
-  'model': 'whisper-large-v3',
-  'durationMs': 95000,
-  'sentences': sentences ?? _sentences(),
-  'updatedAt': '2026-09-27T12:10:00.000Z',
-};
+      'language': 'sr-Latn',
+      'vendor': 'groq',
+      'model': 'whisper-large-v3',
+      'durationMs': 95000,
+      'sentences': sentences ?? _sentences(),
+      'updatedAt': '2026-09-27T12:10:00.000Z',
+    };
 
 const _languages = ['en', 'sr-Latn', 'de', 'es', 'it', 'fr'];
 
@@ -134,10 +132,10 @@ const _languages = ['en', 'sr-Latn', 'de', 'es', 'it', 'fr'];
 /// fixtures' Serbian letters (ć, č, š) are not latin1 — the gate's first
 /// draft threw inside its own fake (found by the implementer, 27.9.2026).
 http.Response _json(String body, int status) => http.Response(
-  body,
-  status,
-  headers: const {'content-type': 'application/json; charset=utf-8'},
-);
+      body,
+      status,
+      headers: const {'content-type': 'application/json; charset=utf-8'},
+    );
 
 class _Server {
   _Server({
@@ -292,7 +290,8 @@ void main() {
       expect(
         sentenceAt(s, 15500),
         2,
-        reason: 'the later sentence once it starts, though the earlier has not ended',
+        reason:
+            'the later sentence once it starts, though the earlier has not ended',
       );
       expect(sentenceAt(s, 94000), 3);
       expect(sentenceAt(const [], 1000), isNull);
@@ -356,7 +355,8 @@ void main() {
       await _close(tester);
     });
 
-    testWidgets('no provider, but heard before: the sentences stay, the button '
+    testWidgets(
+        'no provider, but heard before: the sentences stay, the button '
         'goes', (tester) async {
       final server = _Server(available: false, transcript: _transcript());
       await _player(tester, server);
@@ -368,7 +368,8 @@ void main() {
   });
 
   group('transcribing', () {
-    testWidgets('the dialog offers the server\'s languages by name, Serbian '
+    testWidgets(
+        'the dialog offers the server\'s languages by name, Serbian '
         '(Latin) first chosen, and says where the sound goes', (tester) async {
       final server = _Server();
       await _player(tester, server);
@@ -414,7 +415,8 @@ void main() {
       await _close(tester);
     });
 
-    testWidgets('while it is heard the button says so and a second tap sends '
+    testWidgets(
+        'while it is heard the button says so and a second tap sends '
         'nothing; then the sentences are drawn', (tester) async {
       final server = _Server()..holdPost = Completer<http.Response>();
       await _player(tester, server);
@@ -449,7 +451,8 @@ void main() {
       await _close(tester);
     });
 
-    testWidgets('a vendor that fails is the server\'s sentence, and the panel '
+    testWidgets(
+        'a vendor that fails is the server\'s sentence, and the panel '
         'is as it was', (tester) async {
       final server = _Server()
         ..failWith = _json(
@@ -564,7 +567,8 @@ void main() {
   });
 
   group('correcting', () {
-    testWidgets('a correction sends every text, no time, and shows what was '
+    testWidgets(
+        'a correction sends every text, no time, and shows what was '
         'heard', (tester) async {
       final server = _Server(transcript: _transcript());
       await _player(tester, server);
@@ -699,11 +703,9 @@ void main() {
               {
                 'startMs': 1000 + i * 2000,
                 'endMs': 2500 + i * 2000,
-                'text':
-                    'Rečenica broj $i, dovoljno duga da zauzme dva reda u '
+                'text': 'Rečenica broj $i, dovoljno duga da zauzme dva reda u '
                     'koloni pored table.',
-                'heard':
-                    'Rečenica broj $i, dovoljno duga da zauzme dva reda u '
+                'heard': 'Rečenica broj $i, dovoljno duga da zauzme dva reda u '
                     'koloni pored table.',
               },
           ];
@@ -718,8 +720,7 @@ void main() {
           expect(
             panel.bottom - button.bottom,
             lessThan(48),
-            reason:
-                'the list fills the column; no empty band under the '
+            reason: 'the list fills the column; no empty band under the '
                 'button while sentences are hidden above it',
           );
           await _close(tester);
@@ -727,7 +728,8 @@ void main() {
       );
     }
 
-    testWidgets('on a phone upright the sentences open over the player, and a '
+    testWidgets(
+        'on a phone upright the sentences open over the player, and a '
         'tap still moves it', (tester) async {
       final server = _Server(transcript: _transcript());
       await _player(tester, server, size: const Size(360, 640));

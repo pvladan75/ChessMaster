@@ -17,6 +17,9 @@ import 'package:chess_app/services/lesson_audio_download.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/recording_models.dart';
+import 'package:chess_app/models/recording_transcript.dart';
+import 'package:chess_app/services/recording_transcript_api.dart';
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -26,6 +29,7 @@ import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 
@@ -80,6 +84,36 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   late final http.Client _client = widget.client ?? http.Client();
 
   bool get _isHost => recording?.hostId == widget.userSession.id;
+
+  // ── The transcript panel — phase 7 of docs/PLAN-PRIPREMA.md ─────────────
+
+  late final RecordingTranscriptApi _transcriptApi = RecordingTranscriptApi(
+      authToken: widget.userSession.token, client: _client);
+  TranscriptAvailability _transcriptAvailability =
+      const TranscriptAvailability();
+  RecordingTranscript? _transcript;
+  bool _transcribing = false;
+  int? _editingIndex;
+  final TextEditingController _editController = TextEditingController();
+  bool _transcriptSheetOpen = false;
+
+  /// Only the host of a recording made alone in Preparation is ever asked —
+  /// the server would refuse anybody else, and a student's player has no
+  /// business making the request at all.
+  bool get _mayTranscribe => _isHost && recording?.source == 'preparation';
+
+  bool get _transcriptPanelVisible =>
+      _mayTranscribe &&
+      (_transcriptAvailability.available || _transcript != null);
+
+  Future<void> _loadTranscript() async {
+    final result = await _transcriptApi.fetch(widget.recordingId);
+    if (!mounted) return;
+    setState(() {
+      _transcriptAvailability = result;
+      _transcript = result.transcript;
+    });
+  }
 
   /// Who may watch this lesson — the host's own accepted students, ticked here
   /// and sent as the whole list (phase 5b.4 of docs/PLAN-SESIJA.md).
@@ -177,6 +211,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    _editController.dispose();
     final downloaded = _downloadedAudio;
     _audioPlayer.dispose().whenComplete(() {
       try {
@@ -213,6 +248,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
             _applyEventAt(0);
           }
         });
+        if (rec.hostId == widget.userSession.id &&
+            rec.source == 'preparation') {
+          unawaited(_loadTranscript());
+        }
       } else {
         _showError('Failed to load recording.');
       }
@@ -368,6 +407,152 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
       for (final s in frame.squares)
         SquareMark(square: s['square']!, colorCode: s['colorCode']!),
     ];
+  }
+
+  // ── Transcribing ──────────────────────────────────────────────────────
+
+  /// „Transcribe…" or „Transcribe again…" — the second asks first, because it
+  /// replaces both the transcript and any corrections made to it.
+  Future<void> _openTranscribeFlow() async {
+    if (_transcript != null) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Transcribe again?'),
+          content:
+              const Text('Transcribing again replaces this transcript and any '
+                  'corrections made to it.'),
+          actions: [
+            TextButton(
+              key: const Key('transcript-replace-cancel'),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              key: const Key('transcript-replace-confirm'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Replace'),
+            ),
+          ],
+        ),
+      );
+      if (proceed != true || !mounted) return;
+    }
+    await _openLanguageDialog();
+  }
+
+  Future<void> _openLanguageDialog() async {
+    final languages = _transcriptAvailability.languages;
+    if (languages.isEmpty || !mounted) return;
+    var selected = languages.contains('sr-Latn') ? 'sr-Latn' : languages.first;
+    final start = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Transcribe this recording'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'The sound of this recording is sent to Groq to be heard, '
+                  'and written back here as text.',
+                  style: AppText.caption,
+                ),
+                const SizedBox(height: AppSpacing.md),
+                RadioGroup<String>(
+                  groupValue: selected,
+                  onChanged: (value) => setDialogState(() => selected = value!),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final code in languages)
+                        RadioListTile<String>(
+                          key: Key('transcript-language-$code'),
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          value: code,
+                          title: Text(TutorialLanguage.of(code)?.label ?? code),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              key: const Key('transcript-start'),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Transcribe'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (start == true && mounted) {
+      unawaited(_startTranscribe(selected));
+    }
+  }
+
+  /// The guard is set **before** the request is sent, not when it returns —
+  /// the double „Record" of phase 3 of `docs/PLAN-SESIJA.md` was a guard set
+  /// too late to catch a second tap in the gap before the first answer.
+  Future<void> _startTranscribe(String language) async {
+    setState(() => _transcribing = true);
+    final result =
+        await _transcriptApi.transcribe(widget.recordingId, language);
+    if (!mounted) return;
+    setState(() {
+      _transcribing = false;
+      if (result.ok) _transcript = result.transcript;
+    });
+    if (!result.ok) {
+      AppFeedback.error(
+          context, result.error ?? 'The recording could not be transcribed.');
+    }
+  }
+
+  void _startEdit(int index) {
+    final sentence = _transcript?.sentences[index];
+    if (sentence == null) return;
+    setState(() {
+      _editingIndex = index;
+      _editController.text = sentence.text;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() => _editingIndex = null);
+  }
+
+  /// Sends every sentence's text — the whole set, in order, because
+  /// `PUT /recordings/:id/transcript` replaces the lot. Times are never sent:
+  /// they cannot be edited.
+  Future<void> _saveEdit(int index) async {
+    final transcript = _transcript;
+    if (transcript == null) return;
+    final texts = [
+      for (var i = 0; i < transcript.sentences.length; i++)
+        i == index ? _editController.text : transcript.sentences[i].text,
+    ];
+    final result = await _transcriptApi.correct(widget.recordingId, texts);
+    if (!mounted) return;
+    if (result.ok) {
+      setState(() {
+        _transcript = result.transcript;
+        _editingIndex = null;
+      });
+    } else {
+      // Stays open with what was typed — a refused correction is not lost.
+      AppFeedback.error(
+          context, result.error ?? 'The correction could not be saved.');
+    }
   }
 
   void _showExportMp4Dialog() {
@@ -661,6 +846,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     }
 
     final rec = recording!;
+    final panelVisible = _transcriptPanelVisible;
+    final isWide = Breakpoints.isWide(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -736,32 +923,115 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           child: LandscapeBoardLayout.applies(context)
               ? LandscapeBoardLayout(
                   board: _buildBoard,
-                  // Nothing to read beside a replay but its controls.
-                  panels: const SizedBox.shrink(),
+                  // Empty unless a transcript is offered — the room's own
+                  // replay still has nothing else to read beside its controls.
+                  panels: panelVisible
+                      ? _buildTranscriptPanel()
+                      : const SizedBox.shrink(),
                   footer: [_buildControlDeck()],
                 )
-              : Column(
-                  children: [
-                    // Interactive Board View
-                    Expanded(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          child: AspectRatio(
-                            aspectRatio: 1.0,
-                            child: LayoutBuilder(
-                              builder: (ctx, constraints) =>
-                                  _buildBoard(constraints.maxWidth),
+              : panelVisible && isWide
+                  // From 840 wide: a column right of the board, which never
+                  // shrinks it — the board is bound by height at every
+                  // desktop size, so the row takes width the board never had.
+                  // The control deck stays full width, under both, exactly as
+                  // it is without the panel: nested inside the narrower board
+                  // column it wrapped its caption onto a second line, which
+                  // cost the board 16 px of height it never gave up before.
+                  ? Column(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: Center(
+                                  child: Padding(
+                                    padding:
+                                        const EdgeInsets.all(AppSpacing.md),
+                                    child: AspectRatio(
+                                      aspectRatio: 1.0,
+                                      child: LayoutBuilder(
+                                        builder: (ctx, constraints) =>
+                                            _buildBoard(constraints.maxWidth),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              SizedBox(
+                                width: LandscapeBoardLayout.minPanelWidth,
+                                child: _buildTranscriptPanel(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        _buildControlDeck(),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        // The board's area, and over its lower half the
+                        // sheet when it is open — a layer of this area and
+                        // not of the screen, so the control deck under it,
+                        // which holds play and the button that closes the
+                        // sheet, is never covered. Not a route or a Scaffold
+                        // bottom sheet either: their scrim covers the whole
+                        // screen even when non-modal. (Grading, 27.9.2026:
+                        // the first build laid the sheet over the deck, and
+                        // a rendered phone had no way out of it.)
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (ctx, area) => Stack(
+                              children: [
+                                // Open, the sheet takes the lower 55% and
+                                // the board shrinks to the rest, whole —
+                                // a smaller board beats half of one.
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: 0,
+                                  height: panelVisible && _transcriptSheetOpen
+                                      ? area.maxHeight * 0.45
+                                      : area.maxHeight,
+                                  child: Center(
+                                    child: Padding(
+                                      padding:
+                                          const EdgeInsets.all(AppSpacing.md),
+                                      child: AspectRatio(
+                                        aspectRatio: 1.0,
+                                        child: LayoutBuilder(
+                                          builder: (ctx, constraints) =>
+                                              _buildBoard(constraints.maxWidth),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                if (panelVisible && _transcriptSheetOpen)
+                                  Positioned(
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    height: area.maxHeight * 0.55,
+                                    child: Material(
+                                      elevation: 8,
+                                      child: _buildTranscriptPanel(),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                    ),
 
-                    // Player Control Deck
-                    _buildControlDeck(),
-                  ],
-                ),
+                        // Player Control Deck — with the sheet's own
+                        // opener, upright below 840, when a transcript
+                        // is offered.
+                        _buildControlDeck(
+                            showTranscriptButton: panelVisible && !isWide),
+                      ],
+                    ),
         ),
       ),
     );
@@ -799,9 +1069,207 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     );
   }
 
+  /// Upright below 840 wide, the panel has no column of its own: a sheet over
+  /// the player, at most 60% of the screen tall so the board stays in sight.
+  ///
+  /// Not `Scaffold.showBottomSheet` — its scrim sits over the **whole**
+  /// screen even for a non-modal sheet, which would have made the board
+  /// unreachable behind it despite standing in the clear top 40%. A `Stack`
+  /// with the sheet as its own layer, toggled by the same button, keeps the
+  /// rest of the screen exactly as interactive as it was.
+  void _toggleTranscriptSheet() {
+    setState(() => _transcriptSheetOpen = !_transcriptSheetOpen);
+  }
+
+  /// „No transcript yet." and „Transcribe…"; with one, the sentences and
+  /// „Transcribe again…" — asked for only when the reader is the host of a
+  /// recording made in Preparation, and drawn only when the server offers
+  /// transcribing or a transcript already exists.
+  Widget _buildTranscriptPanel() {
+    final transcript = _transcript;
+    final canRequest = _transcriptAvailability.available;
+    return Container(
+      key: const Key('replay-transcript-panel'),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      // The list takes the height the panel is given wherever it is given
+      // one — the column beside the board, the sheet — and a capped height
+      // only in the phone's sideways column, which scrolls and gives none. A
+      // fixed 420 everywhere overflowed the column at 900 x 700 by 31 px and
+      // left half the column empty at 1536 x 792 (grading, 27.9.2026).
+      child: LayoutBuilder(
+        builder: (context, constraints) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: _transcriptPanelChildren(
+              transcript, canRequest, constraints.hasBoundedHeight),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _transcriptPanelChildren(
+      RecordingTranscript? transcript, bool canRequest, bool bounded) {
+    // A long transcript (some 400 sentences for a 30-minute take) is a lazy
+    // list, never a Column of every row.
+    Widget list(RecordingTranscript t) => ListView.builder(
+          key: const Key('transcript-sentence-list'),
+          shrinkWrap: true,
+          itemCount: t.sentences.length,
+          itemBuilder: (ctx, i) => _buildSentence(t, i),
+        );
+    return [
+      Text('Transcript', style: AppText.bodyBold),
+      const SizedBox(height: AppSpacing.sm),
+      if (transcript == null)
+        Text('No transcript yet.',
+            style: AppText.body.copyWith(color: context.colors.textMuted))
+      else if (bounded)
+        Flexible(child: list(transcript))
+      else
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 420),
+          child: list(transcript),
+        ),
+      const SizedBox(height: AppSpacing.sm),
+      if (_transcribing)
+        Text('Transcribing…',
+            style: AppText.bodyBold.copyWith(color: context.colors.textMuted))
+      else if (canRequest)
+        ElevatedButton(
+          key: const Key('transcript-transcribe'),
+          onPressed: _openTranscribeFlow,
+          child: Text(transcript == null ? 'Transcribe…' : 'Transcribe again…'),
+        ),
+    ];
+  }
+
+  Widget _buildSentence(RecordingTranscript transcript, int index) {
+    final sentence = transcript.sentences[index];
+    final isCurrent = sentenceAt(transcript.sentences, currentMs) == index;
+    final isEditing = _editingIndex == index;
+    return Padding(
+      key: Key('transcript-sentence-$index'),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      child: InkWell(
+        onTap: isEditing ? null : () => _seekTo(sentence.startMs),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.sm),
+          decoration: BoxDecoration(
+            // Never by colour alone (the owner does not see hue): a current
+            // sentence is both a wider border and its own marker below.
+            border: Border.all(
+              color: isCurrent ? context.colors.accent : context.colors.border,
+              width: isCurrent ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isCurrent)
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.xs),
+                  child: Icon(
+                    Icons.play_arrow,
+                    key: const Key('transcript-current'),
+                    size: 16,
+                    color: context.colors.accent,
+                  ),
+                ),
+              Text(_sentenceTime(sentence.startMs), style: AppText.captionBold),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: isEditing
+                    ? _buildSentenceEditor(index)
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            sentence.text.isEmpty
+                                ? '(nothing said)'
+                                : sentence.text,
+                            style: AppText.body,
+                          ),
+                          if (sentence.corrected)
+                            Padding(
+                              key: Key('transcript-heard-$index'),
+                              padding:
+                                  const EdgeInsets.only(top: AppSpacing.xxs),
+                              child: Text(
+                                'Heard: ${sentence.heard.isEmpty ? "(nothing said)" : sentence.heard}',
+                                style: AppText.caption
+                                    .copyWith(color: context.colors.textMuted),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+              if (!isEditing)
+                IconButton(
+                  key: Key('transcript-edit-$index'),
+                  icon: const Icon(Icons.edit, size: 16),
+                  tooltip: 'Correct this sentence',
+                  onPressed: () => _startEdit(index),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSentenceEditor(int index) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          key: Key('transcript-field-$index'),
+          controller: _editController,
+          maxLines: null,
+          style: AppText.body,
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              key: Key('transcript-cancel-$index'),
+              onPressed: _cancelEdit,
+              child: const Text('Cancel'),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            ElevatedButton(
+              key: Key('transcript-save-$index'),
+              onPressed: () => _saveEdit(index),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// `m:ss`, never the player's own `mm:ss` clock — the two are read apart on
+  /// purpose (the gate's own contract).
+  String _sentenceTime(int ms) {
+    final totalSeconds = (ms / 1000).floor();
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
   /// Play, pause, the scrubber and the speed — under the board upright, beside
   /// it on its side.
-  Widget _buildControlDeck() {
+  ///
+  /// [showTranscriptButton] is only true upright below 840 wide, where the
+  /// panel has no column of its own: „Transcript" opens it in a sheet, since
+  /// the app bar is already full at 360.
+  Widget _buildControlDeck({bool showTranscriptButton = false}) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -902,6 +1370,20 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   }
                 },
               ),
+              // Upright below 840 only: opens and closes the sentences' sheet.
+              // An icon in this row rather than a row of its own — on a 640
+              // tall phone a row here is the board's (grading, 27.9.2026).
+              if (showTranscriptButton)
+                IconButton(
+                  key: const Key('replay-transcript-open'),
+                  tooltip: _transcriptSheetOpen
+                      ? 'Hide transcript'
+                      : 'Show transcript',
+                  isSelected: _transcriptSheetOpen,
+                  icon: const Icon(Icons.subtitles_outlined),
+                  selectedIcon: const Icon(Icons.subtitles),
+                  onPressed: _toggleTranscriptSheet,
+                ),
             ],
           ),
         ],

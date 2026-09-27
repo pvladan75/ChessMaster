@@ -317,6 +317,7 @@ const _countedOrder = <String>[
   'mp4_renders',
   'mp4_render_seconds',
   'tts_characters',
+  'stt_seconds',
   'scanned_pages',
   'ai_tutorial_tokens',
   'ai_review_tokens',
@@ -327,6 +328,7 @@ const _countedLabels = <String, String>{
   'mp4_renders': 'Videos exported',
   'mp4_render_seconds': 'Video rendered',
   'tts_characters': 'Narration spoken by a voice',
+  'stt_seconds': 'Recordings transcribed',
   'scanned_pages': 'Book pages scanned',
   'ai_tutorial_tokens': 'AI tutorial writing',
   'ai_review_tokens': 'AI review writing',
@@ -421,11 +423,24 @@ List<CountedRow> countedRows(MonthlyUsage usage) {
   }
   if (narration > 0) metrics['tts_characters'] = narration;
 
+  // Every provider's speech-to-text seconds are one row too — the same fold
+  // as the voices' characters, and the reason a provider never has to be
+  // named twice (phase 7 of docs/PLAN-PRIPREMA.md, D15).
+  var transcribed = 0;
+  for (final key in metrics.keys.toList()) {
+    final match = RegExp(r'^stt_[a-z]+_seconds$').firstMatch(key);
+    if (match != null) {
+      transcribed += metrics.remove(key)!;
+    }
+  }
+  if (transcribed > 0) metrics['stt_seconds'] = transcribed;
+
   String say(String metric, int value) {
     switch (metric) {
       case 'agora_seconds':
         return '${formatCount(usage.voiceMinutes)} min';
       case 'mp4_render_seconds':
+      case 'stt_seconds':
         return '${formatCount((value / 60).ceil())} min';
       case 'tts_characters':
         return '${formatCount(value)} characters';
