@@ -626,18 +626,36 @@ method was called; an exercise's solution is nowhere on the screen; every
 a line that does not replay is refused with its count. The fixture carries
 `%clk` comments and a variation, as the owner's own games do.
 
-### Phase 3 — recording here, and squares in the timeline [lead: server and readers; implementer: the screen] — briefed 27.9.2026, being built
+### Phase 3 — recording here, and squares in the timeline [lead: server and readers; implementer: the screen] — built and graded 27.9.2026, **not merged**
 
-**Where it stands.** Branch `priprema-faza-3`, in a worktree; the brief is
-`docs/briefs/BRIEF-PRIPREMA-FAZA3.md` there. The lead's half is built and
-proved: the fixture, the film's test and the judge's (6 cases, 4 faults
-caught), the player's rule and its drawing of squares (5 cases, 5 faults
-caught). **No server source changed**: the judge already keeps whatever an
-event's `data` holds and the film already draws `squares` from any event.
-The screen's gate is `test/preparation_recording_test.dart`, 30 cases,
-compiled and watched going red.
+**Where it stands.** Branch `priprema-faza-3`, in the worktree
+`.claude/worktrees/priprema-faza-3`, **nothing committed there**; the brief is
+`docs/briefs/BRIEF-PRIPREMA-FAZA3.md` in it. It waits for the owner's word to
+merge.
 
-**Decided by the lead while building it, to be overruled if wrong:**
+| measured 27.9.2026, nothing else running | |
+|---|---|
+| app, full suite on the branch | **4336 passed, 1 skipped** (4295 + 5 readers and player + 35 the screen's gate + 1 the phone's tabs) |
+| `flutter analyze` | the same 22 infos |
+| backend without a database | **1778** (1772 + 6) |
+| backend with a database | 1936, derived — the six new cases are pure |
+| deliberate faults | 30 of 30 caught: 4 server, 5 reader and player, 21 the screen |
+
+**No server source changed**: the judge already keeps whatever an event's
+`data` holds and the film already draws `squares` from any event. The server
+is not restarted for this phase.
+
+**What grading changed.** The worker returned 29 of 30 and named the thirtieth
+as the gate's fault, rightly: the gate's microphone kept one stream for every
+take, and a stream is listened to once. On grading: five cases added for ways
+onto the board the gate had not walked („Undo", a move played again, a deleted
+variation, a phone on its side, two taps on „Record"); **two taps on „Record"
+started two takes** — the server is asked before the take exists — and the
+screen now refuses the second from the tap until the take exists; and a
+picture of the real screen read „Commen" on the phone's second tab, a fault of
+phase 1, fixed with a case of its own in phase 1's gate.
+
+**D14, the owner, 27.9.2026: „Slažem se sa sve tri odluke."** —
 
 - **The marks are what the latest event said, whatever its kind.** That was
   the film's rule already; the player read arrows from `arrow_drawn`
@@ -645,11 +663,16 @@ compiled and watched going red.
   where the film drew it. Every event the screen writes therefore carries
   the marks of the board it leaves behind.
 - **While a take runs the bar gives up „Save as…" and ⋮**, as the sketch
-  has it; on a phone ⋮ stays and holds only what puts something on the
+  has it; on the narrow bar ⋮ stays and holds only what puts something on the
   board.
-- **On a phone held upright a tutorial is walked from ⋮ while a take
-  runs**: 360 px do not hold the stepper and the recording's controls
+- **On the narrow bar (under 840 wide) a tutorial is walked from ⋮ while a
+  take runs**: 360 px do not hold the stepper and the recording's controls
   together. With no take running it is walked from the bar, as in phase 2.
+
+**Seen and not built**: a turn of the board is not an event, so a lesson
+recorded from Black's side replays from White's — as in the room today, and the
+server would refuse a fourth kind; the recording's state stands at the right
+of the bar, where the sketch drew it at the left with the word „Recording".
 
 *As planned:*
 
