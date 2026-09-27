@@ -690,18 +690,17 @@ made before this phase still replays. **The board is the same size before
 „Record" is pressed and after**; a position loaded from the drawer while a
 recording runs is an `init` in its timeline.
 
-### Phase 4 — the doors change, and the room loses Preparation [lead] — built 27.9.2026, **not merged**
+### Phase 4 — the doors change, and the room loses Preparation [lead] — built and **merged into `master` 27.9.2026**
 
-**Where it stands.** Branch `priprema-faza-4`, in the worktree
-`.claude/worktrees/priprema-faza-4`, **nothing committed there**; it waits for
-the owner's word to merge. No server source changed.
+**Where it stands.** Merged on the owner's word („merguj fazu 4 i pushuj",
+27.9.2026) as `d458a56c`, and pushed. No server source changed.
 
 | measured 27.9.2026, nothing else running | |
 |---|---|
-| app, full suite on the branch | **4335 passed, 1 skipped** — predicted before the run and compared by name |
+| app, full suite, on the branch and again on the merged tree | **4335 passed, 1 skipped** — predicted before the run and compared by name |
 | by name | 17 gone, 16 new: 12 deleted with what they tested, 11 added, 5 renamed |
 | `flutter analyze` | the same 22 infos |
-| backend | untouched: 1778 / 1936 |
+| backend | untouched; 1778 measured again on the merged tree, without a database |
 | deliberate faults | 3 of 3 caught, each on its own case; the other seven cases of the gate were watched red on master |
 
 **What was built.** `AppRoutes.preparation` (`/preparation`) builds

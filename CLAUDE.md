@@ -998,7 +998,7 @@ thing to exist is open for as long as the thing takes to arrive**, the
 double „Start" of 22.9 on the client's side. And a picture of the real
 phone read „Commen" on a tab phase 1's gate had passed — „fits" is not
 „can be read", again. Then its phase 4, the doors (→ **4335**, a full
-run on the branch with nothing else running, predicted before it and
+run on the branch and again on the merged tree, predicted before it and
 compared by name: 12 cases deleted, 11 added, 5 renamed; analyze the same
 22; the server untouched): Teach's card and the Library's „New exercise"
 open `/preparation`, and the room lost every branch that asked for the code
