@@ -420,6 +420,47 @@ void main() {
   });
 
   group('a phone held upright', () {
+    testWidgets('the four tabs say their names whole', (tester) async {
+      // Added 27.9.2026, on grading phase 3: a picture of the real screen read
+      // „Commen". Four fixed tabs share 360 px, and a tab's own padding left
+      // the word 58 of them. Pumped in **the app's theme**, because the size
+      // of a tab's label is the theme's, and measured as drawn: a label that
+      // fades at its edge does not exceed its lines, it is only narrower than
+      // its word.
+      SharedPreferences.setMockInitialValues({});
+      tester.view.physicalSize = _phone;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      addTearDown(() async {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump(const Duration(milliseconds: 50));
+      });
+      final base = AppTheme.dark;
+      await tester.pumpWidget(MaterialApp(
+        theme: base.copyWith(
+          textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
+          primaryTextTheme: base.primaryTextTheme.apply(fontFamily: 'Roboto'),
+        ),
+        home: PreparationScreen(
+          key: UniqueKey(),
+          userSession: UserSession(
+              token: '', id: 7, email: 'a@b.c', name: 'T', role: 'korisnik'),
+        ),
+      ));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      for (final word in const ['Tree', 'Comment', 'Engine', 'Library']) {
+        final label = find.descendant(
+            of: find.widgetWithText(Tab, word), matching: find.text(word));
+        expect(label, findsOneWidget, reason: 'no tab says „$word"');
+        final drawn = tester.renderObject<RenderParagraph>(label);
+        expect(drawn.size.width,
+            greaterThanOrEqualTo(drawn.getMaxIntrinsicWidth(double.infinity)),
+            reason: '„$word" is cut: drawn ${drawn.size.width} wide');
+      }
+      expect(tester.takeException(), isNull);
+    }, variant: android);
+
     testWidgets('the board is 344, and it and its two rows need no scrolling',
         (tester) async {
       await _open(tester, _phone);

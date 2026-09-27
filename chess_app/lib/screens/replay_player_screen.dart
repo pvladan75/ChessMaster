@@ -74,6 +74,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
   PlayerColor boardOrientation = PlayerColor.white;
   List<ChessArrow> currentArrows = [];
+  List<SquareMark> currentSquares = [];
   String? currentFen;
 
   late final http.Client _client = widget.client ?? http.Client();
@@ -362,6 +363,10 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     currentArrows = [
       for (final a in frame.arrows)
         ChessArrow(from: a['from']!, to: a['to']!, colorCode: a['colorCode']!),
+    ];
+    currentSquares = [
+      for (final s in frame.squares)
+        SquareMark(square: s['square']!, colorCode: s['colorCode']!),
     ];
   }
 
@@ -779,6 +784,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                 drawingModeColor: context.colors.accent,
                 badgeBorderColor: context.colors.canvas,
                 arrows: currentArrows,
+                squares: currentSquares,
                 // Never filled: the replay draws
                 // the lesson's own arrows, and
                 // no engine runs behind it.

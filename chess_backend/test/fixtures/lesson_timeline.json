@@ -1,0 +1,103 @@
+{
+  "about": [
+    "One fixture, two readers - phase 3 of docs/PLAN-PRIPREMA.md.",
+    "A lesson recorded in Preparation is replayed by the app's player (replayFrameAt, chess_app/lib/models/recording_models.dart) and drawn by the film (applyEvent, chess_backend/videoRenderer.js). Both read THIS file, and both must answer what `checks` says at every millisecond it names.",
+    "The rule the two share: the board is what the latest event of a position kind said; the marks are what the LATEST EVENT said, whatever its kind - an event that names no arrows has none, and the same for squares. Events in one millisecond are read in the order they were written.",
+    "`checks` was written by hand from that rule, never by running either reader. An arrow is {from, to, color} and a square {square, color}, as the app writes them into a timeline."
+  ],
+  "timelines": [
+    {
+      "name": "a lesson: moves, marks, a jump, a position loaded, a clear",
+      "events": [
+        { "timestampMs": 0, "eventType": "init",
+          "data": { "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "pgn": "" } },
+        { "timestampMs": 1200, "eventType": "move",
+          "data": { "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "from": "e2", "to": "e4" } },
+        { "timestampMs": 2500, "eventType": "arrow_drawn",
+          "data": { "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ] } },
+        { "timestampMs": 3100, "eventType": "arrow_drawn",
+          "data": { "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ],
+                    "squares": [ { "square": "d5", "color": "R" } ] } },
+        { "timestampMs": 4000, "eventType": "arrow_drawn",
+          "data": { "arrows": [], "squares": [ { "square": "d5", "color": "R" } ] } },
+        { "timestampMs": 5000, "eventType": "move",
+          "data": { "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", "from": "e7", "to": "e5" } },
+        { "timestampMs": 5000, "eventType": "arrow_drawn",
+          "data": { "arrows": [ { "from": "f1", "to": "c4", "color": "Y" } ], "squares": [] } },
+        { "timestampMs": 7000, "eventType": "move",
+          "data": { "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+                    "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ],
+                    "squares": [ { "square": "e5", "color": "B" } ] } },
+        { "timestampMs": 8000, "eventType": "move",
+          "data": { "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2" } },
+        { "timestampMs": 9000, "eventType": "init",
+          "data": { "fen": "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1", "pgn": "1. Rc4",
+                    "squares": [ { "square": "c4", "color": "Y" } ] } },
+        { "timestampMs": 9500, "eventType": "arrow_drawn",
+          "data": { "arrows": [], "squares": [] } },
+        { "timestampMs": 11000, "eventType": "move",
+          "data": { "fen": "1K1k4/1P6/8/8/2R5/8/r7/8 b - - 1 1", "from": "c1", "to": "c4" } }
+      ],
+      "checks": [
+        { "ms": 0, "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "arrows": [], "squares": [] },
+        { "ms": 1199, "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "arrows": [], "squares": [] },
+        { "ms": 1200, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "arrows": [], "squares": [] },
+        { "ms": 2499, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "arrows": [], "squares": [] },
+        { "ms": 2500, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ], "squares": [] },
+        { "ms": 3099, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ], "squares": [] },
+        { "ms": 3100, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ],
+          "squares": [ { "square": "d5", "color": "R" } ] },
+        { "ms": 3999, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ],
+          "squares": [ { "square": "d5", "color": "R" } ] },
+        { "ms": 4000, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [], "squares": [ { "square": "d5", "color": "R" } ] },
+        { "ms": 4999, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [], "squares": [ { "square": "d5", "color": "R" } ] },
+        { "ms": 5000, "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+          "arrows": [ { "from": "f1", "to": "c4", "color": "Y" } ], "squares": [] },
+        { "ms": 6999, "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+          "arrows": [ { "from": "f1", "to": "c4", "color": "Y" } ], "squares": [] },
+        { "ms": 7000, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ],
+          "squares": [ { "square": "e5", "color": "B" } ] },
+        { "ms": 7999, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "arrows": [ { "from": "g1", "to": "f3", "color": "G" } ],
+          "squares": [ { "square": "e5", "color": "B" } ] },
+        { "ms": 8000, "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", "arrows": [], "squares": [] },
+        { "ms": 8999, "fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2", "arrows": [], "squares": [] },
+        { "ms": 9000, "fen": "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1",
+          "arrows": [], "squares": [ { "square": "c4", "color": "Y" } ] },
+        { "ms": 9499, "fen": "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1",
+          "arrows": [], "squares": [ { "square": "c4", "color": "Y" } ] },
+        { "ms": 9500, "fen": "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1", "arrows": [], "squares": [] },
+        { "ms": 10999, "fen": "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1", "arrows": [], "squares": [] },
+        { "ms": 11000, "fen": "1K1k4/1P6/8/8/2R5/8/r7/8 b - - 1 1", "arrows": [], "squares": [] },
+        { "ms": 60000, "fen": "1K1k4/1P6/8/8/2R5/8/r7/8 b - - 1 1", "arrows": [], "squares": [] }
+      ]
+    },
+    {
+      "name": "marks, then a move, in one millisecond: the move is later and the board is bare",
+      "events": [
+        { "timestampMs": 0, "eventType": "init",
+          "data": { "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", "pgn": "",
+                    "arrows": [ { "from": "e2", "to": "e4", "color": "G" } ] } },
+        { "timestampMs": 700, "eventType": "arrow_drawn",
+          "data": { "arrows": [ { "from": "e2", "to": "e4", "color": "G" } ],
+                    "squares": [ { "square": "e4", "color": "G" } ] } },
+        { "timestampMs": 700, "eventType": "move",
+          "data": { "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "from": "e2", "to": "e4" } }
+      ],
+      "checks": [
+        { "ms": 0, "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "arrows": [ { "from": "e2", "to": "e4", "color": "G" } ], "squares": [] },
+        { "ms": 699, "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "arrows": [ { "from": "e2", "to": "e4", "color": "G" } ], "squares": [] },
+        { "ms": 700, "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "arrows": [], "squares": [] }
+      ]
+    }
+  ]
+}

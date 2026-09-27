@@ -102,13 +102,20 @@ class SessionRecording {
 }
 
 /// What a replay shows at one moment: the board, which way it faces, and the
-/// arrows drawn on it — phase 5b of `docs/PLAN-SESIJA.md`.
+/// arrows and squares marked on it — phase 5b of `docs/PLAN-SESIJA.md`, and
+/// phase 3 of `docs/PLAN-PRIPREMA.md` for the squares.
 ///
 /// Pure, so the rule the player replays by has a test of its own; the server's
 /// film reads the same timeline (`videoRenderer.applyEvent`), and the two must
-/// agree about it (rule 13).
+/// agree about it (rule 13). They are held to one fixture,
+/// `chess_backend/test/fixtures/lesson_timeline.json`.
 class ReplayFrame {
-  const ReplayFrame({this.fen, this.orientation, this.arrows = const []});
+  const ReplayFrame({
+    this.fen,
+    this.orientation,
+    this.arrows = const [],
+    this.squares = const [],
+  });
 
   /// Null before anything has happened.
   final String? fen;
@@ -116,6 +123,9 @@ class ReplayFrame {
 
   /// Each with `from`, `to` and `colorCode`.
   final List<Map<String, String>> arrows;
+
+  /// Each with `square` and `colorCode`.
+  final List<Map<String, String>> squares;
 }
 
 /// Every kind that puts a position on the board. `init` is one of them, and
@@ -128,41 +138,55 @@ const _positionKinds = {'init', 'move', 'fen_change', 'lesson_loaded'};
 ReplayFrame replayFrameAt(List<TimelineEvent> events, int ms) {
   String? fen;
   String? orientation;
-  var positionAt = -1;
-  var arrowsAt = -1;
   List<dynamic> rawArrows = const [];
-  for (var i = 0; i < events.length; i++) {
-    final event = events[i];
+  List<dynamic> rawSquares = const [];
+  for (final event in events) {
     if (event.timestampMs > ms) break;
-    if (_positionKinds.contains(event.eventType)) {
-      final value = event.data['fen'];
-      if (value is String) fen = value;
-      positionAt = i;
-    } else if (event.eventType == 'orientation_changed') {
+    if (event.eventType == 'orientation_changed') {
       final value = event.data['orientation'];
       if (value is String) orientation = value;
-    } else if (event.eventType == 'arrow_drawn') {
-      final value = event.data['arrows'];
-      rawArrows = value is List ? value : const [];
-      arrowsAt = i;
+      continue;
     }
+    final position = _positionKinds.contains(event.eventType);
+    if (!position && event.eventType != 'arrow_drawn') continue;
+    if (position) {
+      final value = event.data['fen'];
+      if (value is String) fen = value;
+    }
+    // **The marks are what the latest event said, whatever its kind** — the
+    // film's rule (`applyEvent`), word for word. An event that names no
+    // arrows has none, so a change of position clears what was drawn on the
+    // one before it; and a jump to a move that holds marks of its own brings
+    // them, which until phase 3 of `docs/PLAN-PRIPREMA.md` the player dropped
+    // and the film drew. Read in the order written, not by the clock: two
+    // events in one millisecond are one audio chunk apart, and their order is
+    // what the trainer did.
+    final arrows = event.data['arrows'];
+    rawArrows = arrows is List ? arrows : const [];
+    final squares = event.data['squares'];
+    rawSquares = squares is List ? squares : const [];
   }
-  // Arrows belong to the position they were drawn on: a change of position
-  // after them clears them. Judged by order, not by the clock — two events in
-  // one millisecond are one audio chunk apart, and their order is what the
-  // trainer did.
-  final arrows = arrowsAt > positionAt
-      ? [
-          for (final a in rawArrows)
-            if (a is Map)
-              {
-                'from': '${a['from'] ?? ''}',
-                'to': '${a['to'] ?? ''}',
-                // The film's key (`color`, what a tutorial and a lesson write)
-                // and the room's (`colorCode`).
-                'colorCode': '${a['colorCode'] ?? a['color'] ?? 'G'}',
-              },
-        ]
-      : <Map<String, String>>[];
-  return ReplayFrame(fen: fen, orientation: orientation, arrows: arrows);
+  return ReplayFrame(
+    fen: fen,
+    orientation: orientation,
+    arrows: [
+      for (final a in rawArrows)
+        if (a is Map)
+          {
+            'from': '${a['from'] ?? ''}',
+            'to': '${a['to'] ?? ''}',
+            // The film's key (`color`, what a tutorial and a lesson write)
+            // and the room's (`colorCode`).
+            'colorCode': '${a['colorCode'] ?? a['color'] ?? 'G'}',
+          },
+    ],
+    squares: [
+      for (final s in rawSquares)
+        if (s is Map)
+          {
+            'square': '${s['square'] ?? ''}',
+            'colorCode': '${s['colorCode'] ?? s['color'] ?? 'G'}',
+          },
+    ],
+  );
 }
