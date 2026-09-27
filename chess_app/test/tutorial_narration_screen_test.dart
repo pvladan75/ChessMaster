@@ -32,6 +32,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_servi
 import 'package:chess_app/features/tutorial_studio/services/tutorial_video.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const _pgn = '{ White takes the centre. } 1. e4 { Black answers. } e5 '
@@ -102,18 +103,20 @@ TutorialDraft draftOf({String pgn = _pgn}) {
 }
 
 class Rig {
-  Rig(this.dir, {this.stopAtMs = narrationStopAtMs})
-      : store = NarrationTakeStore(() async => dir);
+  Rig(this.dir, {this.stopAtMs = narrationStopAtMs, String pgn = _pgn})
+      : store = NarrationTakeStore(() async => dir),
+        draft = draftOf(pgn: pgn);
   final Directory dir;
   final int stopAtMs;
   final NarrationTakeStore store;
+  final TutorialDraft draft;
   final source = FakeSource();
   final player = FakePlayer();
 
   Widget screen() => TutorialNarrationScreen(
         lessonId: 31,
         title: 'Centre',
-        draft: draftOf(),
+        draft: draft,
         sourceFactory: () => source,
         store: store,
         player: player,
@@ -126,7 +129,7 @@ class Rig {
   }
 }
 
-Future<Rig> open(WidgetTester tester) async {
+Future<Rig> open(WidgetTester tester, {String pgn = _pgn}) async {
   tester.view.physicalSize = const Size(1400, 900);
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -140,7 +143,7 @@ Future<Rig> open(WidgetTester tester) async {
     }
   });
 
-  final rig = Rig(dir);
+  final rig = Rig(dir, pgn: pgn);
   await tester.pumpWidget(MaterialApp(home: rig.screen()));
   await tester.pumpAndSettle();
   return rig;
@@ -164,6 +167,15 @@ String beatLabel(WidgetTester tester) =>
 
 String statusOf(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const Key('narration-status'))).data!;
+
+List<String> arrowsOnBoard(WidgetTester tester) => [
+      for (final a in tester
+          .widget<ChessBoardWithOverlay>(
+            find.byType(ChessBoardWithOverlay),
+          )
+          .arrows)
+        '$a',
+    ];
 
 void main() {
   setUp(() async {
@@ -194,6 +206,76 @@ void main() {
     expect(find.textContaining('2 of 4 beats'), findsOneWidget);
     expect(find.textContaining('It stops at beat 2 of 4'), findsOneWidget,
         reason: 'a take that does not reach the last beat says so');
+  });
+
+  testWidgets(
+      'phase 6: two sentences on one position take one marker per sentence',
+      (tester) async {
+    // D4 of `docs/PLAN-PRIPREMA.md`: 1. e4 carries two beats here, and the
+    // narration screen — driven by `filmBeatsOf`, one stop per beat since
+    // this phase — must give each its own marker rather than swallowing the
+    // second sentence into the move's.
+    const pgn = '{ White takes the centre. } 1. e4 { Black answers. } '
+        '{ And the centre is set. } e5';
+    final rig = await open(tester, pgn: pgn);
+    expect(beatLabel(tester), 'Beat 1 of 4 · Part 1');
+
+    await startRecording(tester, rig);
+    await deliver(tester, rig, 5); // 400 ms
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(beatLabel(tester), 'Beat 2 of 4 · Part 1');
+    expect(find.text('Black answers.'), findsOneWidget);
+
+    await deliver(tester, rig, 2); // 160 ms
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(beatLabel(tester), 'Beat 3 of 4 · Part 1');
+    expect(find.text('And the centre is set.'), findsOneWidget,
+        reason: 'the second sentence on 1. e4 is its own stop, with its own '
+            'marker — not glued to the move\'s');
+
+    await deliver(tester, rig, 2); // 160 ms
+    await tester.tap(find.byKey(const Key('narration-stop')));
+    await tester.pumpAndSettle();
+
+    final kept = (await rig.store.load(31)).stored!;
+    // One marker per sentence reached, whichever position it belongs to.
+    expect(kept.take.markersMs, [0, 400, 560]);
+    // The upload's `eventCount` is the film's own event count — one per
+    // beat — so a take made against this tutorial can never claim more or
+    // fewer markers than the film it will be checked against has events.
+    final video = tutorialVideoOf(rig.draft);
+    expect(kept.take.eventCount, video.events.length);
+    expect(kept.take.eventCount, 4);
+  });
+
+  testWidgets(
+      "phase 6: the board draws a later sentence's own marks, not the "
+      'position\'s first', (tester) async {
+    // Red on the code before this phase's `arrows: node.arrows` fix: the
+    // board kept showing 1. e4's first sentence's arrow while its second
+    // sentence's own caption was already on screen, which is exactly the
+    // fault the trainer would be recording over.
+    const pgn = '{ White takes the centre. } '
+        '1. e4 { Black answers. [%cal Ge2e4] } '
+        '{ And the centre is set. [%cal Bf1c4] } e5';
+    final rig = await open(tester, pgn: pgn);
+    expect(beatLabel(tester), 'Beat 1 of 4 · Part 1');
+
+    await startRecording(tester, rig);
+    await deliver(tester, rig, 5);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(beatLabel(tester), 'Beat 2 of 4 · Part 1');
+    expect(arrowsOnBoard(tester), ['Ge2e4']);
+
+    await deliver(tester, rig, 2);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(beatLabel(tester), 'Beat 3 of 4 · Part 1');
+    expect(arrowsOnBoard(tester), ['Bf1c4'],
+        reason: "the second sentence's own arrow, not the first's");
   });
 
   testWidgets('a key held down is one beat, however long it is held',

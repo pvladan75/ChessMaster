@@ -612,6 +612,14 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _c.jumpTo(node);
   }
 
+  /// As [_jumpTo], but opens a particular sentence of [node] rather than its
+  /// first — the Flow panel's cards, one per beat (D4/D16 of
+  /// `docs/PLAN-PRIPREMA.md`).
+  void _selectBeat(AnalysisNode node, int at) {
+    _annotationController.stop();
+    _c.selectBeat(node, at);
+  }
+
   /// Takes a move back, with everything written under it.
   ///
   /// **The menu was already there and did nothing.** `AnalysisMoveTreeWidget`
@@ -1151,8 +1159,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         // nothing wrote one until P7a: every arrow in every lesson before
         // that got there by being typed into a PGN by hand. The bar beside it
         // writes them now, through `BoardAnnotationController`.
-        arrows: _current.arrows,
-        squares: _current.squares,
+        // The open sentence's marks, not the position's first — a mark drawn
+        // goes to whichever beat the trainer is standing on (D4/D16 of
+        // `docs/PLAN-PRIPREMA.md`).
+        arrows: _c.openBeat.arrows,
+        squares: _c.openBeat.squares,
         engineArrows: const [],
         lastMoveFrom: _c.lastMove?.from,
         lastMoveTo: _c.lastMove?.to,
@@ -1208,8 +1219,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
 
   void _clearMarks() {
     final changed = _annotationController.clearMarks(
-      arrows: _current.arrows,
-      squares: _current.squares,
+      arrows: _c.openBeat.arrows,
+      squares: _c.openBeat.squares,
     );
     if (changed) {
       setState(() {});
@@ -1220,8 +1231,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   void _onSquareTapForDrawing(String square) {
     final changed = _annotationController.tap(
       square,
-      arrows: _current.arrows,
-      squares: _current.squares,
+      arrows: _c.openBeat.arrows,
+      squares: _c.openBeat.squares,
       // The button or the key, and the same code path either way. SHIFT is the
       // shortcut a trainer at a desk reaches for; the button is the only one of
       // the two that exists on a phone.
@@ -2262,15 +2273,16 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             TutorialFlowPanel(
               root: _root,
               current: _current,
-              onSelect: _jumpTo,
+              currentAt: _c.cursorAt,
+              onSelect: _selectBeat,
               // Redrawn on every letter, because the sentence is also the
               // part's name: the panel calls [TutorialSection.label], which
               // reads the first thing the part says. The beat cards keep
               // their own controllers and focus nodes, so rebuilding them
               // under the caret costs a frame and changes nothing the trainer
               // sees.
-              onCommentChanged: (node, text) =>
-                  _c.setComment(node, text, typing: true),
+              onCommentChanged: (node, at, text) =>
+                  _c.setComment(node, text, at: at, typing: true),
               onDelete: _deleteNode,
               // None when there is no line to cut, so the button is not drawn
               // at all rather than drawn to do nothing.
@@ -2280,6 +2292,8 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               // back to, which opens that part.
               partsStartingHere: partsStartingIn(_draft),
               onOpenPart: _selectSection,
+              onAddSentence: () => _c.addSentence(),
+              onRemoveSentence: (node, at) => _c.removeSentence(node, at),
             ),
             _familyTree(),
             // Keyed by the tree it is showing: a new part, or a text that has

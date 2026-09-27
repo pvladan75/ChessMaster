@@ -158,7 +158,13 @@ void main() {
 
   Future<void> open(WidgetTester tester,
       {String pgn = '1. e4 e5 2. Nf3'}) async {
-    tester.view.physicalSize = const Size(1600, 1000);
+    // Phase 6 of `docs/PLAN-PRIPREMA.md` (D16 A) put „Add a sentence here" on
+    // the open card, which is „Starting position" by default — one more row
+    // of height on every card above whichever one the timeline's last card
+    // sat against. At 1000 it put „after 2. Nf3" 2 px into the window and
+    // nowhere a tap or a hit test could reach it; 1200 clears every fixture
+    // in this file with room to spare.
+    tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 

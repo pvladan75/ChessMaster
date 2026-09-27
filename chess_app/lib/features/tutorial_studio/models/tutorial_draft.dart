@@ -127,6 +127,12 @@ class TutorialSection {
   /// Where the trainer is standing inside this part.
   late AnalysisNode cursorNode;
 
+  /// Which of [cursorNode]'s beats is open — D4/D16 of
+  /// `docs/PLAN-PRIPREMA.md`. Clamped to what the node still has by
+  /// `TutorialDraftController.cursorAt`, so a sentence removed from under the
+  /// trainer reopens the last one that is left rather than nothing at all.
+  int cursorAt = 0;
+
   String title;
 
   /// Which way round this part's board stands, for the trainer and then for
@@ -334,6 +340,7 @@ class TutorialSection {
         'title': title,
         'tree': root.toJson(),
         'cursor': _pathTo(root, cursorNode),
+        if (cursorAt != 0) 'cursorAt': cursorAt,
         'blackOrientation': blackOrientation,
         if (isPristine) 'storedPgn': storedPgn,
       };
@@ -355,6 +362,8 @@ class TutorialSection {
     );
     section.cursorNode = _resolve(root,
         ((json['cursor'] as List?) ?? const []).whereType<int>().toList());
+    final at = json['cursorAt'];
+    section.cursorAt = at is int ? at : 0;
     return section;
   }
 

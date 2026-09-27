@@ -103,37 +103,39 @@ Map<String, String> _headers(TutorialDraft draft,
 
 /// Hangs [next]'s line on [join], the position both describe.
 ///
-/// The two nodes are the same board — that is what got us here — so what [next]
-/// carries about it is written onto the node that is already in the game: the
-/// sentence, the arrows and the coloured squares. „Insert a line here" drops a
-/// continuation's sentence precisely because the part in front has just read it
-/// out, so in a tutorial this app cut there is usually nothing to merge; in one
-/// a trainer built by hand there often is.
+/// The two nodes are the same board — that is what got us here — so what
+/// [next] carries about it joins what [join] already carries: each part's
+/// sentences as beats of the one position, in order (D4 of
+/// `docs/PLAN-PRIPREMA.md`). On `master`, with one beat to a position, the two
+/// comments were glued into one; now there is room for both, so each stays
+/// its own beat rather than being concatenated into a sentence neither part
+/// wrote.
 ///
-/// **The drawings are merged rather than appended**, and that is not tidiness:
-/// a cut *copies* the cursor's arrows and squares onto the part it makes,
-/// because the board does not reload across a join and a circle that vanished
-/// mid-film would be a flicker. Both parts therefore carry the same arrow, and
-/// joining them back by concatenation would write it twice — which a reader
-/// draws as one arrow over another.
+/// **A wordless first beat that carries the marks of the beat before it adds
+/// nothing.** „Insert a line here" copies the cursor's marks onto the part it
+/// makes (`AnalysisNode.rootLike`) precisely because the board does not
+/// reload across a join — a circle that vanished mid-film would be a flicker
+/// — and in a tutorial this app cut, that copy is usually all the new part's
+/// first beat holds. A beat that says nothing new and draws nothing new is
+/// not a second sentence; it is the same one the film has already shown.
 void _joinOnto(AnalysisNode join, AnalysisNode next) {
-  final text = next.comment.trim();
-  if (text.isNotEmpty) {
-    join.comment =
-        join.comment.trim().isEmpty ? text : '${join.comment.trim()} $text';
-  }
-  for (final arrow in next.arrows) {
-    if (!join.arrows.any((a) => a.toString() == arrow.toString())) {
-      join.arrows.add(arrow);
+  final joinedLast = join.lastBeat;
+  for (var i = 0; i < next.beats.length; i++) {
+    final beat = next.beats[i];
+    if (i == 0 && beat.comment.trim().isEmpty && _sameMarks(beat, joinedLast)) {
+      continue;
     }
-  }
-  for (final square in next.squares) {
-    if (!join.squares.any((s) => s.toString() == square.toString())) {
-      join.squares.add(square);
-    }
+    join.beats.add(beat.copy());
   }
   for (final child in next.children) {
     child.parent = join;
     join.children.add(child);
   }
 }
+
+/// Whether [a] and [b] draw exactly the same arrows and squares.
+bool _sameMarks(NodeBeat a, NodeBeat b) =>
+    a.arrows.map((x) => x.toString()).join(',') ==
+        b.arrows.map((x) => x.toString()).join(',') &&
+    a.squares.map((x) => x.toString()).join(',') ==
+        b.squares.map((x) => x.toString()).join(',');

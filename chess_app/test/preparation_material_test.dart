@@ -95,6 +95,7 @@ import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
@@ -269,6 +270,7 @@ Future<void> _open(
   WidgetTester tester, {
   Size size = _desktop,
   String? fen,
+  AnalysisNode? tree,
   bool libraryDown = false,
 }) async {
   SharedPreferences.setMockInitialValues({});
@@ -297,6 +299,7 @@ Future<void> _open(
           name: 'Trainer',
           role: 'korisnik'),
       initialFen: fen,
+      initialTree: tree,
       positionLibrary: PositionLibraryService(authToken: 'tok', client: client),
       lessonApi: LessonApiService(authToken: 'tok', client: client),
       scannerApi: ScannerApiService(authToken: 'tok', client: client),
@@ -820,6 +823,23 @@ void main() {
       expect(find.text('There is nothing on this board to keep yet.'),
           findsOneWidget);
       expect(_requests('POST', '/analysis'), isEmpty);
+    }, variant: windows);
+
+    testWidgets('a mark on a later sentence is something to keep',
+        (tester) async {
+      // Phase 6: „bare" read the first sentence's marks only, so a board
+      // whose one mark stood on its second sentence was refused.
+      final root = AnalysisNode(fen: _start);
+      root
+          .addBeat()
+          .arrows
+          .add(ChessArrow(colorCode: 'G', from: 'e2', to: 'e4'));
+      await _open(tester, tree: root);
+      await _menu(
+          tester, const Key('prep-save-menu'), const Key('prep-save-analysis'));
+      expect(find.text('There is nothing on this board to keep yet.'),
+          findsNothing);
+      expect(find.text('Save analysis'), findsOneWidget);
     }, variant: windows);
 
     testWidgets('„PGN" hands over the whole tree as text', (tester) async {

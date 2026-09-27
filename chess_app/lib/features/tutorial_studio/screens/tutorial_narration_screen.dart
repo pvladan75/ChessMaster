@@ -505,8 +505,11 @@ class _TutorialNarrationScreenState extends State<TutorialNarrationScreen> {
               isAllowedToMove: false,
               isDrawingMode: false,
               drawingStartSquare: null,
-              arrows: node.arrows,
-              squares: node.squares,
+              // This stop's own beat, not the position's first — a later
+              // sentence on a position already on the board draws its own
+              // marks (D4 of `docs/PLAN-PRIPREMA.md`).
+              arrows: stop.beat.say.arrows,
+              squares: stop.beat.say.squares,
               engineArrows: const [],
               lastMoveFrom: moved ? uci.substring(0, 2) : null,
               lastMoveTo: moved ? uci.substring(2, 4) : null,

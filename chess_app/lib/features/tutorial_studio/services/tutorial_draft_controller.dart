@@ -14,6 +14,7 @@ import 'package:chess_app/features/tutorial_studio/services/tutorial_branches.da
     as branches;
 import 'package:chess_app/features/tutorial_studio/services/tutorial_draft_service.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_save.dart';
+import 'package:chess_app/move_tree.dart';
 import 'package:chess_app/services/account_local_state.dart';
 
 /// What a move the board reported turned into.
@@ -87,6 +88,15 @@ class TutorialDraftController extends ChangeNotifier {
   /// The line being written, and where the trainer is standing on it.
   AnalysisNode get root => section.root;
   AnalysisNode get cursor => section.cursorNode;
+
+  /// Which of the cursor's beats is open, clamped to what it still has — a
+  /// sentence removed from under the trainer opens the last one that is
+  /// left, not nothing at all (D4/D16 of `docs/PLAN-PRIPREMA.md`).
+  int get cursorAt => section.cursorAt.clamp(0, cursor.beats.length - 1);
+
+  /// The cursor's open sentence — what the board draws and what a drawn mark
+  /// goes to, on every screen.
+  NodeBeat get openBeat => cursor.beats[cursorAt];
 
   int _generation = 0;
 
@@ -221,6 +231,7 @@ class TutorialDraftController extends ChangeNotifier {
     if (index < 0 || index >= _draft.sections.length) return;
     _draft.selected = index;
     section.cursorNode = section.root;
+    section.cursorAt = 0;
     _partChanged();
   }
 
@@ -378,6 +389,7 @@ class TutorialDraftController extends ChangeNotifier {
       uci: played.uci,
     );
     section.cursorNode = child;
+    section.cursorAt = 0;
     _lastMove = (from: from, to: to);
     persist();
     notifyListeners();
@@ -398,11 +410,7 @@ class TutorialDraftController extends ChangeNotifier {
     required String uci,
     required String fen,
   }) {
-    final root = AnalysisNode(
-      fen: fork.fen,
-      arrows: [...fork.arrows],
-      squares: [...fork.squares],
-    );
+    final root = AnalysisNode.rootLike(fork);
     final move = root.addChild(childFen: fen, san: san, uci: uci);
     final at = _draft.selected + 1;
     _draft.sections.insert(
@@ -419,11 +427,53 @@ class TutorialDraftController extends ChangeNotifier {
     persist();
   }
 
+  /// Opens [node]'s first sentence — the move strip walks moves, and a step
+  /// onto one always opens where its line began.
   void jumpTo(AnalysisNode node) {
     section.cursorNode = node;
+    section.cursorAt = 0;
     _lastMove = null;
     persist();
     notifyListeners();
+  }
+
+  /// Opens sentence [at] of [node] — a card tapped, or the ‹ › that walk a
+  /// position's sentences.
+  void selectBeat(AnalysisNode node, int at) {
+    section.cursorNode = node;
+    section.cursorAt = at;
+    _lastMove = null;
+    persist();
+    notifyListeners();
+  }
+
+  /// A fresh sentence after the open one, keeping its marks, and opens it —
+  /// D16 B of `docs/PLAN-PRIPREMA.md`. One undo step.
+  void addSentence() {
+    cursor.addBeat(after: cursorAt, keepMarks: true);
+    section.cursorAt = cursorAt + 1;
+    persist();
+    notifyListeners();
+  }
+
+  /// Drops sentence [at] of [node]. False, and nothing removed, for a
+  /// position's only one. The sentence before it opens — or the new first,
+  /// when the first itself was removed. One undo step.
+  bool removeSentence(AnalysisNode node, int at) {
+    final open = identical(node, cursor) ? cursorAt : null;
+    if (!node.removeBeatAt(at)) return false;
+    if (open != null) {
+      // The open sentence stays open, one place up when an earlier one went;
+      // when it is the one that went, the one before it opens.
+      section.cursorAt = at < open
+          ? open - 1
+          : at == open
+              ? (at == 0 ? 0 : at - 1)
+              : open;
+    }
+    persist();
+    notifyListeners();
+    return true;
   }
 
   /// Takes a move back, with everything written under it. The root is the
@@ -437,6 +487,7 @@ class TutorialDraftController extends ChangeNotifier {
     if (parent == null) return;
     if (_cursorIsAtOrBelow(node)) {
       section.cursorNode = parent;
+      section.cursorAt = 0;
       _lastMove = null;
     }
     parent.removeChild(node);
@@ -479,6 +530,7 @@ class TutorialDraftController extends ChangeNotifier {
     section
       ..root = fresh
       ..cursorNode = fresh
+      ..cursorAt = 0
       // The stored text described the line that was just thrown away.
       ..storedPgn = null;
     _lastMove = null;
@@ -493,6 +545,7 @@ class TutorialDraftController extends ChangeNotifier {
   int replaceLine(AnalysisNode root) {
     final count = openLineAsParts(_draft, root);
     section.cursorNode = endOfMainLine(section.root);
+    section.cursorAt = 0;
     if (count > 1) {
       _renumberGeneratedTitles();
       _generation++;
@@ -503,12 +556,16 @@ class TutorialDraftController extends ChangeNotifier {
     return count;
   }
 
-  /// The words of one move. [typing] says the text is being typed into a
+  /// The words of one sentence — [at] the position's beats, 0 its first, as
+  /// `comment` always was. [typing] says the text is being typed into a
   /// field, so a sentence is one undo step; a dialog's answer is a change of
   /// its own.
-  void setComment(AnalysisNode node, String text, {bool typing = false}) {
-    node.comment = text;
-    persist(typingIn: typing ? 'comment:${node.id}' : null);
+  void setComment(AnalysisNode node, String text,
+      {int at = 0, bool typing = false}) {
+    final beats = node.beats;
+    final index = at.clamp(0, beats.length - 1);
+    beats[index].comment = text;
+    persist(typingIn: typing ? 'comment:${node.id}.$index' : null);
     notifyListeners();
   }
 

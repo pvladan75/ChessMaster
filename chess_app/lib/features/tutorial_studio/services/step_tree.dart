@@ -70,22 +70,22 @@ AnalysisNode _convert(MoveNode source, {String? fen}) {
   // at it is empty.
   final isRoot = source.parent == null;
   final san = (isRoot || source.san.isEmpty) ? null : source.san;
-  final node = AnalysisNode(
+  // Every beat carried across, through `copyOf` rather than a literal
+  // `arrows:`/`squares:` handover — the source guard's rule, and the reason:
+  // a hand-built node forgets the beats after the first. The parsed tree is
+  // thrown away as soon as this returns, but `copyOf` copies its lists
+  // regardless, which is the same "no shared reference" rule this had before.
+  final node = AnalysisNode.copyOf(
     fen: fen ?? source.fen,
+    beats: source.beats,
     moveSan: san,
     moveUci: san == null ? null : _uciOf(source),
-    comment: source.comment,
     // The assessment, which until 12.9.2026 stopped here: the exporter wrote
     // `c5??` and the parser dropped the glyph, so a reopened part lost every
     // one of them and the next save wrote the line back without them. A root
     // carries none — there is no move to assess.
     nag: isRoot ? null : source.nag,
     clockSeconds: isRoot ? null : source.clockSeconds,
-    // Copied rather than shared: the parsed tree is thrown away as soon as this
-    // returns, but a list handed on by reference is the kind of sharing that
-    // turns into two screens editing one object a year later.
-    arrows: List<ChessArrow>.from(source.arrows),
-    squares: List<SquareMark>.from(source.squares),
   );
 
   for (final child in source.children) {
@@ -140,8 +140,22 @@ String treeSignature(AnalysisNode root) {
       ..write('|')
       ..write(node.squares.map((s) => s.toString()).join(','))
       ..write('|')
-      ..write(node.children.length)
-      ..write(';');
+      ..write(node.children.length);
+    // The beats after the first: an edit to one of them is an edit the signature
+    // must see, or a stored part with a second sentence never notices its own
+    // change and the next save writes back the text it had, silently dropping
+    // it. A position with one beat adds nothing here, so the signature of a
+    // tree with one beat each is exactly what it was.
+    for (final beat in node.beats.skip(1)) {
+      out
+        ..write('|+')
+        ..write(beat.comment)
+        ..write('|')
+        ..write(beat.arrows.map((a) => a.toString()).join(','))
+        ..write('|')
+        ..write(beat.squares.map((s) => s.toString()).join(','));
+    }
+    out.write(';');
     for (final child in node.children) {
       walk(child);
     }
