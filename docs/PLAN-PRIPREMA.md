@@ -1373,7 +1373,27 @@ refused; one that drops or invents an item is refused; a refused translation
 leaves **no** copy behind, not half of one; the source tutorial is byte for
 byte what it was; the faked model is asserted on the request it was sent.
 
-### Phase 10 — the words [lead]
+### Phase 10 — the words [lead] — done 27.9.2026
+
+**Where it stands.** The manual: `preparation.html` has „Your words as text"
+and „A tutorial from a recording", `tutorial-video.html` the recording's voice
+as a film's sound and „The same tutorial in another language",
+`write-a-tutorial.html` several sentences on one position and „Translate…"
+under Details… — every quoted label held to the app by `manual_labels_test`.
+The glossary: **Beat** (a sentence and what is drawn while it is said; a
+position has one or more), **Transcript**, **Translation**. The format
+document: several comments on one move are several beats, and a film's length
+counts them. The batch tool: a case proving two comments on one move are two
+items written back in their own places (watched red with every comment pinned
+to the first item's key). The pricing document: Groq's seconds and the
+translation's counters, both counted and not limited. **The privacy policy**
+names none of Groq, DeepSeek or Azure, and a transcript is a new kind of
+stored data: a step in `docs/TODO-objavljivanje.md` §3 for the owner and the
+lawyer — the text is theirs, and `STT_PROVIDER` stays empty on the droplet
+until it is changed (D9). The live items were written with each phase
+(`[250.1]`–`[250.25]`), and so were the counts and the lessons.
+
+*As planned:*
 
 The manual's pages, `docs/GLOSSARY-EN.md` (a **Beat** is a sentence and what
 is drawn while it is said; a position has one or more; **Transcript**),

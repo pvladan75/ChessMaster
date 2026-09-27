@@ -219,6 +219,17 @@ oslobađanje zaštite pri zatvaranju dijaloga (propuštalo je drugi prevod dok
 prvi traje). Stavke za proveru uživo `[250.24]`–`[250.25]`. **Spajanje traži
 restart servera** (nova ruta; bez promene šeme). **Sledeće**: faza 10 (reči:
 priručnik, rečnik, format, cene), pa vlasnikova provera uživo (faza 11).
+Faza 9 je spojena u `master` i poslata 27.9.2026.
+
+**Faza 10 (reči) je urađena 27.9.2026**: priručnik (Preparation — prepis i
+tutorijal iz snimka; video — glas iz snimka i prevod; pisanje — više rečenica
+na poziciji), rečnik (**Beat**, **Transcript**, **Translation**), format PGN
+tutorijala (više komentara na potezu = više taktova), alat za prevod (slučaj za
+to), cene (Groq i prevod: broji se, bez limita). **Za vlasnika i advokata**:
+politika privatnosti ne navodi Groq, DeepSeek ni Azure, a prepis je nova
+vrsta podatka — korak je u `TODO-objavljivanje.md` §3; do izmene
+`STT_PROVIDER` ostaje prazan na dropletu. **Plan `PLAN-PRIPREMA.md` je
+izgrađen ceo; ostaje faza 11 — vlasnikova provera uživo** (`[250.1]`–`[250.25]`).
 
 
 1. **Faze 1–4 su u `master` i na `origin`** (27.9.2026). Ekran je gotov;

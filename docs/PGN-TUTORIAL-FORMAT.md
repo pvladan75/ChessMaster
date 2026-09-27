@@ -92,6 +92,14 @@ HARD RULES. Each of these makes the tutorial be refused or silently broken.
 7. A { } COMMENT BELONGS TO THE MOVE BEFORE IT. A comment written before move 1
    belongs to the starting position, and that is where the opening sentence of
    the step goes. Never nest comments.
+   Two or more comments in a row on one move are two or more BEATS on that
+   position: the video says them one after the other, each with its own
+   arrows and squares, before the next move is played.
+        1. e4 { The king pawn takes the centre. [%cal Ge2e4] }
+              { And it opens the bishop's diagonal. [%cal Gf1c4] } e5
+   Use it when there are two things to say and a different thing to draw
+   for each; otherwise one comment is the better step. (Before 27.9.2026 a
+   second comment silently replaced the first.)
 
 8. ARROWS AND SQUARES GO INSIDE THE BRACES, AFTER THE WORDS.
         WRONG: 1. h4 [%cal Gh2h4] { White starts the attack. }
@@ -341,11 +349,12 @@ is for files nobody will make a film of for a student.
 # 8. Sizing a film
 
 Without narration `dwellSecondsFor` decides: **12 characters a second, minimum
-2 s, maximum 12 s per beat.** A beat is the starting position plus every move of
-the main line, so a comment of 144 characters or more holds the screen for the
-full 12 s and anything longer is free.
+2 s, maximum 12 s per beat.** A beat is each comment on the starting position
+and on every move of the main line — at least one per position, more where a
+move carries several comments — so a comment of 144 characters or more holds
+the screen for the full 12 s and anything longer is free.
 
-    film seconds ≈ (1 + moves) × dwell
+    film seconds ≈ (1 + moves + extra comments) × dwell
     50 moves at 12 s ≈ 10 minutes
 
 The renderer draws **4 frames a second when there is a caption band** (1 fps

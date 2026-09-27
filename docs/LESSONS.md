@@ -8901,3 +8901,19 @@ new case holds the request open and proves a second start sends nothing —
 red on the worker's version, green on the corrected one. Its first draft was
 red for the wrong reason too: **a dialog on its way out is still found**, so
 the assertion waits out the closing animation.
+
+## 27.9.2026 — Preparation, phase 10: the words (no count changes)
+
+The manual, the glossary, the format document, the pricing document and the
+batch tool's own test — no app or server code, so the suites' numbers are
+unchanged (the manual's guard, `manual_labels_test`, was run and passes; the
+tool's Python test gained one case, run by hand).
+
+**A plan's note „tell the owner about the privacy policy" hid a larger fact.**
+D9 was written about one new processor, Groq. Reading the policy's list of
+processors for this phase found that it names **none** of the three this
+plan relies on — Groq (the trainer's voice), DeepSeek (tutorial text, since
+the game tutorials) and Azure (the film's voice) — and that a transcript is a
+new kind of stored data. A step that says „mention X" is worth doing by
+reading the whole list X belongs in. The text stays the owner's and the
+lawyer's; the step in `TODO-objavljivanje.md` says what the app does.

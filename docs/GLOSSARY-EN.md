@@ -73,7 +73,9 @@ because it is the verb and the tab is a verb.
 | Serbian | English | Note |
 |---|---|---|
 | Deo | **Part** | One entry of `position_list`. The model calls it a `TutorialSection` and the wire calls it a step; **Part** is the word a trainer reads, and the three are not being unified. |
-| Takt | **Beat** | One stop on the line — a position, what is written on it, what is drawn on it. Already the model's word (`TutorialBeat`). |
+| Takt | **Beat** | A sentence and what is drawn while it is said, on one position — one stop of the film. **A position has one or more** (D4 of `docs/PLAN-PRIPREMA.md`, 27.9.2026); the button that adds one reads „Add a sentence here", and in a PGN each is a comment of its own on the same move. Already the model's word (`TutorialBeat`; a node's `beats`). In the manual and on screen a beat is also called a **sentence** where that is what the reader does with it. |
+| Prepis | **Transcript** | A recording's sound as sentences, each with its time, heard by speech to text and corrected by hand — the text only, never a time (phase 7 of `docs/PLAN-PRIPREMA.md`). „Transcribe…" makes one. `recording_transcripts` on the wire. |
+| Prevod | **Translation** | Always a **copy** of a tutorial in another language; the tutorial it was made from is not changed (D8). „Translate…" on the Library card and in Details…. The copy has no recording of its own. |
 | Tok | **Flow** | The timeline a tutorial is written on. Already the panel's word (`TutorialFlowPanel`). |
 | Stablo | **Tree** | |
 | Polazna pozicija | **Starting position** | |
