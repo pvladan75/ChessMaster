@@ -159,7 +159,17 @@ test('a second request from the same account while one is writing is refused', a
   const first = fakeRes();
   const running = handler({ user: { id: 7 }, wordsRequest: REQUEST }, first);
   const second = fakeRes();
-  await handler({ user: { id: 7 }, wordsRequest: REQUEST }, second);
+  // Against a deadline: a second request that is let through waits on the
+  // model as the first does, and a test that waits with it hangs instead of
+  // failing (rule 9).
+  const answered = await Promise.race([
+    handler({ user: { id: 7 }, wordsRequest: REQUEST }, second).then(() => true),
+    new Promise((resolve) => { setTimeout(() => resolve(false), 500); }),
+  ]);
+  if (!answered) {
+    while (releases.length > 0) release();
+  }
+  assert.equal(answered, true, 'the second request was let through to the model');
   assert.equal(second.statusCode, 429);
   assert.equal(second.body.reason, 'already-writing');
   assert.deepEqual(refunds, [7], 'the second request\'s credit is handed back');
