@@ -190,8 +190,10 @@ the account's models (`tools/position_study/`, `chess_app/tool/position_study.da
 The last run of each is on the final code and the final prompt. The engine
 asked 108 searches for the twelve positions, nine a position, and needed 4.5
 to 64 seconds for one; no search was lost. The
-server asks `deepseek-flash` unless `STUDY_WORDS_MODEL` says otherwise — **S4**
-below is the owner's to decide from the two reports.
+owner read the two reports and chose **`deepseek-v4-pro`** on 28.9.2026 (S4):
+the server asks it unless `STUDY_WORDS_MODEL` says otherwise, and the app
+waits 230 s for the words where it waited 120, because two attempts of the
+slower model are past two minutes.
 
 ## 5. Into a tutorial
 
@@ -217,10 +219,10 @@ is its tests, each watched red first.
 
 | | question | recommendation |
 |---|---|---|
-| S1 | The privacy policy names Gemini in §5.2 and does not name DeepSeek (`TODO-objavljivanje.md` already lists this). With this plan §5.2 is untrue the day it ships | the text is the owner's and the lawyer's; nothing here rewrites it |
+| S1 ✅ | *Decided 28.9.2026: §5.2 names DeepSeek, in the draft and on the site in both languages, on the owner's word — the new wording has not been before the lawyer.* The privacy policy names Gemini in §5.2 and does not name DeepSeek (`TODO-objavljivanje.md` already lists this). With this plan §5.2 is untrue the day it ships | the text is the owner's and the lawyer's; nothing here rewrites it |
 | S2 | How many studies a month a plan includes | the tutorial's numbers: 30 premium, 100 pro, unlimited club |
 | S3 | The depth on a phone | the reader's own Analysis depth, as Auto Analysis did; the dialog says how long it will take |
-| S4 | Which model writes a study | `deepseek-flash`: a quarter of the wait and better teaching; its three times as many refused sentences cost a comment each, never a wrong one |
+| S4 ✅ | *Decided 28.9.2026: `deepseek-v4-pro`.* Which model writes a study | `deepseek-flash`: a quarter of the wait and better teaching; its three times as many refused sentences cost a comment each, never a wrong one |
 | S5 | „Extend branch (engine best line)" is the study's main line without the rest | it could go; nothing removes it until the owner says so |
 
 ## Not in this plan

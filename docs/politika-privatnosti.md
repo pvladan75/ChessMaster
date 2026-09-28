@@ -98,12 +98,22 @@ Koristimo sledeće pružaoce usluga. Svaki dobija samo ono što mu je neophodno.
 Prenosi zvuk uživo tokom časa. Agora obrađuje audio tok i tehničke podatke o
 vezi. Prenos se odvija van Srbije.
 
-### 5.2 Google Gemini (AI objašnjenja poteza)
+### 5.2 DeepSeek (AI komentari, studija pozicije i prevod tutorijala)
 
-Kada zatražite AI komentar, šaljemo **samo šahovske podatke**: poziciju (FEN),
-evaluaciju motora, oznaku poteza i unapred izračunate taktičke i pozicione
-nalaze. **Ne šaljemo vaše ime, email, identifikator naloga niti bilo koji drugi
-lični podatak** — Google iz tog zahteva ne može da zaključi ko ste.
+Kada zatražite AI komentar, studiju pozicije, komentare uz pregled partije,
+tutorijal iz partije ili opis otvaranja protivnika, šaljemo **samo šahovske
+podatke**: raspored figura na tabli, poteze partije ili linije (bez zaglavlja
+partije, dakle bez imena igrača) i ono što su šahovski motor, baza završnica i
+naša analiza već izračunali — ocenu pozicije rečima, taktičke i pozicione
+nalaze, zbirne brojeve o otvaranjima. Kada zatražite prevod tutorijala, šaljemo
+**tekst komentara tog tutorijala**, onako kako je napisan.
+
+**Ne šaljemo vaše ime, email, identifikator naloga niti bilo koji drugi podatak
+o vašem nalogu** — DeepSeek iz tog zahteva ne može da zaključi ko ste. Ne
+šaljemo ni ime protivnika čiju pripremu tražite. Tekst koji sami napišete u
+komentarima tutorijala šalje se na prevod takav kakav jeste, pa u njega ne
+treba unositi lične podatke. Prenos se odvija van Srbije (Narodna Republika
+Kina).
 
 ### 5.3 Google Play (naplata) i Google prijava
 

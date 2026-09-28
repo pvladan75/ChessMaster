@@ -4384,7 +4384,9 @@ odlazi na kraj spiska u alatu.
    linije bez komentara.
    Potrebno: Windows ili telefon, bez prijave.
 
-9. [ ] **Ko čita bolje: `deepseek-flash` ili `deepseek-v4-pro`.** [251.9]
+9. [x] **Ko čita bolje: `deepseek-flash` ili `deepseek-v4-pro`.** [251.9]
+   ✅ Vlasnik odlučio 28.9.2026, pročitavši oba izveštaja: **`deepseek-v4-pro`**.
+   Server ga koristi bez ikakvog podešavanja u `.env`.
    O čemu se radi: Odluka S4 plana. Na dvanaest pozicija faze 0 `flash` piše
    življe i objašnjava, ali mu provera odbije više rečenica; `v4-pro` je
    kraći i tačniji, sa oko dva puta više tokena i oko četiri puta dužim

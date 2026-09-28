@@ -114,24 +114,25 @@ po poziciji, 6–12 pretraga, nijedna izgubljena.
 
 ### ODAKLE DALJE
 
-- **Vlasnik čita dva izveštaja** (flash i v4-pro) i bira model — S4; stavka
-  [251.9].
+- **Model je izabran** (vlasnik, 28.9.2026): `deepseek-v4-pro`, upisan kao
+  podrazumevani u `services/studyWords.js` — jedno mesto za oba imena, čitaju
+  ga obe rute i alat za merenje. Aplikacija čeka reči 230 s umesto 120.
 - **Server mora da se restartuje sa novim kodom** pre provere uživo (nova
   ruta; **šema se ne menja** — `usage_counters` prima nove brojače bez
   migracije). `node_modules` u glavnom stablu još drži `@google/genai`, koji
   više ništa ne učitava; `npm prune` ga skida.
-- **Guranje na `origin`** na vlasnikovu reč.
+- **Gurnuto na `origin`** 28.9.2026 na vlasnikovu reč; spojene grane i
+  njihova radna stabla su obrisani (`site/brain-trainer-landing` je ostala,
+  namerno nespojena).
 - **Provera uživo**: stavke [251.1]–[251.11].
-- **Politika privatnosti**: odeljak 5.2 imenuje Gemini, a ne DeepSeek — od
-  ove izmene je netačan (`TODO-objavljivanje.md`). Tekst je vlasnikov i
-  advokatov.
-- `GEMINI_API_KEY` obrisati iz `.env` (radna stanica i droplet) i opozvati.
+- **Politika privatnosti**: odeljak 5.2 sada imenuje DeepSeek (vlasnikova
+  reč, 28.9.2026) — u nacrtu i na sajtu na oba jezika. **Advokat novi tekst
+  nije video**; šta uz njega ostaje otvoreno piše u `TODO-objavljivanje.md`.
+- `GEMINI_API_KEY` je obrisan iz lokalnog `.env`; ostaju droplet i opoziv.
 - **Otvoreno, nije dirano**: `Extend branch (engine best line)` je glavna
-  linija studije bez ostatka (S5); izvoznik PGN-a ne piše broj poteza ispred
-  prvog crnog poteza (`Bxb1` umesto `7... Bxb1`) — postojeće ponašanje, čitač
-  aplikacije ga čita; isti test koji može da visi umesto da padne postoji u
-  `review_words.test.js` i `game_tutorial_words_route.test.js` („drugi zahtev
-  dok se prvi piše").
+  linija studije bez ostatka (S5).
+- **Zatvoreno istog dana u druge dve sesije**: izvoznik PGN-a piše broj ispred
+  crnog poteza, i dva testa koja su mogla da vise sada padaju u roku.
 
 ---
 
