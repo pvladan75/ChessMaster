@@ -71,7 +71,12 @@ void main() {
       expect(pgn, contains('[Event "Analysis Studio Session"]'));
       // No `[%eval …]`: a node stopped carrying the engine's number on
       // 4.9.2026, so an export carries the reader's comment and the NAG.
-      expect(pgn, contains('1. e4! { Dobro otvaranje } e5'));
+      //
+      // Superseded on 28.9.2026: this read `… } e5`. A Black move that
+      // follows a comment now carries its number, as the PGN standard has
+      // it (`pgn_black_move_number_test.dart`); the NAG and the comment this
+      // case is about are written as they were.
+      expect(pgn, contains('1. e4! { Dobro otvaranje } 1... e5'));
       expect(pgn, isNot(contains('%eval')));
     });
 
