@@ -16,14 +16,14 @@ some countries), so many users are minors, which decides several rules below.
 | `docs/` | Handoff and planning docs — read `STANJE-RADA.md` first |
 | `deploy/` | Server provisioning scripts, idempotent, run as root |
 | `puzzles/` | One-off import tooling and datasets, not part of the app |
-| `tools/` | Reusable tooling run by hand, not part of the app — `tutorial_translate/` translates tutorial files through `agy` (`docs/PGN-TUTORIAL-FORMAT.md`, section 9); `crashdump/read_dump.py` names the function a Windows minidump died in, from the SDK's engine PDB, and refuses when the engine differs |
+| `tools/` | Reusable tooling run by hand, not part of the app — `position_study/` studies real positions on the real engine and the real model, for reading (`docs/PLAN-STUDIJA-POZICIJE.md`, §4a); `tutorial_translate/` translates tutorial files through `agy` (`docs/PGN-TUTORIAL-FORMAT.md`, section 9); `crashdump/read_dump.py` names the function a Windows minidump died in, from the SDK's engine PDB, and refuses when the engine differs |
 
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 4959 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5069 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1863 without TEST_DATABASE_URL, 2022 with it (both measured 27.9.2026)
+cd chess_backend && npm test          # node --test, 1892 without TEST_DATABASE_URL, 2051 with it (both measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1095,7 +1095,25 @@ keyboard leaves and the controls are not — at 360 x 640 the column overflowed
 by 96 px, clipped in release. On a phone a correction now has the screen to
 itself, decided by the pencil and not by the keyboard, and the upright player
 is never laid out shorter than 480. **A screen with a text field is tested
-with the keyboard up.** Phase 6 of
+with the keyboard up.** Then `docs/PLAN-STUDIJA-POZICIJE.md`, on the owner's
+word of 28.9.2026 (→ **5069**, a full run on the branch with nothing else
+running; backend → **1892 / 2051**, both measured; analyze the same 22):
+Auto Analysis became **Position Study** — the engine's main line, the moves
+as good as it, the moves the eye goes to and why they fail, the traps and the
+threat, worked out on the device; DeepSeek only words it (`POST
+/study-words`, its own `ai_studies`), and every sentence is checked against
+the analysis before it is written into the tree. **Gemini left the
+application**: its package, its key and its two routes are deleted, and
+„Generate AI comment", the repertoire's „AI on position" and the opponent
+narrative go the study's way — **it had three doors, not the two this file
+said**. The owner's own position rewrote four rules before any was built:
+**the engine's line is the best defence, and the point of a move is in the
+line nobody plays best** — the capture a move was played for is played, a
+piece that is offered is taken, and a trap is „a capture that wins material
+and loses the position". **A cost is not a threat**; **of two replies as good
+as each other the engine's first is an accident of depth**; **a model that
+reads of a slot writes it**; **a word in the facts is not the fact** („no
+defender" is checked by the square). Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

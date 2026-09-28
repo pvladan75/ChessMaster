@@ -402,7 +402,7 @@ class GameReviewJudge {
         tablebaseUnanswered++;
         continue;
       }
-      final positionOutcome = _outcomeOf(tb.category);
+      final positionOutcome = tablebaseOutcomeOf(tb.category);
       SyzygyMove? playedEntry;
       for (final m in tb.moves) {
         if (m.uci == appliedUci[i]) {
@@ -411,12 +411,12 @@ class GameReviewJudge {
         }
       }
       final playedRaw =
-          playedEntry == null ? null : _outcomeOf(playedEntry.category);
+          playedEntry == null ? null : tablebaseOutcomeOf(playedEntry.category);
       if (positionOutcome == null || playedRaw == null) {
         tablebaseUnanswered++;
         continue;
       }
-      final playedOutcome = _invert(playedRaw);
+      final playedOutcome = invertOutcome(playedRaw);
       final fallbackLoss = walkJudgement[i]?.lostChances ?? 0.0;
       tablebaseJudgement[i] = judgeByTablebase(
         position: positionOutcome,
@@ -426,8 +426,8 @@ class GameReviewJudge {
       byTablebase[i] = true;
       tablebaseKeepers[i] = [
         for (final m in tb.moves)
-          if (_outcomeOf(m.category) != null &&
-              _invert(_outcomeOf(m.category)!) == positionOutcome)
+          if (tablebaseOutcomeOf(m.category) != null &&
+              invertOutcome(tablebaseOutcomeOf(m.category)!) == positionOutcome)
             m.uci,
       ];
     }
@@ -877,7 +877,7 @@ int _menCount(String fen) =>
 /// [category] for the side to move, mapped onto [TablebaseOutcome]: a cursed
 /// win or a blessed loss count as a draw (§3, "With seven men or fewer");
 /// null for anything not settled.
-TablebaseOutcome? _outcomeOf(SyzygyCategory category) {
+TablebaseOutcome? tablebaseOutcomeOf(SyzygyCategory category) {
   switch (category) {
     case SyzygyCategory.win:
       return TablebaseOutcome.win;
@@ -896,7 +896,7 @@ TablebaseOutcome? _outcomeOf(SyzygyCategory category) {
 
 /// A move's own [SyzygyMove.category] is for the opponent (the side to move
 /// after it); this is that same result read for the mover instead.
-TablebaseOutcome _invert(TablebaseOutcome o) {
+TablebaseOutcome invertOutcome(TablebaseOutcome o) {
   switch (o) {
     case TablebaseOutcome.win:
       return TablebaseOutcome.loss;

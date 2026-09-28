@@ -102,3 +102,13 @@ test('the key is never in a message', async () => {
   const { llm } = client([reply(401, {})]);
   await assert.rejects(llm.complete('p'), (e) => !e.message.includes('sk-test'));
 });
+
+test('a sentence is asked for without a JSON format, an object with one', async () => {
+  // The opponent narrative is prose: a model told to answer in JSON about a
+  // prompt that never says the word refuses the request.
+  const { sent, llm } = client([reply(200, ANSWER), reply(200, ANSWER)]);
+  await llm.complete('a sentence, please', { json: false });
+  await llm.complete('an object, please');
+  assert.equal('response_format' in sent[0].body, false);
+  assert.deepEqual(sent[1].body.response_format, { type: 'json_object' });
+});

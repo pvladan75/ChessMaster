@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
-import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/position_study_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/position_scanner/widgets/side_suggestions.dart';
@@ -74,7 +74,10 @@ void main() {
     expect(_depthSlider(tester).divisions, 45, reason: 'every depth from 5');
   });
 
-  testWidgets('the Auto Analysis dialog reaches 50', (tester) async {
+  // Auto Analysis became the position study on 28.9.2026
+  // (docs/PLAN-STUDIJA-POZICIJE.md); of its four dials the depth is the one
+  // that stayed.
+  testWidgets('the position study opens at a remembered 50', (tester) async {
     SharedPreferences.setMockInitialValues({'app_analysis_depth': 50});
     await AppSettingsService.instance.init();
     addTearDown(() => AppSettingsService.instance.setAnalysisDepth(20));
@@ -85,10 +88,10 @@ void main() {
     final root = AnalysisNode(fen: _start);
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: AutoAnalysisDialog(
+        body: PositionStudyDialog(
           startNode: root,
-          stockfishService: StockfishService(),
-          onAnalysisCompleted: (_) {},
+          analyzer: StockfishService().analyzePositionSync,
+          onCompleted: (_) {},
         ),
       ),
     ));
@@ -96,5 +99,6 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(_depthSlider(tester).value, 50);
+    expect(_depthSlider(tester).divisions, 44, reason: 'every depth from 6');
   });
 }

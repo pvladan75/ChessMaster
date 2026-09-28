@@ -25,6 +25,9 @@ const ENT = {
   // entitlement, never borrowed from the tutorials' or the comments', so it
   // can be priced, bundled or given away later without untangling.
   AI_REVIEW_WORDS: 'ai_review_words',
+  // The words of a position study (docs/PLAN-STUDIJA-POZICIJE.md, D4): its
+  // own entitlement for the same reason the review's words have one.
+  AI_STUDIES: 'ai_studies',
   ASSIGNMENTS: 'assignments',
 };
 
@@ -35,7 +38,15 @@ const ENT = {
 /// guess. Voice, rendering and AI are all paid per use by the provider, and a
 /// subscription priced without knowing that number is priced blind.
 const METRIC = {
+  // One per comment the model wrote about one move or one position, and the
+  // tokens of every attempt. Gemini wrote these until 28.9.2026 and was paid
+  // by the request; DeepSeek is paid by the token, so the tokens are counted.
   AI_COMMENTS: 'ai_comments',
+  AI_COMMENT_TOKENS: 'ai_comment_tokens',
+  // One per study the model wrote words for, and the tokens of every
+  // attempt, refused ones included.
+  AI_STUDIES: 'ai_studies',
+  AI_STUDY_TOKENS: 'ai_study_tokens',
   AGORA_SECONDS: 'agora_seconds',
   MP4_RENDERS: 'mp4_renders',
   MP4_RENDER_SECONDS: 'mp4_render_seconds',
@@ -105,17 +116,30 @@ function sttSecondsMetric(provider) {
 /// (docs/PLAN-SKELET.md, phase 3). A tier without an entry reads as 0, which
 /// locks the feature, so every paid tier needs one. The review's words
 /// (docs/PLAN-ZAGONETKE-IZ-PARTIJE.md, phase 3) are placeholders the same way,
-/// set to the tutorial's until anything is decided about plans.
+/// set to the tutorial's until anything is decided about plans, and a
+/// study's (docs/PLAN-STUDIJA-POZICIJE.md, S2) after them.
 const QUOTAS = {
   free: { [ENT.AI_COMMENTS]: 10, [ENT.ASSIGNMENTS]: 5 },
   premium: {
-    [ENT.AI_COMMENTS]: 500, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 30, [ENT.AI_REVIEW_WORDS]: 30,
+    [ENT.AI_COMMENTS]: 500,
+    [ENT.ASSIGNMENTS]: -1,
+    [ENT.AI_TUTORIALS]: 30,
+    [ENT.AI_REVIEW_WORDS]: 30,
+    [ENT.AI_STUDIES]: 30,
   },
   pro: {
-    [ENT.AI_COMMENTS]: 2000, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: 100, [ENT.AI_REVIEW_WORDS]: 100,
+    [ENT.AI_COMMENTS]: 2000,
+    [ENT.ASSIGNMENTS]: -1,
+    [ENT.AI_TUTORIALS]: 100,
+    [ENT.AI_REVIEW_WORDS]: 100,
+    [ENT.AI_STUDIES]: 100,
   },
   club: {
-    [ENT.AI_COMMENTS]: -1, [ENT.ASSIGNMENTS]: -1, [ENT.AI_TUTORIALS]: -1, [ENT.AI_REVIEW_WORDS]: -1,
+    [ENT.AI_COMMENTS]: -1,
+    [ENT.ASSIGNMENTS]: -1,
+    [ENT.AI_TUTORIALS]: -1,
+    [ENT.AI_REVIEW_WORDS]: -1,
+    [ENT.AI_STUDIES]: -1,
   },
 };
 
@@ -123,6 +147,7 @@ const PAID_ENTITLEMENTS = [
   ENT.AI_COMMENTS,
   ENT.AI_TUTORIALS,
   ENT.AI_REVIEW_WORDS,
+  ENT.AI_STUDIES,
   ENT.ASSIGNMENTS,
   ENT.MP4_EXPORT,
 ];
@@ -260,6 +285,8 @@ function loadUnitCosts() {
     [METRIC.MP4_RENDERS]: 0,
     [METRIC.AI_TUTORIAL_TOKENS]: 0,
     [METRIC.AI_REVIEW_TOKENS]: 0,
+    [METRIC.AI_STUDY_TOKENS]: 0,
+    [METRIC.AI_COMMENT_TOKENS]: 0,
     [METRIC.AI_TRANSLATION_TOKENS]: 0,
     ...Object.fromEntries(TTS_PROVIDERS.map((p) => [ttsCharactersMetric(p), 0])),
     ...Object.fromEntries(STT_PROVIDERS.map((p) => [sttSecondsMetric(p), 0])),

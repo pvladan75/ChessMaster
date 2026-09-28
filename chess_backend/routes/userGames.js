@@ -23,7 +23,7 @@ const {
 const { pool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { requireQuota, refundQuota } = require('../middleware/entitlements');
-const { ENT } = require('../services/entitlementService');
+const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const {
   createArchiveImporter, ArchiveImportUnavailable,
 } = require('../services/gameArchiveImport');
@@ -40,8 +40,7 @@ const {
 } = require('../services/opponentPrep');
 const { createPrepNarrative } = require('../services/prepNarrative');
 const { isOwnSubject, OWN_GAMES_SQL } = require('../services/archiveScope');
-const { GoogleGenAI } = require('@google/genai');
-const { generateContentWithRetry } = require('../geminiService');
+const { createDeepSeek } = require('../services/llm/deepseek');
 const { openingJudge } = require('../services/openingJudgeService');
 const { repertoireDiff } = require('../services/repertoireArchive');
 const { playerProfile } = require('../services/playerProfile');
@@ -60,19 +59,24 @@ const prep = createOpponentPrep({
 
 /// One call to the model, or a throw. Everything about *whether* the answer may
 /// be shown lives in `prepNarrative`; this only knows how to ask.
-const narrator = createPrepNarrative({
-  generate: async (prompt) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === 'YOUR_GEMINI_API_KEY' || !apiKey.trim()) {
-      throw new Error('GEMINI_API_KEY missing');
-    }
-    const response = await generateContentWithRetry(
-      new GoogleGenAI({ apiKey }),
-      { model: 'gemini-flash-latest', contents: prompt },
-    );
-    return response.text;
-  },
+///
+/// DeepSeek, asked for a sentence and not for an object: the narrative's
+/// guard reads prose (`narrativeGuard`). Its tokens are counted with every
+/// other comment's, under the account that asked.
+const narrativeModel = createDeepSeek({
+  model: process.env.STUDY_WORDS_MODEL || 'deepseek-flash',
+  reasoningEffort: process.env.STUDY_WORDS_REASONING_EFFORT || 'low',
 });
+
+function narratorFor(userId) {
+  return createPrepNarrative({
+    generate: async (prompt) => {
+      const reply = await narrativeModel.complete(prompt, { json: false });
+      await recordUsage(pool, userId, METRIC.AI_COMMENT_TOKENS, reply.usage.total);
+      return reply.content;
+    },
+  });
+}
 
 // A ten-year archive exported from Lichess with clocks is about 9 MB. This is
 // generous room above that and still far below what would hurt a 960 MB
@@ -118,8 +122,8 @@ const importLimiter = rateLimit({
 
 // Two routes here spend somebody else's service per request, and until the
 // audit of 16.9.2026 neither had a limit (`docs/audit/server.md`, 9). The
-// narrative calls Gemini, whose key has a daily allowance a single account in a
-// loop could empty for every AI comment in the app; it now counts against the
+// narrative calls a model that is paid for by the token, which a single account
+// in a loop could spend for everybody; it now counts against the
 // same monthly quota as every other AI comment. A leaks report with `judge=true`
 // asked the opening judge about up to 200 positions per call, around the judge's
 // own limiter; the count is capped and the calls are limited like the judge.
@@ -339,7 +343,7 @@ router.get('/prep/narrative', narrativeLimiter, authenticateToken, requireQuota(
       color: q.color ?? null,
       limit: q.limit,
     });
-    const said = await narrator.narrate(report);
+    const said = await narratorFor(req.user.id).narrate(report);
     // A report with no sentence cost the account nothing it could use.
     if (!said || said.narrative == null) await refundQuota(req);
 

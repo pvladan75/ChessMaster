@@ -14,6 +14,7 @@ const lessonRoutes = require('./routes/lessons');
 const lessonTranslationRoutes = require('./routes/lessonTranslation');
 const gameTutorialWordsRoutes = require('./routes/gameTutorialWords');
 const reviewWordsRoutes = require('./routes/reviewWords');
+const studyWordsRoutes = require('./routes/studyWords');
 const tablebaseRoutes = require('./routes/tablebase');
 const recordingRoutes = require('./routes/recordings');
 const puzzleRoutes = require('./routes/puzzles');
@@ -148,6 +149,7 @@ app.use('/rooms', roomRoutes);
 // Before /lessons, whose router would read `from-game` as a lesson id.
 app.use('/lessons/from-game', gameTutorialWordsRoutes);
 app.use('/review-words', reviewWordsRoutes);
+app.use('/study-words', studyWordsRoutes);
 // POST /lessons/:id/translate — phase 9 of docs/PLAN-PRIPREMA.md.
 app.use('/lessons', lessonTranslationRoutes);
 app.use('/lessons', lessonRoutes);

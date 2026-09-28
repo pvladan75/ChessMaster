@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 
-import 'package:chess_app/services/puzzle_api_service.dart';
+import 'package:chess_app/core/services/eval_cache.dart';
+import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
+    show PositionAnalyzer;
+import 'package:chess_app/features/analysis_studio/services/position_study/position_study.dart';
+import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/words_client.dart'
+    show WordsRefusal;
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
+import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
-/// Asking the model about the position on the board.
-///
-/// The endpoint and its quota have existed since the AI coach was built
-/// (`POST /api/ai/explain-position`, metered against `ai_comments`), and
-/// `PuzzleApiService.explainPosition` has been written all along — with no
-/// caller anywhere in the app. This is the caller.
+/// Asking about the position on the board.
 ///
 /// It is deliberately **not** a judge. The build screen already has one: the
 /// opening judge, which answers "is this move sound, judged by the games real
@@ -18,63 +21,66 @@ import 'package:chess_app/theme/app_typography.dart';
 /// back here is prose about a position, offered as something to read and — if
 /// it is worth keeping — to put into your own comment after you have edited it.
 /// Nothing it says is stored anywhere on its own.
+///
+/// **The position study's path with one item**
+/// (`docs/PLAN-STUDIJA-POZICIJE.md`, D5): the engine reads the position and
+/// looks for a threat, the model puts that into words, and the app checks the
+/// words against the analysis before anything is shown. Gemini answered this
+/// until 28.9.2026, from a FEN and nothing else.
 class PositionAdvice {
   const PositionAdvice({
     required this.summary,
-    required this.keyMotif,
-    required this.plan,
     this.recommendedMoves = const [],
   });
 
+  /// What stands on the board and what is threatened, as written.
   final String summary;
-  final String keyMotif;
-  final String plan;
+
+  /// The engine's move.
   final List<String> recommendedMoves;
 
   /// The whole answer as one block of text, which is the shape a comment box
   /// takes. The reader edits it there; nothing is saved until they say so.
-  String get asComment {
-    final parts = <String>[
-      if (summary.trim().isNotEmpty) summary.trim(),
-      if (keyMotif.trim().isNotEmpty) 'Motif: ${keyMotif.trim()}',
-      if (plan.trim().isNotEmpty) plan.trim(),
-    ];
-    return parts.join('\n');
-  }
-
-  static PositionAdvice? fromJson(Map<String, dynamic>? json) {
-    if (json == null) return null;
-    final summary = json['summary'] as String? ?? '';
-    final plan = json['plan'] as String? ?? '';
-    if (summary.trim().isEmpty && plan.trim().isEmpty) return null;
-    return PositionAdvice(
-      summary: summary,
-      keyMotif: json['keyMotif'] as String? ?? '',
-      plan: plan,
-      recommendedMoves: ((json['recommendedMoves'] as List?) ?? const [])
-          .whereType<String>()
-          .toList(),
-    );
-  }
+  String get asComment => summary.trim();
 }
 
-/// Asks about one position. Null when nothing usable came back — the caller
-/// says so rather than drawing an empty card.
-///
-/// [evals] carries whatever the screen already knows: the stored evaluation and
-/// the engine's line. The keys are the ones the server's fallback reads
-/// (`cp`, `bestMove`, `continuation`), so the answer stays sensible even when
-/// the model itself is unreachable.
-Future<PositionAdvice?> askAboutPosition({
+/// Asks about one position. A [WordsRefusal] says why nothing came back — the
+/// caller says so rather than drawing an empty card.
+Future<({PositionAdvice? advice, WordsRefusal? refusal})> askAboutPosition({
   required String fen,
-  Map<String, dynamic> evals = const {},
+  PositionAnalyzer? analyzer,
+  StudyWordsAsker? ask,
 }) async {
-  final answer = await PuzzleApiService.instance.explainPosition(
-    fen: fen,
-    evals: evals,
-    userToken: SessionService.instance.current.token,
-  );
-  return PositionAdvice.fromJson(answer);
+  final token = SessionService.instance.current.token;
+  final engine = StockfishService();
+  final holder = Object();
+  engine.hold(holder);
+  try {
+    final answer = await commentOnPosition(
+      fen: fen,
+      analyzer: analyzer ??
+          EvalCache.instance.wrap(
+            engine.analyzePositionSync,
+            engine: engine.answerStoreName,
+          ),
+      depth: AppSettingsService.instance.analysisDepth,
+      tablebase: SyzygyTablebaseService.instance.lookup,
+      ask: ask ??
+          (request, {required comment}) =>
+              requestStudyWords(request, token: token, comment: comment),
+    );
+    final text = answer.comment.text;
+    if (text == null) return (advice: null, refusal: answer.comment.refusal);
+    return (
+      advice: PositionAdvice(
+        summary: text,
+        recommendedMoves: [if (answer.bestMove != null) answer.bestMove!],
+      ),
+      refusal: null,
+    );
+  } finally {
+    engine.release(holder);
+  }
 }
 
 /// Shows the answer, and offers to carry it into the student's own comment.
@@ -110,17 +116,6 @@ Future<String?> showPositionAdviceDialog(
                 if (advice.summary.trim().isNotEmpty)
                   Text(advice.summary.trim(),
                       style: AppText.body.copyWith(color: colors.textPrimary)),
-                if (advice.keyMotif.trim().isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text('Motif: ${advice.keyMotif.trim()}',
-                      style: AppText.captionBold.copyWith(color: colors.info)),
-                ],
-                if (advice.plan.trim().isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(advice.plan.trim(),
-                      style:
-                          AppText.body.copyWith(color: colors.textSecondary)),
-                ],
                 if (advice.recommendedMoves.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.sm),
                   // A Wrap, not a Row: four moves at a phone's width is where a
@@ -139,8 +134,8 @@ Future<String?> showPositionAdviceDialog(
                 ],
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'This is the model\'s opinion, not an evaluation of your move. '
-                  'The opening database still judges the move.',
+                  'The engine analysed the position and the model put it '
+                  'into words. The opening database still judges your move.',
                   style: AppText.micro.copyWith(color: colors.textMuted),
                 ),
               ],

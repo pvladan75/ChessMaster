@@ -1,6 +1,6 @@
 // prep_narrative.test.js — the sentence over the report, and what it may not carry.
 //
-// The model is stubbed throughout. What is under test is not whether Gemini
+// The model is stubbed throughout. What is under test is not whether the model
 // writes good Serbian; it is whether a bad answer can reach a player, and
 // whether a name reaches Google.
 
@@ -115,7 +115,7 @@ test('with retry off, the first refusal is final', async () => {
 test('a model outage returns a named reason, not a throw', async () => {
   // The report is the product. Decoration that fails must not take down the
   // thing it decorates — the same rule as every message in this codebase.
-  const model = stubModel(new Error('GEMINI_API_KEY missing'));
+  const model = stubModel(new Error('the model is not configured'));
   const { narrate } = createPrepNarrative({ generate: model.generate });
 
   const said = await narrate(REPORT);

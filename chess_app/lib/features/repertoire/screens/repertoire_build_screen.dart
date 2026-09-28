@@ -466,19 +466,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     final fen = _commentFen;
     if (fen == null || _asking) return;
     setState(() => _asking = true);
-    final note = _notes[_keyOf(fen)];
-    final advice = await askAboutPosition(
-      fen: fen,
-      evals: {
-        if (note != null) 'cp': note.evalCp,
-        if (note?.bestUci != null) 'bestMove': note!.bestUci,
-        if (note?.bestLineSan != null) 'continuation': note!.bestLineSan,
-      },
-    );
+    final answer = await askAboutPosition(fen: fen);
     if (!mounted) return;
     setState(() => _asking = false);
+    final advice = answer.advice;
     if (advice == null) {
-      AppFeedback.error(context, 'AI did not respond about this position.');
+      AppFeedback.error(context,
+          answer.refusal?.message ?? 'AI did not respond about this position.');
       return;
     }
     final keep = await showPositionAdviceDialog(context, advice);

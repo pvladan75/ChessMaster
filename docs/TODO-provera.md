@@ -1376,6 +1376,22 @@ odlazi na kraj spiska u alatu.
    `Server is unavailable — check if the backend is running.`.
    Potrebno: Windows i telefon.
 
+### Practise — Repertoar — pitanje o poziciji (Ask AI about position)
+
+1. [ ] **`Ask AI about position` piše DeepSeek, iz analize pozicije.**
+   [251.10]
+   O čemu se radi: Pitanje o poziciji u repertoaru ide putem studije pozicije
+   sa jednom stavkom (`PLAN-STUDIJA-POZICIJE.md`, D5): motor pročita poziciju
+   i potraži pretnju, DeepSeek to sroči, a rečenica se proverava pre nego što
+   se prikaže. Do 28.9.2026 je odgovarao Gemini, samo iz FEN-a.
+   Gde: `Practise` → `Repertoire` → otvori repertoar → izgradnja → pozicija
+   van knjige → `Ask AI about position`.
+   Uradi: Sačekaj odgovor (motor radi dve pretrage, pa server).
+   Treba da vidiš: Dijalog `AI on position` sa rečenicom o tome šta je na
+   tabli i šta preti, i potezom motora ispod. `Add to my comment` prenosi
+   tekst u tvoj komentar. Ako server odbije, poruka kaže zašto.
+   Potrebno: Windows ili telefon; prijavljen nalog; restart backenda.
+
 ### Practise — Repertoar — izgradnja
 
 1. [ ] **Ask engine posle sopstvenog poteza analizira tu istu poziciju.**
@@ -4253,6 +4269,144 @@ odlazi na kraj spiska u alatu.
    Potrebno: Windows i telefon; server.
 
 ## Analyse
+
+### Analyse — Studija pozicije (Study this position)
+
+1. [ ] **Tvoja pozicija: linija 7...Be4 8.dxc6 Bxh1 9.Rxa7 je u studiji.**
+   [251.1]
+   O čemu se radi: `Study this position` je zamenio `Auto Analysis`
+   (`PLAN-STUDIJA-POZICIJE.md`). Motor nađe glavnu liniju, poteze koji su
+   jednako dobri, poteze koji „vuku oko" i zašto ne valjaju, i zamke; DeepSeek
+   to samo sroči, a svaka rečenica se proverava naspram analize pre nego što
+   se upiše.
+   Gde: `Analyse` → `Setup Position / PGN` → nalepi FEN
+   `rn2kbnr/pp2pppp/2p5/3PNb2/8/1P4P1/1P1PPP1P/RNB1KB1R b KQkq - 0 7` →
+   `Study this position` (na telefonu: `More tools` → `Study this position`).
+   Uradi: Ostavi `Write comments with AI` uključeno i dubinu 20, pritisni
+   `Start`, sačekaj kraj i pročitaj stablo.
+   Treba da vidiš: Glavna linija počinje sa `Bxb1`. Pored nje stoji
+   `7... Be4?!` pa `8. dxc6!`, `Bxh1?`, `9. Rxa7!`, `Rxa7`, `10. c7` i dalje
+   do dame na b8; uz `8... Bxh1` je sporedna linija `8... Nxc6` (najbolja
+   odbrana), a uz `9... Rxa7` linija `9... Nxc6 10. Rxa8+`. Komentar stoji na
+   početnoj poziciji, na `Be4`, `dxc6`, `Bxh1` i `Rxa7`. Na kraju dijalog
+   kaže koliko je poteza dodato i koliko komentara napisano.
+   Potrebno: Windows; prijavljen nalog sa Premium ili višim planom; restart
+   backenda sa novim kodom (`POST /study-words`); DeepSeek ključ na serveru.
+
+2. [ ] **Pozicija posle 7...Be4: zamka 8...Bxh1 stoji pored glavne linije.**
+   [251.2]
+   O čemu se radi: Zamka je uzimanje koje donosi materijal, a gubi poziciju
+   (tvoja definicija od 28.9.2026). Posle svakog od prva tri poteza glavne
+   linije studija proverava najvrednije uzimanje koje motor ne igra.
+   Gde: `Analyse` → `Setup Position / PGN` → FEN
+   `rn2kbnr/pp2pppp/2p5/3PN3/4b3/1P4P1/1P1PPP1P/RNB1KB1R w KQkq - 1 8` →
+   `Study this position`.
+   Uradi: Pokreni studiju sa komentarima.
+   Treba da vidiš: Glavna linija `8. dxc6 Nxc6 9. f3 …`. Uz `8... Nxc6` stoji
+   varijanta `8... Bxh1? 9. Rxa7! Rxa7 10. c7 …`, a uz `9. f3` varijanta
+   `9. Nxc6? Bxh1!` (uzimanje nazad koje samo izgleda automatski). Na početnoj
+   poziciji su dve rečenice: šta je na tabli, pa pretnja — uz pretnju crvena
+   strelica e4–h1. Komentar uz `Bxh1` kaže da se top ne sme uzeti.
+   Potrebno: Windows; kao [251.1].
+
+3. [ ] **Bez komentara: linije i oznake, nijedna rečenica i nijedna strelica.**
+   [251.3]
+   O čemu se radi: Kad se `Write comments with AI` isključi, studija ne šalje
+   ništa serveru: upisuje samo linije i oznake `?`, `?!`, `!` koje je dao
+   motor. Strelica se crta samo uz rečenicu koja je imenuje.
+   Gde: kao [251.2], u dijalogu isključi `Write comments with AI`.
+   Uradi: Pokreni studiju i pregledaj stablo.
+   Treba da vidiš: Iste linije kao u [251.2], bez ijednog komentara i bez
+   strelica i obeleženih polja. Dijalog na kraju ne pominje komentare.
+   `Usage this month` se nije pomerio.
+   Potrebno: Windows ili telefon.
+
+4. [ ] **Na telefonu: dijalog staje na ekran, a studija se završi.** [251.4]
+   O čemu se radi: Dugmad dijaloga stoje van dela koji se pomera, da `Start`
+   ne ostane ispod kraja ekrana. Pretrage idu jedna za drugom na jednom
+   motoru telefona.
+   Gde: telefon, `Analyse` → `More tools` → `Study this position`.
+   Uradi: Pokreni studiju na poziciji iz [251.1] sa dubinom 20, uspravno pa
+   položeno. Izmeri koliko traje.
+   Treba da vidiš: `Start` i `Cancel` se vide bez pomeranja. Tokom rada piše
+   šta motor trenutno radi i `Position n of at most 25`. Studija se završi i
+   stablo ima iste linije kao na Windowsu (motor je isti, dubina ista). Ako
+   traje predugo, zapiši koliko — dubina na telefonu je otvoreno pitanje S3.
+   Potrebno: telefon; prijavljen nalog.
+
+5. [ ] **Završnica sa sedam ili manje figura: rezultat kaže tablebase.**
+   [251.5]
+   O čemu se radi: Sa sedam ili manje figura studija pita tablebase, i njegov
+   odgovor ide ispred motorove ocene; u takvoj poziciji se ne traže „potezi
+   koji vuku oko", jer tablebase već kaže koji potezi čuvaju rezultat.
+   Gde: `Analyse` → FEN `8/8/2P5/3p4/3P4/3k4/2r4R/7K b - - 0 76` →
+   `Study this position`.
+   Uradi: Pokreni studiju sa komentarima.
+   Treba da vidiš: Komentar na početnoj poziciji kaže da crni dobija i da to
+   čuvaju samo `Rc1+` i `Rxc6`. Glavna linija počinje jednim od ta dva poteza.
+   Nigde ne piše ocena u brojevima.
+   Potrebno: Windows; server (tablebase ide preko `GET /api/tablebase`).
+
+6. [ ] **`Open as a tutorial`: studija stiže u Tutorial Studio, deo po
+   linija.** [251.6]
+   O čemu se radi: Na kraju studije dugme predaje celo stablo studiju;
+   `splitAtForks` ga deli u delove — svaka linija svoj deo — sa komentarima,
+   strelicama i poljima.
+   Gde: posle [251.1], u dijalogu `Open as a tutorial`.
+   Uradi: Izaberi nov tutorijal, pogledaj mapu delova, pa `Export video`.
+   Treba da vidiš: Sedam delova: `Be4 dxc6`, `Nxc6 f3`, `Bxh1 Rxa7`,
+   `Nxc6 Rxa8+`, `Rxa7 c7 e6 cxb8=Q+`, `Nd7 …`, i na kraju glavna linija
+   `Bxb1 …`. Komentari su na svojim potezima. Film ih izgovara tim redom.
+   Reci da li ti taj redosled odgovara ili glavna linija treba da ide prva —
+   delovi se mogu pomerati u mapi.
+   Potrebno: Windows; server sa glasom.
+
+7. [ ] **`Generate AI comment` piše DeepSeek, iz analize poteza.** [251.7]
+   O čemu se radi: Komentar jednog poteza ide istim putem kao studija, sa
+   jednom stavkom (`POST /study-words/comment`). Motor prvo utvrdi kako potez
+   stoji naspram svog najboljeg i šta sledi; Gemini je uklonjen iz aplikacije.
+   Gde: pozicija iz [251.2]: odigraj `dxc6`, pa za crnog `Bxh1`; na potezu
+   `Bxh1` → `Generate AI comment`.
+   Uradi: Sačekaj da se otvori urednik komentara.
+   Treba da vidiš: Rečenica kaže da je uzimanje topa greška i zašto (top se
+   žrtvuje na a7, pešak postaje dama). Ništa nije upisano dok ne pritisneš
+   `Save`. Motor na ekranu posle toga radi kao i pre.
+   Potrebno: Windows ili telefon; prijavljen nalog (i besplatan ima 10
+   mesečno).
+
+8. [ ] **Gost: studija radi, komentari su isključeni i piše zašto.** [251.8]
+   O čemu se radi: Bez naloga nema kome da se komentar uračuna; studija i
+   dalje daje linije.
+   Gde: odjavljen, `Analyse` → `Study this position`.
+   Uradi: Pogledaj dijalog, pa pokreni studiju.
+   Treba da vidiš: `Write comments with AI` je isključeno i ne može da se
+   uključi; ispod piše `Sign in to have comments written.` Studija upiše
+   linije bez komentara.
+   Potrebno: Windows ili telefon, bez prijave.
+
+9. [ ] **Ko čita bolje: `deepseek-flash` ili `deepseek-v4-pro`.** [251.9]
+   O čemu se radi: Odluka S4 plana. Na dvanaest pozicija faze 0 `flash` piše
+   življe i objašnjava, ali mu provera odbije više rečenica; `v4-pro` je
+   kraći i tačniji, sa oko dva puta više tokena i oko četiri puta dužim
+   čekanjem. Server podrazumevano koristi `flash`.
+   Gde: dva izveštaja koja su ti poslata (`studije_flash.md`,
+   `studije_pro.md`), ili PGN fajlovi iz istog paketa u `Analyse`.
+   Uradi: Pročitaj iste pozicije u oba, pre svega svoje dve.
+   Treba da vidiš: Odluči koji model ostaje. Za `v4-pro` u `.env` servera ide
+   `STUDY_WORDS_MODEL=deepseek-v4-pro`, pa restart.
+   Potrebno: ništa osim čitanja.
+
+10. [ ] **`Usage this month` broji studije i komentare, svaki za sebe.**
+    [251.11]
+    O čemu se radi: Studija ima svoj brojač (`ai_studies`) i svoje tokene
+    (`ai_study_tokens`); pojedinačan komentar troši `ai_comments` kao i pre, a
+    njegovi tokeni idu u `ai_comment_tokens` — tu se broji i opis protivnika.
+    Gde: `Settings` → `Usage this month`, posle [251.1] i [251.7].
+    Uradi: Zapiši brojeve pre i posle jedne studije i jednog komentara.
+    Treba da vidiš: `AI position studies` je veći za jedan, `AI comments` za
+    jedan; redovi `AI position study writing` i `AI comment writing` pokazuju
+    tokene. Studija bez komentara ([251.3]) ne pomera nijedan.
+    Potrebno: Windows ili telefon; prijavljen nalog.
 
 ### Analyse — Pregled partije (Review entire game)
 

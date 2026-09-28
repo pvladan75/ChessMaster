@@ -3,14 +3,14 @@
 // refuse a loop.
 //
 // Found by the architecture audit on 16.9.2026 (`docs/audit/server.md`, 9, 10,
-// 16 and 19): the opponent narrative (Gemini), a leaks report asking the opening
+// 16 and 19): the opponent narrative (a model paid by the token), a leaks report asking the opening
 // judge, scanning a PDF, mailing a parent, and drawing preview frames each
 // answered an account in a loop for as long as it cared to ask.
 //
 // Driven over a real socket against the mounted routers, with a real signed
 // token — a limiter is middleware order and configuration, and both are only
 // visible to a request. The fake database refuses every quota and knows every
-// account, so no request reaches Gemini, a mail server or a PDF parser.
+// account, so no request reaches a model, a mail server or a PDF parser.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
