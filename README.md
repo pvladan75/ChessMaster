@@ -1,6 +1,6 @@
 # ♟️ Mislisha — Interactive Chess Training & AI Coaching Platform
 
-**Mislisha** is a full-stack interactive chess training and remote teaching application built with **Flutter** (Android and Windows are the supported targets) and **Node.js / Express / PostgreSQL** with **Socket.IO**, **Agora RTC**, and **Google Gemini AI**.
+**Mislisha** is a full-stack interactive chess training and remote teaching application built with **Flutter** (Android and Windows are the supported targets) and **Node.js / Express / PostgreSQL** with **Socket.IO**, **Agora RTC**, and **DeepSeek** for every sentence a model writes.
 
 Designed for chess trainers and students, it provides real-time interactive chessboard synchronization, Stockfish engine integration, dynamic role management, live voice chat, a silent replay of every lesson's move timeline, homework and spaced repetition, parent-gated trainer–student relationships, friend management, room invitations, Google Calendar scheduled sessions, and an **AI Chess Coach with Adaptive Puzzles**.
 
@@ -16,7 +16,7 @@ Most users are children, which decides more of the design than any other single 
 - **Adaptive Selection (`puzzleSelectionService`)**: `GET /api/puzzles/adaptive` targets the motif the user is measurably weakest at, inside a rating band centred slightly *below* their rating so a session stays mostly solvable. A theme needs several attempts before it counts as a weakness, and a share of requests deliberately explore untried motifs so the picture keeps filling in.
 - **Per-Theme Rating Tracking**: `POST /api/puzzles/attempt` updates the overall rating and every trainable theme on the puzzle, using the puzzle's stored rating (never a client-supplied one). `user_puzzle_attempts` keeps per-attempt history — what a trainer's progress view will read.
 - **Note on the older `puzzles` table**: the mate-in-N and "winning position" modules still use it. It carries an engine-verified solution tree rather than a Lichess move line, which is why the two live in separate tables.
-- **Google Gemini SDK Integration (`@google/genai`)**: Natural language position coaching in Serbian/English explaining tactical motifs, step-by-step plans, and recommended moves.
+- **Position Study (`POST /study-words`)**: one position gone through as a strong player would talk a club player through it — the main line, the moves as good as the best, the tempting moves and why they fail, the traps (a capture that wins material and loses the position), the threat. The engine and the endgame tablebase work all of it out on the device; DeepSeek only words it, and every sentence is checked against the analysis before it is kept. See `docs/PLAN-STUDIJA-POZICIJE.md`.
 - **Interactive Move Animation**: Tapping AI-recommended move chips animates board moves and draws visual direction arrows.
 
 ### 2. 🔬 Analysis Studio & Opening / Endgame Explorers (NEW!)
@@ -131,9 +131,9 @@ Ono što je sledeće na listi (dogovoreno, još neurađeno), plus par sugestija:
 ## 🛠️ Technology Stack
 
 - **Frontend**: Flutter (Dart) — Android and Windows Desktop are the targets CI and the deploy script build for; a `web/` directory exists but is not maintained
-- **Backend Server**: Node.js **>= 22.15** (the Lichess puzzle import uses `zlib.zstd*`, which does not exist before that), Express.js, Socket.IO, `@google/genai`
+- **Backend Server**: Node.js **>= 22.15** (the Lichess puzzle import uses `zlib.zstd*`, which does not exist before that), Express.js, Socket.IO
 - **Database**: PostgreSQL (`pg` client) with GIN and B-Tree indexing
-- **AI Integration**: Google Gemini 2.5 Flash (`@google/genai`)
+- **AI Integration**: DeepSeek (`deepseek-flash`), asked through the server and never from the app
 - **Real-Time Audio**: Agora RTC SDK (`agora_rtc_engine`)
 - **Chess Engine**: Stockfish CLI & WASM Engine integration
 - **Video Rendering**: Server-side FFmpeg rendering engine
@@ -146,7 +146,7 @@ Ono što je sledeće na listi (dogovoreno, još neurađeno), plus par sugestija:
 - `POST /api/puzzles/submit`: Submits that puzzle's solution, calculates the Elo rating change.
 - `GET /api/puzzles/adaptive`: The Lichess-backed selector described in §1 — targets the motif the user is measurably weakest at.
 - `POST /api/puzzles/attempt`: Updates the overall rating and every trainable theme on the puzzle, using the puzzle's stored rating rather than a client-supplied one.
-- `POST /api/ai/explain-position`: Passes FEN position and Stockfish evaluation to Gemini AI for natural language coaching advice.
+- `POST /study-words`: The words of a position study, from the facts the app has worked out; `POST /study-words/comment` is the same for one move or one position.
 - `POST /sessions/schedule`: Schedules future lesson rooms with 1-click Google Calendar integration.
 
 ---

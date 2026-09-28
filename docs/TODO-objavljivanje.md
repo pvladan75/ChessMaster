@@ -115,6 +115,16 @@ Publika ID tokena se ne menja preimenovanjem paketa.
       Uz to je **Gemini relikt** (vlasnik, 26.9.2026) i odeljak 5.2 odlazi kad
       se obrišu njegova vrata. Tekst je vlasnikov i advokatov; ovde je samo
       popis šta aplikacija radi. Posle izmene: `STT_PROVIDER=groq` na dropletu.
+      **Od 28.9.2026 su Gemini-jeva vrata obrisana** (`PLAN-STUDIJA-POZICIJE.md`,
+      D5; bilo ih je tri, ne dva): aplikacija i server ga više ne zovu, paket
+      `@google/genai` i `GEMINI_API_KEY` su uklonjeni. **Odeljak 5.2 je od tog
+      dana netačan** — imenuje pružaoca kome se ništa ne šalje, a ne imenuje
+      onoga kome se šalje. DeepSeek sada dobija i **podatke o poziciji** za
+      studiju pozicije, `Generate AI comment`, `Ask AI about position` i opis
+      protivnika: spisak figura po poljima, poteze linija i činjenice koje je
+      motor izračunao, bez FEN-a, imena i naloga (opis protivnika i dalje bez
+      imena protivnika). Ključ `GEMINI_API_KEY` treba obrisati iz `.env` na
+      radnoj stanici i na dropletu, i opozvati ga u Google AI Studio.
 - [ ] **Odlučiti gde se aplikacija nudi.** Play podrazumevano deli svuda; dok
       pravna provera pokriva jednu državu, spisak zemalja u Play Console-u
       treba suziti na nju. Proširenje je onda odluka, a ne previd.
