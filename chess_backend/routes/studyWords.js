@@ -28,7 +28,7 @@ const {
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
 const { createDeepSeek, LlmUnavailable } = require('../services/llm/deepseek');
 const {
-  validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
+  MODEL, EFFORT, validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
 } = require('../services/studyWords');
 
 const router = express.Router();
@@ -172,11 +172,11 @@ function createStudyWordsHandler({
 }
 
 /// The model a study is written by: `STUDY_WORDS_MODEL` and
-/// `STUDY_WORDS_REASONING_EFFORT`, and unset the model and the effort every
-/// other route was validated with.
+/// `STUDY_WORDS_REASONING_EFFORT`, and unset the owner's choice
+/// (`services/studyWords.js`).
 const provider = createDeepSeek({
-  model: process.env.STUDY_WORDS_MODEL || 'deepseek-flash',
-  reasoningEffort: process.env.STUDY_WORDS_REASONING_EFFORT || 'low',
+  model: process.env.STUDY_WORDS_MODEL || MODEL,
+  reasoningEffort: process.env.STUDY_WORDS_REASONING_EFFORT || EFFORT,
 });
 
 router.post(

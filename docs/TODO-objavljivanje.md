@@ -125,6 +125,17 @@ Publika ID tokena se ne menja preimenovanjem paketa.
       motor izračunao, bez FEN-a, imena i naloga (opis protivnika i dalje bez
       imena protivnika). Ključ `GEMINI_API_KEY` treba obrisati iz `.env` na
       radnoj stanici i na dropletu, i opozvati ga u Google AI Studio.
+      **Odeljak 5.2 je prepisan 28.9.2026 na vlasnikovu reč**: imenuje
+      DeepSeek, kaže šta mu se šalje (šahovski podaci; za prevod tekst
+      komentara tutorijala) i da prenos ide u NR Kinu — u nacrtu
+      (`docs/politika-privatnosti.md`) i na sajtu na oba jezika. **Novi tekst
+      advokat nije video**, a tri stvari uz njega ostaju otvorene: (1) tačka u
+      odeljku 4 i dalje kaže da se servisu veštačke inteligencije ne šalje
+      „bilo koji lični podatak", a na prevod ide tekst koji je trener sam
+      napisao; (2) **Groq** i **Azure Speech** i dalje nisu navedeni; (3)
+      odeljak 3.5 broji „AI komentare", a sada se broje i studije i tokeni.
+      Ključ je iz lokalnog `.env` obrisan (vlasnik, 28.9.2026); ostaje
+      droplet i opoziv ključa.
 - [ ] **Odlučiti gde se aplikacija nudi.** Play podrazumevano deli svuda; dok
       pravna provera pokriva jednu državu, spisak zemalja u Play Console-u
       treba suziti na nju. Proširenje je onda odluka, a ne previd.

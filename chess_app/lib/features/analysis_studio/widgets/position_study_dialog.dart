@@ -291,7 +291,7 @@ class _PositionStudyDialogState extends State<PositionStudyDialog> {
       const SizedBox(height: AppSpacing.xs),
       Text(
         writing
-            ? 'The engine has finished. This takes up to a minute.'
+            ? 'The engine has finished. This can take a minute or two.'
             : 'Position $_searched of at most $kStudySearchBudget',
         style: AppText.caption.copyWith(color: colors.textMuted),
       ),

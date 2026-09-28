@@ -13,6 +13,8 @@ import 'package:http/testing.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/position_study/position_study.dart';
 import 'package:chess_app/features/analysis_studio/services/position_study/study_board.dart';
+import 'package:chess_app/features/analysis_studio/services/position_study/study_words_client.dart'
+    show kStudyWordsTimeout;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/words_client.dart'
     show WordsRefusal;
 
@@ -292,6 +294,14 @@ void main() {
       expect((await refusalFor(503, {'reason': 'no-balance'}))?.reason,
           'no-balance');
       expect((await refusalFor(500))?.reason, 'http-500');
+    });
+
+    test('the app waits longer than the server may take', () {
+      // Two attempts of 100 s each on the server (`ATTEMPTS`, the client\'s
+      // `timeoutMs`), under the proxy\'s 300: deepseek-v4-pro took up to 62 s
+      // for one study in phase 0, so a second attempt is past two minutes.
+      expect(kStudyWordsTimeout, greaterThan(const Duration(seconds: 200)));
+      expect(kStudyWordsTimeout, lessThan(const Duration(seconds: 300)));
     });
 
     test('a guest is told to sign in, and nothing is sent', () async {

@@ -9209,3 +9209,32 @@ Not done, and said to the owner: `MoveTree.exportToPgn`, the room's writer,
 numbers the first move and the move after a variation but not the move after
 a comment, so the two writers differ in that one place — the reader takes
 both; and the two spaces after a root note are left as they were.
+
+## 28.9.2026 — the model is chosen, and the policy names it
+
+App 5086 → **5087** (one case: the app waits longer than the server may
+take); backend 1892 → **1895** without a database and 2051 → **2054** with
+one (three cases in `study_words.test.js`); analyze the same 22. Full runs in
+a worktree; the backend ran beside the last minute of the app's suite, and all were green.
+
+**The owner chose `deepseek-v4-pro`** from the two reports. It is the default
+in one place, `services/studyWords.js` (`MODEL`, `EFFORT`), read by the study's
+route, the opponent narrative and the measuring tool — there were three
+copies of `'deepseek-flash'` after one afternoon, and a case now fails if a
+door names a model of its own.
+
+**A slower model changes what the client may wait for.** With the fast model
+two attempts fitted in the app's two minutes; the slower one took up to 62 s
+for one study, so a second attempt — which the server makes by itself when
+the first answer is the wrong shape — would have come back to a client that
+had already said „the server did not answer". The app waits 230 s now: past
+the server's two attempts of 100, under the proxy's 300. **When a number
+upstream changes, walk the waits downstream of it.**
+
+**The privacy policy's §5.2 names DeepSeek**, on the owner's word, in the
+draft and on the site in both languages: what is sent (chess data; for a
+translation the text of the tutorial's comments), what is not (the account,
+the opponent's name), and where it goes. Written from what the code sends,
+read route by route. Not before the lawyer, and said so where the publishing
+steps are kept — with the three things beside it that the owner did not ask
+for and that are still untrue or missing.

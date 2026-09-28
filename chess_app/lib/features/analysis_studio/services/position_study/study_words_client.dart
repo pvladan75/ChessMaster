@@ -34,6 +34,12 @@ class StudyWordsOutcome {
   final WordsRefusal? refusal;
 }
 
+/// How long the app waits for the words. The server asks the model twice at
+/// the most, 100 s an attempt, under a proxy that waits 300; `deepseek-v4-pro`
+/// took up to 62 s for one study in phase 0, so a second attempt is past the
+/// two minutes this waited while the fast model wrote.
+const Duration kStudyWordsTimeout = Duration(seconds: 230);
+
 /// How the app asks for words — the seam a test or a headless tool replaces.
 typedef StudyWordsAsker = Future<StudyWordsOutcome> Function(
   Map<String, dynamic> request, {
@@ -57,7 +63,7 @@ Future<StudyWordsOutcome> requestStudyWords(
   bool comment = false,
   http.Client? client,
   String? baseUrl,
-  Duration timeout = const Duration(seconds: 120),
+  Duration timeout = kStudyWordsTimeout,
 }) async {
   if (token.isEmpty) {
     return const StudyWordsOutcome.refused(
@@ -124,7 +130,7 @@ Future<StudyWordsOutcome> requestStudyWords(
     }
   } on TimeoutException {
     return const StudyWordsOutcome.refused(WordsRefusal('timeout',
-        'The server did not answer in two minutes. Nothing was charged.'));
+        'The server did not answer in four minutes. Nothing was charged.'));
   } on SocketException catch (e) {
     AppLogger.log('[StudyWords] ❌ Server nedostupan: $e');
     return const StudyWordsOutcome.refused(
