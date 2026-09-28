@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5069 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5086 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1892 without TEST_DATABASE_URL, 2051 with it (both measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1113,7 +1113,17 @@ piece that is offered is taken, and a trap is „a capture that wins material
 and loses the position". **A cost is not a threat**; **of two replies as good
 as each other the engine's first is an accident of depth**; **a model that
 reads of a slot writes it**; **a word in the facts is not the fact** („no
-defender" is checked by the square). Phase 6 of
+defender" is checked by the square). Then the move number the exporter left
+out (→ **5086**, a full run on the merged tree with nothing else running;
+analyze the same 22; the server untouched): a Black move carries `N...` when
+it is the first move of the text, the first of a variation, or follows a
+comment or a closed variation — the study's own line came out as `Bxb1
+(7... Be4 …`. The reader was measured first, because every stored text is in
+the old form, and it takes both. Four pinned expectations moved, each
+rewritten openly. **A rule written in two calls needs a case for each**: a
+comment on the *first* move of a variation is written by another call than
+the moves after it, and the mutation that dropped it there survived until it
+had a case of its own. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

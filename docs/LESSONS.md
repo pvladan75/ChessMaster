@@ -9165,3 +9165,47 @@ Not done, and said to the owner: the privacy policy's §5.2 names Gemini and
 not DeepSeek, and is untrue from this change on; „Extend branch" is the
 study's main line without the rest and stays until he says otherwise; the
 PGN exporter writes no move number before Black's first move of a position.
+
+## 28.9.2026 — a Black move says its number after an interruption (app 5069 → 5086)
+
+`PgnExporterService` wrote `N...` only in front of the first move of a
+variation. A tree whose root has Black to move — the Position Study's own
+test line — exported its main line as `Bxb1 (7... Be4 8. dxc6) 8. Rxb1 cxd5`.
+A Black move now carries its number when it is the first move of the text,
+the first move of a variation, or follows a comment or a closed variation.
+The number stays outside the move's `PgnSpan`.
+
+5069 + 17 = 5086: the seventeen cases of `pgn_black_move_number_test.dart`.
+Nothing was deleted. Analyze is the same 22 infos; the server is untouched.
+
+**The reader was measured before the writer was changed.** Every text this
+app has stored is in the old form, so `MoveTree.parsePgn` had to read
+`7... Bxb1`, `Bxb1` and `7...Bxb1` as one tree. It does, and the test that
+says so was watched failing: with the reader's two number rules narrowed,
+the four cases that carry a number went red and the bare form stayed green.
+Narrowing one rule alone survives — the skip of a standalone `7...` and the
+strip of a glued one cover each other.
+
+**Four pinned expectations moved**, each rewritten with what superseded it
+and what the case still guards: `auto_tree_and_pgn_test` (the NAG and the
+comment), `node_beats_test` (one group, and the order inside it), and two in
+`position_study_tree_test` (the lines and where each trap stands). The grep
+found the first two and a full run confirmed there were no others; the last
+two arrived with master, which had moved eight commits while the branch was
+measured — **a list of what changes is a list for one commit**, and the merge
+was measured again before anything went to master.
+
+**A rule written in two calls needs a case for each.** Six mutations, five
+red on the right case. The survivor was a comment on the *first* move of a
+variation: that move is written by a different call than the moves after
+it, and the case „after a comment inside a variation" had put its comment on
+the second. It has a case of its own now, and the mutation is red on it.
+
+**A literal from memory was wrong by a space.** The exporter has always
+written two spaces after the root's note, in front of a White move as well;
+the new test's first draft expected one. The literal is the one a run gives.
+
+Not done, and said to the owner: `MoveTree.exportToPgn`, the room's writer,
+numbers the first move and the move after a variation but not the move after
+a comment, so the two writers differ in that one place — the reader takes
+both; and the two spaces after a root note are left as they were.
