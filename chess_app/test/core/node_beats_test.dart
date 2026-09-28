@@ -377,6 +377,12 @@ void main() {
 
     test('a tree with one beat to a position is written as it is today', () {
       // The text is a literal: what `master` writes for this tree.
+      //
+      // Superseded on 28.9.2026 in one place, the `1...` in front of `e5`:
+      // a Black move that follows a comment now carries its number, as the
+      // PGN standard has it (`pgn_black_move_number_test.dart`). What this
+      // case guards is untouched — the one group, and the order of the
+      // words, the arrows, the squares and the clock inside it.
       final root = AnalysisNode(fen: _start);
       final e4 = root.addChild(childFen: _afterE4, san: 'e4', uci: 'e2e4')
         ..comment = 'Takes the centre.'
@@ -391,7 +397,7 @@ void main() {
       expect(
           _body(PgnExporterService.exportToPgn(root)),
           startsWith('1. e4 { Takes the centre. [%cal Ge2e4] [%csl Rd5] '
-              '[%clk 0:03:00] } e5'));
+              '[%clk 0:03:00] } 1... e5'));
     });
   });
 

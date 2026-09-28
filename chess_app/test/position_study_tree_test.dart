@@ -52,9 +52,13 @@ void main() {
     final study = await _study('owner1');
     final root = AnalysisNode(fen: study.fen);
     writeStudy(root, study);
+    // Superseded on 28.9.2026 in one place: this began `Bxb1 (7... Be4?!`.
+    // The first move of the text is Black's and now carries its number, as
+    // the PGN standard has it (`pgn_black_move_number_test.dart`). The
+    // lines, their order and their marks are what they were.
     expect(
       _moves(root),
-      'Bxb1 (7... Be4?! 8. dxc6! Bxh1? (8... Nxc6 9. f3) 9. Rxa7! Rxa7 '
+      '7... Bxb1 (7... Be4?! 8. dxc6! Bxh1? (8... Nxc6 9. f3) 9. Rxa7! Rxa7 '
       '(9... Nxc6 10. Rxa8+) 10. c7 e6 11. cxb8=Q+) '
       '(7... Nd7? 8. Nxd7 Bxd7 9. Bg2) 8. Rxb1 cxd5 9. e4 *',
     );
@@ -65,11 +69,16 @@ void main() {
     final study = await _study('owner2');
     final root = AnalysisNode(fen: study.fen);
     writeStudy(root, study);
+    // Superseded on 28.9.2026 in two places: `… Be6) Nxc6` and
+    // `… b6) Nxe5`. A Black move that follows a closed variation now
+    // carries its number (`pgn_black_move_number_test.dart`). Where each
+    // trap stands is what it was.
     expect(
       _moves(root),
-      '8. dxc6 (8. f3 Bxd5 9. d4 Nf6 10. Nd2 Nfd7 11. e4 Be6) Nxc6 '
+      '8. dxc6 (8. f3 Bxd5 9. d4 Nf6 10. Nd2 Nfd7 11. e4 Be6) 8... Nxc6 '
       '(8... Bxh1? 9. Rxa7! Rxa7 (9... Nxc6 10. Rxa8+) 10. c7 e6 '
-      '11. cxb8=Q+) 9. f3 (9. Nxc6? Bxh1! 10. Na5 b6) Nxe5 10. fxe4 Nc6 *',
+      '11. cxb8=Q+) 9. f3 (9. Nxc6? Bxh1! 10. Na5 b6) 9... Nxe5 '
+      '10. fxe4 Nc6 *',
     );
   });
 

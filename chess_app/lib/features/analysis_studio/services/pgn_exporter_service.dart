@@ -78,6 +78,7 @@ class PgnExporterService {
       rootNode,
       startMoveNum,
       isWhiteToMove,
+      interrupted: true,
     );
 
     buffer.write(' *');
@@ -106,55 +107,75 @@ class PgnExporterService {
     );
   }
 
+  /// Writes [parent]'s children: the main move, its variations, and then
+  /// the line under the main move.
+  ///
+  /// [interrupted] says the text in front of the main move is not the White
+  /// move it answers — it is the start of the text, the start of a variation,
+  /// a comment or a closed variation. A Black move written there carries its
+  /// number (`7... Bxb1`), as the PGN standard has it; one that follows its
+  /// White move directly does not.
   static void _formatNodeChildren(
     StringBuffer buffer,
     List<PgnSpan> spans,
     AnalysisNode parent,
     int moveNum,
-    bool isWhiteTurn,
-  ) {
+    bool isWhiteTurn, {
+    required bool interrupted,
+  }) {
     if (parent.children.isEmpty) return;
+
+    final nextMoveNum = isWhiteTurn ? moveNum : moveNum + 1;
 
     // Main line child (index 0)
     final mainChild = parent.children.first;
-    _writeMoveToken(buffer, spans, mainChild, moveNum, isWhiteTurn);
+    final mainCommented = _writeMoveToken(
+        buffer, spans, mainChild, moveNum, isWhiteTurn,
+        numbered: interrupted);
 
     // Variations (index 1 to N)
     if (parent.children.length > 1) {
       for (int i = 1; i < parent.children.length; i++) {
         final varChild = parent.children[i];
         buffer.write(' (');
-        _writeMoveToken(buffer, spans, varChild, moveNum, isWhiteTurn,
-            isVariationStart: true);
+        final varCommented = _writeMoveToken(
+            buffer, spans, varChild, moveNum, isWhiteTurn,
+            numbered: true);
         _formatNodeChildren(
           buffer,
           spans,
           varChild,
-          isWhiteTurn ? moveNum : moveNum + 1,
+          nextMoveNum,
           !isWhiteTurn,
+          interrupted: varCommented,
         );
         buffer.write(')');
       }
     }
 
     // Continue down main line
-    final nextMoveNum = isWhiteTurn ? moveNum : moveNum + 1;
     _formatNodeChildren(
       buffer,
       spans,
       mainChild,
       nextMoveNum,
       !isWhiteTurn,
+      interrupted: mainCommented || parent.children.length > 1,
     );
   }
 
-  static void _writeMoveToken(
+  /// Writes one move and what is said about it, and answers whether a
+  /// comment was written — the next move then stands after an interruption.
+  ///
+  /// A White move always carries its number; a Black move carries it when
+  /// [numbered].
+  static bool _writeMoveToken(
     StringBuffer buffer,
     List<PgnSpan> spans,
     AnalysisNode node,
     int moveNum,
     bool isWhiteTurn, {
-    bool isVariationStart = false,
+    required bool numbered,
   }) {
     if (buffer.isNotEmpty && !buffer.toString().endsWith('(')) {
       buffer.write(' ');
@@ -162,7 +183,7 @@ class PgnExporterService {
 
     if (isWhiteTurn) {
       buffer.write('$moveNum. ');
-    } else if (isVariationStart) {
+    } else if (numbered) {
       buffer.write('$moveNum... ');
     }
 
@@ -184,17 +205,17 @@ class PgnExporterService {
     ));
 
     final comment = _commentText(node);
-    if (comment != null) {
-      buffer.write(' ');
-      final commentStart = buffer.length;
-      buffer.write(comment);
-      spans.add(PgnSpan(
-        nodeId: node.id,
-        kind: PgnSpanKind.comment,
-        start: commentStart,
-        end: buffer.length,
-      ));
-    }
+    if (comment == null) return false;
+    buffer.write(' ');
+    final commentStart = buffer.length;
+    buffer.write(comment);
+    spans.add(PgnSpan(
+      nodeId: node.id,
+      kind: PgnSpanKind.comment,
+      start: commentStart,
+      end: buffer.length,
+    ));
+    return true;
   }
 
   /// One node's beats as successive `{ words [%cal …] [%csl …] }` groups, or
