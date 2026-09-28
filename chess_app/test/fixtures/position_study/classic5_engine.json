@@ -1,0 +1,990 @@
+{
+ "fen": "8/8/2P5/3p4/3P4/3k4/2r4R/7K b - - 0 76",
+ "depth": 20,
+ "searches": [
+  {
+   "fen": "8/8/2P5/3p4/3P4/3k4/2r4R/7K b - - 0 76",
+   "multiPV": 3,
+   "lines": [
+    {
+     "multipv": 1,
+     "depth": 20,
+     "evaluation": "-4.16",
+     "pv": "c2c6 h2h4 c6g6 h1h2 d3e3 h2h1 g6g7 h1h2 g7g8 h2h1 g8e8 h1g2 e8e4 h4h1 e4d4 h1h3 e3d2 h3h5 d4d3 g2f2 d5d4 h5d5 d2c2 d5d4"
+    },
+    {
+     "multipv": 2,
+     "depth": 20,
+     "evaluation": "-2.20",
+     "pv": "c2c1 h1g2 c1c6 h2h4 c6f6 h4g4 d3e3 g2g1 f6f5 g4h4 f5f7 h4g4 f7h7 g1g2 h7h8 g2g1 h8c8 g4h4 c8f8 h4g4 f8h8 g1g2 h8a8 g4h4 a8f8 g2g1 e3d3 h4g4 f8f5 g4h4 f5f7 h4g4 d3e3 g4h4"
+    },
+    {
+     "multipv": 3,
+     "depth": 20,
+     "evaluation": "-0.12",
+     "pv": "c2c4 h2h6 c4d4 h6h5 d3c3 h1h2 d4c4 h5d5 c4c6 d5f5 c3b4 f5f2 c6e6 f2f4 b4c3 f4f3 c3d2"
+    }
+   ]
+  },
+  {
+   "fen": "8/8/2P5/3p4/3P4/3k4/2r4R/7K w - - 1 77",
+   "multiPV": 1,
+   "lines": [
+    {
+     "multipv": 1,
+     "depth": 20,
+     "evaluation": "+6.42",
+     "pv": "h2c2 d3c2 c6c7 c2d3 h1g2 d3d4 g2f3 d4e5 f3e3 e5e6 c7c8q e6f6 e3d4 f6f7 d4d5"
+    }
+   ]
+  },
+  {
+   "fen": "8/8/2r5/3p4/3P4/3k4/7R/7K w - - 0 77",
+   "multiPV": 2,
+   "lines": [
+    {
+     "multipv": 1,
+     "depth": 20,
+     "evaluation": "-4.16",
+     "pv": "h2h4 c6g6 h1h2 d3e3 h2h3 g6g1 h3h2 g1d1 h4h8 d1d4 h8d8 d4d1 d8e8 e3d3 h2g2 d5d4 e8d8 d1e1 g2f2 e1e6 d8h8 d3c3 f2f3 d4d3 f3f4 e6e1 h8c8 c3d2 c8d8 d2c2 d8d3 c2d3 f4f5 d3d4 f5f6 d4c5 f6f5 c5d6 f5f6 e1f1 f6g5 d6e5 g5g6"
+    },
+    {
+     "multipv": 2,
+     "depth": 20,
+     "evaluation": "-4.36",
+     "pv": "h2h8 d3d4 h1g2 c6f6 g2g3 d4d3 g3g4 d5d4 h8d8 f6f1 g4g5 d3e3 g5g6 d4d3 g6g5 e3d2"
+    }
+   ]
+  },
+  {
+   "fen": "8/8/2r5/3p4/3P3R/3k4/8/7K b - - 1 77",
+   "multiPV": 2,
+   "lines": [
+    {
+     "multipv": 1,
+     "depth": 20,
+     "evaluation": "-4.37",
+     "pv": "c6g6 h4f4 d3e3 f4h4 g6e6 h1g2 e6e4 h4h1 e4d4 h1e1 e3d2 e1e5 d4d3 g2f2 d5d4 e5e2 d2d1 e2e7 d3b3 e7e1 d1c2 e1e7"
+    },
+    {
+     "multipv": 2,
+     "depth": 20,
+     "evaluation": "-3.46",
+     "pv": "c6e6 h1g2 e6e4 h4h1 e4f4 h1a1 f4f5 a1a4 d3e4 g2h1 e4e3 h1g1 f5f8 a4b4 f8f4 b4b3 e3e2 b3b4 f4g4 g1h1"
+    }
+   ]
+  },
+  {
+   "fen": "8/8/6r1/3p4/3P3R/3k4/8/7K w - - 2 78",
+   "multiPV": 2,
+   "lines": [
+    {
+     "multipv": 1,
+     "depth": 20,
+     "evaluation": "-4.49",
+     "pv": "h4f4 d3e3 f4h4 g6e6 h1g2 e6e4 h4h1 e4d4 h1e1 e3d2 e1e5 d4d3 g2f2 d5d4 e5e4 d2c3 e4e8 c3c2 e8c8 d3c3 c8d8 d4d3 f2e3 c3c6"
+    },
+    {
+     "multipv": 2,
+     "depth": 20,
+     "evaluation": "-4.49",
+     "pv": "h1h2 d3e3 h2h1 g6e6 h1g2 e6e4 h4h1 e4d4 h1e1 e3d2 e1e5 d4d3 g2f2 d5d4 e5e4 d2c3 e4e8 c3c2 e8c8 d3c3 c8d8"
+    }
+   ]
+  },
+  {
+   "fen": "8/8/2r5/3p4/3P4/3k4/7R/7K b - - 1 77",
+   "multiPV": 1,
+   "lines": [
+    {
+     "multipv": 1,
+     "depth": 20,
+     "evaluation": "-6.35",
+     "pv": "c6c1 h1g2 c1c2 g2g1 c2h2 g1h2 d3d4 h2g3 d4e3 g3g4 d5d4 g4f5 d4d3 f5g5"
+    }
+   ]
+  }
+ ],
+ "tablebase": [
+  {
+   "fen": "8/8/2P5/3p4/3P4/3k4/2r4R/7K b - - 0 76",
+   "answer": {
+    "category": "win",
+    "dtz": 1,
+    "dtm": null,
+    "checkmate": false,
+    "stalemate": false,
+    "moves": [
+     {
+      "uci": "c2c6",
+      "san": "Rxc6",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -76,
+      "zeroing": true,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c1",
+      "san": "Rc1+",
+      "category": "loss",
+      "dtz": -1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c4",
+      "san": "Rc4",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c3",
+      "san": "Rc3",
+      "category": "win",
+      "dtz": 3,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2a2",
+      "san": "Ra2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2b2",
+      "san": "Rb2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2d2",
+      "san": "Rd2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2e2",
+      "san": "Re2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2f2",
+      "san": "Rf2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2g2",
+      "san": "Rg2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c5",
+      "san": "Rc5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c3",
+      "san": "Kc3",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e3",
+      "san": "Ke3",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c4",
+      "san": "Kc4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e4",
+      "san": "Ke4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2h2",
+      "san": "Rxh2+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 27,
+      "zeroing": true,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3d4",
+      "san": "Kxd4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 17,
+      "zeroing": true,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "fen": "8/8/2r5/3p4/3P4/3k4/7R/7K w - - 0 77",
+   "answer": {
+    "category": "loss",
+    "dtz": -6,
+    "dtm": -76,
+    "checkmate": false,
+    "stalemate": false,
+    "moves": [
+     {
+      "uci": "h2h4",
+      "san": "Rh4",
+      "category": "win",
+      "dtz": 3,
+      "dtm": 75,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2f2",
+      "san": "Rf2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 63,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2a2",
+      "san": "Ra2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 61,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2h3",
+      "san": "Rh3+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 61,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2h5",
+      "san": "Rh5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 61,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2h7",
+      "san": "Rh7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 61,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2h8",
+      "san": "Rh8",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 61,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2b2",
+      "san": "Rb2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 59,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2g2",
+      "san": "Rg2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 37,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h1g1",
+      "san": "Kg1",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 33,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h1g2",
+      "san": "Kg2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 31,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2d2",
+      "san": "Rd2+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 15,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2h6",
+      "san": "Rh6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 15,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2c2",
+      "san": "Rc2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 11,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2e2",
+      "san": "Re2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 9,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "fen": "8/8/2r5/3p4/3P3R/3k4/8/7K b - - 1 77",
+   "answer": {
+    "category": "win",
+    "dtz": 3,
+    "dtm": 75,
+    "checkmate": false,
+    "stalemate": false,
+    "moves": [
+     {
+      "uci": "c6c4",
+      "san": "Rc4",
+      "category": "loss",
+      "dtz": -2,
+      "dtm": -74,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6g6",
+      "san": "Rg6",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -78,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6e6",
+      "san": "Re6",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -86,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e3",
+      "san": "Ke3",
+      "category": "loss",
+      "dtz": -14,
+      "dtm": -98,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6a6",
+      "san": "Ra6",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6b6",
+      "san": "Rb6",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6c7",
+      "san": "Rc7",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6c8",
+      "san": "Rc8",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6f6",
+      "san": "Rf6",
+      "category": "loss",
+      "dtz": -18,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6d6",
+      "san": "Rd6",
+      "category": "loss",
+      "dtz": -20,
+      "dtm": -102,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c3",
+      "san": "Kc3",
+      "category": "loss",
+      "dtz": -22,
+      "dtm": -104,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c4",
+      "san": "Kc4",
+      "category": "loss",
+      "dtz": -22,
+      "dtm": -104,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6c1",
+      "san": "Rc1+",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6c2",
+      "san": "Rc2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6c3",
+      "san": "Rc3",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c2",
+      "san": "Kc2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3d2",
+      "san": "Kd2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e2",
+      "san": "Ke2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6h6",
+      "san": "Rh6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 37,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c6c5",
+      "san": "Rc5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 17,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "fen": "8/8/6r1/3p4/3P3R/3k4/8/7K w - - 2 78",
+   "answer": {
+    "category": "loss",
+    "dtz": -8,
+    "dtm": -78,
+    "checkmate": false,
+    "stalemate": false,
+    "moves": [
+     {
+      "uci": "h4f4",
+      "san": "Rf4",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 77,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h1h2",
+      "san": "Kh2",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 77,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h7",
+      "san": "Rh7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 53,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h8",
+      "san": "Rh8",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 53,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h2",
+      "san": "Rh2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 51,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h3",
+      "san": "Rh3+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 51,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h5",
+      "san": "Rh5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 51,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h6",
+      "san": "Rh6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 15,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4g4",
+      "san": "Rg4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 11,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4e4",
+      "san": "Re4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 7,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "fen": "8/8/6r1/3p4/3P1R2/3k4/8/7K b - - 3 78",
+   "answer": {
+    "category": "win",
+    "dtz": 7,
+    "dtm": 77,
+    "checkmate": false,
+    "stalemate": false,
+    "moves": [
+     {
+      "uci": "g6e6",
+      "san": "Re6",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -76,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e3",
+      "san": "Ke3",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -76,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g7",
+      "san": "Rg7",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -80,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g8",
+      "san": "Rg8",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -80,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g3",
+      "san": "Rg3",
+      "category": "loss",
+      "dtz": -10,
+      "dtm": -80,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g5",
+      "san": "Rg5",
+      "category": "loss",
+      "dtz": -10,
+      "dtm": -80,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c3",
+      "san": "Kc3",
+      "category": "loss",
+      "dtz": -10,
+      "dtm": -80,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c4",
+      "san": "Kc4",
+      "category": "loss",
+      "dtz": -10,
+      "dtm": -80,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6a6",
+      "san": "Ra6",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6b6",
+      "san": "Rb6",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6c6",
+      "san": "Rc6",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -100,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6d6",
+      "san": "Rd6",
+      "category": "loss",
+      "dtz": -18,
+      "dtm": -102,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6h6",
+      "san": "Rh6+",
+      "category": "loss",
+      "dtz": -18,
+      "dtm": -102,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c2",
+      "san": "Kc2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3d2",
+      "san": "Kd2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e2",
+      "san": "Ke2",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6f6",
+      "san": "Rf6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 37,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g1",
+      "san": "Rg1+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g4",
+      "san": "Rg4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 33,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g6g2",
+      "san": "Rg2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 29,
+      "zeroing": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  }
+ ]
+}

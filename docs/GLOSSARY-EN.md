@@ -48,6 +48,8 @@ place the word appears and it never reaches a screen.
 | Priprema | **Preparation** | Your own board, alone, with your own library — a screen of its own since 27.9.2026, no longer the room |
 | Analiza | **Analysis** | The engine, the opening database, the tree — one position |
 | Studio za tutorijal | **Tutorial Studio** | Writing a tutorial, and the only „studio" there is |
+| Studija pozicije | **Position study** | One position gone through as a strong player would talk it through: the main line, the moves as good, the tempting moves, the traps, the threat, each in words on the move it is about. The action is **Study this position**; it took the place of „Auto Analysis" on 28.9.2026 (`docs/PLAN-STUDIJA-POZICIJE.md`). A **study**, never a „studio" — that word is the Tutorial Studio's |
+| Zamka | **Trap** | A capture that wins material and loses the position — the owner's definition of 28.9.2026. A recapture that only looks automatic is a **mistake**, not a trap: it wins nothing |
 
 „Preparation" over „My board" or „Workspace" for the reason „Priprema" won in
 Serbian: it names the work rather than the furniture, and it is the word a

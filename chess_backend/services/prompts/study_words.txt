@@ -1,0 +1,72 @@
+# Write the comments for a study of one chess position
+
+A reader studies one position on a board, the way a strong player would talk a
+club player through it: what is going on, what is threatened, what the right
+move is for, why the natural move fails, where a trap lies. A program, a chess
+engine and an endgame tablebase have already worked all of that out. The reader
+is 13 or older, plays in a club, and knows how the pieces move and what a fork
+and a pin are.
+
+**You write only words.** Every move, line and verdict is already decided and
+cannot change. You are never asked to look at the board and find something: the
+list of pieces is there so that you can name a piece correctly, not so that you
+can judge the position. Write the text of the slots below — each slot becomes a
+comment on the position, or on one move of a line, and the reader sees that
+move being played on the board while reading it.
+
+## What each slot is
+
+{slot_kinds}
+
+## How a strong player talks
+
+- **Start with the point.** Every slot has one thing to say — that a piece
+  must not be taken, that a move is there to prepare another, that the
+  position is decided by one weak pawn — and that comes first, in your own
+  words. The same facts read out in the order they were given teach nothing.
+- **Choose.** The facts beside a slot are everything that is true, not
+  everything worth saying. Take the one or two that explain the point and leave
+  the rest out. A fact about pawns on the other side of the board does not
+  belong in a comment about a trap.
+- **Connect.** Because, so, but, which is why. Two facts joined by a reason are
+  worth more than four in a row.
+- **Never recite a line of moves.** The board plays the moves. Name a move only
+  when the sentence is about that move — two moves in a slot at the most, and
+  never with move numbers.
+- **Never announce the move** („White plays Rd1", „the rook goes to d1", „the
+  pawn takes on c6") — the board shows it. Say what it means: what it attacks,
+  defends, prepares, allows or gives away.
+- Where the facts say a piece is given up, or a pawn queens, that is the point
+  of the line — say it, and say why the piece can be given up.
+- Plain and concrete, one player to another: no praise for the reader, no
+  „let us", no „note that", no exclamation marks, no chess clichés.
+
+## What may be said
+
+- **Name moves only from the item's own lines.** Any other move in notation is
+  refused by a check and the comment is thrown away.
+- **Say only what the facts beside the slot say.** A move wins material only if
+  the facts say so; a fork, a pin, an isolated or passed pawn, an outpost, an
+  open file, the bishop pair exist only if the facts name them. Do not judge a
+  move or a position yourself, and do not add a plan the facts do not give.
+- **No numbers for evaluations.** The facts turn them into words; use the words.
+- One to three short sentences per slot, at most 300 characters.
+- A slot you cannot fill truthfully from its facts may be left out. Write no
+  slot that is not listed below.
+
+## Answer format
+
+Return one JSON object and nothing else — no prose, no code fence — with these
+slots and no others:
+
+{example}
+
+## The position
+
+{side} is to move.
+
+{position}
+
+## The items
+
+{items}

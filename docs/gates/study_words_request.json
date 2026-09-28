@@ -1,0 +1,191 @@
+{
+ "about": "The request the app's builder writes for the owner's position of 28.9.2026 (the line 7...Be4 8.dxc6 Bxh1 9.Rxa7), from the engine's answers in chess_app/test/fixtures/position_study/owner1_engine.json (Stockfish 19, depth 20), and the answer deepseek-flash gave to it. Written by chess_app/tool/position_study.dart with STUDY_RECORD=1; both ends' tests stand on it.",
+ "fen": "rn2kbnr/pp2pppp/2p5/3PNb2/8/1P4P1/1P1PPP1P/RNB1KB1R b KQkq - 0 7",
+ "request": {
+  "position": "White: Ke1, Ra1, Rh1, Bc1, Bf1, Nb1, Ne5, pawns b2 d2 e2 f2 h2 b3 g3 d5. Black: Ke8, Ra8, Rh8, Bf5, Bf8, Nb8, Ng8, pawns c6 a7 b7 e7 f7 g7 h7.",
+  "side": "Black",
+  "items": [
+   {
+    "id": "s",
+    "kind": "position",
+    "label": "the position",
+    "mover": "Black",
+    "lines": {
+     "main": [
+      "Bxb1",
+      "Rxb1",
+      "cxd5",
+      "e4"
+     ]
+    },
+    "slots": [
+     {
+      "id": "s.position",
+      "text": "Black is to move. On the board as it stands: White is a pawn up. That is the middle of an exchange — once the captures of the main line are made: Material is level. White has a bishop for a knight. With the best play, it is about even. Tactics on the board: The white rook on a1 pins the black pawn on a7 to the rook on a8. The white pawn on d5 is attacked by the black pawn on c6 and has no defender. The structure: The white pawns on b2 and b3 are isolated: no pawn on a neighbouring file can defend them."
+     }
+    ]
+   },
+   {
+    "id": "m1",
+    "kind": "move",
+    "label": "7... Bxb1",
+    "mover": "Black",
+    "lines": {
+     "main": [
+      "Bxb1",
+      "Rxb1",
+      "cxd5",
+      "e4"
+     ],
+     "second": [
+      "cxd5"
+     ]
+    },
+    "slots": [
+     {
+      "id": "m1.move",
+      "text": "The move 7... Bxb1, by Black (the bishop from f5 to b1). It captures on b1. With it, it is about even."
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "kind": "move",
+    "label": "8... cxd5",
+    "mover": "Black",
+    "lines": {
+     "main": [
+      "cxd5",
+      "e4"
+     ],
+     "second": [
+      "Nd7"
+     ]
+    },
+    "slots": [
+     {
+      "id": "m2.move",
+      "text": "The move 8... cxd5, by Black (the pawn from c6 to d5). It captures on d5. On the board after it: Black's pawns hold more of the centre. With it, it is about even."
+     }
+    ]
+   },
+   {
+    "id": "m3",
+    "kind": "move",
+    "label": "9. e4",
+    "mover": "White",
+    "lines": {
+     "main": [
+      "e4"
+     ],
+     "second": [
+      "e3"
+     ]
+    },
+    "slots": [
+     {
+      "id": "m3.move",
+      "text": "The move 9. e4, by White (the pawn from e2 to e4). On the board after it: The black pawn on d5 is attacked by the white pawn on e4 and has no defender. With it, it is about even."
+     }
+    ]
+   },
+   {
+    "id": "t1",
+    "kind": "tempting",
+    "label": "7... Be4",
+    "mover": "Black",
+    "lines": {
+     "defence": [
+      "Be4",
+      "dxc6",
+      "Nxc6",
+      "f3"
+     ],
+     "aim": [
+      "Bxh1"
+     ],
+     "trap": [
+      "Bxh1",
+      "Rxa7",
+      "Rxa7",
+      "c7",
+      "e6",
+      "cxb8=Q+"
+     ],
+     "best": [
+      "Bxb1"
+     ]
+    },
+    "slots": [
+     {
+      "id": "t1.move",
+      "text": "The move 7... Be4 is what the eye goes to: it attacks the rook on h1, and Bxh1 is what it is played for. It is worse than Bxb1. With Bxb1, it is about even; after Be4 and the best play, White is slightly better. The best play after it: 8. dxc6 Nxc6 9. f3."
+     },
+     {
+      "id": "t1.reply",
+      "text": "The reply 8. dxc6, by White (the pawn from d5 to c6). It captures on c6. On the board after it: The black pawn on b7 is attacked by the white pawn on c6 and has no defender. The fork by the black bishop on e4 is over. It leaves Bxh1 to be played, and that is a trap: 8... Bxh1 9. Rxa7 Rxa7 10. c7 e6 11. cxb8=Q+."
+     },
+     {
+      "id": "t1.greedy",
+      "text": "The capture 8... Bxh1, by Black: it takes the rook on h1. It is a trap: it wins material and loses the position. With Nxc6 instead, White is slightly better. After Bxh1, White is winning. What punishes it: 9. Rxa7 Rxa7 10. c7 e6 11. cxb8=Q+."
+     },
+     {
+      "id": "t1.punish",
+      "text": "The move 9. Rxa7, by White (the rook from a1 to a7), punishes Bxh1. It captures on a7. Rxa7 gives up the rook on a7 for a pawn: Rxa7 takes it. With cxb8=Q+ the pawn takes the knight on b8 and becomes a queen. Not taking on a7 does not help: 9... Nxc6 10. Rxa8+ is the engine's own defence, and it loses as well. By the end of the line White has won two pawns, counting what Bxh1 took. On the board after it: The black rook on a8 is attacked by the white rook on a7 and has no defender. The white rook on a7 forks the black rook on a8 and the pawn on b7. The white rook on a7 is attacked by the black rook on a8 and has no defender. After it, White is winning."
+     }
+    ]
+   },
+   {
+    "id": "t2",
+    "kind": "tempting",
+    "label": "7... Nd7",
+    "mover": "Black",
+    "lines": {
+     "defence": [
+      "Nd7",
+      "Nxd7",
+      "Bxd7",
+      "Bg2"
+     ],
+     "aim": [
+      "Nxe5"
+     ],
+     "best": [
+      "Bxb1"
+     ]
+    },
+    "slots": [
+     {
+      "id": "t2.move",
+      "text": "The move 7... Nd7 is what the eye goes to: it attacks the knight on e5, and Nxe5 is what it is played for. It is a mistake. With Bxb1, it is about even; after Nd7 and the best play, White is clearly better. The best play after it: 8. Nxd7 Bxd7 9. Bg2."
+     },
+     {
+      "id": "t2.reply",
+      "text": "The reply 8. Nxd7, by White (the knight from e5 to d7). It captures on d7."
+     }
+    ]
+   },
+   {
+    "id": "e",
+    "kind": "outcome",
+    "label": "after 9. e4",
+    "mover": "Black",
+    "lines": {
+     "main": [
+      "Bxb1",
+      "Rxb1",
+      "cxd5",
+      "e4"
+     ]
+    },
+    "slots": [
+     {
+      "id": "e.outcome",
+      "text": "The main line: 7... Bxb1 8. Rxb1 cxd5 9. e4. At its end, it is about even. Over it Black has won a pawn. Material is level. White has a bishop for a knight."
+     }
+    ]
+   }
+  ]
+ },
+ "answer": "{\"slots\": {\"s.position\": \"White is a pawn up, but the pawn on a7 is pinned to the rook on a8, which is what lets Black take on b1 and then on d5 and level the material. The pawn on d5 is attacked by the c6 pawn and has no defender, so it cannot be saved. White's pawns on b2 and b3 are isolated, which is the other long-term mark against the position.\", \"m1.move\": \"The bishop gives itself for the knight on b1, so the material is level, though White keeps a bishop for a knight. It works because the pawn on d5 falls next.\", \"m2.move\": \"The pawn on d5 was attacked by the c6 pawn and defended by nothing, so it is simply taken, and Black's pawns now hold more of the centre.\", \"m3.move\": \"The black pawn on d5 is attacked by a white pawn and has no defender, so it cannot be held. That brings the material back to level with a pawn in the centre.\", \"t1.move\": \"The bishop attacks the rook on h1, and taking it is what the move is played for, but the pawn on d5 can take on c6 first and the bishop has to answer that. It is worse than the exchange on b1: White is slightly better after the best play.\", \"t1.reply\": \"The pawn on d5 takes on c6, and the black pawn on b7 is left attacked and undefended, so the fork from e4 is over. Taking the rook on h1 now is a trap: the rook goes to a7, the pawn runs to c7, and cxb8=Q+ queens with check.\", \"t1.greedy\": \"This takes the rook on h1 and wins material, and it must not be taken: it loses the position. White is winning after it, because the pawn on c7 cannot be stopped from reaching b8 with check.\", \"t1.punish\": \"The rook gives itself up on a7 for a pawn, and the black rook has to take it. Then the pawn steps to c7 and takes on b8 with check, becoming a queen. Declining does not help either: after Nxc6, Rxa8+ wins as well, so White ends two pawns up.\", \"t2.move\": \"The knight attacks the knight on e5, and taking it is the point of the move, but it is a mistake. The exchange on b1 keeps it about even, while after this White is clearly better.\", \"t2.reply\": \"The knight on e5 takes on d7, and the bishop has to recapture, which leaves it away from the play. White is clearly better from here.\", \"e.outcome\": \"Material is level and Black has won the pawn back, but White still has a bishop for a knight. It is about even, and both sides still have to solve the pawn structure.\"}}"
+}

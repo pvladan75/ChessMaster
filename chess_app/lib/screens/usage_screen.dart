@@ -307,6 +307,7 @@ Widget _row(BuildContext context,
 const _quotaLabels = <String, String>{
   'ai_tutorials': 'AI tutorials',
   'ai_review_words': 'AI review comments',
+  'ai_studies': 'AI position studies',
   'assignments': 'Homework sent (per student)',
   'ai_comments': 'AI comments',
 };
@@ -321,6 +322,8 @@ const _countedOrder = <String>[
   'scanned_pages',
   'ai_tutorial_tokens',
   'ai_review_tokens',
+  'ai_study_tokens',
+  'ai_comment_tokens',
   'ai_translations',
   'ai_translation_tokens',
 ];
@@ -334,6 +337,8 @@ const _countedLabels = <String, String>{
   'scanned_pages': 'Book pages scanned',
   'ai_tutorial_tokens': 'AI tutorial writing',
   'ai_review_tokens': 'AI review writing',
+  'ai_study_tokens': 'AI position study writing',
+  'ai_comment_tokens': 'AI comment writing',
   'ai_translations': 'Tutorials translated',
   'ai_translation_tokens': 'AI translation writing',
 };
@@ -450,6 +455,8 @@ List<CountedRow> countedRows(MonthlyUsage usage) {
         return '${formatCount(value)} characters';
       case 'ai_tutorial_tokens':
       case 'ai_review_tokens':
+      case 'ai_study_tokens':
+      case 'ai_comment_tokens':
       case 'ai_translation_tokens':
         return '${formatCount(value)} tokens';
       default:

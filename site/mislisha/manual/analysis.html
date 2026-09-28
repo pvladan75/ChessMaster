@@ -41,11 +41,30 @@ what it thinks and the lines it is considering. Which panels you see is your
 choice, under <span class="ui">Panels</span> in the board's toolbar; the engine
 itself is configured in Settings, with <span class="ui">Configure local engine</span> for a
 <span class="ui">Custom local engine (.exe)</span> if you have one.</p>
-<p><span class="ui">Automatic Position Analysis</span> walks a whole game
+<p><span class="ui">Review entire game</span> walks a whole game
 instead of one position, and <span class="ui">Blunder detection</span> is what
 marks the moments worth talking about. It can be told
 <span class="ui">Analyze only from the current position forward</span> when the
 opening is not the point.</p>
+
+<h2>Study one position</h2>
+<p><span class="ui">Study this position</span> is for the opposite question:
+one position, gone through the way a strong player would talk you through it.
+The engine works out the main line, the moves that are as good as the best, the
+moves the eye goes to and why they are not the move, and the traps on the way.
+A trap is a capture that wins material and loses the position; it is marked
+with a question mark and followed by what punishes it, so the answer to „why
+not just take it?" is on the board. Everything is added to the tree under the
+move you are standing on, and nothing you wrote there is replaced.</p>
+<p>With <span class="ui">Write comments with AI</span> ticked, each of those is
+put into words on the move it is about, and what is threatened is drawn on the
+board. The engine decides what is said and the model only words it: every
+sentence is checked against the analysis before it is kept, and one the
+analysis does not bear out is left out rather than shown. With seven men or
+fewer on the board the endgame tablebase decides the result, not the engine's
+number.</p>
+<p><span class="ui">Open as a tutorial</span> takes the finished study to the
+Tutorial Studio, one line to a part, with its comments and its arrows.</p>
 
 <h2>The opening database</h2>
 <p>For a position early in a game, the explorer says what has actually been
@@ -68,8 +87,10 @@ single move with everything under it.</p>
 <p>Words go on a move with <span class="ui">Add Comment</span> — later
 <span class="ui">Add / Edit Comment</span> — and
 <span class="ui">NAG Symbols (!, ?)</span> add the usual annotation marks.
-<span class="ui">Generate AI comment</span> offers a sentence about the
-position if you want a starting point.</p>
+<span class="ui">Generate AI comment</span> offers a sentence about the move
+you are on — how it stands against the engine's own move and what follows it —
+if you want a starting point. It opens in the comment editor, and is yours only
+once you save it.</p>
 
 <h2>Keep it, or teach from it</h2>
 <p><span class="ui">Save analysis</span> keeps the tree in your library so you

@@ -9049,3 +9049,119 @@ Not done, and said to the owner: the Tutorial Studio held sideways with the
 keyboard up shows two lines of the comment and two ranks of the board. The
 text can be seen there, and the board is what the comment is about, so taking
 it away is his decision and not a repair.
+
+## 28.9.2026 — a position becomes a study, and Gemini leaves
+
+`docs/PLAN-STUDIJA-POZICIJE.md`. App 4959 → **5069** (110 new cases: 21 of the
+board, 22 of the facts, 19 of the words, 11 of the tree, 14 of the run and the
+client, 15 of the dialog, 7 of the doors, 1 of the usage screen, and two
+existing cases rewritten openly — no case deleted); analyze the same 22;
+backend 1863 → **1892** without a database (30 in `study_words.test.js`, 1 in
+the DeepSeek client's, less the 2 of `fallback_move_comment.test.js`, which
+went with `geminiService.js`) and 2022 → **2051** with one, both measured. A
+full run on the branch with nothing else running, each number predicted before
+it was read.
+
+**The engine's line is the best defence, and the point of a move is in the
+line nobody plays best.** The owner asked, before anything was built, whether
+the study would hold 7...Be4 8.dxc6 Bxh1 9.Rxa7 from his own position. The
+design would not have, four ways. `Be4` is neither a capture nor a check. It
+is the engine's second move and loses too little to be a mistake, so the rule
+„skip the engine's candidates" dropped it and the rule „show what loses ten
+chances" never picked it up. After 8.dxc6 the engine plays 8...Nxc6 and is a
+pawn down; 8...Bxh1 is never in its line. And after 9.Rxa7 the engine declines
+the rook (9...Nxc6 10.Rxa8+), so 10.c7 — the whole point — is never in its
+line either. Each became a rule: a tempting move is a check, a capture **or an
+attack**; the capture a move was played for is played; a piece that is offered
+is taken, with the engine's own defence beside it, short. **A line is told the
+way a player would meet it.**
+
+**A design is tested on the position its owner cares about before it is
+built.** All four gaps were found by one question in chat, at the cost of an
+engine run of ten seconds. Ten positions picked by a seed found none of them:
+they were chosen for variety, and the owner's was chosen because something
+happens in it.
+
+**A cost is not a threat.** „What the other side does if the side to move
+passes" went from +0.14 to +4.57 in the owner's position, and the move was a
+developing one: Black passing only fails to take his pawn back. A threat is
+reported when its line wins material or mates — and a quiet first move with a
+pawn somewhere behind it is not one.
+
+**Of two replies as good as each other, the engine's first is an accident of
+depth.** At depth 22 it met 7...Be4 with 8.dxc6, at depth 20 with 8.f3, which
+blocks the diagonal — and the trap is behind 8.dxc6. A rule that looked behind
+the first reply would have shown the owner's line on one machine and not on
+another. Two replies are searched, and a trap is looked for behind each that
+is within five chances of the best.
+
+**A model that reads of a slot writes it.** The prompt described every slot a
+study can have; the owner's position has no threat, the model wrote `s.threat`
+anyway, twice, and both answers were refused as the wrong shape. The prompt
+now describes only the slots a request offers and its example names only
+them; a slot that was not offered is dropped and named, not asked about again
+— nothing of it is kept, and a second call costs what the first did.
+
+**A word in the facts is not the fact.** The check „a structure word must be
+in the slot's facts" let „the knight on b1 has no defender" through, because
+the facts said „has no defender" — of the pawn on d5. Whether a piece is
+defended is a claim about one piece, so it is checked by the square: the
+clause's squares against the squares of the sentences that say it.
+
+**A number counted from the wrong pair.** The dialog said „10 comments left
+out: what the model wrote was not borne out" of a study in which the model
+had written two and one was refused: it subtracted what was kept from what
+was *offered*. Found by rendering the dialog and reading it, not by a test —
+the case asserted the number the code computed.
+
+**Three of the lead's own literals were wrong, again.** `Bxa8+` for a capture
+that gives no check, the order of two bishops in a list, and which side a
+sentence about a queen for a rook and a bishop names first. And `dxc6`
+expected among the moves the eye goes to — by the rule the file is a test of,
+it is not one, which is exactly why it needs explaining. Take every literal
+from a run.
+
+**„Fits" depends on the font the test draws in.** The dialog's own case, with
+Roboto loaded, had „Start" on a 360 x 640 screen; the same dialog opened from
+the Analysis screen in a case that loads no font had it 49 px below. Both are
+true of their fonts, and a reader with a larger font is nearer the second. The
+buttons are outside the part that scrolls now.
+
+**A gate that hangs under its own mutant.** „A second request while the first
+is writing is refused" awaited the second request; with the guard removed the
+second request waits on the model as the first does, and the test waited with
+it for two minutes. It races a deadline now. The same case, in the same words,
+stands in `review_words.test.js` and `game_tutorial_words_route.test.js`.
+
+**An example in a prompt is a sentence in the answer.** The prompt showed
+what teaching sounds like with one sentence — „the rook can be taken, and that
+is exactly what White is hoping for" — and the fast model wrote it back in two
+of twelve studies, once word for word. Rule 16 again, from the prompt's side:
+what the model is shown it repeats, the prompt's own prose included. The rule
+is now said without a sentence that could be lifted.
+
+**What no check can see.** Reading the final run, the fast model also wrote
+„which Black can only accept" of a rook the engine declines, and „the knight
+belongs on e5" — a judgement no fact gave it. Neither names a move outside
+its lines, a motif or a structure, so neither is refused. The other model
+wrote nothing of the kind in the same twelve. That is the owner's choice to
+make from the two reports (S4), and it is a limit of the check, written down
+as one.
+
+**Mutation, 71 in all.** Server 21, each red on a named case. App 50: 43 red
+on the first run; of the seven others one was the lead's mutant not applying
+(an anchor with the wrong indentation), one a right red under a wrong
+expectation, and five asked for something — four cases that were missing (a
+cancel between two searches, an attack on a piece already attacked, a move
+with no idea, the dialog closed from outside) and **one guard that was there
+twice**: `passedFen` refused a side in check itself and through
+`fenIllegalReason`, and the first went.
+
+**Counted by grep, Gemini had three doors.** `CLAUDE.md` said two. The third —
+the opponent narrative — asked for prose, so the client grew a way to ask for
+a sentence instead of an object.
+
+Not done, and said to the owner: the privacy policy's §5.2 names Gemini and
+not DeepSeek, and is untrue from this change on; „Extend branch" is the
+study's main line without the rest and stays until he says otherwise; the
+PGN exporter writes no move number before Black's first move of a position.

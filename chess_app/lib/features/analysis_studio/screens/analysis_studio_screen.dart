@@ -41,20 +41,19 @@ import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_pane
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/teach_menu.dart';
-import 'package:chess_app/core/models/tactical_motif.dart';
-import 'package:chess_app/core/services/tactical_motif_detector.dart';
-import 'package:chess_app/core/models/positional_factor.dart';
-import 'package:chess_app/core/services/positional_evaluator_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_persistence_service.dart';
 import 'package:chess_app/features/analysis_studio/services/analysis_draft_service.dart';
-import 'package:chess_app/features/analysis_studio/widgets/auto_analysis_dialog.dart';
+import 'package:chess_app/features/analysis_studio/widgets/position_study_dialog.dart';
+import 'package:chess_app/features/analysis_studio/services/position_study/position_study.dart';
+import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
+    show PositionAnalyzer;
+import 'package:chess_app/core/services/eval_cache.dart';
 import 'package:chess_app/features/analysis_studio/widgets/quick_extend_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/game_review_dialog.dart';
 import 'package:chess_app/features/analysis_studio/services/game_review_runner.dart';
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
-import 'package:chess_app/services/puzzle_api_service.dart';
 import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
     as dialogs;
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -203,12 +202,13 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   int _openingExplorerRequestId = 0;
 
   // The tactical and positional findings are not shown on this screen
-  // (22.9.2026): they are computed only for what [_generateAiComment]
-  // sends to the AI, never because the board changed.
-  final _tacticalDetector = const TacticalMotifDetector();
-  final _positionalEvaluator = const PositionalEvaluatorService();
-
+  // (22.9.2026), and since 28.9.2026 it does not ask for them either: what
+  // the AI is sent is worked out by the position study's own services.
   bool _isGeneratingAiComment = false;
+
+  /// Who holds the engine while a study or a comment is being worked out.
+  final Object _studyHold = Object();
+  final Object _aiCommentHold = Object();
 
   @override
   void initState() {
@@ -339,8 +339,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
           _showSetupDialog),
       _ToolAction(Icons.fact_check, context.colors.accent, 'Review entire game',
           _showGameReviewDialog),
-      _ToolAction(Icons.auto_awesome, context.colors.warning, 'Auto Analysis ⚡',
-          _showAutoAnalysisDialog),
+      _ToolAction(Icons.auto_stories, context.colors.warning,
+          PositionStudyDialog.title, _showPositionStudyDialog),
       _ToolAction(Icons.trending_flat, context.colors.accent,
           'Extend branch (engine best line)', _showQuickExtendDialog),
       // S2 of docs/PLAN-REORGANIZACIJA.md: the four doors into teaching
@@ -859,189 +859,76 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     });
   }
 
-  Map<String, dynamic> _motifFindingToJson(MotifFinding f) => {
-        'motifs': f.motifs.map((m) => m.name).toList(),
-        'description': f.description,
-        'significance': f.significance,
-        'favorsMover': f.favorsMover,
-      };
-  Map<String, dynamic> _positionalFindingToJson(PositionalFinding f) => {
-        'factors': f.factors.map((p) => p.name).toList(),
-        'description': f.description,
-        'significance': f.significance,
-        'favorsMover': f.favorsMover,
-      };
+  /// The engine for a study or a comment: the screen's own, through the
+  /// store of its answers, so a position already searched is not searched
+  /// again.
+  PositionAnalyzer get _studyAnalyzer => EvalCache.instance.wrap(
+        _stockfishService.analyzePositionSync,
+        engine: _stockfishService.answerStoreName,
+      );
 
-  /// Tactical + positional finding diff between two positions, serialized
-  /// for the AI endpoint — the same computation [_generateAiComment] needs
-  /// for the played move, the previous move, engine alternatives, and
-  /// sibling variations alike, just with different (beforeFen, afterFen).
-  ({List<Map<String, dynamic>> tactical, List<Map<String, dynamic>> positional})
-      _findingsPairFor(
-    String beforeFen,
-    String afterFen,
-    String lastMoveUci,
-  ) {
-    final tacticalDiff = _tacticalDetector.explainMove(
-        beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
-    final positionalDiff = _positionalEvaluator.explainMove(
-        beforeFen: beforeFen, afterFen: afterFen, lastMoveUci: lastMoveUci);
-    return (
-      tactical: [...tacticalDiff.created, ...tacticalDiff.resolved]
-          .map(_motifFindingToJson)
-          .toList(),
-      positional: [...positionalDiff.created, ...positionalDiff.resolved]
-          .map(_positionalFindingToJson)
-          .toList(),
-    );
+  /// How words are asked for, or null for a guest — with nobody signed in
+  /// there is no account to count a comment against.
+  StudyWordsAsker? get _studyWords {
+    final token = widget.userSession.token;
+    if (token.isEmpty) return null;
+    return (request, {required comment}) =>
+        requestStudyWords(request, token: token, comment: comment);
   }
 
-  /// Sends the move's tactical/positional finding diff plus its eval swing
-  /// to the backend's Gemini-backed endpoint, then opens the comment editor
-  /// pre-filled with the generated prose — reviewable and editable there,
-  /// nothing is saved until the user hits "Save". This is the one place on
-  /// the screen the findings are computed.
+  /// „Generate AI comment": the engine works out how the move stands, the
+  /// model puts it into words, and the app checks the words against the
+  /// analysis — then the comment editor opens holding them, reviewable and
+  /// editable, with nothing saved until the reader presses „Save".
   ///
-  /// Also gathers comparative context so the model can contrast what was
-  /// played against what else was possible: the previous move, an unplayed
-  /// sibling variation (if this move was played from a branch point), and
-  /// the engine's own alternative to what was actually played.
+  /// The study's own path with one item (`docs/PLAN-STUDIJA-POZICIJE.md`,
+  /// D5); Gemini wrote these until 28.9.2026.
   Future<void> _generateAiComment() async {
-    final parent = _currentNode.parent;
-    final moveUci = _currentNode.moveUci;
-    if (parent == null || moveUci == null) return;
-
-    final played = _findingsPairFor(parent.fen, _currentNode.fen, moveUci);
-
-    // Previous move — what led into the position this move was played from.
-    Map<String, dynamic>? previousMoveData;
-    final grandparent = parent.parent;
-    final parentMoveUci = parent.moveUci;
-    if (grandparent != null && parentMoveUci != null) {
-      final pair = _findingsPairFor(grandparent.fen, parent.fen, parentMoveUci);
-      previousMoveData = {
-        'moveSan': parent.moveSan ?? '',
-        'tacticalFindings': pair.tactical,
-        'positionalFindings': pair.positional,
-      };
-    }
-
-    // Sibling variation(s) — only present if the played move came from a
-    // branch point (parent has more than one explored child).
-    final siblingAlternatives = <Map<String, dynamic>>[];
-    for (final sibling in parent.children) {
-      if (sibling.id == _currentNode.id) continue;
-      final siblingUci = sibling.moveUci;
-      if (siblingUci == null) continue;
-      final pair = _findingsPairFor(parent.fen, sibling.fen, siblingUci);
-      siblingAlternatives.add({
-        'moveSan': sibling.moveSan ?? '',
-        'tacticalFindings': pair.tactical,
-        'positionalFindings': pair.positional,
-      });
+    final node = _currentNode;
+    if (node.parent == null || node.moveUci == null) return;
+    if (_isGeneratingAiComment) return;
+    final ask = _studyWords;
+    if (ask == null) {
+      AppFeedback.show(
+        context,
+        () =>
+            const SnackBar(content: Text('Sign in to have comments written.')),
+      );
+      return;
     }
 
     setState(() => _isGeneratingAiComment = true);
-
-    // Engine's alternative to the played move, from the same (parent)
-    // position — the expensive part. analyzePositionSync interrupts the
-    // live eval panel's own search to answer this one-off query, so the
-    // panel is always re-triggered afterward regardless of outcome.
-    Map<String, dynamic>? engineAlternativeData;
+    _stockfishService.hold(_aiCommentHold);
+    final StudyComment said;
     try {
-      final lines = await _stockfishService.analyzePositionSync(
-        parent.fen,
-        depth: 14,
-        multiPV: 1,
-        timeout: const Duration(seconds: 8),
-      );
-      if (lines.isNotEmpty) {
-        final best = lines.first;
-        if (best.bestMoveLan.isNotEmpty && best.bestMoveLan != moveUci) {
-          final altGame = chess.Chess.fromFEN(parent.fen);
-          bool moveOk = false;
-          if (best.bestMoveSan.isNotEmpty) {
-            try {
-              moveOk = altGame.move(best.bestMoveSan);
-            } catch (_) {}
-          }
-          if (!moveOk && best.bestMoveLan.length >= 4) {
-            final from = best.bestMoveLan.substring(0, 2);
-            final to = best.bestMoveLan.substring(2, 4);
-            final promo = best.bestMoveLan.length > 4
-                ? best.bestMoveLan.substring(4, 5)
-                : null;
-            try {
-              moveOk = altGame.move({
-                'from': from,
-                'to': to,
-                if (promo != null) 'promotion': promo
-              });
-            } catch (_) {}
-          }
-          if (moveOk) {
-            final pair =
-                _findingsPairFor(parent.fen, altGame.fen, best.bestMoveLan);
-            engineAlternativeData = {
-              'moveSan': best.bestMoveSan.isNotEmpty
-                  ? best.bestMoveSan
-                  : best.bestMoveLan,
-              'eval': best.evaluation,
-              'tacticalFindings': pair.tactical,
-              'positionalFindings': pair.positional,
-            };
-          }
-        }
-      }
-    } catch (e) {
-      print(
-          '[AnalysisStudio] Engine alternative query for AI comment failed: $e');
-    } finally {
-      // Resume live analysis for the position actually on screen.
-      _triggerEngineAnalysis();
-    }
-
-    // Cheap fallback: if there's no fresh engine alternative, but the game
-    // actually continued past this move, that reply's eval is already
-    // sitting in the tree — free forward-looking context, no extra query.
-    // There used to be a cheap fallback here: the reply already in the tree
-    // carried an eval, so it came along as free forward-looking context. The
-    // node no longer stores one, so the comment is written from the tactical
-    // and positional findings and from a fresh engine alternative when there
-    // is one.
-    const Map<String, dynamic>? nextMoveEvalData = null;
-
-    String? aiComment;
-    try {
-      aiComment = await PuzzleApiService.instance.generateMoveComment(
-        moveSan: _currentNode.moveSan ?? '',
-        evalBefore: null,
-        evalAfter: null,
-        tacticalFindings: played.tactical,
-        positionalFindings: played.positional,
-        previousMove: previousMoveData,
-        engineAlternative: engineAlternativeData,
-        nextMoveEval: nextMoveEvalData,
-        siblingAlternatives: siblingAlternatives,
-        userToken: widget.userSession.token,
+      said = await commentOnMove(
+        node: node,
+        analyzer: _studyAnalyzer,
+        depth: AppSettingsService.instance.analysisDepth,
+        tablebase: _syzygyService.lookup,
+        ask: ask,
       );
     } finally {
+      _stockfishService.release(_aiCommentHold);
       if (mounted) setState(() => _isGeneratingAiComment = false);
     }
 
     if (!mounted) return;
-    if (aiComment == null || aiComment.trim().isEmpty) {
+    final text = said.text;
+    if (text == null) {
       AppFeedback.show(
         context,
         () => SnackBar(
-            content: const Text('Error generating AI comment.'),
+            content: Text(
+                said.refusal?.message ?? 'The comment could not be written.'),
             backgroundColor: context.colors.danger),
       );
       return;
     }
 
-    dialogs.showCommentDialog(context, aiComment, (comment) {
-      setState(() => _currentNode.comment = comment);
+    dialogs.showCommentDialog(context, text, (comment) {
+      setState(() => node.comment = comment);
+      _saveDraft();
     });
   }
 
@@ -1051,24 +938,34 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     });
   }
 
-  void _showAutoAnalysisDialog() {
-    showDialog(
+  /// „Study this position" — what Auto Analysis became
+  /// (`docs/PLAN-STUDIJA-POZICIJE.md`).
+  void _showPositionStudyDialog() {
+    final start = _currentNode;
+    final ask = _studyWords;
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AutoAnalysisDialog(
-        startNode: _currentNode,
-        stockfishService: _stockfishService,
-        onAnalysisCompleted: (_) {
-          // The start node now has candidate children — surface them as arrows.
-          // The cutoff it used is no longer kept: it capped a display filter
-          // that read the eval off each node, and neither survives.
+      // The engine may work for a minute — a tap beside the dialog must not
+      // throw that away.
+      barrierDismissible: false,
+      builder: (ctx) => PositionStudyDialog(
+        startNode: start,
+        analyzer: _studyAnalyzer,
+        tablebase: _syzygyService.lookup,
+        ask: ask,
+        noWordsReason: ask == null ? 'Sign in to have comments written.' : null,
+        onHold: () => _stockfishService.hold(_studyHold),
+        onRelease: () => _stockfishService.release(_studyHold),
+        onCompleted: (_) {
+          if (!mounted) return;
+          setState(() {});
+          _saveDraft();
           _refreshArrows();
-          AppFeedback.show(
-            context,
-            () => SnackBar(
-                content: const Text(
-                    '⚡ Automatic analysis completed successfully and saved to tree!'),
-                backgroundColor: context.colors.warning),
-          );
+        },
+        onOpenAsTutorial: () {
+          if (!mounted) return;
+          _jumpToNode(start);
+          _openTutorialStudio(wholeLine: true);
         },
       ),
     );
