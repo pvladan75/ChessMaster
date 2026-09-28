@@ -41,6 +41,7 @@ const {
 const { createPrepNarrative } = require('../services/prepNarrative');
 const { isOwnSubject, OWN_GAMES_SQL } = require('../services/archiveScope');
 const { createDeepSeek } = require('../services/llm/deepseek');
+const { MODEL, EFFORT } = require('../services/studyWords');
 const { openingJudge } = require('../services/openingJudgeService');
 const { repertoireDiff } = require('../services/repertoireArchive');
 const { playerProfile } = require('../services/playerProfile');
@@ -64,8 +65,8 @@ const prep = createOpponentPrep({
 /// guard reads prose (`narrativeGuard`). Its tokens are counted with every
 /// other comment's, under the account that asked.
 const narrativeModel = createDeepSeek({
-  model: process.env.STUDY_WORDS_MODEL || 'deepseek-flash',
-  reasoningEffort: process.env.STUDY_WORDS_REASONING_EFFORT || 'low',
+  model: process.env.STUDY_WORDS_MODEL || MODEL,
+  reasoningEffort: process.env.STUDY_WORDS_REASONING_EFFORT || EFFORT,
 });
 
 function narratorFor(userId) {

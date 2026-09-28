@@ -21,6 +21,17 @@ const { formatTemplate, rescueJson } = require('./tutorialWords');
 
 const TEMPLATE = fs.readFileSync(path.join(__dirname, 'prompts', 'study_words.txt'), 'utf8');
 
+/// The model these words are written by, and the effort it is asked for —
+/// **the owner's choice of 28.9.2026**, from two reports of the same twelve
+/// positions (docs/PLAN-STUDIJA-POZICIJE.md, §4a and S4). `deepseek-v4-pro`
+/// kept 104 and 106 of 109 sentences where `deepseek-flash` kept 99 to 103,
+/// and wrote nothing the facts had not given it; it costs about twice the
+/// tokens and four times the wait. The one home of both names: the two
+/// routes and the measuring tool read them here, and a server may name
+/// another model with `STUDY_WORDS_MODEL`.
+const MODEL = 'deepseek-v4-pro';
+const EFFORT = 'low';
+
 /// The caps a request must keep. A study offers at most: the position, eight
 /// main-line moves, three traps, two alternatives, two tempting moves and the
 /// outcome — 17 items; 20 leaves room without leaving the door open.
@@ -254,6 +265,8 @@ module.exports = {
   CAPS,
   KINDS,
   SLOTS,
+  MODEL,
+  EFFORT,
   TEMPLATE,
   validateStudyWordsRequest,
   buildStudyPrompt,

@@ -17,7 +17,8 @@ const path = require('node:path');
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-signing-0123456789';
 
 const {
-  CAPS, KINDS, SLOTS, validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
+  CAPS, KINDS, SLOTS, MODEL, EFFORT,
+  validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
 } = require('../services/studyWords');
 const router = require('../routes/studyWords');
 const { authenticateToken } = require('../middleware/auth');
@@ -440,6 +441,44 @@ test('a server with no key answers 503 before a credit is reserved', () => {
   assert.equal(res.statusCode, 503);
   assert.equal(res.body.reason, 'not-configured');
   assert.equal(reached, false);
+});
+
+// ---- the model ------------------------------------------------------------------------
+
+test('a study is written by deepseek-v4-pro unless the server says otherwise', () => {
+  // The owner's choice of 28.9.2026, from two reports of the same twelve
+  // positions: it kept 104 and 106 of 109 sentences where the fast model kept
+  // 99 to 103, and wrote nothing the facts did not give it.
+  assert.equal(MODEL, 'deepseek-v4-pro');
+  assert.equal(EFFORT, 'low', 'the effort every run was measured at');
+});
+
+test('every door of the study asks the one model, and the server may name another', () => {
+  // Read from the code, comments off: the two files that make a provider
+  // for these words, and the tool that measures them.
+  const root = path.join(__dirname, '..');
+  for (const file of [
+    path.join(root, 'routes', 'studyWords.js'),
+    path.join(root, 'routes', 'userGames.js'),
+    path.join(root, '..', 'tools', 'position_study', 'words.js'),
+  ]) {
+    const code = fs.readFileSync(file, 'utf8').replace(/^\s*\/\/.*$/gm, '');
+    assert.ok(!/['"]deepseek-[a-z0-9-]+['"]/.test(code),
+      `${path.basename(file)} names a model of its own`);
+    assert.match(code, /model: process\.env\.STUDY_(WORDS_)?MODEL \|\| MODEL,/,
+      path.basename(file));
+    assert.match(code, /reasoningEffort: process\.env\.STUDY_(WORDS_REASONING_)?EFFORT \|\| EFFORT,/,
+      path.basename(file));
+  }
+});
+
+test('two attempts of the slower model fit inside what the proxy waits for', () => {
+  // The client gives the model 100 s an attempt; nginx gives the request 300.
+  const client = fs.readFileSync(
+    path.join(__dirname, '..', 'services', 'llm', 'deepseek.js'), 'utf8');
+  const seconds = Number(client.match(/timeoutMs = (\d+) \* 1000/)[1]);
+  assert.equal(seconds, 100);
+  assert.ok(router.ATTEMPTS * seconds < 300);
 });
 
 // ---- Gemini has left ------------------------------------------------------------------

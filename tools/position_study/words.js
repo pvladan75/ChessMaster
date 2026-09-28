@@ -17,7 +17,7 @@ const path = require('path');
 
 const backend = path.join(__dirname, '..', '..', 'chess_backend');
 const {
-  validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
+  MODEL, EFFORT, validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
 } = require(path.join(backend, 'services', 'studyWords'));
 const { createDeepSeek } = require(path.join(backend, 'services', 'llm', 'deepseek'));
 
@@ -44,11 +44,11 @@ async function main() {
     JSON.parse(fs.readFileSync(requestFile, 'utf8')),
   );
   const prompt = buildStudyPrompt(request);
-  // STUDY_MODEL and STUDY_EFFORT choose what is measured; unset, the model
-  // and the effort every other route was validated with.
+  // STUDY_MODEL and STUDY_EFFORT choose what is measured; unset, what the
+  // server asks.
   const provider = createDeepSeek({
-    model: process.env.STUDY_MODEL || 'deepseek-flash',
-    reasoningEffort: process.env.STUDY_EFFORT || 'low',
+    model: process.env.STUDY_MODEL || MODEL,
+    reasoningEffort: process.env.STUDY_EFFORT || EFFORT,
   });
   const out = { prompt, attempts: [] };
   const started = Date.now();
