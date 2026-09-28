@@ -43,6 +43,25 @@ String wordsFor(String? evalText) {
   return '${value > 0 ? 'White' : 'Black'} is ${_levelWords[level - 1]}';
 }
 
+/// An engine evaluation in the app's own spelling — `+0.39`, `M3`, `-M2`,
+/// always from White's side ([AnalysisLine.evaluation]) — as [wordsFor]
+/// speaks it; null when it is not one.
+///
+/// The review's words wrote this first (`review_words.dart`); the position
+/// study reads the same answers, so it lives with the words it speaks.
+String? wordsForEngine(String evaluation) {
+  final raw = evaluation.trim();
+  final mate = RegExp(r'^(-)?M(\d+)$').firstMatch(raw);
+  try {
+    if (mate != null) {
+      return wordsFor('#${mate.group(1) ?? ''}${mate.group(2)}');
+    }
+    return wordsFor(raw);
+  } on FormatException {
+    return null;
+  }
+}
+
 /// An evaluation as [mover] (`White` or `Black`) sees it, in the steps
 /// [wordsFor] speaks in.
 ///

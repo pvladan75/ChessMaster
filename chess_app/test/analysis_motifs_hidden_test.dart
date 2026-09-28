@@ -108,32 +108,31 @@ void main() {
             contains('tactical_motifs'), contains('positional_factors'))));
   });
 
-  test('the screen asks the detectors only for what it sends to the AI', () {
-    final code = codeOf(
+  // Until 28.9.2026 this case held „the screen asks the detectors only for
+  // what it sends to the AI": one function, `_findingsPairFor`, was allowed
+  // to. What the AI is sent is now worked out by the position study's own
+  // services (docs/PLAN-STUDIJA-POZICIJE.md, D5), so the screen asks the
+  // detectors for nothing — the same rule with nothing left to except.
+  test('the screen does not ask the detectors at all', () {
+    final source =
         File('lib/features/analysis_studio/screens/analysis_studio_screen.dart')
-            .readAsStringSync());
-    final uses = RegExp(r'_(tacticalDetector|positionalEvaluator)\s*\.');
-    final all = uses.allMatches(code).length;
-
-    // The body of `_findingsPairFor`, by its braces: it is the one function
-    // that turns two positions into what the AI endpoint is sent.
-    final name = code.indexOf('_findingsPairFor(');
-    expect(name, greaterThan(0), reason: 'the function is still there');
-    final open = code.indexOf('{', name);
-    var depth = 0;
-    var close = open;
-    for (var i = open; i < code.length; i++) {
-      if (code[i] == '{') depth++;
-      if (code[i] == '}' && --depth == 0) {
-        close = i;
-        break;
-      }
+            .readAsStringSync();
+    final code = codeOf(source);
+    expect(code, contains('class AnalysisStudioScreen'),
+        reason: 'the screen was read');
+    for (final name in [
+      'TacticalMotifDetector',
+      'PositionalEvaluatorService',
+      'moveMotifSentence',
+      'studyMotif',
+    ]) {
+      expect(code, isNot(contains(name)),
+          reason: 'a detector called from the screen runs on a board change '
+              'or feeds something the reader sees');
     }
-    final inside = uses.allMatches(code.substring(open, close)).length;
-
-    expect(inside, greaterThan(0), reason: 'the check found the calls');
-    expect(all, inside,
-        reason: 'a detector called anywhere else runs on a board change or '
-            'feeds something the reader sees');
+    for (final literal in literalsIn(source)) {
+      expect(literal, isNot(contains('tactical_motif_detector')));
+      expect(literal, isNot(contains('positional_evaluator_service')));
+    }
   });
 }

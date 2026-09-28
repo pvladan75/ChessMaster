@@ -17,15 +17,11 @@ library;
 import 'package:chess/chess.dart' as chess;
 
 import 'package:chess_app/core/services/answer_line.dart' show revealLine;
-import 'package:chess_app/core/services/finding_sentences.dart'
-    show joinSentences;
 import 'package:chess_app/core/services/game_review_judge.dart';
-import 'package:chess_app/core/services/legal_moves.dart' show legalMoves;
 import 'package:chess_app/core/services/move_clock.dart';
-import 'package:chess_app/core/services/positional_evaluator_service.dart';
-import 'package:chess_app/core/services/tactical_motif_detector.dart';
+import 'package:chess_app/core/services/move_motif.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/evaluation_words.dart'
-    show wordsFor;
+    show wordsForEngine;
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_assembly.dart'
     show claimsFor;
 
@@ -434,20 +430,8 @@ Map<String, dynamic> _check(
 
 // --- Words ------------------------------------------------------------------
 
-/// An engine evaluation (`+0.39`, `M3`, `-M2`) as `evaluation_words.dart`
-/// speaks it; null when it is not one.
-String? _evalWords(String evaluation) {
-  final raw = evaluation.trim();
-  final mate = RegExp(r'^(-)?M(\d+)$').firstMatch(raw);
-  try {
-    if (mate != null) {
-      return wordsFor('#${mate.group(1) ?? ''}${mate.group(2)}');
-    }
-    return wordsFor(raw);
-  } on FormatException {
-    return null;
-  }
-}
+/// `evaluation_words.dart`'s own reading of an engine's answer.
+String? _evalWords(String evaluation) => wordsForEngine(evaluation);
 
 /// „about even" reads as a clause only with a subject.
 String _it(String words) => switch (words) {
@@ -509,38 +493,10 @@ int _gain(String fen, List<String> line, String side) {
   return gained > 0 ? gained : 0;
 }
 
-/// The detectors' sentence for the position after [san] from [fen], as the
-/// tutorial sends it (`motifs_after_played`); null when they say nothing.
-String? _motif(String fen, String san) {
-  final uci = _uciOf(fen, san);
-  final after = _after(fen, san);
-  if (uci == null || after == null) return null;
-  const tactical = TacticalMotifDetector();
-  const positional = PositionalEvaluatorService();
-  final sentence = joinSentences([
-    tactical.describeMoveDiff(
-      tactical.explainMove(beforeFen: fen, afterFen: after, lastMoveUci: uci),
-    ),
-    positional.describeMoveDiff(
-      positional.explainMove(beforeFen: fen, afterFen: after, lastMoveUci: uci),
-    ),
-  ]).trim();
-  return sentence.isEmpty ? null : sentence;
-}
+/// The detectors' sentence for a move — `move_motif.dart`, its one home.
+String? _motif(String fen, String san) => moveMotifSentence(fen, san);
 
-String? _after(String fen, String san) {
-  final board = chess.Chess.fromFEN(fen);
-  return board.move(san) ? board.fen : null;
-}
-
-String? _uciOf(String fen, String san) {
-  for (final move in legalMoves(chess.Chess.fromFEN(fen))) {
-    if (move['san'] == san) {
-      return '${move['from']}${move['to']}${move['promotion'] ?? ''}';
-    }
-  }
-  return null;
-}
+String? _after(String fen, String san) => fenAfterSan(fen, san);
 
 /// [revealLine], and null when a move of [line] does not play from [fen] —
 /// a line that does not replay is never offered.

@@ -274,6 +274,28 @@ void main() {
     ]);
   });
 
+  test('a position study and a single comment have words of their own', () {
+    // docs/PLAN-STUDIJA-POZICIJE.md, D4: counted apart from the review's
+    // and the tutorial's, so said apart.
+    expect(quotaLabel('ai_studies'), 'AI position studies');
+    final rows = countedRows(MonthlyUsage(
+      tier: 'premium',
+      periodStart: DateTime.utc(2026, 9, 1),
+      quotas: const {},
+      metrics: const {
+        'ai_comment_tokens': 1200,
+        'ai_study_tokens': 51015,
+        'ai_review_tokens': 7,
+      },
+      voiceMinutes: 0,
+    ));
+    expect(rows.map((r) => '${r.label}: ${r.value}').toList(), [
+      'AI review writing: 7 tokens',
+      'AI position study writing: 51,015 tokens',
+      'AI comment writing: 1,200 tokens',
+    ]);
+  });
+
   group('the door in Settings', () {
     Future<GoRouter> pumpSettings(
         WidgetTester tester, UserSession session) async {
