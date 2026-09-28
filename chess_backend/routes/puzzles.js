@@ -5,8 +5,6 @@ const rateLimit = require('express-rate-limit');
 const { pool } = require('../db');
 const { excludeOnlineClause } = require('../services/endgameSources');
 const { authenticateToken } = require('../middleware/auth');
-const { requireQuota, refundQuota } = require('../middleware/entitlements');
-const { ENT } = require('../services/entitlementService');
 const puzzleSelection = require('../services/puzzleSelectionService');
 const {
   buildCatalog, ELO_BANDS, ELO_BAND_SQL,
@@ -15,7 +13,6 @@ const endgameDrill = require('../services/endgameDrill');
 const { tablebase, TablebaseUnavailable } = require('../services/tablebaseService');
 const assignmentService = require('../services/assignmentService');
 const puzzleProgress = require('../services/puzzleProgress');
-const geminiService = require('../geminiService');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -78,15 +75,6 @@ const debugLogLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, status: 'REJECTED', reason: 'Too many requests. Please wait a moment.' },
-});
-
-// The Gemini call costs money per request, so it gets a tighter budget still.
-const aiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many AI requests. Please wait a moment.' },
 });
 
 // Every uncached position in a drill is a request to a tablebase someone else
@@ -938,64 +926,6 @@ router.post('/puzzles/log', debugLogLimiter, (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Log failure' });
-  }
-});
-
-// POST /api/ai/explain-position - AI Chess Coach powered by Gemini SDK (@google/genai)
-// The rate limiter caps bursts per IP; the quota caps what an account may spend
-// over a month. They solve different problems, so both apply.
-router.post('/ai/explain-position', aiLimiter, authenticateToken, requireQuota(ENT.AI_COMMENTS), async (req, res) => {
-  const { fen, evals } = req.body;
-  if (!fen) {
-    await refundQuota(req);
-    return res.status(400).json({ error: 'FEN code is a required parameter.' });
-  }
-
-  try {
-    const explanation = await geminiService.explainPosition({
-      fen,
-      evals: evals || {},
-    });
-
-    res.json({ ...explanation, quota: { limit: req.quota.limit, used: req.quota.used } });
-  } catch (err) {
-    // The user got nothing, so the reserved unit goes back.
-    await refundQuota(req);
-    logger.error('Error in AI position explanation route:', err);
-    res.status(500).json({ error: 'Error generating AI explanation.' });
-  }
-});
-
-// POST /api/ai/generate-move-comment - short move-annotation prose from a
-// move's evaluation swing plus its tactical/positional finding diff.
-router.post('/ai/generate-move-comment', aiLimiter, authenticateToken, requireQuota(ENT.AI_COMMENTS), async (req, res) => {
-  const {
-    moveSan, evalBefore, evalAfter, tacticalFindings, positionalFindings,
-    previousMove, engineAlternative, nextMoveEval, siblingAlternatives,
-  } = req.body;
-  if (!moveSan) {
-    await refundQuota(req);
-    return res.status(400).json({ error: 'moveSan is a required parameter.' });
-  }
-
-  try {
-    const result = await geminiService.generateMoveComment({
-      moveSan,
-      evalBefore,
-      evalAfter,
-      tacticalFindings: tacticalFindings || [],
-      positionalFindings: positionalFindings || [],
-      previousMove: previousMove || null,
-      engineAlternative: engineAlternative || null,
-      nextMoveEval: nextMoveEval || null,
-      siblingAlternatives: siblingAlternatives || [],
-    });
-
-    res.json({ ...result, quota: { limit: req.quota.limit, used: req.quota.used } });
-  } catch (err) {
-    await refundQuota(req);
-    logger.error('Error in AI move comment route:', err);
-    res.status(500).json({ error: 'Error generating AI commentary.' });
   }
 });
 

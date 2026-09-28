@@ -19,9 +19,8 @@
 // `cloud-platform` scope and no key parameter, and the droplet is not a Google
 // VM, so there is no attached service account to inherit: what this needs is a
 // service-account JSON key file and `GOOGLE_TTS_CREDENTIALS` pointing at it.
-// `google-auth-library` mints and refreshes the token; it is already installed
-// as part of `@google/genai`, and is now a declared dependency rather than a
-// borrowed one.
+// `google-auth-library` mints and refreshes the token; it is a declared
+// dependency of this server.
 const fs = require('fs');
 
 const logger = require('../logger');

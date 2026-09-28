@@ -1,0 +1,86 @@
+[
+ {
+  "id": "own1",
+  "source": "own",
+  "what": "move 11",
+  "fen": "r3kb1r/1pq1pppp/p2p1n2/8/2BnPBb1/2N2N2/PP2QPPP/2R2RK1 w kq - 2 11",
+  "moves": "e2e4 c7c5 d2d4 c5d4 c2c3 d4c3 b1c3 d7d6 f1c4 g8f6 g1f3 d8c7 d1e2 b8c6 e1g1 c8g4 c1f4 a7a6 a1c1 c6d4"
+ },
+ {
+  "id": "own2",
+  "source": "own",
+  "what": "move 17",
+  "fen": "4rrk1/pp3ppp/1qp2nb1/3pP3/8/1QP4P/PP1N1PP1/R3RBK1 b - - 0 17",
+  "moves": "e2e4 e7e6 g1f3 d7d5 e4d5 e6d5 d2d4 c8g4 f1e2 g8f6 c1g5 f8e7 b1d2 e8g8 e1g1 c7c6 h2h3 g4h5 c2c3 d8b6 d1c2 h5g6 c2b3 b8d7 f1e1 e7d6 e2f1 a8e8 g5f6 d7f6 f3e5 d6e5 d4e5"
+ },
+ {
+  "id": "own3",
+  "source": "own",
+  "what": "move 23",
+  "fen": "5rk1/pq4pp/1p1bpp2/3b4/3P4/P1r1PNP1/1P4BP/2RQ2K1 w - - 0 23",
+  "moves": "e2e4 e7e6 d2d3 d7d5 b1d2 c7c5 g1f3 b8c6 g2g3 f8d6 f1g2 d8c7 e1g1 b7b6 a2a3 c8b7 f1e1 g8e7 d2b3 e8g8 c2c3 a8d8 d3d4 c5d4 c3d4 d5e4 e1e4 c6a5 e4e3 a5b3 d1b3 b7d5 b3d1 e7f5 e3c3 c7b7 c1g5 f7f6 g5e3 d8c8 a1c1 f5e3 f2e3 c8c3"
+ },
+ {
+  "id": "own4",
+  "source": "own",
+  "what": "move 30",
+  "fen": "2r3k1/6pp/4p3/pQ1p4/7q/P4P2/1P2K1P1/2R5 b - - 5 30",
+  "moves": "e2e4 c7c6 d2d4 d7d5 e4d5 c6d5 c2c4 g8f6 b1c3 e7e6 c1f4 b8c6 c4c5 f8e7 f2f3 e8g8 a2a3 a7a5 f1d3 b7b6 c5b6 d8b6 d1c2 c6d4 c2f2 e7c5 c3a4 b6c6 a4c5 c6c5 f4e3 e6e5 a1c1 c5d6 e3d4 e5d4 f2d4 f8e8 e1f2 c8e6 g1e2 a8c8 e2f4 f6d7 h1e1 c8c1 e1c1 d7e5 f4e6 e5d3 d4d3 f7e6 c1d1 d6h2 d3b5 h2h4 f2e2 e8c8 d1c1"
+ },
+ {
+  "id": "own5",
+  "source": "own",
+  "what": "ending, seven men or fewer",
+  "fen": "8/8/8/1p1pB3/3P2K1/q7/8/5k2 w - - 0 58",
+  "moves": "d2d4 d7d5 e2e4 c7c6 b1c3 e7e6 e4e5 f8b4 f2f4 g8e7 g2g4 b8d7 f1d3 d8b6 g1e2 c6c5 a2a3 b4c3 b2c3 c5d4 c3d4 e7c6 c2c3 c6a5 d1c2 h7h6 e1g1 a5c4 h2h3 g7g5 g1h2 d7f8 f4f5 f8d7 f5e6 f7e6 d3g6 e8d8 f1f7 d8c7 a1b1 b6a6 b1b4 h8f8 c2b3 f8f7 g6f7 d7b6 e2g3 c8d7 h3h4 g5h4 g3h5 a8f8 f7e6 d7e6 h5f6 c4d6 e5d6 c7d6 g4g5 a6e2 h2g1 e2e1 g1g2 h4h3 g2f3 e1f1 f3e3 f8f6 b4b6 a7b6 b3b6 d6e7 g5f6 e7f6 b6d8 f6f7 d8c7 f7g6 c7g3 g6h7 c1d2 f1g2 g3g2 h3g2 e3f2 e6h3 f2g1 h7g6 g1h2 g6f5 d2e3 f5g4 e3g1 b7b5 g1f2 h6h5 f2g1 h5h4 g1e3 g4f3 e3g5 f3f2 g5h4 f2f1 h2h3 g2g1q h4g3 g1e3 h3g4 e3c3 g3e5 c3a3"
+ },
+ {
+  "id": "classic1",
+  "source": "classic",
+  "what": "move 11",
+  "fen": "rn1q1rk1/pb1pb1pp/4pn2/1Np5/2P5/P3P1N1/1P3PPP/R1BQKB1R w KQ c6 0 11",
+  "moves": "c2c4 g8f6 d2d4 e7e6 b1c3 f8b4 e2e3 b7b6 g1e2 c8b7 a2a3 b4e7 d4d5 e8g8 e2g3 b6b5 d5e6 f7e6 c3b5 c7c5"
+ },
+ {
+  "id": "classic2",
+  "source": "classic",
+  "what": "move 17",
+  "fen": "r4rk1/pbNpn3/1p2p2p/4Pp1q/2PP1Pp1/3PB3/P5PP/R3QRK1 b - - 0 17",
+  "moves": "d2d4 b7b6 e2e4 c8b7 b1c3 e7e6 c1e3 f8b4 f2f3 b4c3 b2c3 g8e7 f1d3 e8g8 g1e2 f7f5 e1g1 b8c6 e4e5 d8e8 c3c4 h7h6 d1e1 g7g5 f3f4 g5g4 e2c3 c6b4 c3b5 b4d3 c2d3 e8h5 b5c7"
+ },
+ {
+  "id": "classic3",
+  "source": "classic",
+  "what": "move 23",
+  "fen": "r1bqr2k/4bpn1/2p3Bp/3p4/2nP1N1P/1p2PP2/1PQ2B2/1NK3RR w - - 0 23",
+  "moves": "d2d4 d7d5 c2c4 e7e6 b1c3 g8f6 c4d5 e6d5 c1g5 f8e7 e2e3 e8g8 f1d3 b8d7 g1e2 c7c6 d1c2 h7h6 g5h4 f8e8 e1c1 b7b5 f2f3 a7a5 g2g4 a5a4 h4f2 d7b6 h2h4 b5b4 c3b1 b6c4 g4g5 f6h5 g5h6 g7h6 d1g1 h5g7 e2f4 g8h8 d3g6 b4b3 a2b3 a4b3"
+ },
+ {
+  "id": "classic4",
+  "source": "classic",
+  "what": "move 30",
+  "fen": "8/1p4k1/2pp3p/3q2p1/3Pp3/1P2Q1PP/4P3/5K2 b - - 0 30",
+  "moves": "c2c4 e7e5 b1c3 g8f6 g1f3 b8c6 g2g3 f8b4 c3d5 e5e4 f3h4 e8g8 f1g2 d7d6 e1g1 g7g5 d2d4 h7h6 g2h1 b4a5 h4g2 c8h3 c1d2 a5d2 d1d2 f6d5 c4d5 c6e7 d2c2 f7f5 c2b3 d8d7 f2f3 a7a5 f3e4 f5e4 f1f8 a8f8 g2e3 e7f5 h1g2 h3g2 g1g2 a5a4 b3c3 d7b5 c3d2 f5e3 d2e3 b5d5 h2h3 g8g7 b2b3 a4b3 a2b3 c7c6 a1f1 f8f1 g2f1"
+ },
+ {
+  "id": "classic5",
+  "source": "classic",
+  "what": "ending, seven men or fewer",
+  "fen": "8/8/2P5/3p4/3P4/3k4/2r4R/7K b - - 0 76",
+  "moves": "c2c4 c7c6 e2e4 d7d5 e4d5 c6d5 d2d4 g8f6 b1c3 b8c6 c1g5 c8e6 a2a3 e6g4 f2f3 g4e6 c4c5 g7g6 f1b5 f8g7 g1e2 e8g8 e1g1 e6f5 b2b4 a7a6 b5a4 h7h6 g5e3 f6e8 d1d2 g8h7 e2g3 e7e6 g3e2 g6g5 a4c2 f5c2 d2c2 f7f5 a1b1 e8f6 a3a4 d8e8 e3f2 e8g6 b4b5 c6a5 b5a6 a8a6 b1b5 f6d7 f1b1 d7b8 c3a2 b8c6 a2b4 a6a7 b4d3 f5f4 c2d1 f8f7 d3b2 a7a8 h2h3 h6h5 d1d3 a8a7 h3h4 g5g4 d3g6 h7g6 b2d3 g7h6 f2e1 a5c4 b1a1 g4f3 g2f3 g6f5 a4a5 f7g7 g1h1 a7a8 e1c3 c4e3 a1g1 g7g1 e2g1 a8a7 g1e2 e3c4 h1g2 c4a5 c3a5 c6a5 d3e5 a5c6 e5c6 b7c6 b5b6 a7c7 g2f2 h6g7 f2e1 g7f6 e1d2 f6h4 b6b8 h4f6 b8f8 h5h4 e2g1 f5g6 d2d3 c7a7 g1h3 a7a3 d3e2 g6f5 h3f4 f5f4 f8f6 f4g5 f6e6 h4h3 e2f2 a3a2 f2g1 h3h2 g1h1 g5f4 e6f6 f4g3 f6g6 g3h3 g6h6 h3g3 h6g6 g3f3 g6c6 f3g3 c6g6 g3f3 c5c6 a2c2 g6h6 f3e4 h6h4 e4d3 h4h2"
+ },
+ {
+  "id": "owner1",
+  "source": "owner",
+  "what": "the owner's own question, 28.9.2026: 7...Be4 8.dxc6 Bxh1 9.Rxa7",
+  "fen": "rn2kbnr/pp2pppp/2p5/3PNb2/8/1P4P1/1P1PPP1P/RNB1KB1R b KQkq - 0 7",
+  "moves": ""
+ },
+ {
+  "id": "owner2",
+  "source": "owner",
+  "what": "the owner's second question, 28.9.2026: after 7...Be4, 8.dxc6 and the trap 8...Bxh1",
+  "fen": "rn2kbnr/pp2pppp/2p5/3PN3/4b3/1P4P1/1P1PPP1P/RNB1KB1R w KQkq - 1 8",
+  "moves": ""
+ }
+]

@@ -1,4 +1,6 @@
-// deepseek.js — one call to DeepSeek's chat endpoint, for the words of a tutorial.
+// deepseek.js — one call to DeepSeek's chat endpoint: the one model this server
+// asks, for every word it does not write itself (docs/PLAN-STUDIJA-POZICIJE.md,
+// D5 — Gemini left the application on 28.9.2026).
 //
 // docs/PLAN-SKELET.md, phase 3, decision D3: `deepseek-flash` with
 // `reasoning_effort: low` is the model of every validated harness run
@@ -60,15 +62,19 @@ function createDeepSeek({
   }
 
   /// The model's answer text, its token counts and why it stopped.
-  async function complete(prompt) {
+  ///
+  /// A JSON object is asked for unless [json] is false: the opponent
+  /// narrative is a sentence, not an object, and a model told to answer in
+  /// JSON about a prompt that never says the word refuses the request.
+  async function complete(prompt, { json = true } = {}) {
     if (!configured()) {
-      throw new LlmUnavailable('Writing tutorials is not configured on this server.',
+      throw new LlmUnavailable('Writing with the model is not configured on this server.',
         { reason: 'not-configured' });
     }
     const payload = {
       model,
       messages: [{ role: 'user', content: prompt }],
-      response_format: { type: 'json_object' },
+      ...(json ? { response_format: { type: 'json_object' } } : {}),
       max_tokens: maxTokens,
       temperature: 1.0,
     };

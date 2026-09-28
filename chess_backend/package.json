@@ -15,7 +15,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google/genai": "^2.15.0",
     "@napi-rs/canvas": "^1.0.3",
     "agora-token": "^2.0.5",
     "bcrypt": "^5.1.1",

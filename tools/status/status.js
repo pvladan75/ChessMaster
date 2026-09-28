@@ -14,10 +14,8 @@
 //                 more; usage lives in Azure Monitor behind an Azure AD login.
 //   Agora         no — the App ID and certificate mint tokens; usage needs the
 //                 console's Customer ID/Secret.
-//   Gemini        no — Google exposes no remaining-quota call. Not probed at
-//                 all: the key is on the free tier, and every call counts.
 //
-// For the last three the answer is the app's own meter (`usage_counters`),
+// For the last two the answer is the app's own meter (`usage_counters`),
 // set against the provider's free allowance. Those allowances are written
 // below as they stood when this was written — check the console before relying
 // on one.
@@ -146,7 +144,14 @@ async function database() {
       `${fmt(agoraMin)} / ${fmt(FREE.agoraMinutes)} min  (${pct(agoraMin, FREE.agoraMinutes)}), ` +
         `${fmt(FREE.agoraMinutes - agoraMin)} left`
     );
-    row('Gemini AI comments', `${fmt(used[METRIC.AI_COMMENTS] || 0)} this month (free key: ~20 requests/day)`);
+    row(
+      'DeepSeek comments',
+      `${fmt(used[METRIC.AI_COMMENTS] || 0)} comments, ${fmt(used[METRIC.AI_COMMENT_TOKENS] || 0)} tokens`
+    );
+    row(
+      'DeepSeek studies',
+      `${fmt(used[METRIC.AI_STUDIES] || 0)} studies, ${fmt(used[METRIC.AI_STUDY_TOKENS] || 0)} tokens`
+    );
     row(
       'DeepSeek tutorials',
       `${fmt(used[METRIC.AI_TUTORIALS] || 0)} tutorials, ${fmt(used[METRIC.AI_TUTORIAL_TOKENS] || 0)} tokens`
@@ -261,7 +266,6 @@ async function step(fn) {
   await step(deepseek);
   await step(digitalocean);
   await step(azureSpeech);
-  configured('Gemini', 'GEMINI_API_KEY', 'no quota API, not probed');
   configured('Agora', 'AGORA_APP_ID', 'no usage API with these credentials');
 
   await step(database);
