@@ -1,0 +1,92 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Settings A</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="settings-parts.css">
+<style>
+.body{padding:4px 16px 16px}
+.profile{display:flex;align-items:center;gap:16px;padding:14px 18px;margin-bottom:18px}
+.cols{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:16px}
+</style></head><body>
+<div class="bar"><span>&#8592;</span>Settings</div>
+<div class="body">
+  <div class="sc profile">
+    <div class="avatar">A</div>
+    <div style="flex:1">
+      <div style="font-size:19px;font-weight:600">Ana Petrović</div>
+      <div class="muted" style="font-size:14px">ana.petrovic@example.com &nbsp;·&nbsp; <span class="pill">FREE</span></div>
+    </div>
+    <div class="btn small outlined" style="background:transparent;color:var(--danger);border-color:rgba(190,18,60,.5)">&#x21AA;&nbsp; Sign out</div>
+  </div>
+  <div class="cols">
+    <!-- column 1 -->
+    <div class="stack">
+      <div class="sec"><h4>ACCOUNT</h4><div class="sc">
+        <div class="lt"><span class="i">&#128278;</span><div class="m"><div>Saved tutorials / positions</div></div><b>42</b></div>
+        <div class="lt"><span class="i" style="color:#0369A1">&#127909;</span><div class="m"><div>Sessions created this month</div></div><b>3</b></div>
+        <div class="hr"></div>
+        <div class="lt"><span class="i">&#128202;</span><div class="m"><div>Usage this month</div><div>What your account has used, and your plan's monthly limits.</div></div><span class="chev">&#8250;</span></div>
+        <div class="lt"><span class="i">&#127874;</span><div class="m"><div>Birth year</div><div>1985 — tap to correct.</div></div><span class="chev">&#8250;</span></div>
+        <div class="lt"><span class="i">&#128273;</span><div class="m"><div>Saved sign-in on this computer</div><div>Email and password in Windows Credential Manager.</div></div><span class="link" style="font-size:13px">Forget</span></div>
+      </div></div>
+      <div class="sec"><h4>HELP</h4><div class="sc">
+        <div class="lt"><span class="i">&#128214;</span><div class="m"><div>User manual</div><div>Opens in your browser.</div></div><span class="chev">&#8599;</span></div>
+        <div class="lt"><span class="i">&#9000;</span><div class="m"><div>Keyboard shortcuts</div><div>F1 also opens this.</div></div><span class="chev">&#8250;</span></div>
+        <div class="cap" style="text-align:center;margin-top:6px">Build 2026-09-29 · a1b2c3d — click to copy</div>
+      </div></div>
+    </div>
+    <!-- column 2 -->
+    <div class="stack">
+      <div class="sec"><h4>APPEARANCE</h4><div class="sc">
+        <div class="lab">App theme</div>
+        <div class="chips"><span class="chip">System</span><span class="chip on">&#10003; Light</span><span class="chip">Dark</span></div>
+        <div class="cap" style="margin-top:6px">Board colors are chosen separately and do not change with the theme.</div>
+        <div class="hr" style="margin:12px 0"></div>
+        <div class="lab">Board color</div>
+        <div class="skins">
+          <div class="skin on"><div class="mb" style="background:repeating-conic-gradient(#B58763 0 25%,#F0DAB5 0 50%) 0 0/16px 16px"></div>Classic</div>
+          <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#779556 0 25%,#E9EDCC 0 50%) 0 0/16px 16px"></div>Green</div>
+          <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#677C8D 0 25%,#C4D1D1 0 50%) 0 0/16px 16px"></div>Blue</div>
+          <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#737373 0 25%,#FFFFFF 0 50%) 0 0/16px 16px"></div>High Contrast</div>
+          <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#8C8C8C 0 25%,#E2E2E2 0 50%) 0 0/16px 16px"></div>Gray</div>
+        </div>
+        <div class="hr" style="margin:12px 0"></div>
+        <div class="lab">Pieces</div>
+        <div class="skins">
+          <div class="skin on"><div class="pp"><span style="background:#B58763">&#9818;</span><span style="background:#F0DAB5">&#9823;</span><span style="background:#F0DAB5">&#9816;</span><span style="background:#B58763">&#9819;</span></div>Classic</div>
+          <div class="skin"><div class="pp" style="color:#7c2d12"><span style="background:#B58763">&#9818;</span><span style="background:#F0DAB5">&#9823;</span><span style="background:#F0DAB5">&#9816;</span><span style="background:#B58763">&#9819;</span></div>Warm</div>
+          <div class="skin"><div class="pp"><span style="background:#B58763">&#9818;</span><span style="background:#F0DAB5">&#9823;</span><span style="background:#F0DAB5">&#9816;</span><span style="background:#B58763">&#9819;</span></div>High Contrast</div>
+        </div>
+      </div></div>
+    </div>
+    <!-- column 3 -->
+    <div class="stack">
+      <div class="sec"><h4>BOARD AND ENGINE</h4><div class="sc">
+        <div class="lt"><div class="m"><div style="font-weight:600">Board coordinates</div><div>Letters and numbers along the board edges on all screens.</div></div><span class="sw"></span></div>
+        <div class="hr"></div>
+        <div style="display:flex;justify-content:space-between" class="lab"><span>Move animation</span><span style="color:var(--accent)">200 ms</span></div>
+        <div class="sl"><b style="width:40%"></b><i style="left:38%"></i></div>
+        <div class="cap">How long a piece slides to its square. Far left turns it off.</div>
+        <div class="hr" style="margin:12px 0"></div>
+        <div class="cap">Analysis depth and lines are set on the board itself; how strongly the engine plays against you, on the exercise screen.</div>
+        <div class="lab" style="margin-top:12px">Local engine (.exe)</div>
+        <div class="cap">Default (Online / FFI package)</div>
+        <div class="btn small outlined" style="margin-top:10px;background:transparent">&#9881;&nbsp; Configure local engine</div>
+      </div></div>
+    </div>
+    <!-- column 4 -->
+    <div class="stack">
+      <div class="sec"><h4>SPEECH (READING MESSAGES)</h4><div class="sc">
+        <div class="lt"><div class="m"><div style="font-weight:600">Speak messages</div><div>Messages from the info panel are read aloud so your eyes can stay on the board.</div></div><span class="sw off"></span></div>
+        <div class="hr"></div>
+        <div class="lab">Speech language</div>
+        <div class="dd"><span>en-US · supported</span><span>&#9662;</span></div>
+        <div class="cap" style="margin-top:6px">The voices installed on this computer.</div>
+        <div class="hr" style="margin:12px 0"></div>
+        <div style="display:flex;justify-content:space-between" class="lab"><span>Speech rate</span><span style="color:var(--accent)">0.50</span></div>
+        <div class="sl"><b style="width:37%"></b><i style="left:35%"></i></div>
+        <div class="btn small tonal" style="margin-top:4px">&#128266;&nbsp; Test</div>
+      </div></div>
+    </div>
+  </div>
+</div>
+<div class="note" style="left:1170px;top:520px;max-width:330px"><b>Sections flow into columns</b> (the rule the Home and Teach tabs already use): 4 columns at this width, 3 at the 900 px minimum window, 1 on a phone — which keeps today's order. Everything on one screen here, no scrolling.</div>
+</body></html>

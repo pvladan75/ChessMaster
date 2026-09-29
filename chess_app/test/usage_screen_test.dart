@@ -339,7 +339,11 @@ void main() {
       await tester.pump();
       expect(find.text('Account statistics'), findsOneWidget,
           reason: 'the card above the row\'s place is built');
-      expect(find.text('STOCKFISH ENGINE'), findsOneWidget,
+      // Rewritten openly on 29.9.2026: „STOCKFISH ENGINE" was the heading
+      // below the account's cards, and it merged into „BOARD AND ENGINE",
+      // which now comes after Appearance (docs/PLAN-PRIJAVA-I-PODESAVANJA.md,
+      // phase 3). The heading right below the Account section is Appearance.
+      expect(find.text('APPEARANCE'), findsOneWidget,
           reason: 'and the header below it');
     }
 

@@ -9376,3 +9376,44 @@ quoting — backticks of the live-check items inside a JavaScript template, a
 shell heredoc that would not take an apostrophe, Python turning `\n` into a
 line break. The cure that held: text goes into a file of its own, and a
 script that edits reads it; or the editor, which needs no escaping at all.
+
+## 29.9.2026 — sign-in and Settings on a desktop, and a password that is remembered (`PLAN-PRIJAVA-I-PODESAVANJA.md`, phases 1–4)
+
+App 5120 → **5193** (73 cases: 71 in six new files, 2 in the semantics
+sweep; a full run with nothing else running, predicted before it; analyze the
+same 22). Backend untouched. 34 mutations over three phases, every one red on
+the case meant for it once three survivors had been answered.
+
+**A claim about a platform is checked on the platform's binary.** The
+27.8 decision not to keep passwords rested on „Windows' password manager
+fills them through the autofill hints". `flutter_windows.dll` knows seven
+`TextInput.*` messages and `finishAutofillContext` is not one of them; the
+framework translates hints only for Android and iOS. The feature the owner
+asked for had been promised as already working, on the one platform where
+it never had.
+
+**The real store found what no fake could.** `package:win32` looks a
+function up the first time it is called, and the lookup is itself a Windows
+call that resets the last error — so the first `GetLastError` after a failed
+`CredRead` answered 0, and a password never kept read as an error. Only the
+first case of the file failed. A store in memory has no last error; keep one
+test that touches the real thing, under its own name prefix, cleaned up.
+
+**A lock is judged by what it is for.** The first eye unlocked on any edit, so
+one keystroke revealed the rest of a saved password. No test would have asked;
+asking what the lock protects did. Then the render showed the locked eye drawn
+exactly like the live one: the field hands its suffix one colour whatever the
+button's state. For a colourblind owner the difference has to be luminance,
+and the case now asserts the drawn alpha.
+
+**A sweep of a closed screen cannot see into a popup.** A tooltip added inside
+the accounts list survived the orphan sweep; hovered with the list open it was
+two orphaned nodes — a lone tooltip in a popup is refused too, not only the
+nested shape of 22.9.
+
+**Three survivors, three old lessons:** a guard for a guest inside a section
+already drawn only for the signed-in (one fact, two guards — the inner one
+deleted); a width compared with the constant it tests (it followed the
+constant to 4400); and the platform-question guard in `tutorial_ulaz_test`,
+which the full run caught because the unit runs never included it — **run
+the suite, not the files you think you touched.**

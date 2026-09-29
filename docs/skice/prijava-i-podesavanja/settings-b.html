@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Settings B</title>
+<link rel="stylesheet" href="common.css"><link rel="stylesheet" href="settings-parts.css">
+<style>
+.two{display:grid;grid-template-columns:300px minmax(0,1fr);height:calc(100% - 56px)}
+.nav{padding:8px 12px;border-right:1px solid var(--border)}
+.who{display:flex;gap:12px;align-items:center;padding:10px 8px 18px}
+.item{display:flex;gap:12px;align-items:center;height:44px;padding:0 12px;border-radius:8px;font-size:15px;color:var(--text2)}
+.item.on{background:var(--surface);box-shadow:inset 3px 0 0 var(--text),0 1px 3px rgba(15,23,42,.12);color:var(--text);font-weight:700}
+.pane{padding:8px 32px}
+.pane h2{margin:6px 0 16px;font-size:24px}
+.mb{width:112px;height:112px}
+</style></head><body>
+<div class="bar"><span>&#8592;</span>Settings</div>
+<div class="two">
+  <div class="nav">
+    <div class="who"><div class="avatar" style="width:44px;height:44px;font-size:20px">A</div><div><div style="font-weight:600">Ana Petrović</div><div class="muted" style="font-size:12.5px">ana.petrovic@example.com</div></div></div>
+    <div class="item"><span>&#128100;</span>Account</div>
+    <div class="item on"><span>&#127912;</span>Appearance</div>
+    <div class="item"><span>&#9823;</span>Board and engine</div>
+    <div class="item"><span>&#128266;</span>Speech</div>
+    <div class="item"><span>&#10067;</span>Help</div>
+    <div style="height:24px"></div>
+    <div class="item" style="color:var(--danger)"><span>&#x21AA;</span>Sign out</div>
+  </div>
+  <div class="pane">
+    <h2>Appearance</h2>
+    <div class="sc" style="max-width:none;padding:18px 22px">
+      <div class="lab">App theme</div>
+      <div class="chips"><span class="chip">System</span><span class="chip on">&#10003; Light</span><span class="chip">Dark</span></div>
+      <div class="cap" style="margin-top:6px">Board colors are chosen separately and do not change with the theme.</div>
+      <div class="hr" style="margin:14px 0"></div>
+      <div class="lab">Board color</div>
+      <div class="skins">
+        <div class="skin on"><div class="mb" style="background:repeating-conic-gradient(#B58763 0 25%,#F0DAB5 0 50%) 0 0/28px 28px"></div>Classic</div>
+        <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#779556 0 25%,#E9EDCC 0 50%) 0 0/28px 28px"></div>Green</div>
+        <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#677C8D 0 25%,#C4D1D1 0 50%) 0 0/28px 28px"></div>Blue</div>
+        <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#737373 0 25%,#FFFFFF 0 50%) 0 0/28px 28px"></div>High Contrast</div>
+        <div class="skin"><div class="mb" style="background:repeating-conic-gradient(#8C8C8C 0 25%,#E2E2E2 0 50%) 0 0/28px 28px"></div>Gray</div>
+      </div>
+      <div class="hr" style="margin:14px 0"></div>
+      <div class="lab">Pieces</div>
+      <div class="skins">
+        <div class="skin on"><div class="pp"><span style="background:#B58763">&#9818;</span><span style="background:#F0DAB5">&#9823;</span><span style="background:#F0DAB5">&#9816;</span><span style="background:#B58763">&#9819;</span></div>Classic</div>
+        <div class="skin"><div class="pp" style="color:#7c2d12"><span style="background:#B58763">&#9818;</span><span style="background:#F0DAB5">&#9823;</span><span style="background:#F0DAB5">&#9816;</span><span style="background:#B58763">&#9819;</span></div>Warm</div>
+        <div class="skin"><div class="pp"><span style="background:#B58763">&#9818;</span><span style="background:#F0DAB5">&#9823;</span><span style="background:#F0DAB5">&#9816;</span><span style="background:#B58763">&#9819;</span></div>High Contrast</div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="note" style="left:360px;top:640px;max-width:520px"><b>One section at a time</b>, like Windows' own Settings. Room to grow, but with six small sections most of the pane stays empty, and every other setting is one click away instead of on screen.</div>
+</body></html>

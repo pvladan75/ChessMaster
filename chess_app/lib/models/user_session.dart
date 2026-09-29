@@ -31,12 +31,17 @@ class UserSession {
     );
   }
 
+  /// Nobody signed in. Named in English with no address: the name is shown —
+  /// Home greets it, Settings heads with it — and „Gost Korisnik" beside a
+  /// made-up `gost@…` address sat on English screens until 29.9.2026
+  /// (`docs/PLAN-PRIJAVA-I-PODESAVANJA.md`, F3). `isGuest` reads the token,
+  /// never these two.
   factory UserSession.guest() {
     return UserSession(
       token: '',
       id: 0,
-      email: 'gost@chesstrainers.app',
-      name: 'Gost Korisnik',
+      email: '',
+      name: 'Guest',
       role: 'korisnik',
       accountType: 'free',
     );

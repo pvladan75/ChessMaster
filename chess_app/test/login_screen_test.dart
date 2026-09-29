@@ -70,14 +70,22 @@ void main() {
   testWidgets('"Zapamti me" says what it actually does', (tester) async {
     await open(tester);
 
-    // It was read as "remember my password" and has never meant that: it keeps
-    // the session so the form is not asked for at all.
+    // Where the platform keeps no password it keeps the session, so the form
+    // is not asked for at all. Where it does keep one, the sentence names the
+    // store instead (`login_saved_password_test.dart`).
     expect(find.text('Remember me'), findsOneWidget);
     expect(find.text('You stay signed in on this device.'), findsOneWidget);
   });
 
-  testWidgets('the remembered address is filled in, the password never is',
-      (tester) async {
+  // Rewritten openly on 29.9.2026: this case used to hold everywhere, because
+  // the app kept no password anywhere. On the owner's word Windows now keeps
+  // one in Credential Manager (docs/PLAN-PRIJAVA-I-PODESAVANJA.md, D3), and
+  // that half lives in `login_saved_password_test.dart`. What this case still
+  // holds is the other half: where the platform has no store — Android, and
+  // every test run that does not ask for one — nothing is filled from the app.
+  testWidgets(
+      'with no password store, the remembered address is filled in and the '
+      'password never is', (tester) async {
     SharedPreferences.setMockInitialValues({
       'remember_me': true,
       'last_email': 'trener@example.com',
@@ -90,9 +98,8 @@ void main() {
     expect(find.text('trener@example.com'), findsOneWidget);
 
     // The password field is empty, and there is no stored password to fill it
-    // from: that is the platform password manager's job, reached through the
-    // autofill hints. `SharedPreferences` is a plain file on Windows, and most
-    // of these accounts belong to children.
+    // from: on Android that is the phone's own password manager's job, reached
+    // through the autofill hints. `SharedPreferences` is never the place.
     final password = tester.widget<TextField>(
       find.descendant(
         of: find.ancestor(

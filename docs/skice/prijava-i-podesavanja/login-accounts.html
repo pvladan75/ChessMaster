@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Accounts</title>
+<link rel="stylesheet" href="common.css">
+<style>
+body{padding:36px 40px}
+.col{width:420px;position:relative}
+.menu{position:absolute;left:0;right:0;top:56px;background:var(--surface);border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18),0 1px 3px rgba(15,23,42,.1);padding:6px 0;z-index:2}
+.row{display:flex;align-items:center;gap:12px;padding:10px 14px}
+.row.sel{background:var(--raised);box-shadow:inset 3px 0 0 var(--text)}
+.row .a{flex:1;min-width:0}
+.row .a div:first-child{font-size:15px}
+.row .a div:last-child{font-size:12px;color:var(--muted)}
+.x{width:28px;height:28px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:16px}
+.x:hover{background:var(--raised)}
+.foot{border-top:1px solid var(--border);margin-top:6px;padding:8px 14px 4px;font-size:12px;color:var(--muted)}
+</style></head><body>
+<div class="col">
+  <div class="field" style="border:2px solid var(--brand)"><span class="lbl" style="color:var(--brand)">Email Address</span><span class="ico">&#9993;</span><span class="val">ana.petrovic@example.com</span><span class="ico" style="color:var(--muted)">&#9652;</span></div>
+  <div class="menu">
+    <div class="row sel"><span class="ico">&#128100;</span><div class="a"><div>ana.petrovic@example.com</div><div>Password saved</div></div><span class="x" title="Forget">&#10005;</span></div>
+    <div class="row"><span class="ico">&#128100;</span><div class="a"><div>trainer.test@example.com</div><div>Password saved</div></div><span class="x">&#10005;</span></div>
+    <div class="row"><span class="ico">&#128100;</span><div class="a"><div>student.test@example.com</div><div>Address only — signed in with Google</div></div><span class="x">&#10005;</span></div>
+    <div class="foot">✕ forgets the address and its password on this computer.</div>
+  </div>
+</div>
+<div class="note" style="left:500px;top:60px;max-width:300px"><b>One entry per address.</b> Picking one fills its password. Typing an address that has a saved password fills it too. Only accounts signed in here with „Remember me" are listed.</div>
+</body></html>

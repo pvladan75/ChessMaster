@@ -10,12 +10,14 @@ import 'package:chess_app/constants.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/pending_session_intent.dart';
 import 'package:chess_app/routing/app_routes.dart';
+import 'package:chess_app/services/saved_sign_ins.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/desktop_google_sign_in.dart';
 import 'package:chess_app/services/oauth_pkce.dart' show OAuthRedirectException;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/widgets/board_thumbnail.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
 class LoginRegisterScreen extends StatefulWidget {
@@ -32,6 +34,18 @@ class LoginRegisterScreen extends StatefulWidget {
   /// could only ever be seen by rebuilding the app.
   @visibleForTesting
   final bool? googleAvailableOverride;
+
+  /// From this width the screen is two halves — the brand on the left, the
+  /// form on the right (`docs/PLAN-PRIJAVA-I-PODESAVANJA.md`, D1 B).
+  ///
+  /// Read from the width this screen is given, never the window, and set so
+  /// the smallest Windows window (900, `windows/runner/win32_window.cpp`)
+  /// gets the panel while a phone on its side (760 × 360) keeps today's
+  /// screen. At 880 each half is 440, and the form keeps at least 392 of it.
+  static const double panelFromWidth = 880;
+
+  /// The form is never wider than this, however wide its half.
+  static const double formMaxWidth = 440;
 
   const LoginRegisterScreen({
     super.key,
@@ -62,18 +76,39 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _isLoading = false;
   bool _rememberMe = true;
 
+  /// The address whose kept password the password field was filled with,
+  /// for as long as what is in the field grew from it — that is, until the
+  /// field has been emptied. Null when the field holds only what the person
+  /// typed.
+  ///
+  /// Three rules hang on it. The eye stays locked, so editing one character
+  /// is not a way to read a kept password. Changing the address empties the
+  /// field, so a kept password is never sent with an address it was not kept
+  /// for. And a refusal forgets the kept password only when what was sent
+  /// was that password, unchanged.
+  String? _filledFrom;
+
+  /// Whether the eye was last set to show the password. What is drawn also
+  /// asks [_filledFrom]: a kept password is never shown, whatever this says.
+  bool _passwordVisible = false;
+
+  final _passwordFocus = FocusNode();
+  final _submitFocus = FocusNode();
+  final _accountsMenu = MenuController();
+
   @override
   void initState() {
     super.initState();
-    // The address from the last remembered sign-in. Only the address: the
-    // password is the platform password manager's job, which is what the
-    // autofill hints below are for. Storing it here would put it in a plain
-    // file in the user's profile, and most of these accounts belong to
-    // children.
-    final remembered = SessionService.instance.lastEmail;
+    // The address from the last remembered sign-in, and — where this platform
+    // keeps passwords (Windows Credential Manager; docs/PLAN-PRIJAVA-I-
+    // PODESAVANJA.md) — the password kept for it. On Android the password is
+    // the phone's own password manager's, reached through the autofill hints
+    // below, and nothing is filled from here.
+    final remembered = SavedSignIns.instance.last;
     if (remembered != null && remembered.isNotEmpty) {
       _emailController.text = remembered;
       _emailIsKnown = true;
+      _putKept(remembered, SavedSignIns.instance.passwordFor(remembered));
     }
 
     // Why they are looking at this screen, when the app decided it rather than
@@ -115,6 +150,75 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       (DesktopGoogleSignIn.isSupported
           ? DesktopGoogleSignIn.isConfigured
           : !(kIsWeb && googleWebClientId.isEmpty));
+
+  static bool _sameAddress(String a, String b) =>
+      a.trim().toLowerCase() == b.trim().toLowerCase();
+
+  /// Puts the [password] kept for [address] into the password field, or
+  /// empties the field when [password] is null. The one place the app itself
+  /// writes that field, so what is in it and [_filledFrom] cannot drift.
+  void _putKept(String? address, String? password) {
+    _passwordController.text = password ?? '';
+    _filledFrom = password == null ? null : address?.trim();
+  }
+
+  /// The address field changed under the person's hands.
+  ///
+  /// A kept password belongs to one address: once the field names another,
+  /// the password field is emptied, so a kept password — or one grown from
+  /// it — is never sent with an address it was not kept for. And an address
+  /// that has one kept fills it in, but only into an empty field — never
+  /// over what the person typed.
+  void _emailChanged(String text) {
+    final from = _filledFrom;
+    if (from != null && !_sameAddress(from, text)) _putKept(null, null);
+    if (_filledFrom == null && _passwordController.text.isEmpty) {
+      final password = SavedSignIns.instance.passwordFor(text);
+      if (password != null) _putKept(text, password);
+    }
+    setState(() {});
+  }
+
+  /// The field is the person's own once they have emptied it; until then,
+  /// whatever they changed in it grew from a kept password.
+  void _passwordChanged(String value) {
+    if (value.isEmpty && _filledFrom != null) {
+      setState(() => _filledFrom = null);
+    }
+  }
+
+  /// An address chosen from the remembered list, with its password if one is
+  /// kept. The caret goes where the next keystroke is needed — the button
+  /// when there is nothing left to type.
+  void _chooseAddress(String address) {
+    final password = SavedSignIns.instance.passwordFor(address);
+    setState(() {
+      _emailController.text = address;
+      _putKept(address, password);
+    });
+    (password == null ? _passwordFocus : _submitFocus).requestFocus();
+  }
+
+  /// × in the remembered list: the address and its password leave this
+  /// device. Done first, then said — and said honestly when the store would
+  /// not let go.
+  Future<void> _forgetAddress(String address) async {
+    _accountsMenu.close();
+    final gone = await SavedSignIns.instance.forget(address);
+    if (!mounted) return;
+    setState(() {
+      final from = _filledFrom;
+      if (from != null && _sameAddress(from, address)) _putKept(null, null);
+    });
+    if (gone) {
+      AppFeedback.info(context, '$address is forgotten on this device.');
+    } else {
+      AppFeedback.warning(
+          context,
+          '$address is off the list, but its password could not be removed '
+          'from ${SavedSignIns.instance.storeName}. Remove it there.');
+    }
+  }
 
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
@@ -212,9 +316,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final session = UserSession.fromJson(data['user'], data['token']);
-        await _saveSession(session);
+        final keeping = await _saveSession(session,
+            password: _passwordController.text.isEmpty
+                ? null
+                : _passwordController.text);
         _showSuccess('Email verified! Welcome.');
         _navigateToHome(session);
+        _sayIfNotKept(keeping);
       } else {
         try {
           final data = jsonDecode(response.body);
@@ -249,12 +357,21 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
 
     try {
       if (_isLogin) {
-        // Login API Call
+        // Whether what goes out is the password kept for this address,
+        // unchanged: only that one is forgotten when it is refused. One the
+        // person typed, or edited, is theirs to correct.
+        final email = _emailController.text.trim();
+        final from = _filledFrom;
+        final sentKept = from != null &&
+            _sameAddress(from, email) &&
+            _passwordController.text ==
+                SavedSignIns.instance.passwordFor(email);
+
         final response = await http.post(
           Uri.parse('$backendUrl/login'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'email': _emailController.text.trim(),
+            'email': email,
             'password': _passwordController.text,
           }),
         );
@@ -262,14 +379,32 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         final data = jsonDecode(response.body);
         if (response.statusCode == 200) {
           final session = UserSession.fromJson(data['user'], data['token']);
-          await _saveSession(session);
+          final keeping =
+              await _saveSession(session, password: _passwordController.text);
           _navigateToHome(session);
+          _sayIfNotKept(keeping);
         } else if (data['requiresVerification'] == true) {
           setState(() {
             _isAwaitingVerification = true;
           });
           _showSuccess(data['error'] ??
               'Enter the verification code sent to your email.');
+        } else if (response.statusCode == 400 && sentKept) {
+          // The server refused the kept password itself — wrong, or an
+          // account that signs in only with Google — so it is forgotten. Only
+          // a 400 says that: too many attempts (429), a server fault or no
+          // network say nothing about the password, and it stays.
+          final gone = SavedSignIns.instance.forgetPassword(email);
+          setState(() => _putKept(null, null));
+          _passwordFocus.requestFocus();
+          // The server's sentence has no full stop of its own.
+          final said = '${data['error'] ?? 'Sign-in failed'}';
+          final reason = said.endsWith('.') ? said : '$said.';
+          _showError(gone
+              ? '$reason The saved password did not work, so it has been '
+                  'forgotten. Type it again.'
+              : '$reason The saved password did not work, and it could not '
+                  'be removed from ${SavedSignIns.instance.storeName}.');
         } else {
           _showError(data['error'] ?? 'Sign-in failed.');
         }
@@ -304,12 +439,29 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     }
   }
 
-  Future<void> _saveSession(UserSession session) async {
-    await SessionService.instance.signIn(session, rememberMe: _rememberMe);
-    // Tells the platform the sign-in went through, which is what makes Android
-    // and Windows offer to save the password — and, next time, to fill it. The
-    // app never sees or stores it either way.
+  /// [password] is the one the server has just accepted, null for Google.
+  Future<PasswordKeeping> _saveSession(UserSession session,
+      {String? password}) async {
+    final keeping = await SessionService.instance
+        .signIn(session, rememberMe: _rememberMe, password: password);
+    // Tells the platform the sign-in went through, which is what makes
+    // Android's password manager offer to save the password and, next time,
+    // fill it. Windows has no such service for a desktop program — its engine
+    // does not even receive this call — which is why a password is kept in
+    // Credential Manager there instead (`SavedSignIns`).
     TextInput.finishAutofillContext();
+    return keeping;
+  }
+
+  /// The sign-in has happened; this only reports that the password could not
+  /// be kept, after the fact and through a helper that cannot throw.
+  void _sayIfNotKept(PasswordKeeping keeping) {
+    if (keeping != PasswordKeeping.failed) return;
+    AppFeedback.warning(
+        context,
+        'Signed in, but the password could not be saved in '
+        '${SavedSignIns.instance.storeName}. You will be asked for it next '
+        'time.');
   }
 
   void _navigateToHome(UserSession session) {
@@ -349,260 +501,421 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     _passwordController.dispose();
     _nameController.dispose();
     _codeController.dispose();
+    _passwordFocus.dispose();
+    _submitFocus.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) =>
+          constraints.maxWidth >= LoginRegisterScreen.panelFromWidth
+              ? _buildWide(context)
+              : _buildNarrow(context),
+    );
+  }
+
+  String get _screenTitle => _isAwaitingVerification
+      ? 'Email Verification'
+      : (_isLogin ? 'Sign In' : 'Register');
+
+  Widget _guestButton() => TextButton.icon(
+        onPressed: () => _navigateToHome(UserSession.guest()),
+        icon: const Icon(Icons.person_outline),
+        label: const Text('Continue as Guest'),
+      );
+
+  /// A phone, and any window narrower than [panelFromWidth]: the screen as it
+  /// was before the desktop layout — a bar with the title and the guest
+  /// button, and the form in a card.
+  Widget _buildNarrow(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isAwaitingVerification
-            ? 'Email Verification'
-            : (_isLogin ? 'Sign In' : 'Register')),
-        actions: [
-          TextButton.icon(
-            onPressed: () => _navigateToHome(UserSession.guest()),
-            icon: const Icon(Icons.person_outline),
-            label: const Text('Continue as Guest'),
-          ),
-        ],
+        title: Text(_screenTitle),
+        actions: [_guestButton()],
       ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxl),
-          child: Form(
-            key: _formKey,
-            // One group, so the platform reads these fields as a single
-            // sign-in rather than as unrelated boxes it has nothing to offer.
-            child: AutofillGroup(
-              child: Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.xxl),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _isAwaitingVerification
-                            ? Icons.mark_email_unread
-                            : Icons.emoji_events,
-                        size: 64,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        _isAwaitingVerification
-                            ? 'Enter Verification Code'
-                            : (_isLogin ? 'Mislisha' : 'Account Registration'),
-                        style: const TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      if (_expiryNotice != null) ...[
-                        const SizedBox(height: AppSpacing.lg),
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color:
-                                context.colors.warning.withValues(alpha: 0.15),
-                            borderRadius: AppRadii.roundedSm,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.lock_clock,
-                                  size: 18, color: context.colors.warning),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  _expiryNotice!,
-                                  style: AppText.body
-                                      .copyWith(color: context.colors.warning),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.xxl),
-                      if (_isAwaitingVerification) ...[
-                        Text(
-                          // The spam line is not a nicety. The domain started sending on
-                          // 26.8.2026 and has no reputation yet, so Gmail files these under
-                          // junk - and a verification code nobody sees is a registration
-                          // nobody finishes. It comes out when the reputation is built.
-                          //
-                          // The developer note used to be shown to everybody, including a
-                          // parent registering a child.
-                          'A verification code has been sent to ${_emailController.text}.'
-                          '\nIf you do not see it in your inbox, please check your spam folder.'
-                          '${kDebugMode ? '\n(In dev environment, the code is printed in backend logs.)' : ''}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              fontSize: 14, color: context.colors.textMuted),
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        TextFormField(
-                          controller: _codeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Verification Code (6 digits)',
-                            prefixIcon: Icon(Icons.pin),
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          validator: (val) => val == null || val.length != 6
-                              ? 'Enter 6 digits'
-                              : null,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                      ] else ...[
-                        // Google first, and above a divider. It is one tap, it
-                        // registers as well as signs in, and underneath the email
-                        // form it read as "press this one instead" to somebody
-                        // halfway through typing their address — reported live on
-                        // 27.8.2026. The two ways in are now two blocks with a
-                        // line between them, rather than three buttons in a row.
-                        if (_googleAvailable) ...[
-                          _buildGoogleBlock(context),
-                          const SizedBox(height: AppSpacing.xl),
-                          _buildOrDivider(context),
-                          const SizedBox(height: AppSpacing.xl),
-                        ],
-                        if (!_isLogin) ...[
-                          TextFormField(
-                            controller: _nameController,
-                            autofillHints: const [AutofillHints.name],
-                            decoration: const InputDecoration(
-                              labelText: 'Full Name',
-                              prefixIcon: Icon(Icons.person),
-                              border: OutlineInputBorder(),
-                            ),
-                            validator: (value) => value == null || value.isEmpty
-                                ? 'Enter name'
-                                : null,
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                        ],
-                        TextFormField(
-                          controller: _emailController,
-                          // The hints are what let the phone's or the desktop's
-                          // password manager offer the address and the password.
-                          // That is the honest version of "remember my password":
-                          // the app asks the platform, and never holds it itself.
-                          autofillHints: const [
-                            AutofillHints.username,
-                            AutofillHints.email,
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: 'Email Address',
-                            prefixIcon: Icon(Icons.email),
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                          autofocus: _isLogin && !_emailIsKnown,
-                          validator: (value) =>
-                              value == null || !value.contains('@')
-                                  ? 'Enter a valid email address'
-                                  : null,
-                        ),
-                        const SizedBox(height: AppSpacing.lg),
-                        TextFormField(
-                          controller: _passwordController,
-                          autofillHints: [
-                            _isLogin
-                                ? AutofillHints.password
-                                : AutofillHints.newPassword,
-                          ],
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
-                            prefixIcon: Icon(Icons.lock),
-                            border: OutlineInputBorder(),
-                          ),
-                          obscureText: true,
-                          autofocus: _isLogin && _emailIsKnown,
-                          onFieldSubmitted: (_) => _submit(),
-                          validator: (value) =>
-                              value == null || value.length < 6
-                                  ? 'Password must be at least 6 characters'
-                                  : null,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        CheckboxListTile(
-                          title: const Text('Remember me',
-                              style: TextStyle(fontSize: 14)),
-                          // Said out loud, because it was read as "remember my
-                          // password" and it has never meant that: it keeps the
-                          // session, so the form is not asked for at all. The
-                          // password itself is offered by the device's password
-                          // manager, if it has been saved there.
-                          subtitle: Text(
-                            'You stay signed in on this device.',
-                            style: AppText.body,
-                          ),
-                          value: _rememberMe,
-                          activeColor: Theme.of(context).primaryColor,
-                          controlAffinity: ListTileControlAffinity.leading,
-                          contentPadding: EdgeInsets.zero,
-                          onChanged: (val) {
-                            setState(() {
-                              _rememberMe = val ?? false;
-                            });
-                          },
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.lg),
-                      _isLoading
-                          ? const CircularProgressIndicator()
-                          : SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: _submit,
-                                style: ElevatedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: AppRadii.roundedSm,
-                                  ),
-                                ),
-                                child: Text(_isAwaitingVerification
-                                    ? 'Confirm Verification'
-                                    : (_isLogin
-                                        ? 'Sign in with email'
-                                        : 'Register with email')),
-                              ),
-                            ),
-                      const SizedBox(height: AppSpacing.md),
-                      if (_isAwaitingVerification)
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isAwaitingVerification = false;
-                            });
-                          },
-                          child: const Text('Back to sign in'),
-                        )
-                      else
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isLogin = !_isLogin;
-                            });
-                          },
-                          // Which of the two ways in this switches is now in the
-                          // text. "Registrujte se" on its own sat under a Google
-                          // button that also registers, and said nothing about
-                          // which one it meant.
-                          child: Text(_isLogin
-                              ? "Don't have an account? Register with email"
-                              : 'Already have an account? Sign in with email'),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
+          child: Card(
+            elevation: 8,
+            shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xxl),
+              child: _buildForm(context, wide: false),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// A wide window: the brand panel on the left and the form on the right,
+  /// with no bar and no card. The guest button sits in the form half's top
+  /// right corner, where the bar had it; the form scrolls under it when the
+  /// window is short, so it starts below it.
+  Widget _buildWide(BuildContext context) {
+    return Scaffold(
+      body: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Expanded(child: _BrandPanel()),
+          Expanded(
+            child: Stack(
+              children: [
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.xxl,
+                        AppSpacing.xxxl * 2, AppSpacing.xxl, AppSpacing.xxl),
+                    child: ConstrainedBox(
+                      key: const Key('sign-in-form'),
+                      constraints: const BoxConstraints(
+                          maxWidth: LoginRegisterScreen.formMaxWidth),
+                      child: _buildForm(context, wide: true),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: AppSpacing.md,
+                  right: AppSpacing.md,
+                  child: _guestButton(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The form itself, the same on both layouts. Only its heading differs:
+  /// on a wide window the trophy and the name are the panel's, so the form
+  /// is headed by what the bar says on a phone.
+  Widget _buildForm(BuildContext context, {required bool wide}) {
+    return Form(
+      key: _formKey,
+      // One group, so the platform reads these fields as a single
+      // sign-in rather than as unrelated boxes it has nothing to offer.
+      child: AutofillGroup(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (wide)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(_screenTitle, style: AppText.headline),
+              )
+            else ...[
+              Icon(
+                _isAwaitingVerification
+                    ? Icons.mark_email_unread
+                    : Icons.emoji_events,
+                size: 64,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                _isAwaitingVerification
+                    ? 'Enter Verification Code'
+                    : (_isLogin ? 'Mislisha' : 'Account Registration'),
+                style:
+                    const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+            ],
+            if (_expiryNotice != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: context.colors.warning.withValues(alpha: 0.15),
+                  borderRadius: AppRadii.roundedSm,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_clock,
+                        size: 18, color: context.colors.warning),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        _expiryNotice!,
+                        style: AppText.body
+                            .copyWith(color: context.colors.warning),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xxl),
+            if (_isAwaitingVerification) ...[
+              Text(
+                // The spam line is not a nicety. The domain started sending on
+                // 26.8.2026 and has no reputation yet, so Gmail files these under
+                // junk - and a verification code nobody sees is a registration
+                // nobody finishes. It comes out when the reputation is built.
+                //
+                // The developer note used to be shown to everybody, including a
+                // parent registering a child.
+                'A verification code has been sent to ${_emailController.text}.'
+                '\nIf you do not see it in your inbox, please check your spam folder.'
+                '${kDebugMode ? '\n(In dev environment, the code is printed in backend logs.)' : ''}',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: context.colors.textMuted),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _codeController,
+                decoration: const InputDecoration(
+                  labelText: 'Verification Code (6 digits)',
+                  prefixIcon: Icon(Icons.pin),
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                validator: (val) =>
+                    val == null || val.length != 6 ? 'Enter 6 digits' : null,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ] else ...[
+              // Google first, and above a divider. It is one tap, it
+              // registers as well as signs in, and underneath the email
+              // form it read as "press this one instead" to somebody
+              // halfway through typing their address — reported live on
+              // 27.8.2026. The two ways in are now two blocks with a
+              // line between them, rather than three buttons in a row.
+              if (_googleAvailable) ...[
+                _buildGoogleBlock(context),
+                const SizedBox(height: AppSpacing.xl),
+                _buildOrDivider(context),
+                const SizedBox(height: AppSpacing.xl),
+              ],
+              if (!_isLogin) ...[
+                TextFormField(
+                  controller: _nameController,
+                  autofillHints: const [AutofillHints.name],
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) =>
+                      value == null || value.isEmpty ? 'Enter name' : null,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              TextFormField(
+                controller: _emailController,
+                // The hints are what let the phone's or the desktop's
+                // password manager offer the address and the password.
+                // That is the honest version of "remember my password":
+                // the app asks the platform, and never holds it itself.
+                autofillHints: const [
+                  AutofillHints.username,
+                  AutofillHints.email,
+                ],
+                decoration: InputDecoration(
+                  labelText: 'Email Address',
+                  prefixIcon: const Icon(Icons.email),
+                  suffixIcon: _rememberedAccounts(context),
+                  border: const OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.emailAddress,
+                autofocus: _isLogin && !_emailIsKnown,
+                onChanged: _emailChanged,
+                validator: (value) => value == null || !value.contains('@')
+                    ? 'Enter a valid email address'
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              TextFormField(
+                controller: _passwordController,
+                focusNode: _passwordFocus,
+                autofillHints: [
+                  _isLogin ? AutofillHints.password : AutofillHints.newPassword,
+                ],
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: _visibilityButton(),
+                  border: const OutlineInputBorder(),
+                ),
+                // Never shown while it grew from a kept password,
+                // whatever the eye was last left at.
+                obscureText: !_passwordVisible || _filledFrom != null,
+                autofocus: _isLogin && _emailIsKnown && _filledFrom == null,
+                onChanged: _passwordChanged,
+                onFieldSubmitted: (_) => _submit(),
+                validator: (value) => value == null || value.length < 6
+                    ? 'Password must be at least 6 characters'
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              CheckboxListTile(
+                title:
+                    const Text('Remember me', style: TextStyle(fontSize: 14)),
+                // Said out loud, and said per platform, because the
+                // box does different things: on Windows it keeps the
+                // password too, and names where; elsewhere it keeps
+                // the session, and the password is the phone's own
+                // password manager's.
+                subtitle: Text(
+                  SavedSignIns.instance.keepsPasswords
+                      ? 'Your email and password are kept in '
+                          '${SavedSignIns.instance.storeName}, and '
+                          'you stay signed in.'
+                      : 'You stay signed in on this device.',
+                  style: AppText.body,
+                ),
+                value: _rememberMe,
+                activeColor: Theme.of(context).primaryColor,
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (val) {
+                  setState(() {
+                    _rememberMe = val ?? false;
+                  });
+                },
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      // With a kept password there is nothing left
+                      // to type, so Enter should sign in.
+                      focusNode: _submitFocus,
+                      autofocus: _isLogin && _filledFrom != null,
+                      onPressed: _submit,
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.roundedSm,
+                        ),
+                      ),
+                      child: Text(_isAwaitingVerification
+                          ? 'Confirm Verification'
+                          : (_isLogin
+                              ? 'Sign in with email'
+                              : 'Register with email')),
+                    ),
+                  ),
+            const SizedBox(height: AppSpacing.md),
+            if (_isAwaitingVerification)
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isAwaitingVerification = false;
+                  });
+                },
+                child: const Text('Back to sign in'),
+              )
+            else
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _isLogin = !_isLogin;
+                  });
+                },
+                // Which of the two ways in this switches is now in the
+                // text. "Registrujte se" on its own sat under a Google
+                // button that also registers, and said nothing about
+                // which one it meant.
+                child: Text(_isLogin
+                    ? "Don't have an account? Register with email"
+                    : 'Already have an account? Sign in with email'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// The remembered addresses, as a list under the address field (sketch
+  /// `docs/skice/prijava-i-podesavanja/login-accounts.html`). Only when
+  /// signing in, and only when there is something to choose.
+  ///
+  /// No tooltip anywhere in it: a tooltip inside a popup is the shape that
+  /// sent the Windows screen reader a node no parent lists, and the crash
+  /// that follows (`move_tree_semantics_orphan_test`). The buttons carry
+  /// their names as semantic labels on their icons instead.
+  Widget? _rememberedAccounts(BuildContext context) {
+    final saved = SavedSignIns.instance;
+    final addresses = saved.addresses;
+    if (!_isLogin || addresses.isEmpty) return null;
+    return MenuAnchor(
+      controller: _accountsMenu,
+      menuChildren: [
+        for (final address in addresses)
+          MenuItemButton(
+            key: ValueKey('remembered-$address'),
+            leadingIcon: const Icon(Icons.person_outline),
+            trailingIcon: IconButton(
+              key: ValueKey('forget-$address'),
+              icon:
+                  Icon(Icons.close, size: 18, semanticLabel: 'Forget $address'),
+              onPressed: () => _forgetAddress(address),
+            ),
+            onPressed: () => _chooseAddress(address),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(address),
+                if (saved.keepsPasswords)
+                  Text(
+                    saved.hasPassword(address)
+                        ? 'Password saved'
+                        : 'Address only',
+                    style: AppText.caption
+                        .copyWith(color: context.colors.textMuted),
+                  ),
+              ],
+            ),
+          ),
+      ],
+      builder: (context, controller, _) => IconButton(
+        key: const Key('remembered-accounts'),
+        icon: Icon(
+          controller.isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+          semanticLabel: 'Remembered accounts',
+        ),
+        onPressed: () =>
+            controller.isOpen ? controller.close() : controller.open(),
+      ),
+    );
+  }
+
+  /// Show / hide what is in the password field — the owner's request of
+  /// 29.9.2026, for checking what was typed.
+  ///
+  /// A kept password is not shown: the eye is greyed out until the person
+  /// has emptied the field, as Edge does for a password it filled — not
+  /// merely edited it, or one keystroke would be the way to read the rest.
+  /// Anybody at a shared computer could otherwise read the saved password of
+  /// whoever signed in there last, and many of these accounts belong to
+  /// minors.
+  Widget _visibilityButton() {
+    final kept = _filledFrom != null;
+    return IconButton(
+      key: const Key('password-visibility'),
+      tooltip: kept
+          ? 'A saved password is not shown'
+          : (_passwordVisible ? 'Hide password' : 'Show password'),
+      icon: Icon(
+        _passwordVisible && !kept ? Icons.visibility_off : Icons.visibility,
+        // Said by luminance, not only by the tooltip: the field draws its
+        // suffix in one colour whatever the button's state, so a disabled
+        // eye looked exactly like an enabled one (rendered 29.9.2026). The
+        // colour is the icon's own, because the button's `disabledColor`
+        // leaked into its enabled state too.
+        color: kept ? context.colors.textMuted.withValues(alpha: 0.4) : null,
+      ),
+      onPressed: kept
+          ? null
+          : () => setState(() => _passwordVisible = !_passwordVisible),
     );
   }
 
@@ -671,6 +984,65 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         ),
         const Expanded(child: Divider()),
       ],
+    );
+  }
+}
+
+/// The left half of the sign-in screen on a wide window
+/// (`docs/PLAN-PRIJAVA-I-PODESAVANJA.md`, D1 B): who this is, in the brand
+/// colour, and nothing that can be pressed.
+///
+/// The light theme's violet in both themes: the dark theme's brand is a pale
+/// violet that white text does not read on, and the panel is the same place
+/// whichever theme is chosen. White on it measures 5.7:1
+/// (`AppColorTokens.light`).
+class _BrandPanel extends StatelessWidget {
+  const _BrandPanel();
+
+  static const _start =
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  @override
+  Widget build(BuildContext context) {
+    const tokens = AppColorTokens.light;
+    return Container(
+      key: const Key('sign-in-brand-panel'),
+      color: tokens.brand,
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xxxl * 2, vertical: AppSpacing.xxxl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.emoji_events, size: 56, color: tokens.surface),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Mislisha',
+              style: AppText.display.copyWith(
+                  color: tokens.surface,
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Text(
+                'Sessions with your trainer, homework, puzzles from your own '
+                'games, and tutorials.',
+                style: AppText.bodyLarge.copyWith(color: tokens.surface),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+            const BoardThumbnail(
+              key: Key('sign-in-brand-board'),
+              fen: _start,
+              size: 208,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

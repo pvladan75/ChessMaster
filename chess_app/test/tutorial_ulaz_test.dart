@@ -444,6 +444,10 @@ void main() {
         // dialog the room opens on Windows, wired for Preparation's own
         // engine panel.
         'lib/features/preparation/screens/preparation_screen.dart',
+        // `docs/PLAN-PRIJAVA-I-PODESAVANJA.md`, D3: only Windows has a store
+        // the app can keep a „Remember me" password in (Credential Manager);
+        // the one place that chooses it.
+        'lib/services/password_store.dart',
       };
 
       final asking = <String>{};

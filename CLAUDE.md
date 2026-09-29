@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5120 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5193 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1924 without TEST_DATABASE_URL (measured 29.9.2026), 2083 with it (derived; 2054 measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1160,7 +1160,12 @@ home of both translation routes, and `POST /lessons/from-game/translate`,
 which spends no unit; then the app (→ **5120**): „Comments in" in that
 dialog, one widget with the study's (`CommentsLanguageMenu`), only the
 tutorial the trainer picks translated, and a refusal that opens nothing half
-translated — `Close`, or `Open in English`. Phase 6 of
+translated — `Close`, or `Open in English`. Then `docs/PLAN-PRIJAVA-I-PODESAVANJA.md`
+(→ **5193**; analyze the same 22): „Remember me" keeps the password in Windows
+Credential Manager (`SavedSignIns`, never `SharedPreferences`), the sign-in
+screen is two halves on a wide window, Settings flows into columns. **On
+Windows the password manager had never worked** — the engine does not even
+receive `finishAutofillContext`. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

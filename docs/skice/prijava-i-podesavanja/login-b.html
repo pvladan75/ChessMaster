@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Login B</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100%}
+.brand{background:linear-gradient(160deg,#4C1D95,#7C3AED);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:0 90px;gap:18px}
+.brand .t{font-size:40px;font-weight:700}
+.brand p{margin:0;font-size:17px;line-height:1.5;opacity:.92;max-width:460px}
+.board{width:208px;height:208px;border-radius:6px;background:repeating-conic-gradient(#B58763 0 25%,#F0DAB5 0 50%) 0 0/52px 52px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.formside{display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative}
+.form{width:440px}
+.form h2{margin:0 0 20px;font-size:24px}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);margin:18px 0}
+.or i{flex:1;height:1px;background:var(--border)}
+.rm{display:flex;gap:12px;align-items:flex-start;margin:14px 0 16px}
+.rm .s{font-size:12.5px;color:var(--text2);margin-top:2px;line-height:1.35}
+.guest{position:absolute;top:18px;right:24px;display:flex;gap:8px;align-items:center}
+</style></head><body>
+<div class="split">
+  <div class="brand">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="#fff"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+    <div class="t">Mislisha</div>
+    <p>Lessons with your trainer, homework, puzzles from your own games, and review.</p>
+    <div class="board"></div>
+  </div>
+  <div class="formside">
+    <div class="guest link"><span class="ico" style="color:var(--accent)">&#128100;</span>Continue as guest</div>
+    <div class="form">
+      <h2>Sign in</h2>
+      <div class="btn outlined"><b style="font-size:16px">G</b> Sign in / Register with Google</div>
+      <div class="muted" style="text-align:center;margin-top:8px;font-size:12.5px">If you do not have an account yet, one will be created automatically.</div>
+      <div class="or"><i></i>or<i></i></div>
+      <div class="field"><span class="lbl">Email Address</span><span class="ico">&#9993;</span><span class="val">ana.petrovic@example.com</span><span class="ico" style="color:var(--muted)">&#9662;</span></div>
+      <div style="height:14px"></div>
+      <div class="field"><span class="lbl">Password</span><span class="ico">&#128274;</span><span class="val" style="letter-spacing:3px">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;</span></div>
+      <div class="rm"><span class="check">&#10003;</span><div><div style="font-size:15px">Remember me</div><div class="s">Your email and password are kept in Windows Credential Manager, and you stay signed in.</div></div></div>
+      <div class="btn tonal" style="outline:2px solid #0F172A;outline-offset:2px">Sign in with email</div>
+      <div style="text-align:center;margin-top:14px" class="link">Don't have an account? Register with email</div>
+    </div>
+  </div>
+</div>
+<div class="note" style="left:90px;top:640px;max-width:420px"><b>The left half is decoration.</b> It uses the width, but it shows nothing the reader can act on — the form itself is today's single column, 440 wide.</div>
+</body></html>

@@ -123,6 +123,118 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Registracija, unos koda i ponovna prijava rade bez greške.
    Potrebno: Windows; internet.
 
+6. [ ] **Lozinka se pamti na Windows-u, i Enter prijavljuje.**
+   [253.1]
+   O čemu se radi: Uz `Remember me` Windows sada čuva i lozinku, u Windows
+   Credential Manager-u (`PLAN-PRIJAVA-I-PODESAVANJA.md`, faza 1). Posle
+   odjave forma dolazi sa adresom i lozinkom, a fokus je na dugmetu.
+   Gde: Ekran za prijavu → `Sign in with email`.
+   Uradi: Prijavi se adresom i lozinkom sa uključenim `Remember me`, pa se
+   odjavi (`Settings` → ikonica za odjavu), pa na ekranu za prijavu samo
+   pritisni Enter.
+   Treba da vidiš: Adresa je upisana, u polju za lozinku su tačkice, Enter te
+   prijavljuje bez kucanja. Ispod `Remember me` piše „Your email and password
+   are kept in Windows Credential Manager, and you stay signed in."
+   Potrebno: Windows; server.
+
+7. [ ] **Unos se vidi u Windows-u, i `Forget` ga briše.**
+   [253.2]
+   O čemu se radi: Lozinka nije skrivena od onoga čija je: vidi se u Windows
+   Credential Manager-u, a `Settings` ima red kojim se briše.
+   Gde: Windows: Control Panel → Credential Manager → Windows Credentials;
+   aplikacija: `Settings` → `Saved sign-in on this computer`.
+   Uradi: Posle [253.1] pogledaj Windows Credentials, pa u aplikaciji pritisni
+   `Forget`, pa ponovo pogledaj Windows Credentials i odjavi se.
+   Treba da vidiš: Pre: unos `Mislisha/` + tvoja adresa. Posle `Forget`:
+   poruka „Forgotten. The next sign-in on this computer asks for your email
+   and password.", unosa više nema u Windows-u, a posle odjave forma je prazna.
+   Potrebno: Windows.
+
+8. [ ] **Dva naloga: strelica u polju adrese bira nalog i njegovu lozinku.**
+   [253.3]
+   O čemu se radi: Svaka adresa prijavljena uz `Remember me` ima svoj unos;
+   strelica u polju adrese ih nabraja, izbor popunjava lozinku, × zaboravlja.
+   Gde: Ekran za prijavu → strelica na desnom kraju polja `Email Address`.
+   Uradi: Prijavi se redom sa dva naloga (npr. trener i učenik), oba uz
+   `Remember me`, pa se odjavi. Otvori listu, izaberi drugi nalog, prijavi se
+   Enter-om. Zatim otvori listu i pritisni × pored jednog naloga.
+   Treba da vidiš: Uz svaki nalog piše „Password saved"; izbor upisuje adresu i
+   tačkice i Enter prijavljuje taj nalog. Posle × nalog nestaje sa liste, piše
+   „... is forgotten on this device.", a unos nestaje i iz Windows
+   Credentials.
+   Potrebno: Windows; dva naloga.
+
+9. [ ] **Sačuvana lozinka koja više ne važi se zaboravlja, a adresa ostaje.**
+   [253.4]
+   O čemu se radi: Kad server odbije baš sačuvanu lozinku, aplikacija je briše
+   i kaže to. Kad server samo nije dostupan, lozinka ostaje.
+   Gde: Windows Credentials (unos `Mislisha/...`) → Edit; ekran za prijavu.
+   Uradi: (a) U Windows Credentials izmeni lozinku u unosu na pogrešnu, pa u
+   aplikaciji na ekranu za prijavu pritisni Enter. (b) Prijavi se ispravnom
+   lozinkom uz `Remember me` i odjavi se; ugasi server i pritisni Enter; upali
+   server i pritisni Enter još jednom.
+   Treba da vidiš: (a) „Invalid email or password. The saved password did not
+   work, so it has been forgotten. Type it again.", polje za lozinku prazno,
+   adresa ostaje. (b) Dok je server ugašen: poruka o mreži, a tačkice ostaju;
+   posle paljenja Enter prijavljuje.
+   Potrebno: Windows; server.
+
+10. [ ] **Oko (`Show password`) pokazuje ukucano, a sačuvanu lozinku ne.**
+    [253.5]
+    O čemu se radi: Vlasnikov zahtev od 29.9.2026. Sačuvana lozinka se ne
+    otkriva nikome ko sedne za računar: oko je sivo dok polje drži sačuvanu
+    lozinku, i ostaje sivo i kad se u njoj promeni jedan znak — dok se polje
+    ne isprazni.
+    Gde: Ekran za prijavu → oko na desnom kraju polja `Password`; isto u
+    `Register with email`.
+    Uradi: Sa sačuvanom lozinkom pređi mišem preko oka i klikni ga; dodaj jedan
+    znak i klikni opet; obriši celo polje, ukucaj nešto i klikni oko dvaput.
+    Treba da vidiš: Dok je lozinka sačuvana ili izmenjena: oko sivo, piše „A
+    saved password is not shown", tačkice ostaju. Posle brisanja i kucanja:
+    klik pokazuje tekst, drugi klik ga opet sakriva.
+    Potrebno: Windows.
+
+11. [ ] **Bez kvačice ništa se ne pamti, i ranije sačuvano se briše.**
+    [253.6]
+    O čemu se radi: Neoznačen `Remember me` znači „ne pamti me": adresa i
+    lozinka tog naloga se brišu, i sesija se ne čuva.
+    Gde: Ekran za prijavu → `Remember me`.
+    Uradi: Sa nalogom koji ima sačuvanu lozinku isključi `Remember me`, prijavi
+    se, zatvori i ponovo pokreni aplikaciju.
+    Treba da vidiš: Traži prijavu iznova, forma je prazna, a unosa za tu adresu
+    nema u Windows Credentials.
+    Potrebno: Windows; server.
+
+12. [ ] **Telefon: lozinku nudi da sačuva telefon, ne aplikacija.**
+    [253.7]
+    O čemu se radi: Na Androidu aplikacija lozinku ne čuva (odluka D4);
+    telefonov menadžer lozinki je nudi da sačuva i posle je popunjava.
+    Gde: Ekran za prijavu na telefonu.
+    Uradi: Prijavi se adresom i lozinkom, pa se odjavi i vrati na ekran za
+    prijavu; dodirni polje za lozinku.
+    Treba da vidiš: Posle prve prijave telefon pita da li da sačuva lozinku;
+    sledeći put je nudi iznad tastature. Ispod `Remember me` piše „You stay
+    signed in on this device." Oko u polju lozinke radi za ukucano.
+    Potrebno: Telefon (Android); server.
+
+13. [ ] **Prijava na Windows-u: levo znak aplikacije, desno forma.**
+    [253.8]
+    O čemu se radi: Ekran za prijavu više nije telefonski ekran razvučen
+    preko celog prozora (`PLAN-PRIJAVA-I-PODESAVANJA.md`, D1 B): na širokom
+    prozoru levo je ljubičasta ploča sa imenom i tablom, desno forma široka
+    najviše 440. Na telefonu je ekran kao pre.
+    Gde: Ekran za prijavu (odjavi se, ili pokreni aplikaciju bez zapamćene
+    prijave).
+    Uradi: Pogledaj ekran u svom uobičajenom prozoru, pa smanji prozor na
+    najmanji koji Windows dozvoljava; u oba pritisni `Continue as Guest`.
+    Zatim na telefonu otvori ekran za prijavu, uspravno i položeno.
+    Treba da vidiš: Na Windows-u: levo `Mislisha`, rečenica i tabla, desno
+    `Sign In` pa forma, gore desno `Continue as Guest`; nijedno polje ne ide
+    preko celog prozora; u najmanjem prozoru i dalje obe polovine. Na
+    telefonu: traka sa `Sign In` i `Continue as Guest`, forma u kartici, kao
+    pre.
+    Potrebno: Windows i telefon.
+
 ### Nalog i prijava — Godina rođenja
 
 1. [ ] **Nemoguća godina: poruka, ništa se ne šalje.** [35.b1100]
@@ -9919,6 +10031,36 @@ odlazi na kraj spiska u alatu.
     prepisivanje se broji ponovo). `node tools/status/status.js` ima isti broj
     u redu `Groq speech to text`.
     Potrebno: server; Windows ili telefon.
+
+11. [ ] **Settings na Windows-u: odeljci u kolonama.**
+    [253.9]
+    O čemu se radi: Settings nije više jedna kolona kartica preko celog
+    prozora (D2 A): gore ko je prijavljen i `Sign out`, ispod pet odeljaka —
+    `ACCOUNT`, `APPEARANCE`, `BOARD AND ENGINE`, `SPEECH (READING MESSAGES)`,
+    `HELP` — jedan pored drugog koliko prozor dozvoljava. `ACCOUNT` je sada
+    jedan odeljak (bio je dvaput), a „Stockfish engine" i „Board and panel
+    appearance" su spojeni.
+    Gde: `Settings` (⚙ na `Home`, ili Ctrl+,).
+    Uradi: Otvori ga u svom prozoru, pa u najmanjem; zatim na telefonu.
+    Pritisni `Sign out` i odustani (`Cancel`).
+    Treba da vidiš: Četiri kolone u tvom prozoru, tri u najmanjem, na
+    telefonu jedna, redom Account, Appearance, Board and engine, Speech,
+    Help. Nema oznake „User" ispod adrese. `Sign out` pita „Are you sure you
+    want to sign out?". Na telefonu je dugme ispod imena.
+    Potrebno: Windows i telefon; prijavljen nalog.
+
+12. [ ] **Gost je „Guest", i `Sign in` vodi pravo na prijavu.**
+    [253.10]
+    O čemu se radi: Gost je bio „Gost Korisnik" sa izmišljenom adresom
+    `gost@…`, na `Home` i u `Settings`, a dugme u `Settings` (samo ikonica)
+    pitalo ga je „Are you sure you want to log out?".
+    Gde: Ekran za prijavu → `Continue as Guest` → `Home`, pa `Settings`.
+    Uradi: Uđi kao gost, pogledaj pozdrav na `Home`, otvori `Settings` i
+    pritisni `Sign in`.
+    Treba da vidiš: `Home` kaže „Welcome, Guest!"; u `Settings` piše
+    `Guest` i „Not signed in. Sign in to keep your work and join sessions.",
+    bez adrese; `Sign in` odmah otvara ekran za prijavu, bez pitanja.
+    Potrebno: Windows ili telefon.
 
 ### Podešavanja i izgled — Cela aplikacija
 

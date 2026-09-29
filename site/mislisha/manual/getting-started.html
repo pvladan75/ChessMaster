@@ -19,7 +19,13 @@ each of them is for, so the rest of the manual can get on with the work.</p>
 <p>The first screen offers three ways in:</p>
 <ul>
 <li><span class="ui">Sign in with email</span> — your address and password.
-    <span class="ui">Remember me</span> keeps you signed in on this device.</li>
+    <span class="ui">Remember me</span> keeps you signed in on this device.
+    On Windows it also keeps your password, in Windows Credential Manager, so
+    signing in again needs no typing. With several accounts, the arrow in the
+    address field lists them, and × beside one forgets it. On a phone, the
+    phone's own password manager offers to save the password instead.
+    The eye in the password field — <span class="ui">Show password</span> —
+    shows what you typed; a saved password is not shown.</li>
 <li><span class="ui">Sign in / Register with Google</span> — no separate
     password.</li>
 <li><span class="ui">Continue as Guest</span> — straight in, without an
@@ -31,6 +37,11 @@ email</span>, and the app may ask for a code it has mailed you:
 <span class="ui">Enter Verification Code</span>, then
 <span class="ui">Confirm Verification</span>.
 <span class="ui">Back to sign in</span> returns to the first screen.</p>
+<p>To take a saved password back, Settings has
+<span class="ui">Saved sign-in on this computer</span> with
+<span class="ui">Forget</span>. The entry is also yours to see and remove in
+Windows itself: Control Panel → Credential Manager → Windows Credentials,
+under <em>Mislisha/</em> and your address.</p>
 <p><strong>What a guest cannot do</strong>: start or join a session, and save
 analysis. The app does not refuse at the end of the job — it takes you to the
 sign-in screen and, once you are in, carries on with what you were doing.</p>
@@ -89,23 +100,27 @@ keep.</p>
 </ul>
 
 <h2>What is in Settings</h2>
-<p>The screen is called <span class="ui">App Settings</span>, and holds, in
-order:</p>
+<p>The screen is called <span class="ui">App Settings</span>. At the top is
+who is signed in, with <span class="ui">Sign out</span> — or, for a guest,
+<span class="ui">Sign in</span>. Below it are five sections; on a computer
+they stand side by side, as many as the window has room for, and on a phone
+one under another, in this order:</p>
 <ul>
+<li><strong>Account</strong> — the account's statistics,
+    <span class="ui">Usage this month</span> (what the account has used
+    since the first of the month, and where its plan draws the line),
+    <span class="ui">Birth year</span>, <span class="ui">Parent email</span>
+    where one is needed, and on Windows
+    <span class="ui">Saved sign-in on this computer</span>.</li>
+<li><strong>Appearance</strong> — light or dark, the board's colours and the
+    piece set.</li>
+<li><strong>Board and engine</strong> — <span class="ui">Board
+    coordinates</span>, how fast a piece moves, and
+    <span class="ui">Configure local engine</span> for Stockfish.</li>
 <li><strong>The voice.</strong> <span class="ui">Speak messages</span> turns
     reading aloud on, then the voice itself, a <span class="ui">Test</span>
     button, and <span class="ui">Check for voices again</span> for when you
     have just installed one in the operating system.</li>
-<li><strong>Appearance</strong> — light or dark.</li>
-<li><strong>Your account</strong> — <span class="ui">Log out</span>,
-    <span class="ui">Birth year</span>, and
-    <span class="ui">Parent email</span> where one is needed, and
-    <span class="ui">Usage this month</span> — what the account has used
-    since the first of the month, and where its plan draws the line.</li>
-<li><strong>The engine</strong> — <span class="ui">Configure local engine</span>
-    for Stockfish.</li>
-<li><strong>The board</strong> — its colours, the piece set,
-    and <span class="ui">Board coordinates</span>.</li>
 <li><strong>Help</strong> — <span class="ui">User manual</span>, this manual,
     and <span class="ui">Keyboard shortcuts</span>.</li>
 </ul>

@@ -8,10 +8,12 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/services/account_standing_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/services/saved_sign_ins.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/widgets/account_stats_card.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/widgets/parent_email_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -353,6 +355,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// „Saved sign-in on this computer": where „Remember me" kept this
+  /// account's password, and the way to take it back
+  /// (`docs/PLAN-PRIJAVA-I-PODESAVANJA.md` §4.1). Drawn only while one is
+  /// kept, which is only ever on Windows — a row that says „nothing saved"
+  /// on every phone would be a row about nothing. A guest never reaches it:
+  /// the section it stands in is drawn only for a signed-in account, and
+  /// that one guard is the one the tests hold.
+  Widget _savedSignInCard(BuildContext context) {
+    final saved = SavedSignIns.instance;
+    return AnimatedBuilder(
+      animation: saved,
+      builder: (context, _) {
+        final email = widget.session.email;
+        if (!saved.hasPassword(email)) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.sm),
+          child: Card(
+            shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
+            // „Forget" under the sentence rather than beside it: in a column
+            // 281 px wide (three columns at the smallest window) a trailing
+            // button squeezed the title into four lines of one word each.
+            child: Padding(
+              key: const Key('saved-sign-in'),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg, AppSpacing.md, AppSpacing.sm, AppSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.xs),
+                    child: Icon(Icons.key, color: context.colors.accent),
+                  ),
+                  const SizedBox(width: AppSpacing.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Saved sign-in on this computer',
+                            style: AppText.bodyLarge),
+                        Text(
+                          'Your email and password are kept in '
+                          '${saved.storeName}.',
+                          style: AppText.body
+                              .copyWith(color: context.colors.textMuted),
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            key: const Key('forget-saved-sign-in'),
+                            onPressed: () => _forgetSavedSignIn(email),
+                            child: const Text('Forget'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Done first, then said — and a store that would not let go is said too,
+  /// because a „Forget" that left the password behind must not read as done.
+  Future<void> _forgetSavedSignIn(String email) async {
+    final gone = await SavedSignIns.instance.forget(email);
+    if (!mounted) return;
+    if (gone) {
+      AppFeedback.success(
+          context,
+          'Forgotten. The next sign-in on this computer asks for your email '
+          'and password.');
+    } else {
+      AppFeedback.warning(
+          context,
+          'The password could not be removed from '
+          '${SavedSignIns.instance.storeName}. Remove it there.');
+    }
+  }
+
   Widget _speechCard(BuildContext context) {
     final speech = SpeechService.instance;
     return AnimatedBuilder(
@@ -497,6 +584,142 @@ class _SettingsScreenState extends State<SettingsScreen> {
     context.go(AppRoutes.login);
   }
 
+  /// Asked before signing out, as it always was; only the words changed —
+  /// „Sign out", the verb the sign-in screen and the age gate already use.
+  void _confirmSignOut() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out'),
+        content: const Text('Are you sure you want to sign out?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: context.colors.danger,
+                foregroundColor: context.colors.canvas),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _logout();
+            },
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Who is signed in, and the way out — or, for a guest, the way in.
+  ///
+  /// Three things changed on 29.9.2026 (`docs/PLAN-PRIJAVA-I-PODESAVANJA.md`,
+  /// D6). The button has a label: it was an icon with a tooltip, and for a
+  /// guest the icon said „Log in" while the click asked „Are you sure you
+  /// want to log out?" (F2) — a guest now goes straight to the sign-in
+  /// screen, with nothing to confirm. A guest is „Guest", with no address
+  /// (F3). And the „User" badge is gone: it once showed the role, which
+  /// decides nothing now but `admin` (F4).
+  Widget _profileStrip(BuildContext context) {
+    final guest = widget.session.isGuest;
+    final name = widget.session.name;
+    final button = guest
+        ? FilledButton.tonalIcon(
+            key: const Key('settings-sign-in'),
+            onPressed: () => context.go(AppRoutes.login),
+            icon: const Icon(Icons.login),
+            label: const Text('Sign in'),
+          )
+        : OutlinedButton.icon(
+            key: const Key('settings-sign-out'),
+            onPressed: _confirmSignOut,
+            style: OutlinedButton.styleFrom(
+                foregroundColor: context.colors.danger),
+            icon: const Icon(Icons.logout),
+            label: const Text('Sign out'),
+          );
+    final who = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(name,
+            style: AppText.headline,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
+        Text(
+          guest
+              ? 'Not signed in. Sign in to keep your work and join sessions.'
+              : widget.session.email,
+          style: AppText.bodyLarge.copyWith(color: context.colors.textMuted),
+          maxLines: guest ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+    return Card(
+      key: const Key('settings-profile'),
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
+      elevation: 2,
+      color: Theme.of(context).cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        // On a phone the button goes under the name, so the address keeps
+        // the width it needs to be read.
+        child: LayoutBuilder(builder: (context, constraints) {
+          final narrow = constraints.maxWidth < 480;
+          return Row(
+            crossAxisAlignment:
+                narrow ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: context.colors.brand,
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : '?',
+                  style: AppText.display.copyWith(color: context.colors.canvas),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: narrow
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          who,
+                          const SizedBox(height: AppSpacing.sm),
+                          button,
+                        ],
+                      )
+                    : who,
+              ),
+              if (!narrow) ...[
+                const SizedBox(width: AppSpacing.lg),
+                button,
+              ],
+            ],
+          );
+        }),
+      ),
+    );
+  }
+
+  /// One section: its heading and its cards, dealt as a unit into the
+  /// columns. The gap under it is its own, because the columns add none.
+  Widget _section(BuildContext context, String title, List<Widget> cards) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title,
+              style:
+                  AppText.bodyBold.copyWith(color: context.colors.textMuted)),
+          const SizedBox(height: AppSpacing.sm),
+          ...cards,
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -510,374 +733,265 @@ class _SettingsScreenState extends State<SettingsScreen> {
           body: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              // User Profile Header Card
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedLg),
-                elevation: 2,
-                color: Theme.of(context).cardColor,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: context.colors.brand,
-                        child: Text(
-                          widget.session.name.isNotEmpty
-                              ? widget.session.name[0].toUpperCase()
-                              : 'U',
-                          style: AppText.display
-                              .copyWith(color: context.colors.canvas),
+              _profileStrip(context),
+              const SizedBox(height: AppSpacing.xxl),
+
+              // A language picker for the *app* used to live here, but there
+              // is no localization layer, so it silently did nothing. Re-add
+              // it together with real i18n. The voice's language is a
+              // different question and is settable below: it picks among the
+              // voices the machine actually has.
+
+              // The sections flow into columns — four in a 1536 px window,
+              // three at the 900 px minimum, one on a phone, in this order
+              // (`docs/PLAN-PRIJAVA-I-PODESAVANJA.md`, D2 A; the rule the
+              // Home and Teach tabs use, `PLAN-POCETNI-TABOVI.md` §3). Here a
+              // whole section is the peer card: each holds one to five small
+              // cards, and a section stretched across the width with one
+              // card in it would be a row of air.
+              AdaptiveCardColumns(
+                children: [
+                  _section(context, 'ACCOUNT', [
+                    // Moved here from the first tab, where it was the first
+                    // thing under the buttons for starting a session. A plan
+                    // name and a saved-position count are facts about the
+                    // account, and this is the screen about the account.
+                    AccountStatsCard(session: widget.session),
+                    // A signed-in account's month, its year of birth, its
+                    // parent's address and its saved sign-in. A guest has no
+                    // account for any of them — one guard, here, for all four.
+                    if (!widget.session.isGuest) ...[
+                      Card(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: AppRadii.roundedMd),
+                        child: ListTile(
+                          key: const Key('open-usage'),
+                          leading: Icon(Icons.data_usage,
+                              color: context.colors.accent),
+                          title: const Text('Usage this month'),
+                          subtitle: const Text(
+                              'What your account has used, and your plan\'s '
+                              'monthly limits.'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push(AppRoutes.usage),
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.lg),
-                      Expanded(
+                      _birthYearCard(context),
+                      _parentEmailCard(context),
+                      _savedSignInCard(context),
+                    ],
+                  ]),
+                  _section(context, 'APPEARANCE', [_appearanceCard(context)]),
+                  // Two sections until 29.9.2026, each with too little to
+                  // stand alone once the 17.9 review had moved everything else
+                  // onto the screens that read it.
+                  _section(context, 'BOARD AND ENGINE', [
+                    Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.roundedMd),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              widget.session.name,
-                              style: AppText.headline,
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Board coordinates',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w500)),
+                              subtitle: Text(
+                                'Letters and numbers along the board edges on all screens. '
+                                'The same toggle is also available on board screens.',
+                                style: AppText.caption
+                                    .copyWith(color: context.colors.textMuted),
+                              ),
+                              value: _settings.showBoardCoordinates,
+                              onChanged: (val) =>
+                                  _settings.setShowBoardCoordinates(val),
+                            ),
+                            const Divider(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Expanded(
+                                  child: Text('Move animation:',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w500)),
+                                ),
+                                Text(
+                                  _settings.moveAnimationDurationMs == 0
+                                      ? 'Off'
+                                      : '${_settings.moveAnimationDurationMs} ms',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: context.colors.accent),
+                                ),
+                              ],
+                            ),
+                            AppSlider(
+                              value:
+                                  _settings.moveAnimationDurationMs.toDouble(),
+                              min: 0,
+                              max: 500,
+                              divisions: 10,
+                              label: _settings.moveAnimationDurationMs == 0
+                                  ? 'Off'
+                                  : '${_settings.moveAnimationDurationMs} ms',
+                              activeColor: context.colors.accent,
+                              onChanged: (val) {
+                                _settings
+                                    .setMoveAnimationDurationMs(val.round());
+                              },
                             ),
                             Text(
-                              widget.session.email,
-                              style: AppText.bodyLarge
+                              'How long a piece slides to the destination square. Far left disables animation.',
+                              style: AppText.caption
                                   .copyWith(color: context.colors.textMuted),
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.sm,
-                                  vertical: AppSpacing.xxs),
-                              decoration: BoxDecoration(
-                                color: context.colors.accent
-                                    .withValues(alpha: 0.2),
-                                borderRadius: AppRadii.roundedSm,
-                              ),
-                              child: Text(
-                                'User',
-                                style: AppText.captionBold
-                                    .copyWith(color: context.colors.accent),
-                              ),
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        icon: Icon(
-                          widget.session.isGuest ? Icons.login : Icons.logout,
-                          color: widget.session.isGuest
-                              ? context.colors.success
-                              : context.colors.danger,
-                        ),
-                        tooltip: widget.session.isGuest ? 'Log in' : 'Log out',
-                        onPressed: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Log out'),
-                              content: const Text(
-                                  'Are you sure you want to log out?'),
-                              actions: [
-                                TextButton(
-                                    onPressed: () => Navigator.pop(ctx),
-                                    child: const Text('Cancel')),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: context.colors.danger,
-                                      foregroundColor: context.colors.canvas),
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    _logout();
-                                  },
-                                  child: const Text('Log out'),
-                                ),
-                              ],
+                    ),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.roundedMd),
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // The opponent's strength and think time moved onto
+                            // the exercise screen on 17.9.2026, the one screen that
+                            // reads them; the analysis dials went onto every board
+                            // on 27.8.2026. What is left here is where things are.
+                            Text(
+                              'Analysis depth and number of lines are set on the board '
+                              'itself, below the "Show evaluation" toggle — on '
+                              'every screen where evaluation is shown. How strongly '
+                              'the engine plays against you is set on the exercise '
+                              'screen. The last selection applies to the next board '
+                              'you open.',
+                              style: AppText.caption
+                                  .copyWith(color: context.colors.textMuted),
                             ),
-                          );
-                        },
+                            const SizedBox(height: AppSpacing.sm),
+                            if (isCustomEngineSupported) ...[
+                              const Divider(height: 24),
+                              const Text('Local engine (.exe):',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.w500)),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                _settings.customEnginePath.isNotEmpty
+                                    ? _settings.customEnginePath
+                                    : 'Default (Online / FFI package)',
+                                style: AppText.caption.copyWith(
+                                  color: _settings.customEnginePath.isNotEmpty
+                                      ? context.colors.accent
+                                      : context.colors.textMuted,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: OutlinedButton.icon(
+                                  onPressed: _openEngineSettings,
+                                  icon: const Icon(Icons.settings_suggest,
+                                      size: 16),
+                                  label: const Text('Configure local engine'),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // A language picker for the *app* used to live here, but there
-              // is no localization layer — every string is hardcoded Serbian —
-              // so it silently did nothing. Re-add it together with real i18n.
-              // The voice's language is a different question and is settable
-              // below: it picks among the voices the machine actually has.
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('APPEARANCE',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-              _appearanceCard(context),
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('ACCOUNT',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-              // Moved here from the first tab, where it was the first thing
-              // under the buttons for starting a lesson. A plan name and a
-              // saved-position count are facts about the account, and this is
-              // the screen about the account.
-              AccountStatsCard(session: widget.session),
-              // A signed-in account's month, on its own screen: the plan's
-              // limits and everything metered without one. A guest has no
-              // account for the server to have counted.
-              if (!widget.session.isGuest)
-                Card(
-                  shape:
-                      RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
-                  child: ListTile(
-                    key: const Key('open-usage'),
-                    leading:
-                        Icon(Icons.data_usage, color: context.colors.accent),
-                    title: const Text('Usage this month'),
-                    subtitle: const Text(
-                        'What your account has used, and your plan\'s '
-                        'monthly limits.'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push(AppRoutes.usage),
-                  ),
-                ),
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('STOCKFISH ENGINE',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // The opponent's strength and think time moved onto
-                      // the exercise screen on 17.9.2026, the one screen that
-                      // reads them; the analysis dials went onto every board
-                      // on 27.8.2026. What is left here is where things are.
-                      Text(
-                        'Analysis depth and number of lines are set on the board '
-                        'itself, below the "Show evaluation" toggle — on '
-                        'every screen where evaluation is shown. How strongly '
-                        'the engine plays against you is set on the exercise '
-                        'screen. The last selection applies to the next board '
-                        'you open.',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
+                    ),
+                  ]),
+                  _section(context, 'SPEECH (READING MESSAGES)',
+                      [_speechCard(context)]),
+                  _section(context, 'HELP', [
+                    Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.roundedMd),
+                      child: ListTile(
+                        key: const Key('open-user-manual'),
+                        leading:
+                            Icon(Icons.menu_book, color: context.colors.accent),
+                        title: const Text('User manual'),
+                        // Task by task, because „where is the button for this?" is
+                        // the question the manual exists to answer
+                        // (docs/PLAN-PRIRUCNIK.md).
+                        subtitle: const Text(
+                            'What you can do in the app, and where to find it. '
+                            'Opens in your browser.'),
+                        trailing: const Icon(Icons.open_in_new),
+                        onTap: () => openUserManual(context),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      if (isCustomEngineSupported) ...[
-                        const Divider(height: 24),
-                        const Text('Local engine (.exe):',
-                            style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          _settings.customEnginePath.isNotEmpty
-                              ? _settings.customEnginePath
-                              : 'Default (Online / FFI package)',
-                          style: AppText.caption.copyWith(
-                            color: _settings.customEnginePath.isNotEmpty
-                                ? context.colors.accent
-                                : context.colors.textMuted,
+                    ),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.roundedMd),
+                      child: ListTile(
+                        leading:
+                            Icon(Icons.keyboard, color: context.colors.accent),
+                        title: const Text('Keyboard shortcuts'),
+                        // The row exists because the keys are invisible. Ctrl+, was
+                        // built, tested and unusable for exactly as long as there was
+                        // nowhere to read that it existed.
+                        subtitle: const Text(
+                            'What each key does. F1 also opens this.'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.push(AppRoutes.shortcuts),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    // Which build this is, and a tap to carry it into a report.
+                    //
+                    // It used to read "Šahovski trener v2.0 • Pro Edition" - a name
+                    // the app has not carried since the brand was chosen, and a
+                    // version that was never in pubspec. During a testing campaign
+                    // the one thing this line is good for is saying which build the
+                    // tester is looking at, so that is what it says.
+                    Center(
+                      child: InkWell(
+                        onTap: _copyBuildLabel,
+                        borderRadius: AppRadii.roundedSm,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.sm),
+                          child: Text(
+                            buildLabel(),
+                            textAlign: TextAlign.center,
+                            style: AppText.body
+                                .copyWith(color: context.colors.textMuted),
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: OutlinedButton.icon(
-                            onPressed: _openEngineSettings,
-                            icon: const Icon(Icons.settings_suggest, size: 16),
-                            label: const Text('Configure local engine'),
-                          ),
+                      ),
+                    ),
+                    if (kDebugMode) ...[
+                      const SizedBox(height: AppSpacing.lg),
+                      Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppRadii.roundedMd,
                         ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('BOARD AND PANEL APPEARANCE',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Board coordinates',
-                            style: TextStyle(fontWeight: FontWeight.w500)),
-                        subtitle: Text(
-                          'Letters and numbers along the board edges on all screens. '
-                          'The same toggle is also available on board screens.',
-                          style: AppText.caption
-                              .copyWith(color: context.colors.textMuted),
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.palette_outlined,
+                            color: context.colors.brand,
+                          ),
+                          title: const Text('Design Gallery (Debug)'),
+                          subtitle: const Text(
+                            'Preview color palette, typography, buttons, and components.',
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => context.push(AppRoutes.designGallery),
                         ),
-                        value: _settings.showBoardCoordinates,
-                        onChanged: (val) =>
-                            _settings.setShowBoardCoordinates(val),
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text('Move animation:',
-                                style: TextStyle(fontWeight: FontWeight.w500)),
-                          ),
-                          Text(
-                            _settings.moveAnimationDurationMs == 0
-                                ? 'Off'
-                                : '${_settings.moveAnimationDurationMs} ms',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: context.colors.accent),
-                          ),
-                        ],
-                      ),
-                      AppSlider(
-                        value: _settings.moveAnimationDurationMs.toDouble(),
-                        min: 0,
-                        max: 500,
-                        divisions: 10,
-                        label: _settings.moveAnimationDurationMs == 0
-                            ? 'Off'
-                            : '${_settings.moveAnimationDurationMs} ms',
-                        activeColor: context.colors.accent,
-                        onChanged: (val) {
-                          _settings.setMoveAnimationDurationMs(val.round());
-                        },
-                      ),
-                      Text(
-                        'How long a piece slides to the destination square. Far left disables animation.',
-                        style: AppText.caption
-                            .copyWith(color: context.colors.textMuted),
                       ),
                     ],
-                  ),
-                ),
+                  ]),
+                ],
               ),
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('SPEECH (READING MESSAGES)',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-              _speechCard(context),
-
-              if (!widget.session.isGuest) ...[
-                const SizedBox(height: AppSpacing.xxl),
-                Text('ACCOUNT',
-                    style: AppText.bodyBold
-                        .copyWith(color: context.colors.textMuted)),
-                const SizedBox(height: AppSpacing.sm),
-                _birthYearCard(context),
-                _parentEmailCard(context),
-              ],
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('HELP',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
-                child: ListTile(
-                  key: const Key('open-user-manual'),
-                  leading: Icon(Icons.menu_book, color: context.colors.accent),
-                  title: const Text('User manual'),
-                  // Task by task, because „where is the button for this?" is
-                  // the question the manual exists to answer
-                  // (docs/PLAN-PRIRUCNIK.md).
-                  subtitle: const Text(
-                      'What you can do in the app, and where to find it. '
-                      'Opens in your browser.'),
-                  trailing: const Icon(Icons.open_in_new),
-                  onTap: () => openUserManual(context),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xxl),
-              Text('KEYBOARD SHORTCUTS',
-                  style: AppText.bodyBold
-                      .copyWith(color: context.colors.textMuted)),
-              const SizedBox(height: AppSpacing.sm),
-
-              Card(
-                shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
-                child: ListTile(
-                  leading: Icon(Icons.keyboard, color: context.colors.accent),
-                  title: const Text('Keyboard shortcuts'),
-                  // The row exists because the keys are invisible. Ctrl+, was
-                  // built, tested and unusable for exactly as long as there was
-                  // nowhere to read that it existed.
-                  subtitle:
-                      const Text('What each key does. F1 also opens this.'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => context.push(AppRoutes.shortcuts),
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.xxxl),
-
-              // Which build this is, and a tap to carry it into a report.
-              //
-              // It used to read "Šahovski trener v2.0 • Pro Edition" - a name
-              // the app has not carried since the brand was chosen, and a
-              // version that was never in pubspec. During a testing campaign
-              // the one thing this line is good for is saying which build the
-              // tester is looking at, so that is what it says.
-              Center(
-                child: InkWell(
-                  onTap: _copyBuildLabel,
-                  borderRadius: AppRadii.roundedSm,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                    child: Text(
-                      buildLabel(),
-                      textAlign: TextAlign.center,
-                      style: AppText.body
-                          .copyWith(color: context.colors.textMuted),
-                    ),
-                  ),
-                ),
-              ),
-              if (kDebugMode) ...[
-                const SizedBox(height: AppSpacing.lg),
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: AppRadii.roundedMd,
-                  ),
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.palette_outlined,
-                      color: context.colors.brand,
-                    ),
-                    title: const Text('Design Gallery (Debug)'),
-                    subtitle: const Text(
-                      'Preview color palette, typography, buttons, and components.',
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push(AppRoutes.designGallery),
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         );

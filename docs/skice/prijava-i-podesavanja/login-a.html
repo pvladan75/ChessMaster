@@ -1,0 +1,51 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Login A</title>
+<link rel="stylesheet" href="common.css">
+<style>
+.wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px}
+.login{width:880px;padding:32px 36px 28px}
+.head{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:26px}
+.head .t{font-size:26px;font-weight:700}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr);align-items:stretch}
+.col h3{margin:0 0 14px;font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.or{display:flex;flex-direction:column;align-items:center;color:var(--muted)}
+.or .line{flex:1;width:1px;background:var(--border)}
+.or span{padding:8px 0}
+.g{display:flex;flex-direction:column;justify-content:center;height:calc(100% - 28px)}
+.rm{display:flex;gap:12px;align-items:flex-start;margin:16px 0 18px}
+.rm .s{font-size:12.5px;color:var(--text2);margin-top:2px;line-height:1.35}
+.guest{display:flex;align-items:center;gap:8px}
+</style></head><body>
+<div class="wrap">
+  <div class="card login">
+    <div class="head">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="#7C3AED"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0 0 11 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 0 0 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
+      <div class="t">Mislisha</div>
+      <div class="muted">Sign in to continue</div>
+    </div>
+    <div class="cols">
+      <div class="col">
+        <h3>WITH EMAIL</h3>
+        <div class="field"><span class="lbl">Email Address</span><span class="ico">&#9993;</span><span class="val">ana.petrovic@example.com</span><span class="ico" style="color:var(--muted)">&#9662;</span></div>
+        <div style="height:16px"></div>
+        <div class="field"><span class="lbl">Password</span><span class="ico">&#128274;</span><span class="val" style="letter-spacing:3px">&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;</span></div>
+        <div class="rm"><span class="check">&#10003;</span><div><div style="font-size:15px">Remember me</div><div class="s">Your email and password are kept in Windows Credential Manager, and you stay signed in.</div></div></div>
+        <div class="btn tonal" style="outline:2px solid #0F172A;outline-offset:2px">Sign in with email</div>
+        <div style="text-align:center;margin-top:16px" class="link">Don't have an account? Register with email</div>
+      </div>
+      <div class="or"><div class="line"></div><span>or</span><div class="line"></div></div>
+      <div class="col">
+        <h3>WITH GOOGLE</h3>
+        <div class="g">
+          <div class="btn outlined"><b style="font-size:16px">G</b> Sign in / Register with Google</div>
+          <div class="muted" style="text-align:center;margin-top:10px;line-height:1.4">If you do not have an account yet,<br>one will be created automatically.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="guest link"><span class="ico" style="color:var(--accent)">&#128100;</span>Continue as guest</div>
+</div>
+<div class="note" style="left:1224px;top:318px"><b>Both filled in.</b> The last address and its saved password. Focus is on „Sign in with email", so Enter signs in.</div>
+<div class="note" style="left:1224px;top:430px"><b>▾ remembered accounts</b> — pick one and its password is filled in (next picture).</div>
+<div class="note" style="left:40px;top:318px"><b>Two ways in, side by side.</b> One card, at most 880 wide. The phone keeps today's single column, Google above the line.</div>
+<div class="note" style="left:40px;top:690px"><b>No bar.</b> „Continue as guest" moves under the card; the title „Sign In" is the card's own heading.</div>
+</body></html>

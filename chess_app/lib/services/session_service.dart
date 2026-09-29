@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/jwt_expiry.dart';
+import 'package:chess_app/services/saved_sign_ins.dart';
 
 /// Single source of truth for who is signed in.
 ///
@@ -40,13 +41,12 @@ class SessionService extends ChangeNotifier {
   ///
   /// Kept when the session is dropped, unlike the token beside it: signing out
   /// says "not right now", not "forget who I am", and the alternative is
-  /// retyping an address the device already knows. **The password is not kept
-  /// here and must not be** — that belongs to the platform's password manager,
-  /// which is what the autofill hints on the login form are for. This file
-  /// writes to `SharedPreferences`, which on Windows is a plain XML file in the
-  /// user's profile.
-  String? _lastEmail;
-  String? get lastEmail => _lastEmail;
+  /// retyping an address the device already knows. The list it heads, and the
+  /// passwords kept beside it where the platform has a safe place for them,
+  /// are [SavedSignIns]'s. **No password is ever written here**: this file
+  /// writes to `SharedPreferences`, which on Windows is a plain XML file in
+  /// the user's profile.
+  String? get lastEmail => SavedSignIns.instance.last;
 
   /// Why the session ended without anybody signing out, when it did.
   ///
@@ -70,7 +70,7 @@ class SessionService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool('remember_me') ?? false;
     final token = prefs.getString('user_token');
-    _lastEmail = prefs.getString('last_email');
+    await SavedSignIns.instance.load();
 
     // A stored token that is already past its own `exp` is not restored: the
     // app would come up greeting somebody by name, and every request behind
@@ -105,7 +105,15 @@ class SessionService extends ChangeNotifier {
   }
 
   /// Adopts [session] as the active one, persisting it when [rememberMe].
-  Future<void> signIn(UserSession session, {required bool rememberMe}) async {
+  ///
+  /// With [rememberMe] the address goes on the remembered list and
+  /// [password] — the one the server has just accepted, null for Google — is
+  /// kept where the platform allows. Without it the address and any kept
+  /// password are forgotten: an unticked box means „do not remember me",
+  /// not „do not remember me this time". The answer says what became of the
+  /// password; the sign-in itself never waits on it.
+  Future<PasswordKeeping> signIn(UserSession session,
+      {required bool rememberMe, String? password}) async {
     _current = session;
     _expiryReason = null;
     notifyListeners();
@@ -115,9 +123,10 @@ class SessionService extends ChangeNotifier {
     await AccountLocalState.syncTo(session.id);
 
     final prefs = await SharedPreferences.getInstance();
+    var keeping = PasswordKeeping.notOffered;
     if (rememberMe) {
-      _lastEmail = session.email;
-      await prefs.setString('last_email', session.email);
+      keeping = await SavedSignIns.instance
+          .remember(session.email, password: password);
       await prefs.setBool('remember_me', true);
       await prefs.setString('user_token', session.token);
       await prefs.setInt('user_id', session.id);
@@ -125,8 +134,10 @@ class SessionService extends ChangeNotifier {
       await prefs.setString('user_name', session.name);
       await prefs.setString('user_role', session.role);
     } else {
+      await SavedSignIns.instance.forget(session.email);
       await _clearStoredCredentials(prefs);
     }
+    return keeping;
   }
 
   /// Drops the session and every stored credential, falling back to guest.
@@ -160,9 +171,21 @@ class SessionService extends ChangeNotifier {
         _current.isGuest && (_expiryReason == null || _expiryReason == reason);
     if (nothingLeftToEnd) return;
 
+    final ended = _current;
     _current = UserSession.guest();
     _expiryReason = reason;
     notifyListeners();
+
+    // After the state has changed, never before: the guard above is what
+    // keeps three refusals arriving together from being three trips, and an
+    // await in front of it would let all three through.
+    //
+    // An account that is gone takes its remembered address and password with
+    // it — there is nobody left for them to sign in as. An expired session
+    // keeps both: the same person is expected back.
+    if (reason == 'account-gone' && !ended.isGuest) {
+      await SavedSignIns.instance.forget(ended.email);
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await _clearStoredCredentials(prefs);

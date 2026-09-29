@@ -29,6 +29,12 @@ dependencies:
   stockfish:
     path: packages/stockfish
   shared_preferences: ^2.2.0
+  # Windows Credential Manager, where „Remember me" keeps a password on
+  # Windows (docs/PLAN-PRIJAVA-I-PODESAVANJA.md, D3). Both were already in the
+  # build, pulled in by other plugins at these versions; named here because
+  # the app now calls them itself.
+  win32: ^5.15.0
+  ffi: ^2.2.0
   agora_rtc_engine: ^6.6.3
   permission_handler: ^13.0.0
   google_sign_in: ^7.0.0

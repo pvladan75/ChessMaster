@@ -42,6 +42,11 @@ import 'package:chess_app/widgets/app_slider.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/features/preparation/screens/preparation_screen.dart';
 import 'package:chess_app/features/preparation/services/preparation_engine.dart';
+import 'package:chess_app/screens/login_screen.dart';
+import 'package:chess_app/services/saved_sign_ins.dart';
+import 'package:chess_app/services/session_service.dart';
+
+import 'support/fake_password_store.dart';
 
 import 'support/trainer_room.dart';
 
@@ -623,6 +628,62 @@ void main() {
     final handle = tester.ensureSemantics();
     final slider = Slider(value: 0.5, onChanged: (_) {});
     expect(await openWith(tester, 'dialog', slider), isNotEmpty);
+    handle.dispose();
+  });
+
+  // The sign-in screen grew a popup and a tooltip on 29.9.2026
+  // (docs/PLAN-PRIJAVA-I-PODESAVANJA.md, phase 1): the remembered accounts
+  // under the address, and the eye on the password. A popup and a tooltip
+  // are the two shapes the engine has refused, so both are swept here.
+  Future<void> openSignIn(WidgetTester tester) async {
+    final store = FakePasswordStore()..kept['ana@example.com'] = 'kept-7';
+    SavedSignIns.instance.debugUseStore(store);
+    addTearDown(() => SavedSignIns.instance.debugUseStore(null));
+    SharedPreferences.setMockInitialValues({
+      'remembered_emails': ['ana@example.com', 'ivan@example.com'],
+    });
+    await SessionService.instance.init();
+    tester.view.physicalSize = const Size(1200, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: LoginRegisterScreen(googleAvailableOverride: false),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('opening the remembered accounts on sign-in orphans nothing', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await openSignIn(tester);
+    final seed = _seed(tester);
+    _updates.clear();
+
+    await tester.tap(find.byKey(const Key('remembered-accounts')));
+    await tester.pumpAndSettle();
+    expect(find.text('ivan@example.com'), findsOneWidget,
+        reason: 'the list is open');
+
+    expect(_orphansAcross([seed, ..._updates]), isEmpty);
+
+    // And with the list open, every tooltip that is then on the screen —
+    // including any inside the popup, which a sweep of the closed screen
+    // cannot reach (a tooltip added there survived that sweep).
+    expect(await _hoverEveryTooltip(tester), isEmpty);
+    handle.dispose();
+  });
+
+  testWidgets('no tooltip on the sign-in screen orphans a node when it shows',
+      (tester) async {
+    final handle = tester.ensureSemantics();
+    await openSignIn(tester);
+
+    expect(await _hoverEveryTooltip(tester), isEmpty);
+    expect(find.byTooltip('A saved password is not shown'), findsOneWidget,
+        reason: 'the eye is among what was swept');
     handle.dispose();
   });
 }
