@@ -6,6 +6,7 @@ import 'package:chess_app/services/billing_service.dart';
 import 'package:chess_app/services/usage_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 /// What the account has used this month, and where its plan draws the line.
 ///
@@ -90,13 +91,23 @@ class _UsageScreenState extends State<UsageScreen> {
           style: AppText.caption.copyWith(color: context.colors.textMuted),
         ),
         const SizedBox(height: AppSpacing.lg),
-        _PlanCard(usage: usage),
-        if (usage.quotas.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.md),
-          _LimitsCard(quotas: usage.quotas),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        _CountedCard(usage: usage),
+        // The cards flow into columns — four at 1536, three at the 900 px
+        // minimum window, one on a phone, in this order
+        // (docs/PLAN-PRIJAVA-I-PODESAVANJA.md, §8). Each carries its own gap
+        // below, because the columns add none.
+        AdaptiveCardColumns(
+          children: [
+            for (final card in [
+              _PlanCard(usage: usage),
+              if (usage.quotas.isNotEmpty) _LimitsCard(quotas: usage.quotas),
+              ..._countedCards(usage),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: card,
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -144,15 +155,50 @@ class _LimitsCard extends StatelessWidget {
   }
 }
 
+/// „Also counted", as two cards by kind: what sessions, video and voice
+/// used, and what the models wrote and the scanner read — one long card of
+/// fifteen rows beside two short ones left three quarters of a wide window
+/// empty below them. A counter nobody wrote a label for goes with the
+/// second, so it is still shown. With nothing counted at all, one card says
+/// so.
+List<Widget> _countedCards(MonthlyUsage usage) {
+  final rows = countedRows(usage);
+  if (rows.isEmpty) {
+    return const [_CountedCard(title: 'Also counted', rows: [])];
+  }
+  final media = [
+    for (final r in rows)
+      if (_mediaMetrics.contains(r.metric)) r
+  ];
+  final other = [
+    for (final r in rows)
+      if (!_mediaMetrics.contains(r.metric)) r
+  ];
+  return [
+    if (media.isNotEmpty)
+      _CountedCard(title: 'Also counted: sessions and video', rows: media),
+    if (other.isNotEmpty)
+      _CountedCard(title: 'Also counted: AI and scanning', rows: other),
+  ];
+}
+
+const _mediaMetrics = {
+  'agora_seconds',
+  'mp4_renders',
+  'mp4_render_seconds',
+  'tts_characters',
+  'stt_seconds',
+};
+
 class _CountedCard extends StatelessWidget {
-  const _CountedCard({required this.usage});
-  final MonthlyUsage usage;
+  const _CountedCard({required this.title, required this.rows});
+  final String title;
+  final List<CountedRow> rows;
 
   @override
   Widget build(BuildContext context) {
-    final rows = countedRows(usage);
     return _UsageCard(
-      title: 'Also counted',
+      title: title,
       subtitle: 'Things without a limit, counted so that a plan can be priced '
           'from what people really use.',
       children: [

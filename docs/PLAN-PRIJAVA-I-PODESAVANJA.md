@@ -358,3 +358,27 @@ stop and say so in the report — do not work around it.*
   server, and a password kept on the person's own computer at their own
   choice is not held by us. Whether the lawyer wants one sentence about it is
   the owner's question. The legal texts change only on his word.
+
+## 8. Keyboard Shortcuts and Usage this month, the same way (29.9.2026)
+
+The owner, the same evening, with screenshots of both: *can these two be
+done the same way.* Built by the lead inline.
+
+- **Keyboard Shortcuts:** the nine groups flow into columns
+  (`AdaptiveCardColumns`). Each row is its keys and then its sentence in
+  what the card has left; the sentence used to be sized from the *window*
+  (`MediaQuery…width - 140`), right on a phone and wrong in a column.
+  **Found on the way:** the „Tabs" group still said Training, Sessions,
+  Library, People — the four tabs before the reorganisation of 18.9.2026. The
+  keys worked (they select by position); the words were eleven days stale.
+  They are read from `kTabNames` now, the one place the tabs are named.
+- **Usage this month:** Plan, Monthly limits, and „Also counted" split into
+  two cards by kind — sessions and video, and AI and scanning (a counter
+  nobody named goes with the second) — so four cards fill four columns
+  instead of three short ones beside one long one.
+- **Gate:** `shortcuts_usage_layout_test` (13): columns counted from
+  painted cards (4 / 3 / 1) on both screens, no overflow at 360 / 900 /
+  1536 / 1920, the tab names as literals, a sentence inside its own card,
+  the counters in their cards. Mutations 5, all red on the right cases.
+  Live checks [253.11]–[253.12].
+

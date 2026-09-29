@@ -10090,6 +10090,30 @@ odlazi na kraj spiska u alatu.
     bez adrese; `Sign in` odmah otvara ekran za prijavu, bez pitanja.
     Potrebno: Windows ili telefon.
 
+13. [ ] **`Keyboard shortcuts` u kolonama, i tabovi po pravim imenima.**
+    [253.11]
+    O čemu se radi: Spisak prečica je sada u karticama jednoj pored druge
+    (kao `Settings`), a grupa `Tabs` je pisala Training, Sessions, Library,
+    People — imena tabova od pre reorganizacije 18.9.2026.
+    Gde: F1, ili `Settings` → `HELP` → `Keyboard shortcuts`.
+    Uradi: Otvori spisak u svom prozoru, u najmanjem, i na telefonu; pritisni
+    Ctrl+1, Ctrl+2, Ctrl+3 i Ctrl+4 na `Home`.
+    Treba da vidiš: Četiri kolone u tvom prozoru, tri u najmanjem, jedna na
+    telefonu; u `Tabs` piše Home, Practise, Analyse, Teach, i tasteri otvaraju
+    baš te tabove; nijedna rečenica ne ide preko ivice svoje kartice.
+    Potrebno: Windows i telefon.
+
+14. [ ] **`Usage this month` u kolonama.**
+    [253.12]
+    O čemu se radi: Ekran je bio jedna kolona preko celog prozora; sada su
+    `Plan`, `Monthly limits`, `Also counted: sessions and video` i `Also
+    counted: AI and scanning` jedna pored druge.
+    Gde: `Settings` → `ACCOUNT` → `Usage this month`.
+    Uradi: Otvori ga u svom prozoru, u najmanjem, i na telefonu.
+    Treba da vidiš: Četiri kartice u jednom redu u tvom prozoru, tri pa jedna
+    ispod u najmanjem, jedna ispod druge na telefonu; brojevi isti kao pre.
+    Potrebno: Windows i telefon; prijavljen nalog; server.
+
 ### Podešavanja i izgled — Cela aplikacija
 
 1. [ ] **Reč „studio” se sreće samo u imenu „Tutorial studio”** [131.5]

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/core/user_manual.dart';
+import 'package:chess_app/screens/home_screen.dart' show kTabNames;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 
 /// One line of the list: the keys, what they do, and nothing implied.
 class AppShortcut {
@@ -32,7 +34,7 @@ class ShortcutGroup {
 /// here is a key nobody will find. Ctrl+, is why this page exists at all — it
 /// was built, it passed its test, and the person it was built for could not
 /// find it or use it. A shortcut nobody knows about does not exist.
-const kShortcutGroups = <ShortcutGroup>[
+final kShortcutGroups = <ShortcutGroup>[
   ShortcutGroup(
     'Everywhere in app',
     'Works on every screen.',
@@ -47,11 +49,12 @@ const kShortcutGroups = <ShortcutGroup>[
     'Tabs',
     'On the home screen, where the four tabs are. While an exercise or room '
         'is open above it, keys belong to what is on top.',
+    // The tabs' own names, read from where the tabs are named: this list
+    // said Training, Sessions, Library and People for eleven days after the
+    // reorganisation of 18.9.2026 renamed and reordered all four.
     [
-      AppShortcut(['Ctrl', '1'], 'Training.'),
-      AppShortcut(['Ctrl', '2'], 'Sessions.'),
-      AppShortcut(['Ctrl', '3'], 'Library.'),
-      AppShortcut(['Ctrl', '4'], 'People.'),
+      for (var i = 0; i < kTabNames.length; i++)
+        AppShortcut(['Ctrl', '${i + 1}'], '${kTabNames[i]}.'),
     ],
   ),
   ShortcutGroup(
@@ -164,10 +167,19 @@ class ShortcutsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-          for (final group in kShortcutGroups) ...[
-            _GroupCard(group: group),
-            const SizedBox(height: AppSpacing.md),
-          ],
+          // The groups flow into columns — as many as the width holds, one on
+          // a phone, in this order (docs/PLAN-PRIJAVA-I-PODESAVANJA.md, §8;
+          // the rule Settings uses). Each card carries its own gap below,
+          // because the columns add none.
+          AdaptiveCardColumns(
+            children: [
+              for (final group in kShortcutGroups)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                  child: _GroupCard(group: group),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -198,24 +210,18 @@ class _GroupCard extends StatelessWidget {
             for (final shortcut in group.shortcuts)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
-                // Wrap and not Row: „Esc" plus a full sentence is wider than a
-                // 360 dp phone, and a release build clips the overflow without
-                // drawing a single stripe to say so.
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                // The keys, then the sentence in whatever the card has left.
+                // It was a Wrap whose sentence was sized from the *window*
+                // (width - 140), which held on a phone and was wrong in a
+                // column; the sentence now wraps inside its own card.
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    for (final key in shortcut.keys) _KeyCap(label: key),
-                    ConstrainedBox(
-                      // Leaves room for the widest key cap on the narrowest
-                      // screen, so the sentence wraps inside the card instead
-                      // of pushing past it.
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.sizeOf(context).width - 140,
-                      ),
-                      child: Text(shortcut.what, style: AppText.body),
-                    ),
+                    for (final key in shortcut.keys) ...[
+                      _KeyCap(label: key),
+                      const SizedBox(width: AppSpacing.sm),
+                    ],
+                    Expanded(child: Text(shortcut.what, style: AppText.body)),
                   ],
                 ),
               ),

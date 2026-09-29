@@ -9442,3 +9442,18 @@ The day comes from the moment in the on-disk name and is the server's local
 day: the fixture renders at 00:30 local, which is the previous day in UTC east
 of Greenwich, so `toISOString` is caught here — on a machine that runs in UTC
 the case passes either way and cannot tell them apart.
+
+## 29.9.2026 — Keyboard Shortcuts and Usage in columns (`PLAN-PRIJAVA-I-PODESAVANJA.md` §8)
+
+App 5193 → **5206** (13 cases; predicted before the run). Five mutations,
+each red on the case meant for it.
+
+**A list of names kept apart from the thing it names goes stale silently.**
+The shortcut list said Ctrl+1 opens „Training" for eleven days after the tabs
+became Home, Practise, Analyse, Teach — the keys still worked, because they
+select by position, so nothing failed. It reads `kTabNames` now, and the test
+holds the four names as literals.
+
+**A width taken from the window is a phone's width.** The shortcut's sentence
+was capped at `window − 140`, which is right for one column and wrong in any
+other; inside a card it must take what the card has left.
