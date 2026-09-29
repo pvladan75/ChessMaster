@@ -5235,6 +5235,65 @@ odlazi na kraj spiska u alatu.
    odigranog poteza.
    Potrebno: Windows; DeepSeek ključ na serveru; internet.
 
+20. [ ] **Tutorijal iz partije na srpskom: ceo tutorijal je na srpskom.**
+    [252.8]
+    O čemu se radi: Tutorijal koji izabereš (`Key moments` ili `Whole game`)
+    prevodi se ceo pre nego što se otvori u studiju — i rečenice koje
+    aplikacija piše sama, ne samo one koje piše model
+    (`PLAN-JEZIK-STUDIJE.md` §8). Potezi, strelice i polja ostaju isti.
+    Gde: `Analyse` → otvori partiju na tabli → `Use in a tutorial` →
+    `New tutorial from this game`.
+    Uradi: U `Comments in` izaberi `Serbian (Latin)` (ispod njega piše da će
+    potrajati do minut duže), pritisni `Start`, sačekaj reči i izaberi
+    `Key moments`.
+    Treba da vidiš: Dijalog „Translating into Serbian (Latin)" sa trakom, pa
+    se tutorijal otvori u studiju: naslov, opis, nazivi delova i svi komentari
+    na srpskom, potezi u komentarima sa engleskim slovima (`Nf3`, ne `Sf3`).
+    Nijedna rečenica nije na engleskom. U `Details…` je `Language` =
+    `Serbian (Latin)`, pa se film čita srpskim glasom.
+    Potrebno: Windows; prijavljen nalog sa Premium ili višim planom; restart
+    backenda sa novim kodom; DeepSeek ključ na serveru.
+
+21. [ ] **Izbor jezika je isti kao u studiji pozicije.**
+    [252.9]
+    Gde: `Analyse` → `Study this position`, pa `Use in a tutorial` →
+    `New tutorial from this game`.
+    Uradi: U studiji izaberi `German` i zatvori je; otvori dijalog za
+    tutorijal iz partije i tamo izaberi `English`; vrati se u studiju.
+    Treba da vidiš: Tutorijal iz partije je otvoren sa `German`; posle izbora
+    `English` tamo, i studija pokazuje `English`. Na telefonu se ceo dijalog
+    sa menijem vidi i dugme `Start` je na ekranu.
+    Potrebno: Windows i telefon; kao [252.8].
+
+22. [ ] **Na engleskom se ništa ne prevodi.**
+    [252.10]
+    Gde: kao [252.8], sa `Comments in` = `English`.
+    Treba da vidiš: Nema dijaloga „Translating into…"; tutorijal se otvori
+    odmah posle izbora, na engleskom, kao ranije.
+    Potrebno: kao [252.8].
+
+23. [ ] **Prevod koji ne prođe: ništa napola prevedeno, `Open in English`.**
+    [252.11]
+    O čemu se radi: Kad prevod dvaput ne prođe proveru (ili server ne
+    odgovori), otvara se dijalog „Not translated into …" sa razlogom i dva
+    dugmeta.
+    Gde: kao [252.8]; najlakše se izazove kad je server ugašen posle pisanja
+    reči, ili bez interneta u trenutku prevoda.
+    Uradi: Izaberi tutorijal, pa u dijalogu jednom `Close`, drugi put
+    `Open in English`.
+    Treba da vidiš: `Close` ne otvara ništa; `Open in English` otvara
+    tutorijal na engleskom. Ni u jednom slučaju se ne otvara tutorijal u kome
+    je deo teksta preveden, a deo nije.
+    Potrebno: Windows; kao [252.8].
+
+24. [ ] **Prevod tutorijala iz partije ne troši drugu jedinicu.**
+    [252.12]
+    Gde: `Settings` → `Usage this month`, pre i posle [252.8].
+    Treba da vidiš: `AI tutorials` je veći za jedan (ne za dva); red
+    `AI tutorial writing` je porastao i za tokene prevoda;
+    `Tutorials translated` se nije pomerio.
+    Potrebno: Windows ili telefon; prijavljen nalog.
+
 ### Analyse — Choose a game
 
 1. [ ] **Na telefonu, i u landscape modu, lista partija se vidi i skroluje.**
