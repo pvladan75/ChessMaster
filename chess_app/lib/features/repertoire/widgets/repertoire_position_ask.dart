@@ -31,6 +31,7 @@ class PositionAdvice {
   const PositionAdvice({
     required this.summary,
     this.recommendedMoves = const [],
+    this.language,
   });
 
   /// What stands on the board and what is threatened, as written.
@@ -38,6 +39,10 @@ class PositionAdvice {
 
   /// The engine's move.
   final List<String> recommendedMoves;
+
+  /// The language the words were written in; null for English. The one
+  /// chosen in „Study this position" (`docs/PLAN-JEZIK-STUDIJE.md`, L2).
+  final String? language;
 
   /// The whole answer as one block of text, which is the shape a comment box
   /// takes. The reader edits it there; nothing is saved until they say so.
@@ -52,6 +57,7 @@ Future<({PositionAdvice? advice, WordsRefusal? refusal})> askAboutPosition({
   StudyWordsAsker? ask,
 }) async {
   final token = SessionService.instance.current.token;
+  final language = chosenStudyLanguage();
   final engine = StockfishService();
   final holder = Object();
   engine.hold(holder);
@@ -68,6 +74,7 @@ Future<({PositionAdvice? advice, WordsRefusal? refusal})> askAboutPosition({
       ask: ask ??
           (request, {required comment}) =>
               requestStudyWords(request, token: token, comment: comment),
+      language: language,
     );
     final text = answer.comment.text;
     if (text == null) return (advice: null, refusal: answer.comment.refusal);
@@ -75,6 +82,7 @@ Future<({PositionAdvice? advice, WordsRefusal? refusal})> askAboutPosition({
       advice: PositionAdvice(
         summary: text,
         recommendedMoves: [if (answer.bestMove != null) answer.bestMove!],
+        language: language,
       ),
       refusal: null,
     );
@@ -138,6 +146,11 @@ Future<String?> showPositionAdviceDialog(
                   'into words. The opening database still judges your move.',
                   style: AppText.micro.copyWith(color: colors.textMuted),
                 ),
+                if (studyLanguageNote(advice.language) case final note?) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(note,
+                      style: AppText.micro.copyWith(color: colors.textMuted)),
+                ],
               ],
             ),
           ),

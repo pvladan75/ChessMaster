@@ -13,13 +13,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/features/analysis_studio/dialogs/analysis_studio_dialogs.dart'
+    as dialogs;
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
+import 'package:chess_app/features/analysis_studio/services/position_study/position_study.dart';
 import 'package:chess_app/features/analysis_studio/widgets/position_study_dialog.dart';
+import 'package:chess_app/features/repertoire/widgets/repertoire_position_ask.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 
 import 'support/dart_source.dart';
+import 'support/recorded_engine.dart';
 
 const _owner2 =
     'rn2kbnr/pp2pppp/2p5/3PN3/4b3/1P4P1/1P1PPP1P/RNB1KB1R w KQkq - 1 8';
@@ -167,6 +172,94 @@ void main() {
     expect(asking, contains('engine.release(holder)'));
   });
 
+  group('the single comments speak the language of the study', () {
+    test('„Generate AI comment" asks in it and says so in the editor', () {
+      final screen = codeOf(File(
+              'lib/features/analysis_studio/screens/analysis_studio_screen.dart')
+          .readAsStringSync());
+      final body =
+          _bodyAt(screen, screen.indexOf('Future<void> _generateAiComment()'));
+      expect(body, contains('final language = chosenStudyLanguage();'));
+      final call = _bodyAt(body, body.indexOf('commentOnMove('), open: '(');
+      expect(call, contains('language: language'));
+      final shown =
+          _bodyAt(body, body.indexOf('dialogs.showCommentDialog('), open: '(');
+      expect(shown, contains('note: studyLanguageNote(language)'));
+    });
+
+    testWidgets('„AI on position" asks in it, and its answer says so',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'de'});
+      await AppSettingsService.instance.init();
+      final engine = RecordedEngine.read('owner2');
+      final sent = <Map<String, dynamic>>[];
+      final answer = await tester.runAsync(() => askAboutPosition(
+            fen: engine.fen,
+            analyzer: engine.analyzer,
+            ask: (request, {required comment}) async {
+              sent.add(request);
+              return StudyWordsOutcome.written(
+                {'s.position': 'White is better.'},
+                translated: const StudyTranslation(
+                  language: 'de',
+                  slots: {'s.position': 'Weiß steht besser.'},
+                  refused: [],
+                ),
+              );
+            },
+          ));
+      expect(sent.single['language'], 'de');
+      final advice = answer!.advice!;
+      expect(advice.summary, 'Weiß steht besser.');
+      expect(advice.language, 'de');
+
+      await tester.pumpWidget(MaterialApp(
+        theme:
+            ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showPositionAdviceDialog(context, advice),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(
+          find.text('Written in German, the language chosen in „Study this '
+              'position".'),
+          findsOneWidget);
+    });
+
+    testWidgets('the comment editor shows the note, and nothing without it',
+        (tester) async {
+      for (final note in [null, 'Written in German.']) {
+        await tester.pumpWidget(MaterialApp(
+          key: UniqueKey(),
+          theme: ThemeData.dark()
+              .copyWith(extensions: const [AppColorTokens.dark]),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => dialogs.showCommentDialog(
+                    context, 'Weiß steht besser.', (_) {},
+                    note: note),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ));
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
+        expect(find.text('Weiß steht besser.'), findsOneWidget);
+        expect(find.text('Written in German.'),
+            note == null ? findsNothing : findsOneWidget);
+      }
+    });
+  });
+
   test('the manual names the door the app has', () {
     final page =
         File('../site/mislisha/manual/analysis.html').readAsStringSync();
@@ -183,9 +276,19 @@ void main() {
   });
 }
 
-/// The body of the function whose signature starts at [at], by its braces.
-String _bodyAt(String code, int at) {
+/// The body of the function whose signature starts at [at], by its braces —
+/// or, with [open] `(`, the argument list of the call that starts there.
+String _bodyAt(String code, int at, {String open = '{'}) {
   expect(at, greaterThanOrEqualTo(0), reason: 'the function is there');
+  if (open == '(') {
+    var depth = 0;
+    final start = code.indexOf('(', at);
+    for (var i = start; i < code.length; i++) {
+      if (code[i] == '(') depth++;
+      if (code[i] == ')' && --depth == 0) return code.substring(start, i + 1);
+    }
+    fail('the call does not close');
+  }
   // Past the parameter list: the body's brace is the first one after the
   // parenthesis that closes it.
   var depth = 0;
@@ -194,11 +297,11 @@ String _bodyAt(String code, int at) {
     if (code[i] == '(') depth++;
     if (code[i] == ')' && --depth == 0) break;
   }
-  final open = code.indexOf('{', i);
+  final brace = code.indexOf('{', i);
   depth = 0;
-  for (var j = open; j < code.length; j++) {
+  for (var j = brace; j < code.length; j++) {
     if (code[j] == '{') depth++;
-    if (code[j] == '}' && --depth == 0) return code.substring(open, j + 1);
+    if (code[j] == '}' && --depth == 0) return code.substring(brace, j + 1);
   }
   fail('the body does not close');
 }

@@ -9282,3 +9282,30 @@ were caught by the case meant for each, and the tenth survived honestly: no
 route-level case had a translation that refused anything, so a route answering
 `refused: []` passed. **A mutation tool that cannot see a failure calls every
 mutation a survivor** — prove it on one mutation that must be caught first.
+
+## 29.9.2026 — the study in the reader's language, the app (`PLAN-JEZIK-STUDIJE.md`, phase 2)
+
+App 5087 → **5105** (18 cases; a full run with nothing else running; analyze
+the same 22 infos). Seventeen mutations, each caught by the case meant for it.
+
+**A menu is as wide as its widest item.** The language menu fitted the phone
+in the dialog's own test and overflowed it by 75 px in the screen's: the
+dialog test loads Roboto, the screen test draws every glyph as a square, and
+„Serbian (Cyrillic)" in squares is wider than the 232 px a 360 dp dialog
+leaves. The squares were right to complain — a large system font does the
+same on a real phone. The menu now takes what its label leaves, with an
+ellipsis, and the phone case reads `didExceedMaxLines` on the longest name
+in the real font. **Two tests of one widget in two fonts disagree for a
+reason; read the one that fails before trusting the one that passes.**
+
+**A picture found what the gates did not.** Drawn at 360 x 640 and 1280 x 800
+in Roboto, the dialog showed the menu's text a size larger than its label —
+`DropdownButton` draws in `titleMedium` and does not inherit the text around
+it. Given a style, it also did not inherit the font: a style with no family
+drew as squares. It now merges the label's style into the surrounding one.
+
+**Two of the lead's own cases were wrong the same way**: „the position's
+sentence is lost, so the start has no comment" — but the start holds the
+threat's sentence as a second beat, and with the first gone the second is
+first. The assertion now lists every beat, which says both that the lost
+sentence is gone and that nothing English took its place.

@@ -76,7 +76,7 @@ that language's voice.
 |---|---|---|
 | 0 | **measurement**: the twelve positions of the study plan's phase 0, the kept sentences translated into Serbian (Latin) and German by `tools/position_study/translate.js` through the server's own translation code; the owner reads the report | lead |
 | 1 ✅ | the server: `language` on both routes, the translation inside the handler, `translated` in the answer, the tokens under the route's own token metric — **built 29.9.2026**, see §5 | lead |
-| 2 | the app: „Comments in" in the study's dialog, remembered; the two single-item doors read the same choice and say which language they wrote in; the tree written from `translated`; the done view counts what was left out | lead |
+| 2 ✅ | the app: „Comments in" in the study's dialog, remembered; the two single-item doors read the same choice and say which language they wrote in; the tree written from `translated`; the done view counts what was left out — **built 29.9.2026**, see §6 | lead |
 | 3 | „Open as a tutorial" carries the language | lead |
 | 4 | the manual under `site/`, the live-check items, the numbers in `CLAUDE.md` | lead |
 
@@ -146,3 +146,28 @@ translation refused — had no route-level case with a refusal, and has one now.
 
 **Phase 2 has one number to carry**: the app waits 230 s for the words and
 must wait 290 now (`kStudyWordsTimeout`).
+
+## 6. Phase 2, built on 29.9.2026
+
+`AppSettingsService.studyLanguage` (`app_study_language`) holds the choice;
+`chosenStudyLanguage()` reads it as a code the server takes, or null for
+English and for a code this build does not know. `runPositionStudy`,
+`commentOnMove` and `commentOnPosition` take `language`, send it only when it
+is not English, judge the English as before, and write for every slot the
+check kept **its translation, or nothing** (`_inLanguage`); an answer with no
+`translated`, or one in another language, writes no comment at all and says
+so (`untranslated`). `StudyResult` carries `language` and `untranslated`, and
+the done view says how many comments the translation lost.
+„Generate AI comment" and „AI on position" pass the same choice and show
+`studyLanguageNote` under the text. The app waits 290 s.
+
+The menu took the width of its widest item and overflowed a 360 dp dialog by
+75 px in the screen test's font, while the dialog test, which loads Roboto,
+passed: it is now `isExpanded` in a `Flexible` beside its label, with an
+ellipsis, and the dialog test reads `didExceedMaxLines` on „Serbian
+(Cyrillic)" on the phone. A drawing of the dialog in the real font, at 360 x
+640 and 1280 x 800, found the menu's text larger than its label; its style is
+now the label's, merged with the surrounding text style.
+
+Tests: 18 (app 5087 → **5105**, a full run with nothing else running; analyze
+the same 22 infos). Seventeen mutations, each caught by the case meant for it.

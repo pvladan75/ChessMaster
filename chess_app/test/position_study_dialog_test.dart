@@ -6,9 +6,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/position_study/position_study.dart';
 import 'package:chess_app/features/analysis_studio/widgets/position_study_dialog.dart';
@@ -45,6 +47,9 @@ class _Harness {
   /// What the server answers; null answers every slot.
   StudyWordsOutcome? outcome;
 
+  /// Slots whose translation the server refuses, when a language is asked.
+  Set<String> lost = const {};
+
   /// Held until completed, when set: the engine's first answer waits on it.
   Completer<void>? gate;
 
@@ -64,12 +69,26 @@ class _Harness {
       {required bool comment}) async {
     asked.add(request);
     events.add('asked');
+    final ids = [
+      for (final item in request['items'] as List)
+        for (final slot in (item as Map)['slots'] as List)
+          (slot as Map)['id'] as String,
+    ];
+    final language = request['language'] as String?;
     return outcome ??
-        StudyWordsOutcome.written({
-          for (final item in request['items'] as List)
-            for (final slot in (item as Map)['slots'] as List)
-              (slot as Map)['id'] as String: 'Words for ${slot['id']}.',
-        });
+        StudyWordsOutcome.written(
+          {for (final id in ids) id: 'Words for $id.'},
+          translated: language == null
+              ? null
+              : StudyTranslation(
+                  language: language,
+                  slots: {
+                    for (final id in ids)
+                      if (!lost.contains(id)) id: 'Wörter für $id.',
+                  },
+                  refused: [...lost],
+                ),
+        );
   }
 
   Future<void> open(
@@ -398,5 +417,115 @@ void main() {
     ));
     await _run(tester);
     expect(depths, {20});
+  });
+
+  group('comments in the reader\'s language', () {
+    DropdownButton<TutorialLanguage> menu(WidgetTester tester) =>
+        tester.widget<DropdownButton<TutorialLanguage>>(
+            find.byKey(const ValueKey('study-language')));
+
+    Future<void> choose(WidgetTester tester, String label) async {
+      await tester.tap(find.byKey(const ValueKey('study-language')));
+      await tester.pumpAndSettle();
+      // The open menu draws the chosen item twice: once under it, once in it.
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    for (final size in [_phone, _window]) {
+      final where = size == _phone ? 'on a phone' : 'in a window';
+
+      testWidgets('the menu holds the last choice, $where', (tester) async {
+        SharedPreferences.setMockInitialValues(
+            {'app_study_language': 'sr-Cyrl'});
+        await AppSettingsService.instance.init();
+        final h = _Harness(RecordedEngine.read('owner2'));
+        await h.open(tester, size);
+        expect(tester.takeException(), isNull);
+        expect(find.text('Comments in'), findsOneWidget);
+        expect(menu(tester).value, TutorialLanguage.serbianCyrillic);
+        expect(find.text('Serbian (Cyrillic)'), findsOneWidget);
+        final button =
+            tester.getRect(find.byKey(const ValueKey('study-start')));
+        expect(button.bottom, lessThanOrEqualTo(size.height));
+        final chosen = tester.getRect(find.text('Serbian (Cyrillic)'));
+        expect(chosen.right, lessThanOrEqualTo(size.width));
+        // „Fits" is not „can be read": the longest name, in the real font,
+        // is whole and not cut by its ellipsis.
+        final name = tester
+            .renderObject<RenderParagraph>(find.text('Serbian (Cyrillic)'));
+        expect(name.didExceedMaxLines, isFalse);
+      });
+    }
+
+    testWidgets('a language chosen is remembered, sent, and written',
+        (tester) async {
+      final h = _Harness(RecordedEngine.read('owner2'));
+      await h.open(tester, _window);
+      expect(menu(tester).value, TutorialLanguage.english);
+      await choose(tester, 'German');
+      expect(AppSettingsService.instance.studyLanguage, 'de');
+      await _run(tester);
+      expect(h.asked.single['language'], 'de');
+      expect(h.start.comment, 'Wörter für s.position.');
+      expect(h.completed.single.language, 'de');
+      expect(find.textContaining('did not pass the check'), findsNothing);
+    });
+
+    testWidgets('English sends no language, and writes the English',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'de'});
+      await AppSettingsService.instance.init();
+      final h = _Harness(RecordedEngine.read('owner2'));
+      await h.open(tester, _window);
+      await choose(tester, 'English');
+      expect(AppSettingsService.instance.studyLanguage, 'en');
+      await _run(tester);
+      expect(h.asked.single.containsKey('language'), isFalse);
+      expect(h.start.comment, 'Words for s.position.');
+    });
+
+    testWidgets('without comments the menu cannot be changed', (tester) async {
+      final h = _Harness(RecordedEngine.read('owner2'));
+      await h.open(tester, _window);
+      expect(menu(tester).onChanged, isNotNull);
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pump();
+      expect(menu(tester).onChanged, isNull);
+
+      final guest = _Harness(RecordedEngine.read('owner2'));
+      await guest.open(tester, _window, words: false);
+      expect(menu(tester).onChanged, isNull);
+    });
+
+    testWidgets('a comment the translation lost is said at the end',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'de'});
+      await AppSettingsService.instance.init();
+      final h = _Harness(RecordedEngine.read('owner2'))..lost = {'s.position'};
+      await h.open(tester, _window);
+      await _run(tester);
+      expect(
+          [for (final b in h.start.beats) b.comment], ['Wörter für s.threat.'],
+          reason: 'the lost sentence is gone, never the English');
+      expect(
+          find.text('1 comment left out: the translation into German did '
+              'not pass the check.'),
+          findsOneWidget);
+      expect(find.textContaining('10 comments written'), findsOneWidget);
+    });
+
+    test('the choice is read as a code the server takes, or English', () async {
+      for (final (stored, sent) in [
+        ('', null),
+        ('en', null),
+        ('xx', null),
+        ('de', 'de'),
+        ('sr-Latn', 'sr-Latn'),
+      ]) {
+        await AppSettingsService.instance.setStudyLanguage(stored);
+        expect(chosenStudyLanguage(), sent, reason: stored);
+      }
+    });
   });
 }

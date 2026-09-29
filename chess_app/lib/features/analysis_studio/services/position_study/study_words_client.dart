@@ -26,19 +26,58 @@ import 'package:chess_app/services/app_logger.dart';
 
 /// The slots the server kept (`m1.move` → text), or why there are none.
 class StudyWordsOutcome {
-  const StudyWordsOutcome.written(Map<String, String> this.slots)
+  const StudyWordsOutcome.written(Map<String, String> this.slots,
+      {this.translated})
       : refusal = null;
-  const StudyWordsOutcome.refused(WordsRefusal this.refusal) : slots = null;
+  const StudyWordsOutcome.refused(WordsRefusal this.refusal)
+      : slots = null,
+        translated = null;
 
+  /// The words in English, which the app judges.
   final Map<String, String>? slots;
+
+  /// The same slots in the language the request asked for; null when it
+  /// asked for none (`docs/PLAN-JEZIK-STUDIJE.md`).
+  final StudyTranslation? translated;
   final WordsRefusal? refusal;
 }
 
+/// The server's translation of the slots: the ones that passed its judge,
+/// and the ones it refused twice, which have no text at all.
+class StudyTranslation {
+  const StudyTranslation({
+    required this.language,
+    required this.slots,
+    required this.refused,
+  });
+
+  final String language;
+  final Map<String, String> slots;
+  final List<String> refused;
+
+  /// The server's `translated`, or null when it is not the shape.
+  static StudyTranslation? read(Object? json) {
+    if (json is! Map) return null;
+    final language = json['language'];
+    final slots = json['slots'];
+    final refused = json['refused'];
+    if (language is! String || slots is! Map || refused is! List) return null;
+    return StudyTranslation(
+      language: language,
+      slots: {
+        for (final e in slots.entries)
+          if (e.value is String) e.key.toString(): e.value as String,
+      },
+      refused: [for (final id in refused) id.toString()],
+    );
+  }
+}
+
 /// How long the app waits for the words. The server asks the model twice at
-/// the most, 100 s an attempt, under a proxy that waits 300; `deepseek-v4-pro`
-/// took up to 62 s for one study in phase 0, so a second attempt is past the
-/// two minutes this waited while the fast model wrote.
-const Duration kStudyWordsTimeout = Duration(seconds: 230);
+/// the most, 100 s an attempt, and then — for a study in another language —
+/// translates until 285 s at the latest (`services/studyTranslation.js`),
+/// under a proxy that waits 300.
+const Duration kStudyWordsTimeout = Duration(seconds: 290);
 
 /// How the app asks for words — the seam a test or a headless tool replaces.
 typedef StudyWordsAsker = Future<StudyWordsOutcome> Function(
@@ -95,7 +134,7 @@ Future<StudyWordsOutcome> requestStudyWords(
         return StudyWordsOutcome.written({
           for (final e in slots.entries)
             if (e.value is String) e.key.toString(): e.value as String,
-        });
+        }, translated: StudyTranslation.read(body['translated']));
       case 401:
         return const StudyWordsOutcome.refused(WordsRefusal(
             'signed-out', 'Your sign-in has expired. Sign in again.'));
@@ -130,7 +169,7 @@ Future<StudyWordsOutcome> requestStudyWords(
     }
   } on TimeoutException {
     return const StudyWordsOutcome.refused(WordsRefusal('timeout',
-        'The server did not answer in four minutes. Nothing was charged.'));
+        'The server did not answer in five minutes. Nothing was charged.'));
   } on SocketException catch (e) {
     AppLogger.log('[StudyWords] ❌ Server nedostupan: $e');
     return const StudyWordsOutcome.refused(

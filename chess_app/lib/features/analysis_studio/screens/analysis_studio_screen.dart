@@ -899,6 +899,9 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
 
     setState(() => _isGeneratingAiComment = true);
     _stockfishService.hold(_aiCommentHold);
+    // The language chosen in „Study this position" (PLAN-JEZIK-STUDIJE, L2),
+    // and the editor says so, since it was not chosen here.
+    final language = chosenStudyLanguage();
     final StudyComment said;
     try {
       said = await commentOnMove(
@@ -907,6 +910,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
         depth: AppSettingsService.instance.analysisDepth,
         tablebase: _syzygyService.lookup,
         ask: ask,
+        language: language,
       );
     } finally {
       _stockfishService.release(_aiCommentHold);
@@ -929,7 +933,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     dialogs.showCommentDialog(context, text, (comment) {
       setState(() => node.comment = comment);
       _saveDraft();
-    });
+    }, note: studyLanguageNote(language));
   }
 
   void _showNagSelector() {

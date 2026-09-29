@@ -24,24 +24,40 @@ import 'package:chess_app/widgets/app_feedback.dart';
 /// here (instead of as private methods on the State) is what keeps the
 /// screen file from re-growing every time a toolbar dialog changes.
 
+/// [note], when given, is a line under the field — what „Generate AI comment"
+/// says about the language it wrote in.
 void showCommentDialog(
-    BuildContext context, String initialComment, ValueChanged<String> onSaved) {
+    BuildContext context, String initialComment, ValueChanged<String> onSaved,
+    {String? note}) {
   final controller = TextEditingController(text: initialComment);
+  final field = TextField(
+    controller: controller,
+    maxLines: 4,
+    style: TextStyle(color: context.colors.textPrimary),
+    decoration: InputDecoration(
+      hintText: 'Enter a note or analytical comment...',
+      hintStyle: TextStyle(color: context.colors.textMuted),
+      filled: true,
+      fillColor: context.colors.canvas,
+    ),
+  );
   showDialog(
     context: context,
     builder: (ctx) => AlertDialog(
       title: const Text('Add / Edit Comment'),
-      content: TextField(
-        controller: controller,
-        maxLines: 4,
-        style: TextStyle(color: ctx.colors.textPrimary),
-        decoration: InputDecoration(
-          hintText: 'Enter a note or analytical comment...',
-          hintStyle: TextStyle(color: ctx.colors.textMuted),
-          filled: true,
-          fillColor: ctx.colors.canvas,
-        ),
-      ),
+      content: note == null
+          ? field
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                field,
+                const SizedBox(height: AppSpacing.sm),
+                Text(note,
+                    style:
+                        AppText.caption.copyWith(color: ctx.colors.textMuted)),
+              ],
+            ),
       actions: [
         TextButton(
           child: const Text('Cancel'),

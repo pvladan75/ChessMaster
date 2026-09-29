@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5087 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5105 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1913 without TEST_DATABASE_URL (measured 29.9.2026), 2072 with it (derived; 2054 measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1142,7 +1142,15 @@ the working copy is CRLF, so a replacement written with `
 ` never applied,
 and the spec reporter prints `✖`, not `not ok` — **a mutation tool that
 cannot see a failure calls every mutation a survivor**; prove the tool on one
-mutation you know is caught before reading its list. Phase 6 of
+mutation you know is caught before reading its list. Its phase 2, the app
+(→ **5105**, a full run with nothing else running; analyze the same 22):
+„Comments in" in the study's dialog, remembered, and read by „Generate AI
+comment" and „AI on position", which say the language they wrote in; the
+tree gets the translation of every slot the English check kept, and nothing
+where the translation was refused; the app waits 290 s. The menu first
+overflowed the 360 dp dialog by 75 px in the screen's test font and fitted
+in the dialog test's Roboto — a menu is as wide as its widest item, so it
+now takes what its label leaves and cuts a long name. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

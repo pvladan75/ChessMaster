@@ -82,6 +82,12 @@ class AppSettingsService extends ChangeNotifier {
   double _speechRate = 0.5;
   String _speechLanguage = '';
 
+  /// The language a position study's comments are written in, as a
+  /// `TutorialLanguage` code; empty is English. Chosen in „Study this
+  /// position" and read by the two single comments of the same path
+  /// (`docs/PLAN-JEZIK-STUDIJE.md`, L1 and L2).
+  String _studyLanguage = '';
+
   /// Whether the endgame trainer also serves positions and games mined from
   /// online play.
   ///
@@ -198,6 +204,7 @@ class AppSettingsService extends ChangeNotifier {
   bool get speechEnabled => _speechEnabled;
   double get speechRate => _speechRate;
   String get speechLanguage => _speechLanguage;
+  String get studyLanguage => _studyLanguage;
 
   /// When true, moves no longer get an auto-generated tactical comment —
   /// the user picks which findings to keep (plus their own text) through
@@ -256,6 +263,7 @@ class AppSettingsService extends ChangeNotifier {
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
     _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
     _speechLanguage = prefs.getString('app_speech_language') ?? '';
+    _studyLanguage = prefs.getString('app_study_language') ?? '';
     notifyListeners();
   }
 
@@ -434,5 +442,12 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_speech_language', _speechLanguage);
+  }
+
+  Future<void> setStudyLanguage(String language) async {
+    _studyLanguage = language;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_study_language', _studyLanguage);
   }
 }

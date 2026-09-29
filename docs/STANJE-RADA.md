@@ -55,7 +55,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Studija na jeziku koji korisnik izabere — 29.9.2026, plan; faza 0 izmerena, faza 1 (server) u kodu
+## Studija na jeziku koji korisnik izabere — 29.9.2026, plan; faza 0 izmerena, faze 1 (server) i 2 (aplikacija) u kodu
 
 `docs/PLAN-JEZIK-STUDIJE.md`. Vlasnik je odlučio L1–L4 (1a, 2b, 3a, 4a):
 jezik se bira u dijalogu studije i pamti se; važi za studiju, tutorijal iz
@@ -84,6 +84,13 @@ više", nikad „belov") — ponovljeno merenje: 105/105 iz prvog zahteva, sve t
 greške nestale. Backend 1895 → **1913** (izmereno sa i bez `.env`), 2072 sa
 bazom (izvedeno). Nije komitovano. Sledeće: faza 2 (aplikacija) — „Comments
 in" u dijalogu, čekanje 290 s umesto 230.
+
+**Faza 2 (aplikacija) izgrađena 29.9.2026** (§6 plana): „Comments in" u
+dijalogu studije, zapamćen izbor; „Generate AI comment" i „AI on position"
+koriste isti izbor i kažu na kom su jeziku pisali; u stablo ide prevod svake
+rečenice koju je engleska provera zadržala, a ništa gde je prevod odbijen;
+čekanje 290 s. Aplikacija 5087 → **5105**, analyze istih 22. Sledeće: faza 3 —
+„Open as a tutorial" nosi jezik u tutorijal.
 
 ## Studija pozicije umesto Auto Analysis, i Gemini van aplikacije — 28.9.2026, u `master`
 
