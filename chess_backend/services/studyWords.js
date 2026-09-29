@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { formatTemplate, rescueJson } = require('./tutorialWords');
+const { readStudyLanguage } = require('./studyTranslation');
 
 const TEMPLATE = fs.readFileSync(path.join(__dirname, 'prompts', 'study_words.txt'), 'utf8');
 
@@ -182,7 +183,13 @@ function validateStudyWordsRequest(body) {
       slots,
     };
   });
-  return { position, side: body.side, items };
+  // The language the words are asked in; null is English, and nothing is
+  // translated (docs/PLAN-JEZIK-STUDIJE.md). The prompt never reads it: the
+  // words are written in English and translated after their shape is checked.
+  const language = readStudyLanguage(body.language);
+  return {
+    position, side: body.side, items, language,
+  };
 }
 
 /// The prompt, from a checked request.

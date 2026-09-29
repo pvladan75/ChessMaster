@@ -82,6 +82,13 @@ writes them: „beli je na potezu", „crni se brani" - not „Crni".
 Ordinal numbers are words, declined as the sentence needs them: „sedmi red",
 „na sedmom redu", „u dvanaestom potezu" - not „7. red", „u 12. potezu".
 
+Material that is up follows „ima" in the accusative: „beli ima pešaka više",
+„crni ima topa više" - not „ima pešak više".
+
+„White's" and „Black's" are „beli" and „crni" before the noun, or „belog" and
+„crnog" after it: „beli skakač", „višak pešaka belog" - never „belov" or
+„crnov".
+
 These are the words this app already uses, and a tutorial must agree with them:
 
 | English | Serbian |
@@ -103,3 +110,4 @@ These are the words this app already uses, and a tutorial must agree with them:
 | sacrifice, Greek gift | žrtva, grčki poklon |
 | minority attack, hedgehog, prophylaxis | napad manjinom, jež, profilaksa |
 | promotion (a pawn promotes) | promocija (pešak se promoviše) |
+| tablebase (the database of solved endgames) | baza završnica - never „tabelarna baza" |

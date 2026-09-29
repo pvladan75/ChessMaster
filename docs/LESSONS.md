@@ -9238,3 +9238,47 @@ the opponent's name), and where it goes. Written from what the code sends,
 read route by route. Not before the lawyer, and said so where the publishing
 steps are kept — with the three things beside it that the owner did not ask
 for and that are still untrue or missing.
+
+## 29.9.2026 — a study in the reader's language (`PLAN-JEZIK-STUDIJE.md`, phases 0–1)
+
+Backend 1895 → **1913** (measured with and without `.env`: 18 cases in
+`test/study_translation.test.js`); 2054 → 2072 with a database, derived — the
+cases touch none. The app is unchanged.
+
+**Why English first.** The owner asked for the study's comments in a language
+the reader chooses. The obvious build — ask the model to write Serbian — would
+have been silent where it matters: `judgeStudyWords` refuses a sentence by
+English words („fork", „isolated", „no defender"), so every Serbian sentence
+would have passed it unread. The words are written and judged in English and
+the checked slots are then translated by the code that translates a tutorial,
+whose judge holds the notation token for token. **Before changing the
+language of a model's output, ask what reads that output by its words.**
+
+**One request, not two.** The first proposal was a second route the app calls
+with the sentences it kept. Writing the plan showed it to be a door that
+translates any text for nothing, needing a ticket to prove the text came from
+a study; translating every slot inside the study's own request costs the
+tokens of the three-in-a-hundred slots the app later refuses, and keeps the
+owner's „one unit" true by construction.
+
+**The wait was re-derived, not assumed.** The words may take 2 x 100 s; a
+translation at the client's default 100 s would have run past nginx's 300. The
+translator has 45 s a request (phase 0's slowest was 26) and none starts after
+240 s: the last ends by 285. A test holds the arithmetic to the client's own
+constant.
+
+**Phase 0 paid for itself twice.** 105 of 105 sentences through the judge in
+Serbian and German said the method works; reading the Serbian found three
+slips of language (not of chess), which became three lines of the shared
+prompt, and a second run showed all three gone and 105 of 105 at the first
+request.
+
+**The mutation tool lied first.** All ten mutations came back „survived". Two
+had not applied — the working copy is CRLF and the replacement was written
+with `
+` — and the other eight were caught but unseen, because the default
+reporter prints `✖` and the tool looked for `not ok`. With both fixed, nine
+were caught by the case meant for each, and the tenth survived honestly: no
+route-level case had a translation that refused anything, so a route answering
+`refused: []` passed. **A mutation tool that cannot see a failure calls every
+mutation a survivor** — prove it on one mutation that must be caught first.

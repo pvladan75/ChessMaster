@@ -55,6 +55,36 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Studija na jeziku koji korisnik izabere — 29.9.2026, plan; faza 0 izmerena, faza 1 (server) u kodu
+
+`docs/PLAN-JEZIK-STUDIJE.md`. Vlasnik je odlučio L1–L4 (1a, 2b, 3a, 4a):
+jezik se bira u dijalogu studije i pamti se; važi za studiju, tutorijal iz
+nje, „Generate AI comment" i „AI on position"; rečenica čiji je prevod dvaput
+odbijen izostaje (nikad ne ostaje na engleskom); prevod je deo iste jedinice
+kvote, tokeni se broje.
+
+Zašto engleski pa prevod: provera istine u aplikaciji (`judgeStudyWords`)
+čita engleske reči — rečenica pisana odmah na srpskom bi prošla neproverena.
+Prevodi se samo ono što je provera zadržala, kodom koji prevodi tutorijal
+(`services/tutorialTranslation.js`).
+
+Faza 0 (§4a plana): 12 pozicija, 105 zadržanih rečenica; srpski i nemački
+105/105 prošlo sudiju prevoda, nijedna greška u notaciji; oko 18 s i 6k tokena
+(`deepseek-flash`) po studiji povrh engleskog. Jedna izmena dizajna posle
+merenja: prevod ide **u istom zahtevu** (`language` na obe rute), ne na
+posebnoj ruti — posebna ruta bi bila besplatna vrata za prevod bilo kog teksta.
+Najgori slučaj čekanja (~300 s) traži da aplikacija čeka 290 s, a drugi
+pokušaj prevoda samo ispod 240 s. Alati: `tools/position_study/translate.js`,
+`translation_reading.js`.
+
+**Faza 1 (server) izgrađena 29.9.2026** (§5 plana): `services/studyTranslation.js`,
+`language` na `POST /study-words` i `/comment`, odgovor nosi `translated`;
+prompt za prevod dobio vlasnikove tri ispravke (baza završnica, „ima pešaka
+više", nikad „belov") — ponovljeno merenje: 105/105 iz prvog zahteva, sve tri
+greške nestale. Backend 1895 → **1913** (izmereno sa i bez `.env`), 2072 sa
+bazom (izvedeno). Nije komitovano. Sledeće: faza 2 (aplikacija) — „Comments
+in" u dijalogu, čekanje 290 s umesto 230.
+
 ## Studija pozicije umesto Auto Analysis, i Gemini van aplikacije — 28.9.2026, u `master`
 
 Plan je `docs/PLAN-STUDIJA-POZICIJE.md`. Vlasnik je 28.9.2026 tražio da Auto

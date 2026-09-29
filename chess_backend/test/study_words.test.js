@@ -247,6 +247,7 @@ function harness(replies, tokens = METRIC.AI_STUDY_TOKENS) {
   };
   const handler = router.createStudyWordsHandler({
     provider,
+    translator: { complete: async () => assert.fail('a request in English is not translated') },
     tokens,
     record: async (userId, metric, amount) => { recorded.push([userId, metric, amount]); },
     refund: async (req) => { refunds.push(req.user.id); },
@@ -407,6 +408,7 @@ test('a second request from the same account while one is writing is refused', a
   const refunds = [];
   const handler = router.createStudyWordsHandler({
     provider,
+    translator: { complete: async () => assert.fail('a request in English is not translated') },
     tokens: METRIC.AI_STUDY_TOKENS,
     record: async () => {},
     refund: async (req) => { refunds.push(req.user.id); },

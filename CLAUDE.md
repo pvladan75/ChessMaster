@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 5087 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1895 without TEST_DATABASE_URL, 2054 with it (both measured 28.9.2026)
+cd chess_backend && npm test          # node --test, 1913 without TEST_DATABASE_URL (measured 29.9.2026), 2072 with it (derived; 2054 measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1129,7 +1129,20 @@ by `deepseek-v4-pro`, named in one place (`services/studyWords.js`), and the
 privacy policy's §5.2 names DeepSeek — on his word, not yet before the
 lawyer. **When a number upstream changes, walk the waits downstream of it**:
 two attempts of the slower model are past the two minutes the app waited, so
-it waits 230 s. Phase 6 of
+it waits 230 s. Then `docs/PLAN-JEZIK-STUDIJE.md`, a study in the reader's
+language (backend → **1913** measured with and without `.env`, 2072 with a
+database derived): the words are still written and judged in English —
+`judgeStudyWords` reads English words, so a sentence written in Serbian would
+pass it unread — and only then translated, inside the same request, by the
+tutorial translation's prompt and judge (`services/studyTranslation.js`); a
+slot refused twice has no text, never the English. **One request, not a
+second route**: a translation door of its own would translate any text for
+free. The mutation tool first reported all ten mutations as survivors —
+the working copy is CRLF, so a replacement written with `
+` never applied,
+and the spec reporter prints `✖`, not `not ok` — **a mutation tool that
+cannot see a failure calls every mutation a survivor**; prove the tool on one
+mutation you know is caught before reading its list. Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

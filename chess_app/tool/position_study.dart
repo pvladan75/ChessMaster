@@ -12,6 +12,10 @@
 ///                                            test to build the study from)
 ///     flutter test tool/position_study.dart
 ///
+/// Each position also leaves `<id>_kept.json`, the sentences the check kept,
+/// which `tools/position_study/translate.js` translates
+/// (`docs/PLAN-JEZIK-STUDIJE.md`, phase 0).
+///
 /// For every position of `tools/position_study/positions.json`: the facts
 /// (`PositionStudyBuilder`), the request (`studyWordsRequest`), the words
 /// (`tools/position_study/words.js`, which runs the server's own prompt and
@@ -150,6 +154,10 @@ void main() {
           }
         }
         final verdict = judgeStudyWords(request, slots);
+        // What a translation is asked of: only the sentences the check kept
+        // (`tools/position_study/translate.js`).
+        File('$outDir/${id}_kept.json').writeAsStringSync(
+            const JsonEncoder.withIndent(' ').convert(verdict.kept));
 
         final node = AnalysisNode(fen: fen);
         final written = writeStudy(node, study, words: verdict.kept);

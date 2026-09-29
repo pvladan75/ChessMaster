@@ -13,6 +13,13 @@
 // repertoire's „AI on position" asked Gemini until 28.9.2026, counted where
 // those were (`ai_comments`), so a free account keeps the ten it had.
 //
+// **In the reader's language** (docs/PLAN-JEZIK-STUDIJE.md): a request that
+// says `language` is written in English and checked as always, and then every
+// slot is translated (`services/studyTranslation.js`) before the answer goes
+// back — one request, so a translated study is still one unit of the quota
+// (L4) and there is no door that translates text a study did not write. The
+// translation's tokens are counted under the route's own token counter.
+//
 // The guards run in the order that spends least on a request that will fail:
 // sign-in, a limiter, the entitlement, the request itself, whether a model is
 // configured, and only then one unit of the monthly quota.
@@ -30,6 +37,9 @@ const { createDeepSeek, LlmUnavailable } = require('../services/llm/deepseek');
 const {
   MODEL, EFFORT, validateStudyWordsRequest, buildStudyPrompt, checkStudyAnswer,
 } = require('../services/studyWords');
+const {
+  TRANSLATION_MODEL, TRANSLATION_TIMEOUT_S, translateSlots,
+} = require('../services/studyTranslation');
 
 const router = express.Router();
 
@@ -109,17 +119,20 @@ function requireProvider(provider) {
 
 function createStudyWordsHandler({
   provider,
+  translator,
   tokens,
   providerName = 'deepseek',
   record = (userId, metric, amount) => recordUsage(pool, userId, metric, amount),
   refund = refundQuota,
 }) {
   if (!tokens) throw new TypeError('createStudyWordsHandler needs the metric its tokens are counted under');
+  if (!translator) throw new TypeError('createStudyWordsHandler needs the provider its words are translated by');
   // One at a time per account: a second request while the first is being
   // written would spend a second credit.
   const writing = new Set();
 
   return async (req, res) => {
+    const startedAt = Date.now();
     const userId = req.user.id;
     if (writing.has(userId)) {
       await refund(req);
@@ -139,13 +152,31 @@ function createStudyWordsHandler({
           + `tokena ${reply.usage.total} (upit ${reply.usage.prompt}, odgovor ${reply.usage.answer})`);
         const checked = checkStudyAnswer(reply.content, req.studyWordsRequest);
         if (checked.ok) {
-          return res.json({
+          const answer = {
             slots: checked.slots,
             dropped: checked.dropped,
             attempts: attempt,
             tokens: reply.usage,
             model: reply.model,
-          });
+          };
+          const { language } = req.studyWordsRequest;
+          if (language) {
+            const translated = await translateSlots({
+              provider: translator,
+              slots: checked.slots,
+              code: language,
+              record: (total) => record(userId, tokens, total),
+              startedAt,
+            });
+            logger.info(`[STUDY-WORDS] Prevod na ${language}: ${Object.keys(translated.slots).length} `
+              + `prošlo, ${translated.refused.length} odbijeno, zahteva ${translated.requests}`);
+            answer.translated = {
+              language,
+              slots: translated.slots,
+              refused: translated.refused,
+            };
+          }
+          return res.json(answer);
         }
         for (const p of checked.problems) problems.push(`attempt ${attempt}: ${p}`);
         logger.info(`[STUDY-WORDS] Odgovor nije u traženom obliku (pokušaj ${attempt}): ${checked.problems.join('; ')}`);
@@ -179,6 +210,13 @@ const provider = createDeepSeek({
   reasoningEffort: process.env.STUDY_WORDS_REASONING_EFFORT || EFFORT,
 });
 
+/// The model the words are translated by, and the time it is given
+/// (`services/studyTranslation.js`).
+const translator = createDeepSeek({
+  model: TRANSLATION_MODEL,
+  timeoutMs: TRANSLATION_TIMEOUT_S * 1000,
+});
+
 router.post(
   '/',
   authenticateToken,
@@ -187,7 +225,7 @@ router.post(
   validateBody,
   requireProvider(provider),
   requireQuota(METRIC.AI_STUDIES),
-  createStudyWordsHandler({ provider, tokens: METRIC.AI_STUDY_TOKENS }),
+  createStudyWordsHandler({ provider, translator, tokens: METRIC.AI_STUDY_TOKENS }),
 );
 
 router.post(
@@ -197,7 +235,7 @@ router.post(
   validateComment,
   requireProvider(provider),
   requireQuota(METRIC.AI_COMMENTS),
-  createStudyWordsHandler({ provider, tokens: METRIC.AI_COMMENT_TOKENS }),
+  createStudyWordsHandler({ provider, translator, tokens: METRIC.AI_COMMENT_TOKENS }),
 );
 
 module.exports = router;
