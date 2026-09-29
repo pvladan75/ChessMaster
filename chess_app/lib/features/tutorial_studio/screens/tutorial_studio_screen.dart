@@ -293,6 +293,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       // Before the split, so every part it makes faces the same way.
       draft.section.blackOrientation = handover.blackOrientation;
       openLineAsParts(draft, handover.root);
+      // A study written in the reader's language is a tutorial in it, so the
+      // film is spoken by that language's voice (PLAN-JEZIK-STUDIJE, phase 3).
+      if (handover.language case final language?) draft.language = language;
     }
     _c = TutorialDraftController(draft: draft);
     _c.addListener(_onController);
@@ -359,6 +362,25 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   ///   exactly where it is and unmentioned.
   /// * **a new tutorial** — nothing is adopted, and if the slot holds anything
   ///   the trainer is asked, by name. Silence is what made this feel haunted.
+  /// The handed-over [language] given to [stored], the tutorial being
+  /// written, when it has said none — or, when it says another, the sentence
+  /// that tells the trainer so. Its own language is never changed: its parts
+  /// were written in it. A saved tutorial whose language this draft does not
+  /// know is left alone and unmentioned, as a save from it leaves the column.
+  static String? _takeLanguage(TutorialDraft stored, String? language) {
+    if (language == null) return null;
+    if (stored.language == null) {
+      if (stored.languageKnown || stored.lessonId == null) {
+        stored.language = language;
+      }
+      return null;
+    }
+    if (stored.language == language) return null;
+    String name(String code) => TutorialLanguage.of(code)?.label ?? code;
+    return 'This tutorial is in ${name(stored.language!)}; the comments just '
+        'added are in ${name(language)}. Its language was not changed.';
+  }
+
   Future<void> _adoptStoredDraft() async {
     final stored = await TutorialDraftService.instance.load();
     if (!mounted) return;
@@ -371,7 +393,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         // the trainer just handed over.
         stored.selected = stored.sections.length - 1;
         openLineAsParts(stored, handover.root);
+        final clash = _takeLanguage(stored, handover.language);
         _c.adopt(stored);
+        if (clash != null) AppFeedback.info(context, clash);
 
       case TutorialEntrySaved():
         // A draft that never belonged to a tutorial, or belonged to a different

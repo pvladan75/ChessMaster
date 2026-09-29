@@ -9309,3 +9309,22 @@ sentence is lost, so the start has no comment" — but the start holds the
 threat's sentence as a second beat, and with the first gone the second is
 first. The assertion now lists every beat, which says both that the lost
 sentence is gone and that nothing English took its place.
+
+## 29.9.2026 — the study's language into its tutorial (`PLAN-JEZIK-STUDIJE.md`, phase 3)
+
+App 5105 → **5111** (6 cases; a full run with nothing else running; analyze
+the same 22). Seven mutations, each caught by the case meant for it.
+
+**A fixture the storage throws away cannot report what was stored.** The two
+new-tutorial cases read the draft back after the studio closed and found
+nothing: the slot deliberately gives back no tutorial of one bare position and
+no title. The handover was right; the fixture was not a study — a study hands
+over moves and comments. Rule 6 in a new place: **the reader of a stored thing
+has its own idea of what is worth keeping.**
+
+**A language already said is not written over.** Adding a study into the
+tutorial being written would have renamed that tutorial's language along with
+its voice; its earlier parts were written in the old one. The rule that keeps
+it, and says so, is a mutation's answer as much as a design's: „always take
+the handed-over language" was the first thing tried, and the case with a
+Cyrillic tutorial is what refuses it.

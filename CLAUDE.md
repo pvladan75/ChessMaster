@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5105 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5111 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1913 without TEST_DATABASE_URL (measured 29.9.2026), 2072 with it (derived; 2054 measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1150,7 +1150,10 @@ tree gets the translation of every slot the English check kept, and nothing
 where the translation was refused; the app waits 290 s. The menu first
 overflowed the 360 dp dialog by 75 px in the screen's test font and fitted
 in the dialog test's Roboto — a menu is as wide as its widest item, so it
-now takes what its label leaves and cuts a long name. Phase 6 of
+now takes what its label leaves and cuts a long name. Its phase 3 (→ **5111**):
+„Open as a tutorial" carries the study's language into the tutorial, which
+takes it when it has none and keeps its own, saying so, when it has another.
+Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

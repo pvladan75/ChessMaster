@@ -260,6 +260,24 @@ void main() {
     });
   });
 
+  test('„Open as a tutorial" hands over the language the comments are in', () {
+    final screen = codeOf(
+        File('lib/features/analysis_studio/screens/analysis_studio_screen.dart')
+            .readAsStringSync());
+    final door =
+        _bodyAt(screen, screen.indexOf('void _showPositionStudyDialog()'));
+    expect(door, contains('done = result;'));
+    final open = _bodyAt(door, door.indexOf('_openTutorialStudio('), open: '(');
+    expect(open, contains('study.written.sentences > 0'));
+    expect(open, contains('study.language'));
+
+    final opener =
+        _bodyAt(screen, screen.indexOf('Future<void> _openTutorialStudio('));
+    final tree =
+        _bodyAt(opener, opener.indexOf('TutorialHandover.tree('), open: '(');
+    expect(tree, contains('language: language'));
+  });
+
   test('the manual names the door the app has', () {
     final page =
         File('../site/mislisha/manual/analysis.html').readAsStringSync();

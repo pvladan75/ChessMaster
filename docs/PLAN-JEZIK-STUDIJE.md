@@ -77,7 +77,7 @@ that language's voice.
 | 0 | **measurement**: the twelve positions of the study plan's phase 0, the kept sentences translated into Serbian (Latin) and German by `tools/position_study/translate.js` through the server's own translation code; the owner reads the report | lead |
 | 1 ✅ | the server: `language` on both routes, the translation inside the handler, `translated` in the answer, the tokens under the route's own token metric — **built 29.9.2026**, see §5 | lead |
 | 2 ✅ | the app: „Comments in" in the study's dialog, remembered; the two single-item doors read the same choice and say which language they wrote in; the tree written from `translated`; the done view counts what was left out — **built 29.9.2026**, see §6 | lead |
-| 3 | „Open as a tutorial" carries the language | lead |
+| 3 ✅ | „Open as a tutorial" carries the language — **built 29.9.2026**, see §7 | lead |
 | 4 | the manual under `site/`, the live-check items, the numbers in `CLAUDE.md` | lead |
 
 Phase 0's gate is the owner's reading. Every later phase's gate is its tests,
@@ -171,3 +171,19 @@ now the label's, merged with the surrounding text style.
 
 Tests: 18 (app 5087 → **5105**, a full run with nothing else running; analyze
 the same 22 infos). Seventeen mutations, each caught by the case meant for it.
+
+## 7. Phase 3, built on 29.9.2026
+
+`TutorialHandover` carries `language`, and „Open as a tutorial" gives it the
+study's language when the study wrote comments in one; a study in English, or
+one that wrote none, leaves the tutorial's language unsaid, as before. A new
+tutorial takes it. The tutorial being written takes it only when it has said
+none; one in another language keeps its own — its parts were written in it —
+and the trainer is told so; a saved tutorial whose language the draft does not
+know is left alone, since a save from it does not write the column.
+
+Tests: 6 (app 5105 → **5111**, a full run with nothing else running; analyze
+the same 22). Seven mutations, each caught by the case meant for it. The first
+two cases were red for their fixture: a handover of one bare position is not a
+tutorial anybody started, and the draft slot does not give one back — a study
+hands over moves and comments, and now the fixture does too.

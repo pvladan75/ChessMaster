@@ -8,7 +8,11 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 /// FEN. Which of the two the trainer meant is asked in the Studio, where they
 /// can see what they are standing in.
 class TutorialHandover {
-  const TutorialHandover({required this.root, this.blackOrientation = false});
+  const TutorialHandover({
+    required this.root,
+    this.blackOrientation = false,
+    this.language,
+  });
 
   /// The position the first example opens on, with whatever runs on from it.
   final AnalysisNode root;
@@ -16,6 +20,12 @@ class TutorialHandover {
   /// Which way the board was turned when the trainer left the Studio. A tutorial
   /// about black's defence read from white's side is a different lesson.
   final bool blackOrientation;
+
+  /// The language the handed-over comments are written in, as a
+  /// `TutorialLanguage` code — a position study written in the reader's
+  /// language (`docs/PLAN-JEZIK-STUDIJE.md`, phase 3). Null when nothing
+  /// says: the tutorial's language is then not said either.
+  final String? language;
 
   /// Only the position under the board — an empty tree to write into.
   factory TutorialHandover.position(String fen,
@@ -32,9 +42,10 @@ class TutorialHandover {
   /// the trainer's analysis behind their back. `fromJson` mints fresh ids as it
   /// goes, which is the same reason clone does — see decision 2.
   factory TutorialHandover.tree(AnalysisNode anchor,
-          {bool blackOrientation = false}) =>
+          {bool blackOrientation = false, String? language}) =>
       TutorialHandover(
         root: AnalysisNode.fromJson(anchor.toJson()),
         blackOrientation: blackOrientation,
+        language: language,
       );
 }

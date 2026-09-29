@@ -947,6 +947,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   void _showPositionStudyDialog() {
     final start = _currentNode;
     final ask = _studyWords;
+    StudyResult? done;
     showDialog<void>(
       context: context,
       // The engine may work for a minute — a tap beside the dialog must not
@@ -960,7 +961,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
         noWordsReason: ask == null ? 'Sign in to have comments written.' : null,
         onHold: () => _stockfishService.hold(_studyHold),
         onRelease: () => _stockfishService.release(_studyHold),
-        onCompleted: (_) {
+        onCompleted: (result) {
+          done = result;
           if (!mounted) return;
           setState(() {});
           _saveDraft();
@@ -969,7 +971,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
         onOpenAsTutorial: () {
           if (!mounted) return;
           _jumpToNode(start);
-          _openTutorialStudio(wholeLine: true);
+          // The tutorial is in the language its comments were written in —
+          // and says nothing when the study wrote none.
+          final study = done;
+          _openTutorialStudio(
+            wholeLine: true,
+            language: study != null && study.written.sentences > 0
+                ? study.language
+                : null,
+          );
         },
       ),
     );
@@ -1140,11 +1150,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   /// question is now the sheet's own two rows — "New tutorial from this
   /// position" and "New tutorial from this line" — so this method only acts
   /// on the answer.
-  Future<void> _openTutorialStudio({required bool wholeLine}) async {
+  Future<void> _openTutorialStudio(
+      {required bool wholeLine, String? language}) async {
     final blackOrientation = _orientation == PlayerColor.black;
     final handover = wholeLine
         ? TutorialHandover.tree(_currentNode,
-            blackOrientation: blackOrientation)
+            blackOrientation: blackOrientation, language: language)
         : TutorialHandover.position(_currentNode.fen,
             blackOrientation: blackOrientation);
 

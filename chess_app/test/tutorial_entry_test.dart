@@ -38,6 +38,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_draft.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_handover.dart';
@@ -67,10 +68,17 @@ void main() {
   });
 
   /// Puts a draft in the slot, the way leaving the screen would have.
-  Future<void> storeDraft({int? lessonId, required String title}) async {
+  Future<void> storeDraft({
+    int? lessonId,
+    required String title,
+    String? language,
+    bool languageKnown = true,
+  }) async {
     final draft = TutorialDraft(
       lessonId: lessonId,
       title: title,
+      language: language,
+      languageKnown: languageKnown,
       sections: [
         TutorialSection.fromStep({
           'fen': openingFen,
@@ -236,6 +244,81 @@ void main() {
       expect(inPartsMap('Nedovršen deo'), findsOneWidget,
           reason: 'the trainer’s unsaved edits to this very tutorial were '
               'thrown away');
+    });
+  });
+
+  group('a study handed over in the language of its comments', () {
+    /// The draft as the screen leaves it: closing it writes the slot.
+    Future<TutorialDraft> leave(WidgetTester tester) async {
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      final left = await TutorialDraftService.instance.load();
+      expect(left, isNotNull, reason: 'closing the studio writes its draft');
+      return left!;
+    }
+
+    /// What a study hands over: a move and a sentence under it. A bare
+    /// position is not a tutorial anybody started, and the slot does not
+    /// give one back.
+    TutorialHandover study(String? language) {
+      final root = AnalysisNode(fen: openingFen);
+      root
+          .addChild(
+              childFen:
+                  'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+              san: 'e4',
+              uci: 'e2e4')
+          .comment = 'Beli zauzima centar.';
+      return TutorialHandover.tree(root, language: language);
+    }
+
+    testWidgets('a new tutorial is in the language of the study',
+        (tester) async {
+      await open(tester,
+          TutorialEntry.fromAnalysis(study('sr-Latn'), intoOpenDraft: false));
+      final left = await leave(tester);
+      expect(left.language, 'sr-Latn');
+      expect(left.languageKnown, isTrue);
+    });
+
+    testWidgets('a study in English leaves the language unsaid',
+        (tester) async {
+      await open(tester,
+          TutorialEntry.fromAnalysis(study(null), intoOpenDraft: false));
+      expect((await leave(tester)).language, isNull);
+    });
+
+    testWidgets('the tutorial being written takes it when it has none',
+        (tester) async {
+      await storeDraft(title: 'Opozicija');
+      await open(tester, TutorialEntry.fromAnalysis(study('de')));
+      expect(find.textContaining('Its language was not changed'), findsNothing);
+      final left = await leave(tester);
+      expect(left.title, 'Opozicija');
+      expect(left.language, 'de');
+    });
+
+    testWidgets(
+        'a tutorial in another language keeps its own, and the trainer is '
+        'told', (tester) async {
+      await storeDraft(title: 'Opozicija', language: 'sr-Cyrl');
+      await open(tester, TutorialEntry.fromAnalysis(study('de')));
+      expect(
+          find.text('This tutorial is in Serbian (Cyrillic); the comments '
+              'just added are in German. Its language was not changed.'),
+          findsOneWidget);
+      expect((await leave(tester)).language, 'sr-Cyrl');
+    });
+
+    testWidgets(
+        'a saved tutorial whose language this draft does not know is left '
+        'alone', (tester) async {
+      await storeDraft(title: 'Opozicija', lessonId: 12, languageKnown: false);
+      await open(tester, TutorialEntry.fromAnalysis(study('de')));
+      final left = await leave(tester);
+      expect(left.language, isNull);
+      expect(left.languageKnown, isFalse,
+          reason: 'a save must not write over a language set elsewhere');
     });
   });
 
