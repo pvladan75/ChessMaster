@@ -78,7 +78,8 @@ that language's voice.
 | 1 ✅ | the server: `language` on both routes, the translation inside the handler, `translated` in the answer, the tokens under the route's own token metric — **built 29.9.2026**, see §5 | lead |
 | 2 ✅ | the app: „Comments in" in the study's dialog, remembered; the two single-item doors read the same choice and say which language they wrote in; the tree written from `translated`; the done view counts what was left out — **built 29.9.2026**, see §6 | lead |
 | 3 ✅ | „Open as a tutorial" carries the language — **built 29.9.2026**, see §7 | lead |
-| 4 | the manual under `site/`, the live-check items, the numbers in `CLAUDE.md` | lead |
+| 4 ✅ | the manual under `site/`, the live-check items, the numbers in `CLAUDE.md` — **done 29.9.2026**: `analysis.html` and `repertoire.html` say „Comments in", the live pass is [252.1]–[252.7] in `TODO-provera.md` | lead |
+| 5 | the owner's live pass, [252.1]–[252.7] | owner |
 
 Phase 0's gate is the owner's reading. Every later phase's gate is its tests,
 each watched red first.

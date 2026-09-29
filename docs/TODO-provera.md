@@ -4410,6 +4410,90 @@ odlazi na kraj spiska u alatu.
     tokene. Studija bez komentara ([251.3]) ne pomera nijedan.
     Potrebno: Windows ili telefon; prijavljen nalog.
 
+11. [ ] **Studija na srpskom: komentari u stablu su na srpskom.**
+    [252.1]
+    O čemu se radi: Komentari studije mogu biti na jednom od sedam jezika
+    tutorijala (`PLAN-JEZIK-STUDIJE.md`). Model i dalje piše na engleskom i
+    provera istine čita engleski; tek rečenice koje prođu prevode se na
+    serveru (`deepseek-flash`), a prevod se proverava — svaki potez, polje i
+    broj poteza mora da se vrati isti, potezi ostaju sa engleskim slovima.
+    Gde: `Analyse` → pozicija iz [251.1] → `Study this position`.
+    Uradi: Ostavi `Write comments with AI` uključeno, u `Comments in` izaberi
+    `Serbian (Latin)`, pritisni `Start` i pročitaj stablo.
+    Treba da vidiš: Svi komentari u stablu su na srpskom (latinica), potezi u
+    njima su `Nf3`, `Bxh1` i sl. — ne `Sf3`, `Lxh1`. Nijedan komentar nije na
+    engleskom. Čekanje je desetak do tridesetak sekundi duže nego na engleskom.
+    Ako je neka rečenica izostala zbog prevoda, dijalog na kraju kaže
+    „N comment(s) left out: the translation into Serbian (Latin) did not pass
+    the check."
+    Potrebno: Windows; prijavljen nalog sa Premium ili višim planom; restart
+    backenda sa novim kodom; DeepSeek ključ na serveru.
+
+12. [ ] **Izbor jezika se pamti, a engleski radi kao pre.**
+    [252.2]
+    O čemu se radi: `Comments in` pamti poslednji izbor; engleski šalje isti
+    zahtev kao pre ove promene.
+    Gde: `Analyse` → `Study this position`.
+    Uradi: Zatvori i ponovo otvori dijalog posle [252.1]; zatim izaberi
+    `English` i pokreni studiju na istoj poziciji. Na telefonu otvori dijalog
+    i izaberi `Serbian (Cyrillic)`.
+    Treba da vidiš: Posle ponovnog otvaranja stoji `Serbian (Latin)`. Na
+    engleskom su komentari na engleskom i čekanje je kao ranije. Na telefonu
+    se ceo naziv `Serbian (Cyrillic)` vidi u meniju, a dugme `Start` je na
+    ekranu. Kad se skine `Write comments with AI`, meni se ne može menjati.
+    Potrebno: Windows i telefon; kao [252.1].
+
+13. [ ] **`Generate AI comment` piše na izabranom jeziku i kaže to.**
+    [252.3]
+    O čemu se radi: Pojedinačan komentar na potez koristi isti izbor jezika kao
+    studija.
+    Gde: `Analyse` → bilo koja partija → stani na potez → meni poteza →
+    `Generate AI comment`.
+    Uradi: Sa `Comments in` na `German` (iz [252.2]) generiši komentar.
+    Treba da vidiš: Editor komentara se otvori sa tekstom na nemačkom, a ispod
+    polja piše „Written in German, the language chosen in „Study this
+    position"." Sa `English` te rečenice nema.
+    Potrebno: Windows; kao [252.1].
+
+14. [ ] **Repertoar: `Ask AI about position` na izabranom jeziku.**
+    [252.4]
+    Gde: `Practise` → `Opening repertoire` → otvori repertoar → pozicija na
+    tabli → `Ask AI about position`.
+    Uradi: Sa `Comments in` na `Serbian (Latin)` pitaj za jednu poziciju.
+    Treba da vidiš: Odgovor je na srpskom, a ispod sitnog teksta stoji
+    „Written in Serbian (Latin), the language chosen in „Study this
+    position"."
+    Potrebno: Windows ili telefon; kao [252.1].
+
+15. [ ] **`Open as a tutorial` posle studije na srpskom: tutorijal je na srpskom.**
+    [252.5]
+    O čemu se radi: Tutorijal otvoren iz studije nosi jezik njenih komentara,
+    pa se film čita glasom tog jezika.
+    Gde: kraj studije iz [252.1] → `Open as a tutorial` → na pitanje izaberi
+    nov tutorijal → `Details…`.
+    Uradi: Pogledaj polje `Language`; napravi film jednog dela.
+    Treba da vidiš: `Language` je `Serbian (Latin)` (ne `Not set`); film se čita
+    srpskim glasom. Studija na engleskom ostavlja `Not set`, kao ranije.
+    Potrebno: Windows; kao [252.1].
+
+16. [ ] **Studija dodata u tutorijal na drugom jeziku: jezik tutorijala ostaje.**
+    [252.6]
+    Gde: tutorijal kome je u `Details…` → `Language` izabran `German` i koji je
+    otvoren u studiju; zatim `Analyse` → studija na srpskom → `Open as a
+    tutorial` → izaberi da se nastavi tutorijal koji se piše.
+    Uradi: Pročitaj poruku i pogledaj `Language` u `Details…`.
+    Treba da vidiš: Poruka „This tutorial is in German; the comments just added
+    are in Serbian (Latin). Its language was not changed." i `Language` je i
+    dalje `German`.
+    Potrebno: Windows; kao [252.1].
+
+17. [ ] **Prevedena studija je jedna studija u `Usage this month`.**
+    [252.7]
+    Gde: `Settings` → `Usage this month`, pre i posle [252.1].
+    Treba da vidiš: `AI position studies` je veći za jedan (ne za dva);
+    `AI position study writing` je porastao i za tokene prevoda.
+    Potrebno: Windows ili telefon; prijavljen nalog.
+
 ### Analyse — Pregled partije (Review entire game)
 
 1. [ ] **Bez lokalnih tabela, pregled pada nazad na Lichess bez greške.**
