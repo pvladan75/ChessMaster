@@ -85,6 +85,9 @@ Ordinal numbers are words, declined as the sentence needs them: „sedmi red",
 Material that is up follows „ima" in the accusative: „beli ima pešaka više",
 „crni ima topa više" - not „ima pešak više".
 
+A side that stands better is „bolji" or „stoji bolje", never „bolje" alone:
+„crni je jasno bolji", „beli stoji malo bolje" - not „crni je jasno bolje".
+
 „White's" and „Black's" are „beli" and „crni" before the noun, or „belog" and
 „crnog" after it: „beli skakač", „višak pešaka belog" - never „belov" or
 „crnov".
@@ -111,3 +114,4 @@ These are the words this app already uses, and a tutorial must agree with them:
 | minority attack, hedgehog, prophylaxis | napad manjinom, jež, profilaksa |
 | promotion (a pawn promotes) | promocija (pešak se promoviše) |
 | tablebase (the database of solved endgames) | baza završnica - never „tabelarna baza" |
+| master games, the master database (players rated 2200 or more) | majstorske partije, baza majstorskih partija - never „velemajstor…", which means grandmaster |

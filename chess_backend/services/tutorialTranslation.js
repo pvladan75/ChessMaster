@@ -264,7 +264,123 @@ function readTranslationAnswer(content) {
   return out;
 }
 
+/// [tutorial] (`{ title, description, steps }`) translated into [code], judged
+/// and proved — the one home of the steps both `POST /lessons/:id/translate`
+/// and `POST /lessons/from-game/translate` take.
+///
+/// Every piece of prose is asked for by chunk; what the judge refused is asked
+/// for once more, with the reasons. An id the model invented stays in the
+/// answer and refuses it: a model that makes up an item is not trusted with the
+/// ones it did not make up, and with nothing else wrong there is nothing to ask
+/// again. [onReply] is told every reply and its attempt, before it is read — a
+/// refused attempt is billed as an accepted one.
+///
+/// `{ ok: true, merged }`, the tutorial with its words replaced and nothing
+/// else changed, or `{ ok: false, faults }`. Throws the provider's
+/// `LlmUnavailable`, and an Error when the merge changed anything but words —
+/// a fault of this file, never of a translation.
+async function translateTutorial({
+  provider, tutorial, code, onReply = async () => {},
+}) {
+  const items = extractItems(tutorial);
+
+  /// One request per chunk of [wanted]; what came back, by id.
+  async function ask(wanted, note, attempt) {
+    const answered = {};
+    for (const chunk of chunksOf(wanted)) {
+      const reply = await provider.complete(buildTranslationPrompt(chunk, code, note));
+      await onReply(reply, { attempt, items: Object.keys(chunk).length });
+      // A reply that is not the shape asked for answers nothing; the judge
+      // then reads every item of the chunk as missing, and asks again.
+      Object.assign(answered, readTranslationAnswer(reply.content) || {});
+    }
+    return answered;
+  }
+
+  let translated = await ask(items, null, 1);
+  let faults = judgeTranslation(items, translated, { code });
+  const retry = Object.fromEntries(
+    Object.keys(faults).filter((key) => key in items).map((key) => [key, items[key]]),
+  );
+  if (Object.keys(retry).length) {
+    const note = 'Your earlier translation of the items below was rejected. '
+      + 'Translate them again and follow every rule above.\n\n'
+      + Object.keys(retry).map((key) => `- ${key}: ${faults[key].reason}`).join('\n');
+    translated = { ...translated, ...(await ask(retry, note, 2)) };
+    faults = judgeTranslation(items, translated, { code });
+  }
+  if (Object.keys(faults).length) return { ok: false, faults };
+
+  const merged = mergeTranslation(tutorial, translated);
+  proveUntouched(tutorial.steps, merged.steps);
+  return { ok: true, merged };
+}
+
+/// The caps of a tutorial sent to be translated in the body. The twenty
+/// tutorials measured from games held at most 5,048 characters of prose and
+/// 12 parts (docs/PLAN-JEZIK-STUDIJE.md, §8a); these leave room without
+/// leaving the door open.
+const BODY_CAPS = Object.freeze({
+  steps: 80,
+  titleChars: 200,
+  descriptionChars: 4000,
+  fenChars: 100,
+  pgnChars: 20000,
+  proseChars: 40000,
+});
+
+function capped(value, name, max, { nullable = false } = {}) {
+  if (nullable && (value === null || value === undefined)) return value;
+  if (typeof value !== 'string') throw new RangeError(`${name} must be text.`);
+  if (value.length > max) throw new RangeError(`${name} is longer than ${max} characters.`);
+  return value;
+}
+
+/// A tutorial that is not saved, as `POST /lessons/from-game/translate`
+/// receives it, and the language it is to be in: `{ code, tutorial }`, or a
+/// RangeError that names what is wrong. English is not a translation — the
+/// words were written in it. Every field of a part that is not prose is kept
+/// as it came, and the merge's proof holds it there.
+function readTutorialToTranslate(body) {
+  if (!body || typeof body !== 'object') throw new RangeError('The request is empty.');
+  const code = body.language;
+  if (typeof code !== 'string' || !LANGUAGE_NAMES[code] || code === 'en') {
+    throw new RangeError(`language must be one of ${Object.keys(LANGUAGE_NAMES)
+      .filter((c) => c !== 'en').join(', ')}.`);
+  }
+  const t = body.tutorial;
+  if (!t || typeof t !== 'object') throw new RangeError('tutorial must be a tutorial.');
+  if (!Array.isArray(t.steps) || t.steps.length === 0 || t.steps.length > BODY_CAPS.steps) {
+    throw new RangeError(`tutorial.steps must hold 1 to ${BODY_CAPS.steps} parts.`);
+  }
+  const steps = t.steps.map((step, i) => {
+    const at = `tutorial.steps[${i}]`;
+    if (!step || typeof step !== 'object' || Array.isArray(step)) {
+      throw new RangeError(`${at} is not a part.`);
+    }
+    capped(step.fen, `${at}.fen`, BODY_CAPS.fenChars);
+    capped(step.pgn, `${at}.pgn`, BODY_CAPS.pgnChars);
+    capped(step.title, `${at}.title`, BODY_CAPS.titleChars, { nullable: true });
+    return step;
+  });
+  const tutorial = {
+    title: capped(t.title, 'tutorial.title', BODY_CAPS.titleChars, { nullable: true }),
+    description: capped(t.description, 'tutorial.description', BODY_CAPS.descriptionChars,
+      { nullable: true }),
+    steps,
+  };
+  const prose = Object.values(extractItems(tutorial)).reduce((n, s) => n + s.length, 0);
+  if (prose === 0) throw new RangeError('The tutorial has no words to translate.');
+  if (prose > BODY_CAPS.proseChars) {
+    throw new RangeError(`The tutorial has more than ${BODY_CAPS.proseChars} characters of words.`);
+  }
+  return { code, tutorial };
+}
+
 module.exports = {
+  translateTutorial,
+  readTutorialToTranslate,
+  BODY_CAPS,
   LANGUAGE_NAMES,
   CHUNK_CHARS,
   notation,

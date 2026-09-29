@@ -96,6 +96,16 @@ studije; nov tutorijal ga preuzima, a onaj koji se piše samo ako nema svoj — 
 je na drugom jeziku, zadržava svoj i trener dobija poruku. Aplikacija 5105 →
 **5111**, analyze istih 22.
 
+**Tutorijal iz partije na izabranom jeziku** (§8 plana, vlasnikove odluke G1–G3
+od 29.9.2026): ceo tutorijal — i rečenice koje aplikacija piše sama — prevodi
+se pre nego što se otvori u studiju. Faza 5 izmerena (20 tutorijala, srpski i
+nemački, 40/40 iz prvog zahteva, do 47 s); **faza 6 (server) izgrađena**:
+`translateTutorial` kao jedan dom za obe rute, nova
+`POST /lessons/from-game/translate` (bez jedinice kvote, tokeni pod
+`ai_tutorial_tokens`), dve nove rečenice u promptu („bolji", „majstorske
+partije"). Backend 1913 → **1924**. Nije komitovano. Sledeće: faza 7
+(aplikacija).
+
 **Faza 4 urađena 29.9.2026**: priručnik (`site/mislisha/manual/analysis.html`,
 `repertoire.html`) opisuje „Comments in", stavke za proveru uživo su
 [252.1]–[252.7] u `TODO-provera.md` (Analyse → Studija pozicije). **Ceo plan je

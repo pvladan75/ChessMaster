@@ -26,10 +26,7 @@ const { METRIC, recordUsage } = require('../services/entitlementService');
 const { createDeepSeek, LlmUnavailable } = require('../services/llm/deepseek');
 const { buildLessonSteps } = require('../services/lessonSteps');
 const { isTutorialLanguage, TUTORIAL_LANGUAGES } = require('../services/tutorialLanguage');
-const {
-  LANGUAGE_NAMES, extractItems, judgeTranslation, mergeTranslation, proveUntouched,
-  chunksOf, buildTranslationPrompt, readTranslationAnswer,
-} = require('../services/tutorialTranslation');
+const { LANGUAGE_NAMES, translateTutorial } = require('../services/tutorialTranslation');
 
 const router = express.Router();
 
@@ -98,50 +95,26 @@ function createTranslateHandler({
       }
 
       const tutorial = { title: source.title, description: source.description, steps };
-      const items = extractItems(tutorial);
-
-      /// One request per chunk of [wanted]; what came back, by id.
-      async function ask(wanted, note, attempt) {
-        const answered = {};
-        for (const chunk of chunksOf(wanted)) {
-          const reply = await provider.complete(buildTranslationPrompt(chunk, code, note));
+      const outcome = await translateTutorial({
+        provider,
+        tutorial,
+        code,
+        onReply: async (reply, { attempt, items }) => {
           await record(userId, METRIC.AI_TRANSLATION_TOKENS, reply.usage.total);
           logger.info(`[TRANSLATE] ${providerName} ${reply.model}: pokušaj ${attempt}, `
-            + `${Object.keys(chunk).length} stavki, tokena ${reply.usage.total}`);
-          // A reply that is not the shape asked for answers nothing; the judge
-          // then reads every item of the chunk as missing, and asks again.
-          Object.assign(answered, readTranslationAnswer(reply.content) || {});
-        }
-        return answered;
-      }
-
-      let translated = await ask(items, null, 1);
-      let faults = judgeTranslation(items, translated, { code });
-      const retry = Object.fromEntries(
-        Object.keys(faults).filter((key) => key in items).map((key) => [key, items[key]]),
-      );
-      if (Object.keys(retry).length) {
-        const note = 'Your earlier translation of the items below was rejected. '
-          + 'Translate them again and follow every rule above.\n\n'
-          + Object.keys(retry).map((key) => `- ${key}: ${faults[key].reason}`).join('\n');
-        // An id the model invented stays in the answer and refuses it (the
-        // plan's gate): a model that makes up an item is not trusted with the
-        // ones it did not make up. With nothing else wrong there is nothing to
-        // ask again, and it is refused after one request.
-        translated = { ...translated, ...(await ask(retry, note, 2)) };
-        faults = judgeTranslation(items, translated, { code });
-      }
-      if (Object.keys(faults).length) {
+            + `${items} stavki, tokena ${reply.usage.total}`);
+        },
+      });
+      if (!outcome.ok) {
         return res.status(422).json({
           error: 'The translation could not be used, so no copy was made. '
             + 'It can be asked for again.',
           reason: 'bad-translation',
-          problems: Object.entries(faults).map(([key, f]) => `${key}: ${f.reason}`),
+          problems: Object.entries(outcome.faults).map(([key, f]) => `${key}: ${f.reason}`),
         });
       }
 
-      const merged = mergeTranslation(tutorial, translated);
-      proveUntouched(steps, merged.steps);
+      const { merged } = outcome;
       const built = buildLessonSteps(merged.steps);
       if (!built.ok) {
         // The source's own steps, with words changed and nothing else: a

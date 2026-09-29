@@ -9328,3 +9328,27 @@ its voice; its earlier parts were written in the old one. The rule that keeps
 it, and says so, is a mutation's answer as much as a design's: „always take
 the handed-over language" was the first thing tried, and the case with a
 Cyrillic tutorial is what refuses it.
+
+## 29.9.2026 — a tutorial from a game in the reader's language (`PLAN-JEZIK-STUDIJE.md` §8, phases 5–6)
+
+Backend 1913 → **1924** (11 cases; measured with and without `.env`), 2083
+with a database, derived.
+
+**The unit of translation is what the reader sees, not what the model wrote.**
+The study's method — translate the model's slots — would have left a tutorial
+from a game in two languages: the app writes sentences of its own there (the
+lexicon of `fillerWords`, the turning points the model left unsaid, the recap,
+the book summary). Asking „who wrote each sentence the reader will see" before
+choosing what to translate found it before any code did.
+
+**A second copy of a pipeline is found by asking for it twice.** The new route
+needed exactly the saved route's steps; they were inline in its handler. They
+moved into `translateTutorial` first, the saved route's 19 cases green on the
+move, and a case now fails if either route calls the judge, the merge or the
+proof itself.
+
+**A mutation that changes what the case does not read survives honestly.**
+Rewording the English half of the prompt's new row left the Serbian terms the
+case asserts; deleting the row turned it red. The survivor said the mutation
+was too gentle, not that the case was blind.
+

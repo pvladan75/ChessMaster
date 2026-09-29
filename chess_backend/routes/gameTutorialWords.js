@@ -1,4 +1,4 @@
-// gameTutorialWords.js — POST /lessons/from-game/words
+// gameTutorialWords.js — POST /lessons/from-game/words and /translate
 //
 // docs/PLAN-SKELET.md, phase 3: the words of a tutorial the app has built from
 // a game. The app sends the skeleton as data (`services/tutorialWords.js` says
@@ -27,6 +27,9 @@ const { createDeepSeek, LlmUnavailable } = require('../services/llm/deepseek');
 const {
   validateWordsRequest, buildPrompt, checkAnswer,
 } = require('../services/tutorialWords');
+const {
+  translateTutorial, readTutorialToTranslate,
+} = require('../services/tutorialTranslation');
 
 const router = express.Router();
 
@@ -128,7 +131,109 @@ function createWordsHandler({
   };
 }
 
+// ---- the tutorial, translated ---------------------------------------------------------
+//
+// POST /lessons/from-game/translate — docs/PLAN-JEZIK-STUDIJE.md, §8. The
+// tutorial the trainer picked, **whole** — the model's words and the sentences
+// the app wrote itself — in the language chosen for it, before it opens in the
+// studio unsaved. The steps are the saved route's (`translateTutorial`): judged,
+// asked again once, merged, proved to have changed nothing but words.
+//
+// **No unit of the quota** (G3): the tutorial was the unit, spent on its words.
+// It asks the entitlement the words asked, and counts its tokens where theirs
+// are. A saved tutorial can already be translated without a unit
+// (`ai_translations` is counted, not limited), so taking the tutorial in the
+// body opens no door that was shut.
+
+const translateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many translations asked for. Please wait a while.' },
+});
+
+/// The request checked before anything is asked.
+function validateTranslation(req, res, next) {
+  try {
+    req.toTranslate = readTutorialToTranslate(req.body);
+    return next();
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    logger.error(`[WORDS] Neočekivana greška pri proveri prevoda: ${err.message}`);
+    return res.status(500).json({ error: 'Failed to read the translation request.' });
+  }
+}
+
+function createTranslateHandler({
+  provider,
+  providerName = 'deepseek',
+  record = (userId, metric, amount) => recordUsage(pool, userId, metric, amount),
+}) {
+  // One at a time per account: a second press would pay twice for one tutorial.
+  const translating = new Set();
+
+  return async (req, res) => {
+    const userId = req.user.id;
+    if (translating.has(userId)) {
+      return res.status(429).json({
+        error: 'Another tutorial is being translated. Wait for it to finish.',
+        reason: 'already-translating',
+      });
+    }
+    translating.add(userId);
+    try {
+      const { code, tutorial } = req.toTranslate;
+      const outcome = await translateTutorial({
+        provider,
+        tutorial,
+        code,
+        onReply: async (reply, { attempt, items }) => {
+          await record(userId, METRIC.AI_TUTORIAL_TOKENS, reply.usage.total);
+          logger.info(`[WORDS] Prevod na ${code}: ${providerName} ${reply.model}, pokušaj ${attempt}, `
+            + `${items} stavki, tokena ${reply.usage.total}`);
+        },
+      });
+      if (!outcome.ok) {
+        return res.status(422).json({
+          error: 'The translation did not keep the moves as they were, twice.',
+          reason: 'bad-translation',
+          problems: Object.entries(outcome.faults).map(([key, f]) => `${key}: ${f.reason}`),
+        });
+      }
+      const { merged } = outcome;
+      return res.json({
+        tutorial: {
+          title: merged.title,
+          description: merged.description,
+          steps: merged.steps,
+          language: code,
+        },
+      });
+    } catch (err) {
+      if (err instanceof LlmUnavailable) {
+        logger.error(`[WORDS] ${err.reason}: ${err.message}`);
+        return res.status(err.status).json({ error: err.message, reason: err.reason });
+      }
+      logger.error(`[WORDS] Neočekivana greška pri prevodu: ${err.message}`);
+      return res.status(500).json({ error: 'Failed to translate the tutorial.' });
+    } finally {
+      translating.delete(userId);
+    }
+  };
+}
+
 const provider = createDeepSeek();
+
+router.post(
+  '/translate',
+  authenticateToken,
+  translateLimiter,
+  requireEntitlement(ENT.AI_TUTORIALS),
+  validateTranslation,
+  requireProvider(provider),
+  createTranslateHandler({ provider }),
+);
 
 router.post(
   '/words',
@@ -145,4 +250,6 @@ module.exports = router;
 module.exports.validateBody = validateBody;
 module.exports.requireProvider = requireProvider;
 module.exports.createWordsHandler = createWordsHandler;
+module.exports.validateTranslation = validateTranslation;
+module.exports.createTranslateHandler = createTranslateHandler;
 module.exports.ATTEMPTS = ATTEMPTS;

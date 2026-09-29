@@ -188,3 +188,104 @@ the same 22). Seven mutations, each caught by the case meant for it. The first
 two cases were red for their fixture: a handover of one bare position is not a
 tutorial anybody started, and the draft slot does not give one back — a study
 hands over moves and comments, and now the fixture does too.
+
+## 8. A tutorial made from a game, in the reader's language
+
+The owner, 29.9.2026, on „Make a tutorial from this game": can it be in another
+language too? L2 had left it out; the owner's answers the same day:
+
+| | |
+|---|---|
+| G1 | the language is chosen in that dialog, and the tutorial the trainer picks (Key moments or Whole game) is translated **whole** before it opens in the studio, unsaved as today |
+| G2 | the choice is **one setting** with the study's „Comments in", shown in both dialogs |
+| G3 | a translated tutorial is **one unit** of `ai_tutorials`; the translation's tokens are counted under `ai_tutorial_tokens`, no unit of `ai_translations` |
+
+**Why whole and not by slot, as the study is.** A tutorial from a game holds
+sentences the app writes itself — the lexicon of `fillerWords` („…hands the
+opponent the better game. Now White is slightly better."), the turning points
+the model left unsaid, the recap, the book summary — which no model slot
+carries. Translating the slots would leave those in English, a tutorial in two
+languages. The whole tutorial is what `POST /lessons/:id/translate` already
+translates and proves: its prose items, its judge, the merge, and
+`proveUntouched`, which holds every move, arrow and square to the source.
+
+### 8a. Phase 5, measured on 29.9.2026
+
+The twenty tutorials of the app's fixtures — ten games, each as Key moments
+and Whole game, the app's own assembly of the recorded model answers —
+translated whole by `services/tutorialTranslation.js` with `deepseek-flash`
+(`tools/game_tutorial_translate/measure.js`):
+
+| | Serbian (Latin) | German |
+|---|---|---|
+| tutorials passed by the judge and proved untouched | 20 of 20 | 20 of 20 |
+| at the first request | 20 | 20 |
+| texts translated | 762 | 762 |
+| characters, all twenty | 66,082 (at most 5,048 a tutorial — one request each; a chunk is 12,000) | same |
+| seconds a tutorial, median and max | 31.0, 47.5 | 28.3, 40.6 |
+| tokens | 229,502 (11,500 a tutorial) | 226,131 |
+
+**The Serbian, read.** Two slips of language, both a line of the shared
+prompt: a side „je bolje" where it is „je bolji" / „stoji bolje" („crni je
+jasno bolje"), and the master book called „baza velemajstora" /
+„velemajstorske partije" — the book is games of players rated 2200 or more,
+„majstorske partije". No wrong move, square or claim.
+
+### 8b. The shape
+
+- **One request after the words**, `POST /lessons/from-game/translate
+  { language, tutorial: { title, description, steps } }`: signed in, a
+  limiter, the entitlement the words route asks (`ai_tutorials`), the request
+  checked (the seven languages but English, steps shaped as a tutorial's,
+  caps), a configured model — and **no quota unit** (G3); every attempt's
+  tokens under `ai_tutorial_tokens`. It answers the tutorial translated and
+  proved, or a 422 with the texts that did not pass twice.
+- **One home for „translate a tutorial"**: the steps of
+  `POST /lessons/:id/translate` — items, ask by chunk, judge, ask again,
+  merge, prove — move into a service both routes call; the saved route keeps
+  its copy and its `ai_translations`.
+- **No door a study did not have**: a saved tutorial can be translated
+  without a unit already (`ai_translations` is counted, not limited — Q3 of
+  `PLAN-PRIPREMA.md`), so a route that takes the tutorial in the body opens
+  nothing new; it asks the entitlement the words asked.
+- **The wait**: one request of at most 47.5 s measured, twice at the most at
+  100 s each, under nginx's 300; the app waits 230 s.
+- **A translation that fails twice** opens nothing mixed: the trainer is told,
+  and offered the tutorial in English (see the question below).
+- **The studio** opens the translated tutorial with its `language` set, so its
+  film is spoken in it.
+
+### 8c. Roadmap
+
+| phase | what | who |
+|---|---|---|
+| 5 ✅ | measurement (above) | lead |
+| 6 ✅ | the server: the shared service, the new route, the two prompt lines — **built 29.9.2026**, see §8d | lead |
+| 7 | the app: „Comments in" in the dialog (the study's setting), the translation after the choice, its progress and refusal, the studio told the language | lead |
+| 8 | the manual and the live-check items | lead |
+
+### 8d. Phase 6, built on 29.9.2026
+
+`translateTutorial` (`services/tutorialTranslation.js`) is the one home of the
+steps a tutorial is translated by — items, ask by chunk, judge, ask again,
+merge, prove — and both routes call it: `POST /lessons/:id/translate` keeps its
+copy and its `ai_translations`, and the new `POST /lessons/from-game/translate`
+(`routes/gameTutorialWords.js`) takes the tutorial in the body
+(`readTutorialToTranslate`: the six languages that are not English, 1–80 parts,
+a position and a line each, at most 40,000 characters of words), asks the
+entitlement the words asked and no unit of the quota, counts every attempt's
+tokens under `ai_tutorial_tokens`, and answers the tutorial translated with its
+`language`, or a 422 naming what did not pass twice. The measuring tool
+translates through the same function.
+
+The shared prompt gained the two corrections of §8a. The twenty tutorials
+translated into Serbian again with it: 20 of 20 at the first request, both
+slips gone („majstorske partije" 20 times, no „velemajstor…", no side that „je
+bolje"), 35.1 s median and 58.7 s at most, one request each.
+
+Tests: `test/game_tutorial_translate.test.js`, 11 cases, standing on a real
+tutorial from the app's fixtures (backend 1913 → **1924**, measured with and
+without `.env`; 2083 with a database, derived — the cases touch none). Eleven
+mutations: ten caught by the case meant for each; the eleventh changed only the
+English half of the prompt's new row, which the case does not read, and
+deleting the row turned it red.
