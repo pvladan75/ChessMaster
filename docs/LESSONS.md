@@ -9352,3 +9352,27 @@ Rewording the English half of the prompt's new row left the Serbian terms the
 case asserts; deleting the row turned it red. The survivor said the mutation
 was too gentle, not that the case was blind.
 
+## 29.9.2026 — a tutorial from a game in the reader's language, the app (`PLAN-JEZIK-STUDIJE.md` §8, phases 7–8)
+
+App 5111 → **5120** (9 cases; a full run with nothing else running; analyze
+the same 22). Fourteen mutations, each caught by the case meant for it.
+
+**A second dialog with the same control is a second copy unless it is made
+one.** „Comments in" was written inline in the study's dialog a phase ago;
+putting it into the tutorial dialog the same way would have made two menus
+that must agree on the setting, the width rule and the text style. It became
+`CommentsLanguageMenu` before the second caller existed, and the mutation
+that took its `isExpanded` away turned the tests of **both** dialogs red.
+
+**A picture in the wrong theme is a picture of the theme.** The first drawing
+of the dialog came out as blocks: the app names no font, so the text takes the
+theme's family, and the app's own theme under the test font is squares. Drawn
+under the plain Material theme with Roboto — as the study's dialog was — it
+read. The colours in that drawing are the plain theme's, not the app's; it
+answers „does it fit and read", not „does it look like the app".
+
+**Tooling cost more than the code this time.** Four edit scripts failed on
+quoting — backticks of the live-check items inside a JavaScript template, a
+shell heredoc that would not take an apostrophe, Python turning `\n` into a
+line break. The cure that held: text goes into a file of its own, and a
+script that edits reads it; or the editor, which needs no escaping at all.

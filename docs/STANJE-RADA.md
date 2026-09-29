@@ -103,8 +103,15 @@ nemački, 40/40 iz prvog zahteva, do 47 s); **faza 6 (server) izgrađena**:
 `translateTutorial` kao jedan dom za obe rute, nova
 `POST /lessons/from-game/translate` (bez jedinice kvote, tokeni pod
 `ai_tutorial_tokens`), dve nove rečenice u promptu („bolji", „majstorske
-partije"). Backend 1913 → **1924**. Nije komitovano. Sledeće: faza 7
-(aplikacija).
+partije"). Backend 1913 → **1924**.
+
+**Faze 7 i 8 urađene 29.9.2026** (§8e plana): „Comments in" u dijalogu
+„Make a tutorial from this game", isti izbor kao u studiji (jedan widget,
+`CommentsLanguageMenu`); prevodi se samo izabrani tutorijal, pa se otvara sa
+jezikom; ako prevod ne prođe — „Close" ili „Open in English", nikad napola
+preveden. Aplikacija 5111 → **5120**, analyze istih 22; priručnik i stavke
+[252.8]–[252.12]. **Ceo §8 je izgrađen; ostaje vlasnikova provera uživo** (uz
+restart backenda, bez promene baze).
 
 **Faza 4 urađena 29.9.2026**: priručnik (`site/mislisha/manual/analysis.html`,
 `repertoire.html`) opisuje „Comments in", stavke za proveru uživo su

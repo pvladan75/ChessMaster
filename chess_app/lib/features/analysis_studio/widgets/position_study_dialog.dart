@@ -7,6 +7,7 @@ import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/services/auto_tree_generator_service.dart'
     show PositionAnalyzer;
 import 'package:chess_app/features/analysis_studio/services/position_study/position_study.dart';
+import 'package:chess_app/features/analysis_studio/widgets/comments_language_menu.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -62,7 +63,7 @@ class PositionStudyDialog extends StatefulWidget {
   static const String withWords = 'Write comments with AI';
   static const String start = 'Start';
   static const String openAsTutorial = 'Open as a tutorial';
-  static const String commentsIn = 'Comments in';
+  static const String commentsIn = CommentsLanguageMenu.label;
 
   @override
   State<PositionStudyDialog> createState() => _PositionStudyDialogState();
@@ -243,51 +244,15 @@ class _PositionStudyDialogState extends State<PositionStudyDialog> {
           style: AppText.caption.copyWith(color: colors.textMuted),
         ),
       ),
-      // The menu takes what the label leaves, and a name too long for it is
-      // cut rather than pushed past the dialog: a menu is as wide as its
-      // widest item, and „Serbian (Cyrillic)" in a large font is wider than
-      // the 232 px a 360 dp phone leaves inside the dialog.
-      Row(
-        children: [
-          Text(
-            PositionStudyDialog.commentsIn,
-            style: AppText.body.copyWith(
-                color:
-                    _words && canWrite ? colors.textPrimary : colors.textMuted),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Flexible(
-            child: DropdownButton<TutorialLanguage>(
-              key: const ValueKey('study-language'),
-              isExpanded: true,
-              // The label's size, in the font the text around it is drawn
-              // in: a menu does not inherit it.
-              style: DefaultTextStyle.of(context)
-                  .style
-                  .merge(AppText.body)
-                  .copyWith(color: colors.textPrimary),
-              value: _language,
-              onChanged: _words && canWrite
-                  ? (chosen) {
-                      if (chosen == null) return;
-                      setState(() => _language = chosen);
-                      AppSettingsService.instance.setStudyLanguage(chosen.code);
-                    }
-                  : null,
-              items: [
-                for (final language in TutorialLanguage.all)
-                  DropdownMenuItem(
-                    value: language,
-                    child: Text(
-                      language.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
+      CommentsLanguageMenu(
+        menuKey: const ValueKey('study-language'),
+        value: _language,
+        onChanged: _words && canWrite
+            ? (chosen) {
+                setState(() => _language = chosen);
+                AppSettingsService.instance.setStudyLanguage(chosen.code);
+              }
+            : null,
       ),
       const SizedBox(height: AppSpacing.sm),
       Text(

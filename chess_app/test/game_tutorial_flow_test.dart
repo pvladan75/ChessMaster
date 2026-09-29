@@ -15,7 +15,12 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/gam
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/game_tutorial_flow.dart';
+import 'package:chess_app/core/services/tutorial_language.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/translate_client.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/words_client.dart'
+    show WordsRefusal;
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 
@@ -131,6 +136,7 @@ Future<void> _pump(
   Future<SkeletonParameters?> Function(
           BuildContext context, GameTutorialSlice slice)?
       chooseSlice,
+  TutorialTranslator? translate,
 }) async {
   tester.view.physicalSize = const Size(360, 640);
   tester.view.devicePixelRatio = 1.0;
@@ -153,6 +159,9 @@ Future<void> _pump(
               runnerFor: () => runner,
               onOpenEngineSettings: onOpenEngineSettings,
               openInStudio: (context, tutorial) async => opened?.add(tutorial),
+              translate: translate ??
+                  (tutorial, language) async =>
+                      fail('asked to translate into $language'),
             ),
             child: const Text('Make a tutorial from this game'),
           ),
@@ -498,5 +507,148 @@ void main() {
     expect(find.textContaining('no moves to make a tutorial from'),
         findsOneWidget);
     expect(runner.depthAsked, isNull);
+  });
+
+  group('in the language of the reader (PLAN-JEZIK-STUDIJE 8)', () {
+    Future<void> choose(WidgetTester tester, String label) async {
+      await tester.tap(find.byKey(const Key('game-tutorial-language')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label).last);
+      await tester.pumpAndSettle();
+    }
+
+    /// A translator that remembers what it was asked, and answers the
+    /// tutorial in the language — or a refusal.
+    TutorialTranslator translator(
+      List<(ImportedTutorial, String)> asked, {
+      Completer<void>? hold,
+      bool refuse = false,
+    }) =>
+        (tutorial, language) async {
+          asked.add((tutorial, language));
+          if (hold != null) await hold.future;
+          if (refuse) {
+            return (
+              tutorial: null,
+              refusal: const WordsRefusal('bad-translation',
+                  'The translation did not keep the moves as they were, twice.'),
+            );
+          }
+          return (
+            tutorial: ImportedTutorial(
+              title: 'Napad koji je probio odbranu',
+              description: tutorial.description,
+              tags: tutorial.tags,
+              positionList: tutorial.positionList,
+              problems: const [],
+              language: language,
+            ),
+            refusal: null,
+          );
+        };
+
+    testWidgets('the menu holds the choice of the study, and keeps a change',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'de'});
+      await AppSettingsService.instance.init();
+      await _pump(tester,
+          runner: _Runner(finish: (_) => _result()), opened: []);
+      await tester.tap(find.byKey(const Key('door')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'fits a 360 dp phone');
+      expect(find.text('Comments in'), findsOneWidget);
+      expect(
+          tester
+              .widget<DropdownButton<TutorialLanguage>>(
+                  find.byKey(const Key('game-tutorial-language')))
+              .value,
+          TutorialLanguage.german);
+      expect(
+          find.byKey(const Key('game-tutorial-language-note')), findsOneWidget);
+
+      await choose(tester, 'English');
+      expect(AppSettingsService.instance.studyLanguage, 'en');
+      expect(
+          find.byKey(const Key('game-tutorial-language-note')), findsNothing);
+      await choose(tester, 'Serbian (Cyrillic)');
+      expect(tester.takeException(), isNull);
+      expect(AppSettingsService.instance.studyLanguage, 'sr-Cyrl');
+      final start =
+          tester.getRect(find.byKey(const Key('game-tutorial-start')));
+      expect(start.bottom, lessThanOrEqualTo(640));
+    });
+
+    testWidgets('in English nothing is translated and the English opens',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'en'});
+      await AppSettingsService.instance.init();
+      final opened = <ImportedTutorial>[];
+      await _pump(tester,
+          runner: _Runner(finish: (_) => _result()), opened: opened);
+      await _startAt(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('game-tutorial-key-moments')));
+      await tester.pumpAndSettle();
+      expect(opened.single.title, _result().keyMoments.title);
+    });
+
+    testWidgets('in German the one chosen is translated, then it opens',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'de'});
+      await AppSettingsService.instance.init();
+      final opened = <ImportedTutorial>[];
+      final asked = <(ImportedTutorial, String)>[];
+      final hold = Completer<void>();
+      await _pump(tester,
+          runner: _Runner(finish: (_) => _result()),
+          opened: opened,
+          translate: translator(asked, hold: hold));
+      await _startAt(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('game-tutorial-whole-game')));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('Translating into German'), findsOneWidget);
+      expect(opened, isEmpty, reason: 'nothing opens before it is translated');
+      expect(asked.single.$2, 'de');
+      expect(asked.single.$1.title, _result().wholeGame.title,
+          reason: 'the one the trainer picked, and only that one');
+      hold.complete();
+      await tester.pumpAndSettle();
+      expect(opened.single.language, 'de');
+      expect(opened.single.title, 'Napad koji je probio odbranu');
+      expect(find.text('Translating into German'), findsNothing);
+    });
+
+    testWidgets('a translation refused twice opens nothing half translated',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'app_study_language': 'sr-Latn'});
+      await AppSettingsService.instance.init();
+      for (final english in [false, true]) {
+        final opened = <ImportedTutorial>[];
+        await _pump(tester,
+            runner: _Runner(finish: (_) => _result()),
+            opened: opened,
+            translate: translator([], refuse: true));
+        await _startAt(tester);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('game-tutorial-key-moments')));
+        await tester.pumpAndSettle();
+        expect(
+            find.text('Not translated into Serbian (Latin)'), findsOneWidget);
+        expect(find.textContaining('did not keep the moves'), findsOneWidget);
+        expect(opened, isEmpty);
+        await tester.tap(english
+            ? find.byKey(const Key('game-tutorial-open-english'))
+            : find.text('Close'));
+        await tester.pumpAndSettle();
+        if (english) {
+          expect(opened.single.title, _result().keyMoments.title);
+          expect(opened.single.language, 'en');
+        } else {
+          expect(opened, isEmpty);
+        }
+      }
+    });
   });
 }

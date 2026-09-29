@@ -1,5 +1,7 @@
 /// „Make a tutorial from this game" — the door of phase 4 of
-/// `docs/PLAN-SKELET.md`.
+/// `docs/PLAN-SKELET.md`. In another language than English the tutorial the
+/// trainer picks is translated whole before it opens
+/// (`docs/PLAN-JEZIK-STUDIJE.md`, §8).
 ///
 /// One press, one run: the depth, then the run with its progress and a cancel,
 /// then the choice between the two tutorials the same words made — **Key
@@ -15,12 +17,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
+import 'package:chess_app/features/analysis_studio/widgets/comments_language_menu.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/tutorial_studio/models/tutorial_entry.dart';
 import 'package:chess_app/features/tutorial_studio/screens/tutorial_studio_screen.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial/skeleton_parameters.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart';
+import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/translate_client.dart';
 import 'package:chess_app/features/tutorial_studio/services/tutorial_import.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -52,7 +57,10 @@ const String kGameTutorialDepthPreference = 'app_game_tutorial_depth_v2';
 /// What the trainer chose before the run: how deep. The threshold that stood
 /// beside it (`minCost`, pawns) is gone since phase 1b — the review's judge
 /// decides what a mistake is.
-typedef GameTutorialSettings = ({int depth});
+/// The depth, and the language the tutorial is to be in — a code, or null
+/// for English, which is what the words are written in
+/// (`docs/PLAN-JEZIK-STUDIJE.md`, §8).
+typedef GameTutorialSettings = ({int depth, String? language});
 
 /// How long a depth takes, as phase 0 measured it on Windows with eight
 /// workers: 39–109 s a game at 18, 1.9–3.8 times that at 20, 3.6–7.1 at 22.
@@ -77,6 +85,10 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
           remembered <= kGameTutorialMaxDepth
       ? remembered
       : kGameTutorialDefaultDepth;
+  // The one setting the study's „Comments in" keeps (G2).
+  var language =
+      TutorialLanguage.of(AppSettingsService.instance.studyLanguage) ??
+          TutorialLanguage.english;
   if (!context.mounted) return null;
   final chosen = await showDialog<GameTutorialSettings>(
     context: context,
@@ -116,6 +128,23 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
                 'at the same depth takes almost no engine time.',
                 style: AppText.caption.copyWith(color: ctx.colors.textMuted),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              CommentsLanguageMenu(
+                menuKey: const Key('game-tutorial-language'),
+                value: language,
+                onChanged: (chosen) {
+                  setState(() => language = chosen);
+                  AppSettingsService.instance.setStudyLanguage(chosen.code);
+                },
+              ),
+              if (language != TutorialLanguage.english)
+                Text(
+                  'The words are written in English, and the tutorial you open '
+                  'is then translated whole into ${language.label}. That '
+                  'takes up to a minute more.',
+                  key: const Key('game-tutorial-language-note'),
+                  style: AppText.caption.copyWith(color: ctx.colors.textMuted),
+                ),
             ],
           ),
         ),
@@ -126,7 +155,11 @@ Future<GameTutorialSettings?> chooseGameTutorialDepth(
           ),
           FilledButton(
             key: const Key('game-tutorial-start'),
-            onPressed: () => Navigator.of(ctx).pop((depth: depth)),
+            onPressed: () => Navigator.of(ctx).pop((
+              depth: depth,
+              language:
+                  language == TutorialLanguage.english ? null : language.code,
+            )),
             child: const Text('Start'),
           ),
         ],
@@ -468,6 +501,89 @@ Future<ImportedTutorial?> chooseGameTutorial(
   );
 }
 
+/// [tutorial] translated into [language] while the trainer waits — or, when
+/// it cannot be, the tutorial in English if the trainer asks for it, or null.
+/// Nothing half translated ever opens (`docs/PLAN-JEZIK-STUDIJE.md`, §8b).
+Future<ImportedTutorial?> translateChosenTutorial(
+  BuildContext context,
+  ImportedTutorial tutorial,
+  String language,
+  TutorialTranslator translate,
+) async {
+  final name = TutorialLanguage.of(language)?.label ?? language;
+  final outcome = await showDialog<TutorialTranslation>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => _TranslatingDialog(
+      name: name,
+      run: () => translate(tutorial, language),
+    ),
+  );
+  if (outcome == null || !context.mounted) return null;
+  if (outcome.tutorial case final translated?) return translated;
+  final english = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Not translated into $name'),
+      content: Text(
+        '${outcome.refusal?.message ?? 'The tutorial could not be translated.'} '
+        'The tutorial is ready in English.',
+        key: const Key('game-tutorial-translation-refused'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Close'),
+        ),
+        FilledButton(
+          key: const Key('game-tutorial-open-english'),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Open in English'),
+        ),
+      ],
+    ),
+  );
+  return english == true ? tutorial : null;
+}
+
+class _TranslatingDialog extends StatefulWidget {
+  const _TranslatingDialog({required this.name, required this.run});
+
+  final String name;
+  final Future<TutorialTranslation> Function() run;
+
+  @override
+  State<_TranslatingDialog> createState() => _TranslatingDialogState();
+}
+
+class _TranslatingDialogState extends State<_TranslatingDialog> {
+  @override
+  void initState() {
+    super.initState();
+    widget.run().then((outcome) {
+      if (mounted) Navigator.of(context).pop(outcome);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text('Translating into ${widget.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            LinearProgressIndicator(color: context.colors.accent),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Every sentence of the tutorial, and none of its moves. This '
+              'usually takes under a minute.',
+              style: AppText.body.copyWith(color: context.colors.textSecondary),
+            ),
+          ],
+        ),
+      );
+}
+
 /// What to tell the trainer when no tutorial was made.
 Future<void> showGameTutorialStopped(
   BuildContext context,
@@ -530,6 +646,7 @@ Future<void> makeTutorialFromGame(
   GameTutorialRunner Function()? runnerFor,
   Future<void> Function(BuildContext context, ImportedTutorial tutorial)?
       openInStudio,
+  TutorialTranslator? translate,
 }) async {
   final uciMoves = <String>[];
   for (var node = root; node.children.isNotEmpty; node = node.children.first) {
@@ -567,8 +684,19 @@ Future<void> makeTutorialFromGame(
   }
   if (outcome is! GameTutorialResult) return;
 
-  final chosen = await chooseGameTutorial(context, outcome);
+  var chosen = await chooseGameTutorial(context, outcome);
   if (chosen == null || !context.mounted) return;
+  if (settings.language case final language?) {
+    chosen = await translateChosenTutorial(
+      context,
+      chosen,
+      language,
+      translate ??
+          (tutorial, language) =>
+              translateGameTutorial(tutorial, language, token: session.token),
+    );
+    if (chosen == null || !context.mounted) return;
+  }
   if (openInStudio != null) {
     await openInStudio(context, chosen);
   } else {

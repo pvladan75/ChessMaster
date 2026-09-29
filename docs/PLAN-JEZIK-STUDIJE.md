@@ -261,8 +261,9 @@ jasno bolje"), and the master book called „baza velemajstora" /
 |---|---|---|
 | 5 ✅ | measurement (above) | lead |
 | 6 ✅ | the server: the shared service, the new route, the two prompt lines — **built 29.9.2026**, see §8d | lead |
-| 7 | the app: „Comments in" in the dialog (the study's setting), the translation after the choice, its progress and refusal, the studio told the language | lead |
-| 8 | the manual and the live-check items | lead |
+| 7 ✅ | the app: „Comments in" in the dialog (the study's setting), the translation after the choice, its progress and refusal, the studio told the language — **built 29.9.2026**, see §8e | lead |
+| 8 ✅ | the manual and the live-check items — **done 29.9.2026**: `analysis.html`, [252.8]–[252.12] | lead |
+| 9 | the owner's live pass, [252.8]–[252.12] | owner |
 
 ### 8d. Phase 6, built on 29.9.2026
 
@@ -289,3 +290,28 @@ without `.env`; 2083 with a database, derived — the cases touch none). Eleven
 mutations: ten caught by the case meant for each; the eleventh changed only the
 English half of the prompt's new row, which the case does not read, and
 deleting the row turned it red.
+
+### 8e. Phases 7 and 8, built on 29.9.2026
+
+`CommentsLanguageMenu` (`lib/features/analysis_studio/widgets/`) is the one
+home of „Comments in": the study's dialog and „Make a tutorial from this game"
+both draw it, and both store the choice in `AppSettingsService.studyLanguage`
+(G2). The depth dialog says, under a language that is not English, that the
+tutorial will be translated whole and that it takes up to a minute more;
+`GameTutorialSettings` carries the language. After the trainer picks Key
+moments or Whole game, **only that one** is translated
+(`translateGameTutorial`, `translate_client.dart`) under a dialog that cannot
+be dismissed; it opens with its `language`, so the studio marks the draft and
+the film is spoken in it. A translation refused twice, or not answered, opens
+„Not translated into …" with the reason, `Close`, which opens nothing, and
+`Open in English`, which opens the tutorial as written — never a tutorial half
+translated. The app waits 230 s.
+
+The manual's Analysis page says all of it; the live pass is [252.8]–[252.12]
+in `TODO-provera.md` (Analyse → Tutorijal iz partije).
+
+Tests: 9 (app 5111 → **5120**, a full run with nothing else running; analyze
+the same 22). Fourteen mutations, each caught by the case meant for it. A
+drawing of the depth dialog in Roboto at 360 x 640 and 1280 x 800 showed the
+label, the whole of „Serbian (Cyrillic)" and the note, with „Start" on the
+screen.
