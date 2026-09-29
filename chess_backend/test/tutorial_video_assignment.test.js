@@ -36,6 +36,7 @@ const assignments = require('../services/assignmentService');
 const { deliveredLastByte, EXPORTS_DIR } = require('../services/tutorialFilm');
 const { cleanupOldExports } = require('../services/retentionService');
 const trainerPanel = require('../services/trainerPanelService');
+const { filmFilename } = require('../services/filmName');
 
 const STUDENT = 9;
 const TRAINER = 5;
@@ -67,6 +68,9 @@ function stubDatabase(state) {
       return state.accountGone ? { rows: [], rowCount: 0 } : { rows: [{ role: 'user' }], rowCount: 1 };
     }
     if (/AS locked/.test(sql)) return { rows: [{ locked: false, blocked_by: null }], rowCount: 1 };
+    if (/SELECT title FROM saved_lessons WHERE id/.test(sql)) {
+      return state.lessonTitle ? { rows: [{ title: state.lessonTitle }], rowCount: 1 } : { rows: [], rowCount: 0 };
+    }
     if (/FROM assignments a\s+LEFT JOIN saved_lessons l/.test(sql)) {
       const mine = values[0] === ASSIGNMENT && values[1] === STUDENT;
       if (!mine) return { rows: [], rowCount: 0 };
@@ -259,6 +263,34 @@ test('a whole download is recorded, after the last byte went out', async () => {
       const write = database.queries.find((q) => /UPDATE assignment_items/.test(q.sql));
       assert.deepEqual(write.values, [ASSIGNMENT, STUDENT], 'this assignment, this student');
       assert.match(write.sql, /attempted_at IS NULL/, 'the first download only');
+    });
+  } finally {
+    database.restore();
+    fs.rmSync(path.join(EXPORTS_DIR, film), { force: true });
+  }
+});
+
+test('the student saves the film under the tutorial’s title and the day it was rendered', async () => {
+  // The owner's word of 29.9.2026 (services/filmName.js): the film keeps its
+  // name on disk, and the download is named after the tutorial.
+  const renderedAt = new Date(2026, 8, 29, 0, 30).getTime();
+  const film = filmFilename({ kind: 'tutorial', id: 3, now: renderedAt });
+  fs.mkdirSync(EXPORTS_DIR, { recursive: true });
+  fs.writeFileSync(path.join(EXPORTS_DIR, film), Buffer.alloc(1024, 7));
+  const state = { film, lessonTitle: 'Broken pawns: part 2' };
+  const database = stubDatabase(state);
+  try {
+    await withServer(async (port) => {
+      const res = await request(port, downloadPath(film));
+      assert.equal(res.status, 200);
+      const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(res.headers['content-disposition']);
+      const saved = utf8 ? decodeURIComponent(utf8[1])
+        : /filename="([^"]*)"/.exec(res.headers['content-disposition'])[1];
+      assert.equal(saved, 'Broken pawns part 2 - 2026-09-29.mp4');
+      const asked = database.queries.find((q) => /SELECT title FROM saved_lessons/.test(q.sql));
+      assert.deepEqual(asked.values, [3], 'the tutorial the film belongs to');
+      await settle();
+      assert.equal(state.recorded, 1, 'and the download is still recorded');
     });
   } finally {
     database.restore();

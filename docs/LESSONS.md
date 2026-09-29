@@ -9417,3 +9417,28 @@ deleted); a width compared with the constant it tests (it followed the
 constant to 4400); and the platform-question guard in `tutorial_ulaz_test`,
 which the full run caught because the unit runs never included it — **run
 the suite, not the files you think you touched.**
+
+## 29.9.2026 — a film downloads under its title and day (`services/filmName.js`)
+
+Backend 1924 → **1937** without a database (12 new in `film_name.test.js`,
+1 in `tutorial_video_assignment.test.js`; measured with `.env` moved aside),
+2096 with it derived. App untouched. The owner chose to keep the name on disk
+and change only the name in `Content-Disposition`: the stored name is what
+the row, the token and the retention timer all read, so it is a key, and a
+key is not renamed for the reader's sake.
+
+**A test of „never cut inside a character" needs a character that can be
+cut.** The first fixture was `ž` and `♟`, and the mutation that cut by UTF-16
+unit (`split('')` for `Array.from`) survived: both are one unit each, so the
+two cuts agree. `😀` is two, and the case went red. The shape is rule 6 — a
+fixture luckier than the input it stands for.
+
+**A mutation that does not apply reads as a survivor.** Two perl patterns
+failed to match (a regex inside a regex); the tool compared the file with its
+backup and said so, rather than running the suite and reporting „0 failed".
+Keep that check in any mutation loop.
+
+The day comes from the moment in the on-disk name and is the server's local
+day: the fixture renders at 00:30 local, which is the previous day in UTC east
+of Greenwich, so `toISOString` is caught here — on a machine that runs in UTC
+the case passes either way and cannot tell them apart.

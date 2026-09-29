@@ -1,12 +1,12 @@
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const logger = require('../services/logger');
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { accountLimiter } = require('../middleware/accountLimiter');
 const { authenticateToken, signDownloadToken } = require('../middleware/auth');
+const { filmFilename } = require('../services/filmName');
 const { requireEntitlement } = require('../middleware/entitlements');
 const {
   ENT, METRIC, recordUsage, ttsCharactersMetric,
@@ -958,13 +958,8 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
       });
     }
 
-    // **A clock is not a name.** Two renders of one tutorial that start in the
-    // same millisecond — the same trainer twice, or a trainer and the student
-    // they share it with — used to agree on a filename, and the second one
-    // overwrote the first while both download links pointed at it. Whoever
-    // clicked got a film they had not asked for. Four random bytes end that.
-    const filename = `tutorial_${lessonId}_${boardTheme || 'wood'}_${resolution || '720p'}`
-      + `_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.mp4`;
+    // Unique on disk; a download is named after the title (services/filmName.js).
+    const filename = filmFilename({ kind: 'tutorial', id: lessonId, boardTheme, resolution });
     const exportsDir = EXPORTS_DIR;
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });

@@ -25,6 +25,7 @@ const reports = require('../services/reportService');
 const { judgeAttempt } = require('../services/customPuzzleJudge');
 const { exerciseColumns, firstMoveOf, reviewOf } = require('../services/exercise');
 const { filmFacts, deliveredLastByte, EXPORTS_DIR } = require('../services/tutorialFilm');
+const { downloadNameOf } = require('../services/filmName');
 const { buildReview } = require('../services/assignmentReview');
 const notes = require('../services/assignmentNotes');
 const { markReviewed } = require('../services/trainerPanelService');
@@ -441,8 +442,10 @@ router.get('/video-download/:filename', authenticateAssignmentVideoToken, async 
 
     const filePath = path.join(EXPORTS_DIR, found.film.filename);
     const size = fs.statSync(filePath).size;
+    // Downloaded under the tutorial's title and day (services/filmName.js).
+    const downloadName = await downloadNameOf(pool, found.film.filename);
     res.setHeader('Content-Type', 'video/mp4');
-    res.download(filePath, found.film.filename, async (err) => {
+    res.download(filePath, downloadName, async (err) => {
       if (err) {
         // The student closed the connection, most often. Nothing to answer.
         logger.info({ assignmentId, code: err.code }, 'Tutorial video download did not finish');

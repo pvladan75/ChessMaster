@@ -695,6 +695,16 @@ odlazi na kraj spiska u alatu.
     kakav je bio, list je i dalje otvoren, a rečenica ispravljena (ili ista).
     Potrebno: telefon; server.
 
+16. [ ] **Preuzet video snimka nosi naziv snimka i datum.** [254.2]
+   O čemu se radi: Kao kod tutorijala: izvezen MP4 snimka preuzima se kao
+   „<naziv snimka> - <dan renderovanja>.mp4" umesto
+   `recording_7_wood_720p_…mp4`.
+   Gde: `Home` → (red snimka) → `Play` → izvoz MP4 → `Download MP4 Video`.
+   Uradi: Izvezi snimak kao MP4 i pritisni `Download MP4 Video`.
+   Treba da vidiš: Fajl u Downloads nosi naziv snimka i današnji datum
+   (npr. „Lekcija sa Milom - 2026-09-29.mp4").
+   Potrebno: Windows; server.
+
 ### Home — Home i obaveštenja
 
 1. [ ] **Na Home-u više nema ponavljanja iz tutorijala.** [246.10]
@@ -7832,6 +7842,24 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Tokom izvoza se vidi napredak (progress bar); izvoz se
    normalno završi dijalogom `Video ready!`.
    Potrebno: Windows.
+
+63. [ ] **Preuzet video tutorijala nosi naziv tutorijala i datum.** [254.1]
+   O čemu se radi: Na serveru film i dalje ima jedinstveno ime
+   (`tutorial_12_wood_720p_…mp4`), ali se preuzima kao „<naziv tutorijala> -
+   <dan renderovanja>.mp4". Znakovi koje Windows ne prima u imenu fajla
+   (`: / \ ? * " < > |`) postaju razmak; naziv duži od 80 znakova se skraćuje.
+   Isto važi za učenika koji preuzima film iz domaćeg.
+   Gde: `Teach` → `Tutorials` → `Saved tutorials` → (red tutorijala) →
+   `Download video`; kod učenika `Home` → (domaći sa tutorijalom) →
+   `Download video`.
+   Uradi: Izvezi tutorijal čiji naziv ima dvotačku i naše slovo (npr. „Topovi:
+   završnice"), pa pritisni `Download video`. Onda preimenuj tutorijal i
+   preuzmi ponovo. Na kraju isto preuzmi sa učeničkog naloga iz domaćeg.
+   Treba da vidiš: Fajl u Downloads je „Topovi završnice - 2026-09-29.mp4"
+   (dan kad je film renderovan, po lokalnom vremenu servera), sa ispravnim
+   „š"; posle preimenovanja preuzimanje nosi novi naziv bez ponovnog izvoza;
+   učenik dobije isti naziv, a domaći se i dalje beleži kao urađen.
+   Potrebno: Windows i telefon; server; drugi nalog (učenik).
 
 ### Teach — Tutorial studio
 

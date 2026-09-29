@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 5193 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1924 without TEST_DATABASE_URL (measured 29.9.2026), 2083 with it (derived; 2054 measured 28.9.2026)
+cd chess_backend && npm test          # node --test, 1937 without TEST_DATABASE_URL (measured 29.9.2026), 2096 with it (derived; 2054 measured 28.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 

@@ -3,8 +3,8 @@ const express = require('express');
 const router = express.Router();
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const { pool } = require('../db');
+const { filmFilename, downloadNameOf } = require('../services/filmName');
 const { authenticateToken, signDownloadToken, authenticateDownloadToken } = require('../middleware/auth');
 const { requireEntitlement } = require('../middleware/entitlements');
 const { ENT, METRIC, recordUsage } = require('../services/entitlementService');
@@ -293,11 +293,8 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       return res.status(404).json({ error: 'Recording not found.' });
     }
 
-    // A clock is not a name: two exports of one recording starting in the same
-    // millisecond used to agree on a filename, and the second overwrote the
-    // first while both download links pointed at it. See the tutorial export.
-    const filename = `recording_${recId}_${boardTheme || 'wood'}_${resolution || '720p'}`
-      + `_${Date.now()}_${crypto.randomBytes(4).toString('hex')}.mp4`;
+    // Unique on disk; a download is named after the title (services/filmName.js).
+    const filename = filmFilename({ kind: 'recording', id: recId, boardTheme, resolution });
     const exportsDir = path.join(__dirname, '..', 'exports');
     if (!fs.existsSync(exportsDir)) {
       fs.mkdirSync(exportsDir, { recursive: true });
@@ -433,7 +430,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
 // The token is issued by the export route and is bound to a single filename.
 // path.basename is a second line of defence so a traversal sequence can never
 // escape the exports directory even if a token were somehow forged.
-router.get('/export-download/:filename', authenticateDownloadToken, (req, res) => {
+router.get('/export-download/:filename', authenticateDownloadToken, async (req, res) => {
   const safeName = path.basename(req.params.filename);
   const exportsDir = path.join(__dirname, '..', 'exports');
   const filePath = path.join(exportsDir, safeName);
@@ -444,8 +441,11 @@ router.get('/export-download/:filename', authenticateDownloadToken, (req, res) =
   }
 
   if (fs.existsSync(filePath)) {
+    // Downloaded under its title and day, not the name it has here — which
+    // never stops the download (services/filmName.js).
+    const downloadName = await downloadNameOf(pool, safeName);
     res.setHeader('Content-Type', 'video/mp4');
-    res.download(filePath, safeName);
+    res.download(filePath, downloadName);
   } else {
     res.status(404).send('Video file not found.');
   }
