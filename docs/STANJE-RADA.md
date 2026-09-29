@@ -55,7 +55,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Studija na jeziku koji korisnik izabere — 29.9.2026, plan; faza 0 izmerena, faze 1–3 u kodu
+## Studija na jeziku koji korisnik izabere — 29.9.2026, plan; faza 0 izmerena, faze 1–4 gotove, ostaje provera uživo ([252.1]–[252.7])
 
 `docs/PLAN-JEZIK-STUDIJE.md`. Vlasnik je odlučio L1–L4 (1a, 2b, 3a, 4a):
 jezik se bira u dijalogu studije i pamti se; važi za studiju, tutorijal iz
@@ -94,7 +94,13 @@ rečenice koju je engleska provera zadržala, a ništa gde je prevod odbijen;
 **Faza 3 izgrađena 29.9.2026** (§7 plana): „Open as a tutorial" nosi jezik
 studije; nov tutorijal ga preuzima, a onaj koji se piše samo ako nema svoj — ako
 je na drugom jeziku, zadržava svoj i trener dobija poruku. Aplikacija 5105 →
-**5111**, analyze istih 22. Sledeće: faza 4 — priručnik i stavke za proveru.
+**5111**, analyze istih 22.
+
+**Faza 4 urađena 29.9.2026**: priručnik (`site/mislisha/manual/analysis.html`,
+`repertoire.html`) opisuje „Comments in", stavke za proveru uživo su
+[252.1]–[252.7] u `TODO-provera.md` (Analyse → Studija pozicije). **Ceo plan je
+izgrađen; ostaje vlasnikova provera uživo.** Za nju treba restart backenda sa
+novim kodom (bez promene baze).
 
 ## Studija pozicije umesto Auto Analysis, i Gemini van aplikacije — 28.9.2026, u `master`
 
