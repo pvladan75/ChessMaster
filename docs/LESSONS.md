@@ -9457,3 +9457,16 @@ holds the four names as literals.
 **A width taken from the window is a phone's width.** The shortcut's sentence
 was capped at `window − 140`, which is right for one column and wrong in any
 other; inside a card it must take what the card has left.
+
+## 30.9.2026 — Opening leaks and the profile in columns (`PLAN-PRIJAVA-I-PODESAVANJA.md` §9)
+
+App 5206 → **5218** (12 cases, predicted). Five mutations, each red on the
+case meant for it.
+
+**A layout test that feeds no data tests nothing about the layout.** The
+profile's only test pumped the screen against a server that never answered
+and asserted no overflow — true of an empty screen on any code. The gate now
+feeds the owner's real shape of numbers. And an assertion about a text's
+rectangle inside an `Expanded` measures the slot, not the words: the first
+draft said the games stood too close to the label, when the label's box
+simply filled its slot.

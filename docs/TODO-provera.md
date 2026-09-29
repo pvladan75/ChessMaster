@@ -3728,6 +3728,18 @@ odlazi na kraj spiska u alatu.
    posle uspešne dopune.
    Potrebno: Windows i telefon; uvezene partije.
 
+23. [ ] **Opening leaks i profil u kolonama.**
+    [253.13]
+    O čemu se radi: Pozicije u `Opening leaks` su sada kartice jedna pored
+    druge (redom kako ih izveštaj rangira), a profil igrača je u karticama po
+    kolonama, svaki red kao tabela: naziv levo, partije i procenat desno.
+    Gde: `Practise` → `My games` → izveštaj o otvaranjima, i profil igrača.
+    Uradi: Otvori oba ekrana u svom prozoru, u najmanjem, i na telefonu.
+    Treba da vidiš: Pozicije po četiri u redu u tvom prozoru, tri u
+    najmanjem, jedna na telefonu; `Judge with the engine` nije rastegnut preko
+    celog prozora. Profil u četiri kolone; „1 game", ne „1 games".
+    Potrebno: Windows i telefon; server; arhiva partija.
+
 ### Practise — My mistakes
 
 1. [ ] **„Open this game in Analysis“ iz My mistakes i dalje radi.** [195.6]

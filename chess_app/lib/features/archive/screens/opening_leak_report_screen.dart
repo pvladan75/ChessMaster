@@ -11,6 +11,7 @@ import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/uci
     show UciEnginePool, defaultFactsWorkers;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
@@ -343,9 +344,13 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     }
 
     if (_engineAvailable == true) {
+      // Its own width, not the window's: a list stretches its children, and
+      // this button ran 1870 px across a desktop window.
       return Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.md),
+        alignment: Alignment.centerLeft,
         child: ElevatedButton.icon(
+          key: const Key('engine-judge-start'),
           onPressed: _startJudging,
           icon: const Icon(Icons.gavel, size: 16),
           label: const Text('Judge with the engine'),
@@ -376,7 +381,11 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                   AppText.bodyBold.copyWith(color: context.colors.textPrimary),
             ),
             const SizedBox(height: AppSpacing.sm),
-            for (final habit in extra) _buildLosingHabitRow(context, habit),
+            AdaptiveCardRows(
+              children: [
+                for (final habit in extra) _buildLosingHabitRow(context, habit),
+              ],
+            ),
             const SizedBox(height: AppSpacing.sm),
           ],
           // Every losing habit, flagged or not — the drill asks „here you
@@ -418,7 +427,6 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     final lost = judgement?.lostChances.toStringAsFixed(0) ?? '?';
     return Container(
       key: ValueKey('losing-habit-${habit.fenKey}-${habit.uci}'),
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: context.colors.surface,
@@ -480,7 +488,6 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
 
     return Container(
       key: ValueKey(node.fenKey),
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: context.colors.surface,
@@ -712,7 +719,18 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                         ),
                       )
                     else
-                      ...report.nodes.map((node) => _buildNode(context, node)),
+                      // The positions flow into rows of cards, as many across
+                      // as the width holds and one on a phone, in the order
+                      // the report ranks them (docs/PLAN-PRIJAVA-I-
+                      // PODESAVANJA.md, §9). The rows keep the gap between
+                      // cards, so the cards carry no margin of their own.
+                      AdaptiveCardRows(
+                        children: [
+                          for (final node in report.nodes)
+                            if (node.moves.isNotEmpty)
+                              _buildNode(context, node),
+                        ],
+                      ),
                     _buildLosingHabitsSection(context, report),
                   ],
                 ),

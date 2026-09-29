@@ -382,3 +382,22 @@ done the same way.* Built by the lead inline.
   the counters in their cards. Mutations 5, all red on the right cases.
   Live checks [253.11]–[253.12].
 
+## 9. Opening leaks and the player's profile, the same way (30.9.2026)
+
+The owner, with screenshots of both: *these two could be done the same way.*
+Built by the lead inline.
+
+- **Profile:** every „By …" block is a card in `AdaptiveCardColumns`, and
+  each line reads as a table row — label left, games and score right. „1
+  games" says „1 game". The old test of this screen pumped it with **no
+  data**, so it could not see a layout at all; the new gate feeds numbers.
+- **Opening leaks:** the positions are cards in `AdaptiveCardRows`, left to
+  right in the report's rank; so are the losing habits. „Judge with the
+  engine" is as wide as its words — it ran 1870 px across the window.
+- **Gate:** `test/features/archive/archive_layout_test.dart` (12): sections
+  and positions counted from painted rectangles (4 / 3 / 1), the ranked
+  order across a row, no overflow at 360 / 900 / 1536 / 1920, the table row
+  and the singular, the button's width. The engine is „present" by pointing
+  its path at `pubspec.yaml`; nothing is started. Mutations 5, all red.
+  Live check [253.13].
+
