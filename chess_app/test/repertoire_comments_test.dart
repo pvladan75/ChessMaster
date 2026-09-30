@@ -9,7 +9,9 @@ import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.da
 import 'package:chess_app/features/repertoire/screens/repertoire_list_screen.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/widgets/repertoire_comment_panel.dart';
+import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/widgets/board_with_coordinates.dart';
 
 /// 1.e4 e6 2.d4 d5 3.e5 — the French Advance, Black to move, and the root of
 /// the repertoire here, as in the other repertoire tests.
@@ -207,56 +209,38 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('the panel itself', () {
-    testWidgets('under the board it draws nothing until there is something',
-        (tester) async {
-      // The column under a board at 360 dp is the most expensive space in the
-      // app. A card saying "nothing written" would push the question off the
-      // bottom to say what the reader already knows.
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: RepertoireCommentPanel(
-            body: null,
-            dense: true,
-            onEdit: () {},
-          ),
-        ),
-      ));
-
-      expect(find.text('My comment'), findsNothing);
-    });
-
-    testWidgets('beside the board an empty comment is an invitation',
-        (tester) async {
-      // The other mounting, where the space was going to be empty anyway.
+    testWidgets('it draws nothing until there is something', (tester) async {
+      // The place beside the book and the engine is the most expensive on the
+      // screen. A card saying "nothing written" would push them down to say
+      // what the reader already knows.
+      //
+      // Until 30.9.2026 the panel had a second mounting, a desktop column of
+      // its own where an empty comment was an invitation („beside the board
+      // an empty comment is an invitation" was its case). The owner had the
+      // column removed so the book and the engine could stand there, and the
+      // mounting and its case went with it.
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: RepertoireCommentPanel(body: null, onEdit: () {}),
         ),
       ));
 
-      expect(find.text('My comment'), findsOneWidget);
-      expect(find.byTooltip('Write comment'), findsOneWidget);
-      // Nothing to delete yet, so no button that would do it.
-      expect(find.byTooltip('Delete comment'), findsNothing);
+      expect(find.text('My comment'), findsNothing);
     });
 
-    testWidgets('what was written is on screen, in both mountings',
-        (tester) async {
-      for (final dense in [true, false]) {
-        await tester.pumpWidget(MaterialApp(
-          home: Scaffold(
-            body: RepertoireCommentPanel(
-              body: 'Plan: c5 pa Nc6, i pritisak na d4.',
-              dense: dense,
-              onEdit: () {},
-              onDelete: () {},
-            ),
+    testWidgets('what was written is on screen', (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RepertoireCommentPanel(
+            body: 'Plan: c5 pa Nc6, i pritisak na d4.',
+            onEdit: () {},
+            onDelete: () {},
           ),
-        ));
-        expect(find.text('Plan: c5 pa Nc6, i pritisak na d4.'), findsOneWidget,
-            reason: 'komentar se ne vidi (dense: $dense)');
-        expect(find.byTooltip('Delete comment'), findsOneWidget);
-      }
+        ),
+      ));
+      expect(find.text('Plan: c5 pa Nc6, i pritisak na d4.'), findsOneWidget);
+      expect(find.byTooltip('Edit comment'), findsOneWidget);
+      expect(find.byTooltip('Delete comment'), findsOneWidget);
     });
   });
 
@@ -368,49 +352,52 @@ void main() {
       expect(find.text('Ovo više ne važi.'), findsNothing);
     });
 
-    testWidgets('on a wide desktop window the comment gets its own column',
+    // Rewritten 30.9.2026, on the owner's word: „on a wide desktop window the
+    // comment gets its own column" and „a window with room for two columns but
+    // not three keeps it under the board" stood here. The column is gone; the
+    // book and the engine stand beside the board, and the comment with them.
+    testWidgets('on the owner\'s window the comment stands with the panels',
         (tester) async {
-      // Beside the board, not under it — and only one of them, or the same
-      // comment would be on screen twice.
+      // Three columns at 1536 × 792: board, panels, tree. The comment is in
+      // the middle one, and only once.
       api = _FakeApi();
       api.stored[keyOf(afterC3)] = RepertoireComment(
         fenKey: keyOf(afterC3),
-        body: 'Kolona za komentar.',
+        body: 'Beside the book.',
         updatedAt: DateTime(2026, 9, 1),
       );
-      await pump(tester, const Size(1400, 900));
+      await pump(tester, const Size(1536, 792));
 
       expect(tester.takeException(), isNull);
       expect(find.byType(RepertoireCommentPanel), findsOneWidget);
-      expect(
-        tester
-            .widget<RepertoireCommentPanel>(find.byType(RepertoireCommentPanel))
-            .dense,
-        isFalse,
-      );
+      final comment = tester.getRect(find.text('Beside the book.'));
+      final board = tester.getRect(find.byType(BoardWithCoordinates));
+      final tree = tester.getRect(find.byType(VisualMoveTreeWidget));
+      expect(comment.left, greaterThanOrEqualTo(board.right));
+      expect(comment.right, lessThanOrEqualTo(tree.left),
+          reason: 'the comment is not in the panels\' column');
+      expect(comment.bottom, lessThanOrEqualTo(792));
     });
 
-    testWidgets(
-        'a window with room for two columns but not three keeps it '
-        'under the board', (tester) async {
-      // 840 is where the tree comes alongside; a third panel carved out at that
-      // width would leave a picture too narrow to read.
+    testWidgets('where the panels go under the tree, so does the comment',
+        (tester) async {
+      // 1000 × 900: the pane beside the board holds the tree and, under it,
+      // the panels in one column.
       api = _FakeApi();
       api.stored[keyOf(afterC3)] = RepertoireComment(
         fenKey: keyOf(afterC3),
-        body: 'Ispod table.',
+        body: 'Under the tree.',
         updatedAt: DateTime(2026, 9, 1),
       );
       await pump(tester, const Size(1000, 900));
 
       expect(tester.takeException(), isNull);
       expect(find.byType(RepertoireCommentPanel), findsOneWidget);
-      expect(
-        tester
-            .widget<RepertoireCommentPanel>(find.byType(RepertoireCommentPanel))
-            .dense,
-        isTrue,
-      );
+      final comment = tester.getRect(find.text('Under the tree.'));
+      final board = tester.getRect(find.byType(BoardWithCoordinates));
+      final tree = tester.getRect(find.byType(VisualMoveTreeWidget));
+      expect(comment.left, greaterThanOrEqualTo(board.right));
+      expect(comment.top, greaterThanOrEqualTo(tree.bottom));
     });
   });
 

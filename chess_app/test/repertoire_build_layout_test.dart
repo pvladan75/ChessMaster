@@ -5,7 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
+import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
@@ -14,6 +16,7 @@ import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/models/analysis_models.dart';
+import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
@@ -214,6 +217,78 @@ final _entry = OpeningBookEntry(
 const _openingLabel = 'C54 · Italian Game: Giuoco Pianissimo';
 OpeningBookEntry? _named(String fen) => _entry;
 
+OpeningExplorerMove _bookMove(String uci, String san, int games) =>
+    OpeningExplorerMove(
+        uci: uci,
+        san: san,
+        white: games ~/ 3,
+        draws: games ~/ 3,
+        black: games - 2 * (games ~/ 3));
+
+/// The book at every position: three moves, so the panel draws its chips.
+Future<OpeningExplorerLookup> _book(String fen) async =>
+    OpeningExplorerLookup.ok(OpeningExplorerResult(
+      fen: fen,
+      white: 2600,
+      draws: 2200,
+      black: 1700,
+      moves: [
+        _bookMove('c7c5', 'c5', 4100),
+        _bookMove('d8b6', 'Qb6', 1500),
+        _bookMove('b8c6', 'Nc6', 900),
+      ],
+    ));
+
+/// Three lines, each with an evaluation no other text on the screen carries,
+/// and a continuation long enough to be cut, as a real one is.
+const _evals = ['-0.31', '-0.47', '-0.62'];
+Future<List<AnalysisLine>> _engine(String fen, int depth, int multiPV) async =>
+    [
+      for (var i = 0; i < multiPV; i++)
+        AnalysisLine(
+          multipv: i + 1,
+          depth: depth,
+          evaluation: _evals[i % 3],
+          bestMoveLan: const ['c7c5', 'd8b6', 'b8c6'][i % 3],
+          bestMoveSan: const ['c5', 'Qb6', 'Nc6'][i % 3],
+          continuationLan: '',
+          continuationSan: 'c3 Nc6 Nf3 Qb6 a3 c4 Nbd2 Bd7 Be2 Na5 O-O Ne7',
+          sanMoveList: const [],
+          fenList: const [],
+          fromSquare: const ['c7', 'd8', 'b8'][i % 3],
+          toSquare: const ['c5', 'b6', 'c6'][i % 3],
+        ),
+    ];
+
+/// The rectangle an element is drawn in.
+Rect _rectOf(Element element) {
+  final box = element.renderObject! as RenderBox;
+  return box.localToGlobal(Offset.zero) & box.size;
+}
+
+/// Every widget [finder] matches is seen: inside the window **and** inside
+/// every box that scrolls it. `expectOnScreen` alone passes a panel that is
+/// built below the fold of its own box — laid out, inside the window, and a
+/// scroll away, which is the very thing the owner asked to be rid of.
+void _expectSeen(WidgetTester tester, Size size, Finder finder) {
+  expectOnScreen(tester, size, finder);
+  for (final element in finder.evaluate()) {
+    final rect = _rectOf(element);
+    element.visitAncestorElements((ancestor) {
+      if (ancestor.widget is Scrollable) {
+        final box = _rectOf(ancestor);
+        expect(
+            box.contains(rect.topLeft) &&
+                box.contains(rect.bottomRight - const Offset(1, 1)),
+            isTrue,
+            reason: '${element.widget} is a scroll away at ${sizeLabel(size)}: '
+                '$rect outside $box');
+      }
+      return true;
+    });
+  }
+}
+
 void main() {
   // Real glyphs: these tests measure whether rows fit.
   setUpAll(loadRoboto);
@@ -234,6 +309,7 @@ void main() {
     OpeningBookEntry? Function(String fen)? openingLookup,
     OpeningJudgeService? judge,
     void Function(String fen)? onDrillHere,
+    Future<OpeningExplorerLookup> Function(String fen)? explore,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
@@ -254,6 +330,7 @@ void main() {
         judge: judge ?? _SilentJudge(),
         onDrillHere: onDrillHere,
         analyse: analyse ?? (fen, depth, multiPV) async => const [],
+        explore: explore,
       ),
     ));
     await tester.pumpAndSettle();
@@ -639,20 +716,27 @@ void main() {
           reason: 'nošeno ime je nestalo pri prelasku praga');
     });
 
-    testWidgets('between the thresholds it stays in the column',
+    testWidgets('between the thresholds it heads the panels beside the board',
         (tester) async {
-      // 900 dp is not wide enough: the opening's name waits for `ultraWide`
-      // and stays in the column below it.
+      // 900 dp is not wide enough: the opening's name waits for `ultraWide`.
+      //
+      // Rewritten 30.9.2026. It used to say „and the board is still below
+      // it": the name stood over the board in the board's column. Since the
+      // board takes the window's height (`RepertoireLayout`), a row over it
+      // is height the board gives up, so the name heads the position's
+      // panels instead — beside the board, with the book it names.
       await pump(tester, const Size(900, 800), openingLookup: _named);
 
       expect(tester.takeException(), isNull);
       expect(find.byType(OpeningBanner), findsOneWidget);
-      expect(tester.getRect(find.text(_openingLabel)).top,
-          greaterThan(kToolbarHeight),
+      final name = tester.getRect(find.text(_openingLabel));
+      expect(name.top, greaterThan(kToolbarHeight),
           reason: 'the opening name is in the bar where it has no room');
-      // And the board is still below it, not under it.
-      expect(tester.getRect(find.byType(BoardWithCoordinates)).top,
-          greaterThan(tester.getRect(find.text(_openingLabel)).top));
+      expect(
+          name.left,
+          greaterThanOrEqualTo(
+              tester.getRect(find.byType(BoardWithCoordinates)).right),
+          reason: 'the opening name is not beside the board');
     });
   });
 
@@ -708,6 +792,38 @@ void main() {
           reason: 'zum je resetovan pri povratku preko praga');
     });
 
+    testWidgets('the zoom survives the tree leaving its own column',
+        (tester) async {
+      // Since 30.9.2026 a desktop window has two homes for the tree as well:
+      // a column of its own beside the panels, from 1508 wide at this height,
+      // and over the panels below that (`RepertoireLayout`). The same rule
+      // holds across that width.
+      await pump(tester, const Size(1508, 792));
+      final viewer = tester.widget<InteractiveViewer>(find.descendant(
+        of: find.byType(VisualMoveTreeWidget),
+        matching: find.byType(InteractiveViewer),
+      ));
+      viewer.transformationController!.value = Matrix4.identity()
+        ..scaleByDouble(1.5625, 1.5625, 1, 1);
+      await tester.pumpAndSettle();
+      final treeInColumn = tester.getRect(find.byType(VisualMoveTreeWidget));
+
+      tester.view.physicalSize = const Size(1507, 792);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      // Proof the home changed — without it the scale surviving proves
+      // nothing: the tree over the panels is wider and shorter.
+      expect(tester.getRect(find.byType(VisualMoveTreeWidget)).width,
+          greaterThan(treeInColumn.width + 300));
+      expect(scaleOf(tester), closeTo(1.5625, 0.0001),
+          reason: 'the zoom was reset when the tree left its column');
+
+      tester.view.physicalSize = const Size(1508, 792);
+      await tester.pumpAndSettle();
+      expect(scaleOf(tester), closeTo(1.5625, 0.0001),
+          reason: 'the zoom was reset when the tree went back to its column');
+    });
+
     testWidgets('and it is drawn exactly once at every width', (tester) async {
       // `_treeKey` in two places at once throws, so the two homes have to be
       // mutually exclusive at every width — including the ones where the body's
@@ -718,6 +834,9 @@ void main() {
         Size(840, 900),
         Size(1000, 900),
         Size(1400, 900),
+        Size(1507, 792),
+        Size(1508, 792),
+        Size(1536, 792),
       ]) {
         await pump(tester, size);
         expect(tester.takeException(), isNull, reason: 'na $size');
@@ -801,31 +920,12 @@ void main() {
           reason: 'na niskom ekranu ispod palete nije ostalo ništa');
     });
 
-    testWidgets('a desktop window keeps room under the board too',
-        (tester) async {
-      // The owner's screenshot of 5.9.2026: at 1920x1015 the board sat on its
-      // 560 ceiling and left 189 px under it, because the wide branch clamped
-      // by a flat `maxHeight - 280` that never bit on a real window. The share
-      // rule is the phone's, and it is now the same constant.
-      await pump(tester, const Size(1920, 1000));
-
-      expect(tester.takeException(), isNull);
-      // Measured on `BoardWithCoordinates`, which is the widget `_boardSize`
-      // is handed to. `ChessBoardWithOverlay` inside it is the board *minus*
-      // its coordinate gutter, and asserting on that is how the first version
-      // of this test passed with the rule reverted: 540 is under 560 either
-      // way.
-      final board = tester.getRect(find.byType(BoardWithCoordinates));
-      final palette = tester.getRect(find.byType(MoveNavigationControls));
-
-      // With the old flat `maxHeight - 280` this window gave a board of exactly
-      // 560 — its ceiling — and 300 px under the palette. Measured 5.9.2026,
-      // both numbers, before and after.
-      expect(board.height, lessThan(560.0),
-          reason: 'tabla je i dalje na plafonu — pravilo po visini ne ujeda');
-      expect(1000.0 - palette.bottom, greaterThan(340.0),
-          reason: 'ispod table na desktopu nije ostalo više nego ranije');
-    });
+    // „A desktop window keeps room under the board too" stood here: at
+    // 1920 × 1000 the board had to stay under 560 and leave 340 px under the
+    // strip, for the panels that stood there. Superseded on the owner's word
+    // of 30.9.2026 — the book and the engine go beside the board and the
+    // board takes the window's height (`RepertoireLayout`); the group below
+    // holds the new rule at the same window.
 
     testWidgets('there is something left to scroll', (tester) async {
       // The failure this exists for: a board sized by width alone, pinned,
@@ -836,6 +936,137 @@ void main() {
       final palette = tester.getRect(find.byType(MoveNavigationControls));
       expect(640.0 - palette.bottom, greaterThan(80.0),
           reason: 'ispod table i palete nije ostalo šta da se skroluje');
+    });
+  });
+
+  group('the book and the engine beside the board (30.9.2026)', () {
+    // The owner's request: „da korisnik ne skroluje sve vreme ispod table dok
+    // traži najbolje poteze koje daje statistika iz otvaranja i engine", the
+    // comment column gone, and a larger board. Chosen from the sketches in
+    // `docs/skice/repertoar.html`: three columns where they fit, the tree
+    // over the panels where they do not. The board sizes are the literals of
+    // `test/repertoire_layout_test.dart`, held here to the real screen.
+    tearDown(() => AppSettingsService.instance.setBoardSizeScale(1.0));
+
+    Future<void> askEngine(WidgetTester tester) async {
+      await tester.tap(find.text('Ask engine'));
+      await tester.pumpAndSettle();
+      expect(find.text(_evals.first), findsOneWidget,
+          reason: 'the engine was asked and drew nothing');
+    }
+
+    testWidgets(
+        "the owner's window: a board of 668, and everything beside it seen",
+        (tester) async {
+      const size = Size(1536, 792);
+      await pump(tester, size, explore: _book, analyse: _engine);
+      await askEngine(tester);
+      expect(tester.takeException(), isNull);
+
+      // Measured on `BoardWithCoordinates`, the widget the layout's size is
+      // handed to; the board inside it is that less its coordinates.
+      final board = tester.getRect(find.byType(BoardWithCoordinates));
+      expect(board.height, 668, reason: "today's rule gave 368 here");
+      expect(board.width, 668);
+      final strip = tester.getRect(find.byType(MoveNavigationControls));
+      expect(strip.top, greaterThanOrEqualTo(board.bottom));
+      expect(strip.bottom, lessThanOrEqualTo(size.height));
+
+      // The book, the moves kept and every engine line, without a scroll.
+      _expectSeen(tester, size, find.byType(OpeningExplorerPanelWidget));
+      _expectSeen(tester, size, find.text('Your moves here'));
+      for (final eval in _evals) {
+        _expectSeen(tester, size, find.text(eval));
+      }
+      _expectSeen(tester, size, find.text('Ask engine'));
+      _expectSeen(tester, size, find.text('Next position'));
+
+      // Three columns: the panels beside the board, the tree beside them.
+      final book = tester.getRect(find.byType(OpeningExplorerPanelWidget));
+      final tree = tester.getRect(find.byType(VisualMoveTreeWidget));
+      expect(book.left, greaterThanOrEqualTo(board.right));
+      expect(tree.left, greaterThanOrEqualTo(book.right));
+      // As tall as its column, not the 420 the card keeps under a board.
+      expect(tree.height, greaterThan(500),
+          reason: 'the tree does not fill its column');
+      expect(tree.bottom, lessThanOrEqualTo(size.height));
+
+      // No column for the comment: with nothing written there is nothing.
+      expect(find.text('My comment'), findsNothing);
+    });
+
+    testWidgets('1920 × 1000: the board takes the height, 876', (tester) async {
+      const size = Size(1920, 1000);
+      await pump(tester, size, explore: _book, analyse: _engine);
+      await askEngine(tester);
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(find.byType(BoardWithCoordinates)).height, 876);
+      expect(tester.getRect(find.byType(MoveNavigationControls)).bottom,
+          lessThanOrEqualTo(size.height));
+      _expectSeen(tester, size, find.byType(OpeningExplorerPanelWidget));
+      for (final eval in _evals) {
+        _expectSeen(tester, size, find.text(eval));
+      }
+    });
+
+    testWidgets('under the tree, the book and the engine stand side by side',
+        (tester) async {
+      // 1400 × 792 is too narrow for three columns beside a board of 668,
+      // and leaves a pane of 704 — past the 640 the two halves need.
+      const size = Size(1400, 792);
+      await pump(tester, size, explore: _book, analyse: _engine);
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(find.byType(BoardWithCoordinates)).height, 668);
+
+      // Before it is asked the engine's half says so, and is not empty.
+      _expectSeen(tester, size,
+          find.text('The engine has not been asked about this position.'));
+
+      await askEngine(tester);
+      final book = tester.getRect(find.byType(OpeningExplorerPanelWidget));
+      final line = tester.getRect(find.text(_evals.first));
+      final tree = tester.getRect(find.byType(VisualMoveTreeWidget));
+      expect(line.left, greaterThanOrEqualTo(book.right),
+          reason: 'the engine is not beside the book');
+      expect(book.top, greaterThanOrEqualTo(tree.bottom),
+          reason: 'the panels are not under the tree');
+      _expectSeen(tester, size, find.byType(OpeningExplorerPanelWidget));
+      for (final eval in _evals) {
+        _expectSeen(tester, size, find.text(eval));
+      }
+      _expectSeen(tester, size, find.text('Ask engine'));
+    });
+
+    for (final size in const [Size(1200, 800), Size(900, 700)]) {
+      testWidgets('at ${sizeLabel(size)} the book is seen beside the board',
+          (tester) async {
+        // The narrow desktop windows: one column under the tree, which
+        // scrolls. The book comes first in it and must not need that.
+        await pump(tester, size, explore: _book, analyse: _engine);
+        expect(tester.takeException(), isNull);
+        final board = tester.getRect(find.byType(BoardWithCoordinates));
+        final book = tester.getRect(find.byType(OpeningExplorerPanelWidget));
+        expect(book.left, greaterThanOrEqualTo(board.right));
+        _expectSeen(tester, size, find.byType(OpeningExplorerPanelWidget));
+        _expectSeen(tester, size, find.text('Ask engine'));
+        expect(tester.getRect(find.byType(MoveNavigationControls)).bottom,
+            lessThanOrEqualTo(size.height));
+      });
+    }
+
+    testWidgets('the board-size setting shrinks the board, and the tree gains',
+        (tester) async {
+      const size = Size(1536, 792);
+      await pump(tester, size);
+      final fullTree = tester.getRect(find.byType(VisualMoveTreeWidget));
+
+      await AppSettingsService.instance.setBoardSizeScale(0.6);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(find.byType(BoardWithCoordinates)).height,
+          closeTo(668 * 0.6, 0.01));
+      expect(tester.getRect(find.byType(VisualMoveTreeWidget)).width,
+          closeTo(fullTree.width + 668 * 0.4, 0.01));
     });
   });
 

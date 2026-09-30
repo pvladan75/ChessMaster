@@ -3,29 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 
-/// What the student wrote about the position on the board.
+/// What the student wrote about the position on the board, with the
+/// position's other panels — and **nothing at all** while nothing is written.
+/// The place beside the book and the engine is the most expensive on the
+/// screen; a card saying "no comment" would push them down to tell the reader
+/// something they already know. Writing one starts from „Add comment" on the
+/// strip under the board.
 ///
-/// One widget, two mountings, and that is the whole point of it being a widget
-/// rather than two pieces of screen:
-///
-///   * **Beside the board**, in the third column of a desktop window, where it
-///     is a panel that says so even when it is empty — an empty panel there is
-///     an invitation, and the space was going to be empty anyway.
-///   * **Under the board**, on a phone or a narrow window, where an empty
-///     comment draws **nothing at all**. The column under a board on a 360 dp
-///     screen is the most expensive space in the app; a card saying "no
-///     comment" would push the question off the bottom to tell the reader
-///     something they already know.
-///
-/// That is what [dense] switches. Everything else — the text, the edit and the
-/// delete — is the same in both places, because it is the same comment.
+/// Until 30.9.2026 a desktop window gave it a column of its own, where it
+/// stood empty as an invitation. The owner had that column removed so the
+/// book and the engine could take its place beside the board.
 class RepertoireCommentPanel extends StatelessWidget {
   const RepertoireCommentPanel({
     super.key,
     required this.body,
     required this.onEdit,
     this.onDelete,
-    this.dense = false,
     this.busy = false,
   });
 
@@ -37,9 +30,6 @@ class RepertoireCommentPanel extends StatelessWidget {
   /// Absent while there is nothing to delete.
   final VoidCallback? onDelete;
 
-  /// Under the board rather than beside it: collapses to nothing when empty.
-  final bool dense;
-
   /// A save is in flight. The text stays on screen — it is what the student
   /// typed and it is not in question — and only the buttons wait.
   final bool busy;
@@ -48,12 +38,12 @@ class RepertoireCommentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (dense && !_hasText) return const SizedBox.shrink();
+    if (!_hasText) return const SizedBox.shrink();
 
     final colors = context.colors;
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(top: dense ? AppSpacing.xs : 0),
+      margin: const EdgeInsets.only(top: AppSpacing.xs),
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
@@ -76,11 +66,11 @@ class RepertoireCommentPanel extends StatelessWidget {
               // the whole panel exists for.
               IconButton(
                 icon: Icon(Icons.edit_outlined, size: 16, color: colors.info),
-                tooltip: _hasText ? 'Edit comment' : 'Write comment',
+                tooltip: 'Edit comment',
                 visualDensity: VisualDensity.compact,
                 onPressed: busy ? null : onEdit,
               ),
-              if (_hasText && onDelete != null)
+              if (onDelete != null)
                 IconButton(
                   icon: Icon(Icons.delete_outline,
                       size: 16, color: colors.danger),
@@ -95,14 +85,8 @@ class RepertoireCommentPanel extends StatelessWidget {
             onTap: busy ? null : onEdit,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-              child: _hasText
-                  ? Text(body!.trim(),
-                      style: AppText.body.copyWith(color: colors.textPrimary))
-                  : Text(
-                      'Nothing has been written about this position yet. Plan, '
-                      'trap, what to watch out for — what you would tell '
-                      'yourself in half a year.',
-                      style: AppText.caption.copyWith(color: colors.textMuted)),
+              child: Text(body!.trim(),
+                  style: AppText.body.copyWith(color: colors.textPrimary)),
             ),
           ),
         ],

@@ -2483,6 +2483,32 @@ odlazi na kraj spiska u alatu.
    repertoire." koja tvrdi da je posao gotov.
    Potrebno: Windows; izgrađen repertoar; server (pa ugašen).
 
+78. [ ] **Knjiga i motor pored table, bez kolone za komentar, i veća tabla.**
+   [257.1]
+   O čemu se radi: Na desktop prozoru tabla uzima visinu prozora (668 na
+   1536 × 792, do sada 368), ispod nje je samo traka sa potezima, a
+   `Opening book`, `Your moves here` i `Engine` stoje pored table bez
+   skrolovanja; stablo ima svoju kolonu do dna prozora. Kolona `My comment`
+   je uklonjena — napisan komentar stoji među panelima. Gde tri kolone ne
+   staju bez smanjivanja table (uži prozor), stablo je gore, a paneli ispod
+   njega — knjiga i motor jedno pored drugog kad ima mesta. Izabrano
+   30.9.2026 sa skica u `docs/skice/repertoar.html` („B, pa A"). Starije
+   stavke ovog odeljka i dalje pišu „ispod table" i „kolona sa komentarom"
+   ([84.12], [70.3], [104.28]); na desktopu je to sada pored table. Na
+   telefonu raspored ostaje isti, samo `Board size` sada važi i ovde.
+   Gde: `Practise` → `Opening repertoire` → `Open repertoire` → (red
+   repertoara).
+   Uradi: Na prozoru 1536 × 792 pritisni `Ask engine`. Zatim polako suzi
+   prozor do najmanjeg i vrati ga. Na kraju u meniju sa ikonom mreže pomeri
+   `Board size`.
+   Treba da vidiš: Na 1536 tabla, knjiga sa čipovima, tvoji potezi i sve
+   linije motora bez skrolovanja, stablo desno do dna prozora, nigde
+   `My comment` dok komentar nije napisan. Pri sužavanju stablo prelazi
+   iznad panela, a tabla se u tom trenutku ne smanjuje; zum stabla ostaje
+   isti. Knjiga se vidi bez skrolovanja na svakoj širini. `Board size`
+   smanjuje tablu, a stablo dobija prostor.
+   Potrebno: Windows; server; repertoar sa bar jednim tvojim potezom.
+
 ### Practise — Repertoar — drill
 
 1. [ ] **Dril igra samo poteze koji su uneti u stablo.** [166.9]

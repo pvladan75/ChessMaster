@@ -515,6 +515,13 @@ class _AnalysisMoveTreeWidgetState extends State<AnalysisMoveTreeWidget> {
 
 /// The tree itself, under the card's header: as tall as it is given where the
 /// card [fills], and 420 at most where it does not.
+///
+/// One shape for both, a `Flexible` whose flex is 0 where the card does not
+/// fill — which a `Flex` lays out as an ordinary child. The repertoire's card
+/// fills on a desktop window and not under the board, and a window dragged
+/// across that width would otherwise put the drawing under a different
+/// parent, which is a new `State` and a zoom set back to 1 — the fault the
+/// owner reported on 5.9.2026 („zum mi se resetuje").
 class _TreeBody extends StatelessWidget {
   const _TreeBody({required this.fills, required this.child});
 
@@ -523,13 +530,14 @@ class _TreeBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (fills) {
-      return Expanded(child: SizedBox(width: double.infinity, child: child));
-    }
-    return Container(
-      constraints: const BoxConstraints(maxHeight: 420),
-      width: double.infinity,
-      child: child,
+    return Flexible(
+      flex: fills ? 1 : 0,
+      fit: FlexFit.tight,
+      child: Container(
+        constraints: fills ? null : const BoxConstraints(maxHeight: 420),
+        width: double.infinity,
+        child: child,
+      ),
     );
   }
 }

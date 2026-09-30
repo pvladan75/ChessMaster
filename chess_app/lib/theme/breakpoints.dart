@@ -9,17 +9,13 @@ import 'package:flutter/widgets.dart';
 abstract final class Breakpoints {
   static const double wide = 840.0;
 
-  /// Room for a *third* column beside the board and its tree.
+  /// Room in the app bar for a second line of text beside the title — the
+  /// repertoire build screen's opening name, which overflowed the bar at 900.
   ///
-  /// Material 3's expanded class starts at 840, which is two columns: at that
-  /// width the board already takes 42% and the tree what is left, so a third
-  /// panel would be carved out of a picture that is barely readable. 1200 is
-  /// where the tree keeps a usable width with a 320 px panel taken off it —
-  /// measured on the repertoire build screen, which is the first screen to want
-  /// one, and a desktop window is normally well past it.
-  ///
-  /// Below this the third panel does not go somewhere smaller; it goes **under
-  /// the board**, where the Analysis Studio has always put its comment.
+  /// It was first the width for a *third* column beside the board and its
+  /// tree, the repertoire's comment. That column went on 30.9.2026, and the
+  /// question of how many columns fit beside a board is now asked of the
+  /// board's own size (`RepertoireLayout`), not of a fixed width.
   static const double ultraWide = 1200.0;
 
   /// Material 3's compact height class: below this a window is too short for

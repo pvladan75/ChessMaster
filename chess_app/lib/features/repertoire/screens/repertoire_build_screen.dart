@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
@@ -20,6 +22,7 @@ import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart
 import 'package:chess_app/features/repertoire/widgets/opening_banner.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
+import 'package:chess_app/features/repertoire/services/repertoire_layout.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -179,11 +182,13 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   Map<String, MoveTreeNodeLook> _looks = {};
 
   /// The opening banner's identity, so its `State` — the last opening it could
-  /// name — survives moving between the app bar and the board column.
+  /// name — survives moving between the app bar, the board column and the
+  /// panels beside the board.
   final GlobalKey _openingKey = GlobalKey();
 
   /// The drawing's identity, so its zoom and pan survive the tree moving
-  /// between its own column and the space under the controls.
+  /// between its own column, the pane over the panels and the space under
+  /// the controls.
   final GlobalKey _treeKey = GlobalKey();
 
   /// The drawing narrowed to one branch, or null for the whole repertoire.
@@ -695,7 +700,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         onSelect: _jumpTo,
       );
 
-  Widget _buildNavigation(BuildContext context) {
+  /// The strip under the board. [dense] on a desktop window, where the board
+  /// is sized to leave it one row of 48, as on the Preparation screen.
+  Widget _buildNavigation(BuildContext context, {bool? dense}) {
     final line = _lineNodes();
     final wrote = _commentHere != null;
     return MoveNavigationControls(
@@ -705,6 +712,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
           ? 'Move ${_lineIndex()} of ${line.length - 1}'
           : null,
       iconSize: 20,
+      dense: dense,
       trailing: [
         IconButton(
           icon: Icon(Icons.call_split,
@@ -739,11 +747,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
   }
 
-  Widget _buildComment(BuildContext context, {required bool dense}) {
+  Widget _buildComment(BuildContext context) {
     if (_commentFen == null) return const SizedBox.shrink();
     return RepertoireCommentPanel(
       body: _commentHere?.body,
-      dense: dense,
       busy: _savingComment,
       onEdit: () => _editComment(),
       onDelete: _commentHere == null ? null : _deleteComment,
@@ -1470,14 +1477,21 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         elevation: 0,
         actions: const [
           SpeechToggleButton(),
-          BoardViewMenu(arrows: true),
+          BoardViewMenu(arrows: true, boardSize: true),
         ],
       ),
       body: MoveKeyboardShortcuts(
         cursor: _moveCursor(),
         onChanged: () {},
         enabled: !_busy,
-        child: SafeArea(child: _buildBody()),
+        // Rebuilt when the board-size setting moves, which the bar's menu
+        // does while the board is on the screen.
+        child: SafeArea(
+          child: ListenableBuilder(
+            listenable: AppSettingsService.instance,
+            builder: (context, _) => _buildBody(),
+          ),
+        ),
       ),
     );
   }
@@ -1490,10 +1504,16 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     }
     if (_current == null) return _buildDone();
 
+    // The reader's board-size setting, 0.6–1.0, read on every layout: the bar
+    // offers the slider, and a slider that moved the board on one layout and
+    // not another would be a menu that does nothing.
+    final scale = AppSettingsService.instance.boardSizeScale;
+
     // Before the width test: a large phone on its side is past `wide`, and the
     // wide layout's board column assumes a desktop's height under the board.
     if (LandscapeBoardLayout.applies(context)) {
       return LandscapeBoardLayout(
+        boardScale: scale,
         board: _buildBoard,
         panels: Padding(
           padding: const EdgeInsets.only(right: AppSpacing.xs),
@@ -1506,7 +1526,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
                   fen: _boardFen!,
                   lookup: widget.openingLookup,
                 ),
-              ..._buildPositionPanels(context, commentBeside: false),
+              ..._buildPositionPanels(context),
               const SizedBox(height: AppSpacing.lg),
               _buildTree(context),
             ],
@@ -1521,71 +1541,184 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final wide = constraints.maxWidth >= Breakpoints.wide;
-        if (!wide) {
-          return _buildBoardColumn(context, _boardSize(constraints, wide),
-              treeBelow: true);
+        if (constraints.maxWidth < Breakpoints.wide) {
+          return _buildBoardColumn(context, _boardSize(constraints) * scale);
         }
-        final left = (constraints.maxWidth * 0.42).clamp(420.0, 620.0);
-        final third = constraints.maxWidth >= Breakpoints.ultraWide;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: left,
-              child: _buildBoardColumn(context, _boardSize(constraints, wide),
-                  commentBeside: third),
-            ),
-            VerticalDivider(width: 1, color: context.colors.border),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: _buildTree(context),
-              ),
-            ),
-            if (third) ...[
-              VerticalDivider(width: 1, color: context.colors.border),
-              SizedBox(
-                width: 320,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: _buildComment(context, dense: false),
-                ),
-              ),
-            ],
-          ],
+        return _buildDesktop(
+          Size(constraints.maxWidth, constraints.maxHeight),
+          scale: scale,
         );
       },
     );
   }
 
-  /// How much of the window's height the board may take, on any layout, so
-  /// something of what is under it still fits on a short screen.
+  /// How much of the window's height the board may take on a phone held
+  /// upright or a window under `Breakpoints.wide`, so something of what is
+  /// under it still fits on a short screen. A desktop window has its own rule,
+  /// `RepertoireLayout`, with nothing under the board but the strip.
   static const double _boardShare = 0.50;
 
-  double _boardSize(BoxConstraints constraints, bool wide) {
-    if (!wide) {
-      final byWidth = (constraints.maxWidth - 24).clamp(200.0, 420.0);
-      if (!constraints.maxHeight.isFinite) return byWidth;
-      final byHeight = constraints.maxHeight * _boardShare;
-      return byHeight < byWidth ? byHeight.clamp(200.0, 420.0) : byWidth;
-    }
-    final byWidth = (constraints.maxWidth * 0.42).clamp(420.0, 620.0) - 24;
-    final byHeight = constraints.maxHeight.isFinite
-        ? constraints.maxHeight * _boardShare
-        : byWidth;
-    final smaller = byWidth < byHeight ? byWidth : byHeight;
-    return smaller.clamp(200.0, 560.0);
+  double _boardSize(BoxConstraints constraints) {
+    final byWidth = (constraints.maxWidth - 24).clamp(200.0, 420.0);
+    if (!constraints.maxHeight.isFinite) return byWidth;
+    final byHeight = constraints.maxHeight * _boardShare;
+    return byHeight < byWidth ? byHeight.clamp(200.0, 420.0) : byWidth;
   }
+
+  /// A desktop window, by `RepertoireLayout`: the board as tall as the window
+  /// lets it be with the strip under it, and beside it the position's panels
+  /// and the tree — in columns of their own where they fit, the panels under
+  /// the tree where they do not. The book and the engine are on the screen in
+  /// either, which is what the owner asked for on 30.9.2026: reading them had
+  /// meant scrolling under the board, beside a column that held only his
+  /// comment.
+  Widget _buildDesktop(Size body, {required double scale}) {
+    final layout = RepertoireLayout.desktop(body, scale: scale);
+    final inner = math.max(0.0, body.height - 2 * RepertoireLayout.padding);
+
+    final boardColumn = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: layout.board,
+          height: layout.board,
+          child: _buildBoard(layout.board),
+        ),
+        const SizedBox(height: RepertoireLayout.rowGap),
+        SizedBox(
+          width: layout.board,
+          child: _buildNavigation(context, dense: true),
+        ),
+      ],
+    );
+
+    const gap = SizedBox(
+      width: RepertoireLayout.gap,
+      height: RepertoireLayout.gap,
+    );
+    final tree = _buildTree(context, fills: true);
+    final Widget beside = switch (layout.shape) {
+      RepertoireShape.threeColumns => Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: RepertoireLayout.panelColumn,
+              child: _withControls(_scrolling(_desktopPanels(engine: true))),
+            ),
+            gap,
+            Expanded(child: tree),
+          ],
+        ),
+      RepertoireShape.treeOverBeside => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: tree),
+            gap,
+            SizedBox(
+              height: layout.underTree,
+              child: _withControls(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _scrolling(_desktopPanels(engine: false)),
+                    ),
+                    gap,
+                    Expanded(child: _scrolling([_buildEngineBeside(context)])),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      RepertoireShape.treeOverStacked => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: tree),
+            gap,
+            SizedBox(
+              height: layout.underTree,
+              child: _withControls(_scrolling(_desktopPanels(engine: true))),
+            ),
+          ],
+        ),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.all(RepertoireLayout.padding),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          boardColumn,
+          gap,
+          SizedBox(width: layout.paneWidth, height: inner, child: beside),
+        ],
+      ),
+    );
+  }
+
+  /// The position's panels on a desktop window, with the opening's name on
+  /// top where the bar has no room for it.
+  List<Widget> _desktopPanels({required bool engine}) => [
+        if (!Breakpoints.isUltraWide(context) && _boardFen != null)
+          OpeningBanner(
+            key: _openingKey,
+            fen: _boardFen!,
+            lookup: widget.openingLookup,
+          ),
+        ..._buildPositionPanels(context, engine: engine, toolsFirst: true),
+      ];
+
+  /// Panels that scroll in a box of their own, so a long engine answer moves
+  /// neither the board nor the tree.
+  Widget _scrolling(List<Widget> children) => SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
+      );
+
+  /// The buttons that act on the position, pinned under its panels: an action
+  /// does not scroll away.
+  Widget _withControls(Widget panels) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: panels),
+          const SizedBox(height: AppSpacing.sm),
+          _buildControls(context),
+        ],
+      );
+
+  /// The engine's half of the panels under the tree: its lines once it has
+  /// been asked, and until then a sentence saying so — a half with nothing in
+  /// it reads as a panel that failed to draw.
+  Widget _buildEngineBeside(BuildContext context) {
+    if (_engineShown) return _buildEngine(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Text(
+        'The engine has not been asked about this position.',
+        style: AppText.caption.copyWith(color: context.colors.textMuted),
+      ),
+    );
+  }
+
+  /// Whether the engine has anything to show for the position on the board.
+  bool get _engineShown =>
+      _thinking || _linesFen == _boardFen || _noteHere != null;
 
   /// The tree, drawn by the analysis board's own widget. Nothing until the
   /// walk has answered: an empty canvas would read as an empty repertoire.
-  Widget _buildTree(BuildContext context) {
+  ///
+  /// [fills] on a desktop window, where the tree stands as tall as its place.
+  Widget _buildTree(BuildContext context, {bool fills = false}) {
     final root = _treeRoot;
     final active = _activeNode;
     if (root == null || active == null) return const SizedBox.shrink();
     return RepertoireTreePanel(
       key: _treeKey,
+      fills: fills,
       root: root,
       active: active,
       nodeLook: (node) => _looks[node.id],
@@ -1613,12 +1746,12 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     );
   }
 
-  /// The board and everything that belongs to the position standing on it.
+  /// The board and everything that belongs to the position standing on it,
+  /// on a phone held upright and a window under `Breakpoints.wide`.
   ///
   /// The banner, the board and the strip stay put; everything a reader scrolls
-  /// *to* moves under them.
-  Widget _buildBoardColumn(BuildContext context, double boardSize,
-      {bool commentBeside = false, bool treeBelow = false}) {
+  /// *to* moves under them, the tree last.
+  Widget _buildBoardColumn(BuildContext context, double boardSize) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1653,13 +1786,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ..._buildPositionPanels(context, commentBeside: commentBeside),
+                ..._buildPositionPanels(context),
                 const SizedBox(height: AppSpacing.md),
                 _buildControls(context),
-                if (treeBelow) ...[
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildTree(context),
-                ],
+                const SizedBox(height: AppSpacing.lg),
+                _buildTree(context),
               ],
             ),
           ),
@@ -1691,24 +1822,42 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       );
 
   /// What belongs to the position standing on the board, from the line that
-  /// reached it to the engine's note — the same list in every layout.
+  /// reached it to the engine's note. Without the [engine] where the engine
+  /// has a place of its own beside the rest.
+  ///
+  /// [toolsFirst] on a desktop window: the book, the moves kept and the
+  /// engine straight under the line, and the question, the advice and the
+  /// comment after them. Beside the board those are what the reader came for,
+  /// and in the box under the tree the question's four lines of advice put
+  /// the book below the fold (measured at 1400 × 792 and 900 × 700). On a
+  /// phone the question stays first: it says what the board under it asks.
   List<Widget> _buildPositionPanels(BuildContext context,
-      {required bool commentBeside}) {
+      {bool engine = true, bool toolsFirst = false}) {
     final active = _activeNode;
+    final tools = [
+      if (_verdictSan != null) _buildVerdict(context),
+      _buildBook(context),
+      if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
+      if (engine && _engineShown) _buildEngine(context),
+    ];
     return [
       if (active != null) ...[
         const SizedBox(height: AppSpacing.xxs),
         RepertoireLineStrip(active: active, onSelect: _jumpTo),
       ],
-      if (!commentBeside) _buildComment(context, dense: true),
-      const SizedBox(height: AppSpacing.md),
-      _buildQuestion(context),
-      const SizedBox(height: AppSpacing.sm),
-      if (_verdictSan != null) _buildVerdict(context),
-      _buildBook(context),
-      if (!_afterMyMove && _kept.isNotEmpty) _buildKept(context),
-      if (_thinking || _linesFen == _boardFen || _noteHere != null)
-        _buildEngine(context),
+      if (toolsFirst) ...[
+        const SizedBox(height: AppSpacing.xs),
+        ...tools,
+        _buildComment(context),
+        const SizedBox(height: AppSpacing.md),
+        _buildQuestion(context),
+      ] else ...[
+        _buildComment(context),
+        const SizedBox(height: AppSpacing.md),
+        _buildQuestion(context),
+        const SizedBox(height: AppSpacing.sm),
+        ...tools,
+      ],
       if (_note != null) ...[
         const SizedBox(height: AppSpacing.sm),
         SpeakableInfo(

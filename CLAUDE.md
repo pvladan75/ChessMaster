@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5298 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5314 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1946 without TEST_DATABASE_URL, 2109 with it (both measured 30.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1195,6 +1195,14 @@ Then Preparation's „Board" and „Save as…", which were targets 20 px tall
 through `BarWordMenu`, 40 px, and Preparation's menus open under the word as
 Analysis's do. **A bar clamps what it is handed**: „the target stays inside
 the bar" survived a 48 px target in a 44 px bar and was deleted, not kept.
+Then the repertoire build screen on a desktop window (→ **5314**, a full run,
+predicted before it; analyze the same 22): the book and the engine beside the
+board, the comment column gone, and the board taking the window's height
+(`RepertoireLayout`, 368 → 668 on the owner's window) — „B, then A", chosen
+from sketches. **Inside the window is not seen**: `expectOnScreen` passes a
+panel laid out below the fold of its own scroll box; the gate's `_expectSeen`
+asks every `Scrollable` ancestor, and found the question's advice pushing the
+book down at 1400 × 792 and 900 × 700.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

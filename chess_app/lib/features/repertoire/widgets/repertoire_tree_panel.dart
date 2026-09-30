@@ -132,6 +132,7 @@ class RepertoireTreePanel extends StatelessWidget {
     this.extraLabel,
     this.onExtra,
     this.nodeLook,
+    this.fills = false,
   });
 
   final AnalysisNode root;
@@ -175,6 +176,11 @@ class RepertoireTreePanel extends StatelessWidget {
   /// `lookOfRepertoireMove`.
   final MoveTreeNodeLook? Function(AnalysisNode node)? nodeLook;
 
+  /// Take the height the panel is given — a desktop window's column, where
+  /// the tree stands as tall as the window — rather than the card's 420 at
+  /// most under the board. With this on, the parent must bound the height.
+  final bool fills;
+
   /// The sentence above the drawing that says what its marks mean. One copy,
   /// read by the tests, so the legend cannot drift from the marks.
   static const legend =
@@ -212,16 +218,24 @@ class RepertoireTreePanel extends StatelessWidget {
           ),
         ],
         const SizedBox(height: AppSpacing.xs),
-        AnalysisMoveTreeWidget(
-          nodeLook: nodeLook,
-          rootNode: root,
-          activeNode: active,
-          onSelectNode: onSelect,
-          onPromoteNode: onPromote,
-          onDeleteNode: onDelete,
-          deleteLabel: deleteLabel,
-          extraLabel: extraLabel,
-          onExtra: onExtra,
+        // One shape whether it fills or not — a flex of 0 is an ordinary
+        // child — so a window dragged across the width where the tree changes
+        // home keeps the drawing's `State`, and with it the reader's zoom.
+        Flexible(
+          flex: fills ? 1 : 0,
+          fit: FlexFit.tight,
+          child: AnalysisMoveTreeWidget(
+            fills: fills,
+            nodeLook: nodeLook,
+            rootNode: root,
+            activeNode: active,
+            onSelectNode: onSelect,
+            onPromoteNode: onPromote,
+            onDeleteNode: onDelete,
+            deleteLabel: deleteLabel,
+            extraLabel: extraLabel,
+            onExtra: onExtra,
+          ),
         ),
       ],
     );

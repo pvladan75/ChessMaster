@@ -9601,3 +9601,60 @@ and was deleted. What the phone case does guard is that 40 is *reached* there.
 top.** Without the `Center`, the word's rectangle is the whole 40 px, so
 „centred" alone passes; the case also asks that the word is no taller than
 its letters.
+
+## 30.9.2026 — the repertoire build screen: the book and the engine beside the board (`RepertoireLayout`)
+
+App 5298 → **5314** (+11 in the rule's own test, +7 − 1 in the layout test, − 1 in the comments test, predicted before the run; a full run with nothing else running).
+Analyze the same 22. No server change.
+
+The owner's request, with a screenshot of his 1536 × 792 window: the opening
+book and the engine to the right of the board instead of a scroll under it,
+the far-right comment column gone, the screen in line with Preparation and
+Analysis, and a larger board. Two sketches were rendered to PNG
+(`docs/skice/repertoar.html`) — B, three columns (board · panels · tree), and
+A, Preparation's shape (tree on top, panels under it) — and he chose „B, then
+A". The rule is `RepertoireLayout`, pure and with its own test: the board
+takes the height under the bar and the strip, Preparation's spacing; three
+columns wherever a 380 panel column and a tree of 420 fit **without costing
+the board anything**, so at the switch the board is the same size on both
+sides and only what stands beside it moves. His window: 368 → 668.
+
+**Inside the window is not seen.** `expectOnScreen` checks the window, and a
+panel laid out below the fold of its own scroll box is inside the window. The
+gate's `_expectSeen` checks every `Scrollable` ancestor as well, and on its
+first run it found the thing the owner asked to be rid of, at the two
+tree-over-panels windows (1400 × 792, 900 × 700): the question's four lines of
+advice pushed the book below the fold. On a desktop window the book, the moves
+kept and the engine now come first; the phone keeps its order. At the owner's
+window everything fitted either way, which is why only a gate at the other
+widths could see it.
+
+**A widget that changes its parent's type loses its `State`.** The tree fills
+its column on a desktop window and keeps its 420 under the board on a phone;
+written as `Expanded` or not, a window dragged across 840 put the drawing
+under a different parent and reset its zoom — the owner's report of 5.9.2026,
+back in a new place. Both sites (`RepertoireTreePanel`, the card's `_TreeBody`)
+are now a `Flexible` whose flex is 0 when it does not fill, which a `Flex` lays
+out as an ordinary child. Mutation named each site: restoring either
+conditional turned exactly „the zoom survives crossing the breakpoint" red.
+
+**A share of the height looked fine in the test and not in the picture.** The
+panels under the tree first took half the pane; every case was green, and the
+real screen rendered at 900 × 700 left the tree a sliver. They are now 300,
+Preparation's number. Render the screen before calling a layout done — again.
+
+**A mutation tool must show what it applied.** An edit to the mutation
+script's own table did not match, the script ran the previous mutation again,
+printed „APPLIED" and 46 reds — a null-check crash, read at first as a catch.
+Run by hand, the intended mutation (the empty comment drawn as the old
+invitation) turned exactly two cases red. Rule 3: read *which* test failed and
+why, and prove the tool, not only the code.
+
+Deleted with the column: `RepertoireCommentPanel.dense` and its empty
+invitation, one case („beside the board an empty comment is an invitation").
+Rewritten openly, each with its supersession above it: „a desktop window keeps
+room under the board too" (the old half-height rule), „between the thresholds
+it stays in the column" (the opening's name now heads the panels), and the
+two comment-column cases. `board_view_menu_reach_test` then required the size
+slider on this screen's menu, so `Board size` now moves this board on every
+layout.
