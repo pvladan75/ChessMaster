@@ -214,6 +214,117 @@ async function frequentNodesReport(pool, userId, options = {}) {
   };
 }
 
+/// The moves that led to each of [fenKeys], taken from the latest game of the
+/// subject that reached it — what the app opens a position of the report with
+/// in Analysis (the owner, 30.9.2026: the moves from the start of the game to
+/// this position). Any game that reached a position has a line to it; the
+/// latest is the one the player is likeliest to remember, and that choice is
+/// made once, in this query's ORDER BY.
+///
+/// A node at ply N is the board before the N-th move of its game
+/// (`replayNodes`), so the line to it is the game's first N - 1 moves, in the
+/// UCI the game row keeps. A key no game reaches has no entry; the caller says
+/// `null` for it rather than an empty line, which would mean „the start".
+async function linesTo(pool, userId, { subject, color = null }, fenKeys) {
+  const keys = [...new Set(fenKeys)];
+  const lines = new Map();
+  if (keys.length === 0) return lines;
+  const { rows } = await pool.query(
+    `SELECT DISTINCT ON (n.fen_key) n.fen_key, n.ply, g.start_fen, g.moves
+       FROM opening_nodes n
+       JOIN user_games g ON g.id = n.game_id
+      WHERE n.user_id = $1
+        AND n.subject = $2
+        AND ($3::char(1) IS NULL OR n.subject_color = $3)
+        AND n.fen_key = ANY($4::text[])
+      ORDER BY n.fen_key, g.played_at DESC NULLS LAST, n.game_id DESC`,
+    [userId, subject, color, keys],
+  );
+  for (const row of rows) {
+    const moves = row.moves || [];
+    const count = row.ply - 1;
+    // A game shorter than its own node is a broken row, not a line to show.
+    if (count < 0 || count > moves.length) continue;
+    lines.set(row.fen_key, { startFen: row.start_fen, moves: moves.slice(0, count) });
+  }
+  return lines;
+}
+
+/// Puts `line` on each of [items] — the report's nodes and its losing habits,
+/// both keyed by `fenKey` — or `null` where no game gives one.
+async function attachLines(pool, userId, filters, items) {
+  const lines = await linesTo(pool, userId, filters, items.map((item) => item.fenKey));
+  for (const item of items) item.line = lines.get(item.fenKey) || null;
+  return items;
+}
+
+/// The most games one position lists. A node near the start of the window can
+/// be in hundreds of games; the list says how many there are when it shows
+/// fewer.
+const MAX_POSITION_GAMES = 500;
+
+/// The games of [subject] that reached the position [fenKey], newest first —
+/// the owner, 30.9.2026: „your move holds, the problem comes later" is a
+/// different later in every game, so a position lists its games and each opens
+/// in Analysis standing on it.
+///
+/// A game that reached the position twice (a repetition inside the window)
+/// is one game, at its first visit. Each row says the move played there and
+/// the ply it was played at, which is where Analysis stands (ply - 1 moves in).
+/// `own` is whether the game is the caller's own: an opponent's archive
+/// imported for preparation is listed, and `GET /games/:id/moves` will not
+/// hand its moves out.
+async function positionGames(pool, userId, { subject, color = null, fenKey } = {}) {
+  if (!Number.isInteger(userId)) throw new TypeError('userId is required');
+  const handle = String(subject || '').trim();
+  if (!handle) throw new RangeError('Username is missing.');
+  if (color !== null && !['w', 'b'].includes(color)) {
+    throw new RangeError('Color must be "w" or "b".');
+  }
+  const key = String(fenKey || '').trim();
+  if (key.split(/\s+/).length !== 4) throw new RangeError('A position is missing.');
+
+  const { rows } = await pool.query(
+    `WITH hits AS (
+       SELECT DISTINCT ON (n.game_id) n.game_id, n.ply, n.san
+         FROM opening_nodes n
+        WHERE n.user_id = $1
+          AND n.subject = $2
+          AND ($3::char(1) IS NULL OR n.subject_color = $3)
+          AND n.fen_key = $4
+        ORDER BY n.game_id, n.ply
+     )
+     SELECT g.id, g.played_at, g.opponent, g.opponent_elo, g.subject_elo,
+            g.result, g.subject_score, g.speed, g.time_control,
+            g.subject_is_owner, h.san, h.ply, COUNT(*) OVER () AS total
+       FROM hits h
+       JOIN user_games g ON g.id = h.game_id
+      ORDER BY g.played_at DESC NULLS LAST, g.id DESC
+      LIMIT $5`,
+    [userId, handle, color, key, MAX_POSITION_GAMES],
+  );
+  return {
+    subject: handle,
+    color,
+    fenKey: key,
+    total: rows.length > 0 ? Number(rows[0].total) : 0,
+    games: rows.map((r) => ({
+      id: String(r.id),
+      playedAt: r.played_at ? new Date(r.played_at).toISOString() : null,
+      opponent: r.opponent,
+      opponentElo: r.opponent_elo,
+      subjectElo: r.subject_elo,
+      result: r.result,
+      score: Number(r.subject_score),
+      speed: r.speed,
+      timeControl: r.time_control,
+      own: r.subject_is_owner === true,
+      san: r.san,
+      ply: r.ply,
+    })),
+  };
+}
+
 /// How much of the archive the report actually saw.
 ///
 /// `gamesWithoutNodes` is the loud half: games imported before `opening_nodes`
@@ -321,6 +432,10 @@ function replayNodes(game) {
 module.exports = {
   leakReport,
   frequentNodesReport,
+  linesTo,
+  attachLines,
+  positionGames,
+  MAX_POSITION_GAMES,
   HABIT_MIN_GAMES,
   HABIT_MIN_SHARE,
   MAX_JUDGED_NODES,

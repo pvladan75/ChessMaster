@@ -67,6 +67,30 @@ class HabitJudgement {
   }
 }
 
+/// The moves that led to a position of the report, from the latest game that
+/// reached it (`linesTo` in `services/openingLeaks.js`) — what Analysis opens
+/// the position with (the owner, 30.9.2026). [uciMoves] may be empty: the
+/// position is then the game's start.
+class OpeningLine {
+  const OpeningLine({required this.startFen, required this.uciMoves});
+
+  final String startFen;
+  final List<String> uciMoves;
+
+  /// Null for a report from before the line was sent, or a position no game
+  /// reaches any more — never an empty line, which would mean „the start".
+  static OpeningLine? fromJson(Object? json) {
+    if (json is! Map) return null;
+    final startFen = json['startFen'];
+    final moves = json['moves'];
+    if (startFen is! String || moves is! List) return null;
+    return OpeningLine(
+      startFen: startFen,
+      uciMoves: moves.map((e) => e.toString()).toList(),
+    );
+  }
+}
+
 /// The book's answer over one request — `services/openingBook.js`, attached
 /// to `GET /games/openings/nodes`. A book that cannot answer says so; it never
 /// reads as zero master games, which would make theory look like a mistake.
@@ -143,6 +167,7 @@ class LosingHabit {
     required this.habit,
     this.judgement,
     required this.cost,
+    this.line,
   });
 
   final String fenKey;
@@ -159,9 +184,13 @@ class LosingHabit {
   final HabitJudgement? judgement;
   final double cost;
 
+  /// The moves that led here, or null when the server sent none.
+  final OpeningLine? line;
+
   factory LosingHabit.fromJson(Map<String, dynamic> json) {
     final judgementJson = json['judgement'] as Map?;
     return LosingHabit(
+      line: OpeningLine.fromJson(json['line']),
       fenKey: json['fenKey'] as String,
       fen: json['fen'] as String,
       ply: (json['ply'] as num).toInt(),
@@ -312,6 +341,7 @@ class LeakReportNode {
     required this.score,
     required this.moves,
     this.judgement,
+    this.line,
   });
 
   final String fenKey;
@@ -322,9 +352,14 @@ class LeakReportNode {
   final List<LeakReportMove> moves;
   final LeakJudgement? judgement;
 
+  /// The moves that led here — sent with the leak report, not with
+  /// `GET /games/openings/nodes` — or null when the server sent none.
+  final OpeningLine? line;
+
   factory LeakReportNode.fromJson(Map<String, dynamic> json) {
     final judgementJson = json['judgement'] as Map?;
     return LeakReportNode(
+      line: OpeningLine.fromJson(json['line']),
       fenKey: json['fenKey'] as String,
       fen: json['fen'] as String,
       ply: (json['ply'] as num).toInt(),
@@ -372,6 +407,8 @@ class LeakReport {
     required this.nodes,
     required this.judge,
     this.losingHabits = const [],
+    this.minGames,
+    this.maxScore,
   });
 
   final String subject;
@@ -387,8 +424,19 @@ class LeakReport {
   /// screen tells the two apart by whether judging was ever asked for.
   final List<LosingHabit> losingHabits;
 
+  /// The report's thresholds (`thresholds` of `GET /games/openings/leaks`):
+  /// how often a position must be reached, and the score it must stay under,
+  /// to be flagged. Null when the server did not say.
+  final int? minGames;
+  final double? maxScore;
+
   factory LeakReport.fromJson(Map<String, dynamic> json) {
+    final thresholds = json['thresholds'] is Map
+        ? Map<String, dynamic>.from(json['thresholds'] as Map)
+        : const <String, dynamic>{};
     return LeakReport(
+      minGames: (thresholds['minGames'] as num?)?.toInt(),
+      maxScore: (thresholds['maxScore'] as num?)?.toDouble(),
       subject: json['subject'] as String,
       color: json['color'] as String?,
       games: (json['games'] as num).toInt(),
@@ -454,4 +502,77 @@ class HabitDrillAnswer {
     ];
     return parts.isEmpty ? 'No losing habit to add.' : parts.join(' ');
   }
+}
+
+/// One game that reached a position of the report (`GET /games/openings/games`,
+/// 30.9.2026): who, when, how it ended, and the move played there. [ply] is
+/// the move played at the position, so Analysis stands [ply] - 1 moves in.
+class PositionGame {
+  const PositionGame({
+    required this.id,
+    this.playedAt,
+    this.opponent,
+    this.opponentElo,
+    this.subjectElo,
+    required this.result,
+    required this.score,
+    this.speed,
+    this.timeControl,
+    required this.own,
+    required this.san,
+    required this.ply,
+  });
+
+  final String id;
+  final DateTime? playedAt;
+  final String? opponent;
+  final int? opponentElo;
+  final int? subjectElo;
+  final String result;
+
+  /// The player's own score in the game: 1, 0.5 or 0.
+  final double score;
+  final String? speed;
+  final String? timeControl;
+
+  /// Whether the game is the account's own. An opponent's archive imported
+  /// for preparation is listed, and the server does not hand its moves out.
+  final bool own;
+  final String san;
+  final int ply;
+
+  factory PositionGame.fromJson(Map<String, dynamic> json) {
+    final played = json['playedAt'];
+    return PositionGame(
+      id: json['id'].toString(),
+      playedAt: played is String ? DateTime.tryParse(played) : null,
+      opponent: json['opponent'] as String?,
+      opponentElo: (json['opponentElo'] as num?)?.toInt(),
+      subjectElo: (json['subjectElo'] as num?)?.toInt(),
+      result: json['result'] as String? ?? '',
+      score: (json['score'] as num?)?.toDouble() ?? 0,
+      speed: json['speed'] as String?,
+      timeControl: json['timeControl'] as String?,
+      own: json['own'] as bool? ?? false,
+      san: json['san'] as String? ?? '',
+      ply: (json['ply'] as num).toInt(),
+    );
+  }
+}
+
+/// The games of one position, newest first, and how many there are in all —
+/// the server sends at most a few hundred and says when it sent fewer.
+class PositionGames {
+  const PositionGames({required this.total, required this.games});
+
+  final int total;
+  final List<PositionGame> games;
+
+  factory PositionGames.fromJson(Map<String, dynamic> json) => PositionGames(
+        total: (json['total'] as num?)?.toInt() ?? 0,
+        games: ((json['games'] as List?) ?? const [])
+            .map((e) =>
+                PositionGame.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+      );
 }

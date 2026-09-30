@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart'
+    show openTreeInAnalysis;
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/archive/models/leak_report.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
+import 'package:chess_app/features/archive/services/opening_position_tree.dart';
+import 'package:chess_app/features/archive/screens/position_games_screen.dart';
 import 'package:chess_app/features/archive/services/opening_tree_judge.dart';
 import 'package:chess_app/core/services/engine_identity.dart';
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/game_tutorial_run.dart'
@@ -14,6 +18,7 @@ import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
+import 'package:chess_app/widgets/board_zoom_dialog.dart';
 
 /// Reused from the tutorial builder's own refusal
 /// (`game_tutorial_run.dart`, `no-engine`) — one sentence for „there is no
@@ -362,34 +367,154 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     return const SizedBox.shrink();
   }
 
+  /// The position on a board as large as the window allows (the owner,
+  /// 30.9.2026), with the door to Analysis in it where the position has one.
+  void _zoom({
+    required String fen,
+    required String title,
+    List<String> details = const [],
+    VoidCallback? onOpenInAnalysis,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (_) => BoardZoomDialog(
+        fen: fen,
+        whiteBottom: _color == 'w',
+        title: title,
+        details: details,
+        onOpenInAnalysis: onOpenInAnalysis,
+      ),
+    );
+  }
+
+  /// Analysis over this screen, holding the moves that led to the position
+  /// and the moves the report knows about there. **Pushed**, so this screen
+  /// stays underneath as it was — the colour, the list and how far it was
+  /// scrolled — and Back returns to the same place (the owner, 30.9.2026).
+  Future<void> _openInAnalysis(
+      OpeningLine line, String fenKey, List<List<String>> branches) async {
+    final tree =
+        openingPositionTree(line: line, fenKey: fenKey, branches: branches);
+    if (tree == null) {
+      AppFeedback.error(
+          context,
+          'The moves to this position could not be replayed, so Analysis '
+          'was not opened.');
+      return;
+    }
+    await openTreeInAnalysis(context, root: tree.root, standOn: tree.position);
+  }
+
+  /// A thumbnail that enlarges when clicked. The pointer says so on a
+  /// desktop; the words say so to a screen reader.
+  Widget _zoomableBoard({
+    required Key key,
+    required Widget board,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      button: true,
+      label: 'Enlarge the board',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(key: key, onTap: onTap, child: board),
+      ),
+    );
+  }
+
+  /// The ways on from a position: Analysis with the moves that led to it,
+  /// drawn only when the server sent them, and the games that reached it
+  /// (the owner, 30.9.2026).
+  Widget _doors({
+    required String id,
+    VoidCallback? open,
+    required int games,
+    required VoidCallback onGames,
+  }) {
+    final style = TextButton.styleFrom(
+      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Wrap(
+        spacing: AppSpacing.xs,
+        children: [
+          if (open != null)
+            TextButton.icon(
+              key: ValueKey('open-in-analysis-$id'),
+              style: style,
+              onPressed: open,
+              icon: const Icon(Icons.biotech_outlined, size: 16),
+              label: const Text('Open in Analysis'),
+            ),
+          TextButton.icon(
+            key: ValueKey('position-games-$id'),
+            style: style,
+            onPressed: onGames,
+            icon: const Icon(Icons.format_list_bulleted, size: 16),
+            label: Text('Games ($games)'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// The games that reached a position, over this screen — Back returns here
+  /// as it was left. [move] opens the list on the games that played it.
+  void _openGames(String fenKey, String fen, {String? move}) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => PositionGamesScreen(
+        subject: widget.subject,
+        color: _color,
+        fenKey: fenKey,
+        fen: fen,
+        move: move,
+      ),
+    ));
+  }
+
+  /// The move's own line of a card, one format for a flagged position's
+  /// favourite and a losing habit alike.
+  String _moveLine(String san, int games, int of, double score) =>
+      '$san — $games of $of ${of == 1 ? 'game' : 'games'} · '
+      '${(score * 100).toStringAsFixed(1)}%';
+
   Widget _buildLosingHabitsSection(BuildContext context, LeakReport report) {
-    final flagged = report.nodes.map((n) => n.fenKey).toSet();
-    final extra =
-        report.losingHabits.where((h) => !flagged.contains(h.fenKey)).toList();
     if (report.losingHabits.isEmpty) return const SizedBox.shrink();
     final count = report.losingHabits.length;
 
+    // **Every losing habit is listed, the flagged ones too** — the owner,
+    // 30.9.2026: the button said „Drill these 9" under a list of 8, and one
+    // looked lost. It was on a card above, whose position the score already
+    // flags, and this section used to leave those out as shown elsewhere.
+    // The list is what the button drills, and each row carries its move's own
+    // score, so a habit that scores well and still loses reads as one.
     return Container(
-      margin: const EdgeInsets.only(top: AppSpacing.md),
+      key: const Key('losing-habits-section'),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (extra.isNotEmpty) ...[
-            Text(
-              "Losing habits your score doesn't show",
-              style:
-                  AppText.bodyBold.copyWith(color: context.colors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            AdaptiveCardRows(
-              children: [
-                for (final habit in extra) _buildLosingHabitRow(context, habit),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
-          // Every losing habit, flagged or not — the drill asks „here you
-          // play X; find the better move" (§9.4).
+          Text(
+            'Losing habits',
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Moves you keep playing that the engine says lose — whatever '
+            'your score with them.',
+            style: AppText.caption.copyWith(color: context.colors.textMuted),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          AdaptiveCardRows(
+            children: [
+              for (final habit in report.losingHabits)
+                _buildLosingHabitRow(context, habit),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // The drill asks „here you play X; find the better move" (§9.4).
           OutlinedButton.icon(
             key: const Key('drill-losing-habits'),
             onPressed: _drillingHabits ? null : _drillHabits,
@@ -398,6 +523,35 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                 ? 'Drill this losing habit'
                 : 'Drill these $count losing habits'),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// The heading of the positions the score flags, now that they no longer
+  /// open the screen: what they are, with the report's own thresholds when it
+  /// sent them.
+  Widget _buildPositionsHeading(BuildContext context, LeakReport report) {
+    final min = report.minGames;
+    final max = report.maxScore;
+    return Padding(
+      key: const Key('positions-heading'),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Positions where you score low',
+            style: AppText.bodyBold.copyWith(color: context.colors.textPrimary),
+          ),
+          if (min != null && max != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              'Reached at least $min times, scoring under '
+              '${(max * 100).toStringAsFixed(0)}%.',
+              style: AppText.caption.copyWith(color: context.colors.textMuted),
+            ),
+          ],
         ],
       ),
     );
@@ -425,8 +579,16 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
     final judgement = habit.judgement;
     final better = judgement?.bestSan ?? judgement?.bestUci ?? '?';
     final lost = judgement?.lostChances.toStringAsFixed(0) ?? '?';
+    final title =
+        _moveLine(habit.san, habit.games, habit.nodeGames, habit.score);
+    final verdict = 'Loses $lost winning chances — $better was better';
+    final id = '${habit.fenKey}-${habit.uci}';
+    final line = habit.line;
+    final open = line == null
+        ? null
+        : () => _openInAnalysis(line, habit.fenKey, branchesOfHabit(habit));
     return Container(
-      key: ValueKey('losing-habit-${habit.fenKey}-${habit.uci}'),
+      key: ValueKey('losing-habit-$id'),
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: context.colors.surface,
@@ -436,10 +598,19 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BoardThumbnail(
-            fen: habit.fen,
-            size: 56,
-            isWhiteBottom: _color == 'w',
+          _zoomableBoard(
+            key: ValueKey('zoom-habit-$id'),
+            onTap: () => _zoom(
+              fen: habit.fen,
+              title: title,
+              details: [verdict],
+              onOpenInAnalysis: open,
+            ),
+            board: BoardThumbnail(
+              fen: habit.fen,
+              size: 56,
+              isWhiteBottom: _color == 'w',
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -447,7 +618,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${habit.san} — ${habit.games} of ${habit.nodeGames} games',
+                  title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppText.bodyBold
@@ -462,7 +633,7 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        'Loses $lost winning chances — $better was better',
+                        verdict,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.caption
@@ -470,6 +641,13 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                       ),
                     ),
                   ],
+                ),
+                _doors(
+                  id: 'habit-$id',
+                  open: open,
+                  games: habit.games,
+                  onGames: () =>
+                      _openGames(habit.fenKey, habit.fen, move: habit.san),
                 ),
               ],
             ),
@@ -485,6 +663,14 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
 
     final mainMove = moves.first;
     final otherMoves = moves.skip(1).toList();
+    final where =
+        'Ply ${node.ply} · score ${(node.score * 100).toStringAsFixed(1)}%';
+    final title =
+        _moveLine(mainMove.san, mainMove.games, node.games, mainMove.score);
+    final line = node.line;
+    final open = line == null
+        ? null
+        : () => _openInAnalysis(line, node.fenKey, branchesOfNode(node));
 
     return Container(
       key: ValueKey(node.fenKey),
@@ -497,10 +683,19 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BoardThumbnail(
-            fen: node.fen,
-            size: 80,
-            isWhiteBottom: _color == 'w',
+          _zoomableBoard(
+            key: ValueKey('zoom-node-${node.fenKey}'),
+            onTap: () => _zoom(
+              fen: node.fen,
+              title: title,
+              details: [where],
+              onOpenInAnalysis: open,
+            ),
+            board: BoardThumbnail(
+              fen: node.fen,
+              size: 80,
+              isWhiteBottom: _color == 'w',
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -508,13 +703,13 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Ply ${node.ply} · score ${(node.score * 100).toStringAsFixed(1)}%',
+                  where,
                   style:
                       AppText.caption.copyWith(color: context.colors.textMuted),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${mainMove.san} — ${mainMove.games} of ${node.games} ${node.games == 1 ? 'game' : 'games'} · ${(mainMove.score * 100).toStringAsFixed(1)}%',
+                  title,
                   style: AppText.bodyBold
                       .copyWith(color: context.colors.textPrimary),
                 ),
@@ -533,6 +728,12 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                 ],
                 for (final move in moves)
                   if (move.habit) _buildHabitJudgement(context, node, move),
+                _doors(
+                  id: node.fenKey,
+                  open: open,
+                  games: node.games,
+                  onGames: () => _openGames(node.fenKey, node.fen),
+                ),
               ],
             ),
           ),
@@ -707,12 +908,17 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                         ),
                       ),
                     ],
+                    // The losing habits first (the owner, 30.9.2026): they are
+                    // what the engine confirmed, and most positions below
+                    // say „your move holds".
+                    _buildLosingHabitsSection(context, report),
+                    _buildPositionsHeading(context, report),
                     if (report.nodes.isEmpty)
                       Center(
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.xl),
                           child: Text(
-                            'No opening leaks found.',
+                            'No position you reach this often scores this low.',
                             style: AppText.body
                                 .copyWith(color: context.colors.textMuted),
                           ),
@@ -731,7 +937,6 @@ class _OpeningLeakReportScreenState extends State<OpeningLeakReportScreen> {
                               _buildNode(context, node),
                         ],
                       ),
-                    _buildLosingHabitsSection(context, report),
                   ],
                 ),
               ),

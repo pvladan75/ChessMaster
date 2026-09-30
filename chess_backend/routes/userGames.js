@@ -28,7 +28,7 @@ const {
   createArchiveImporter, ArchiveImportUnavailable,
 } = require('../services/gameArchiveImport');
 const {
-  leakReport, backfillNodes, frequentNodesReport,
+  leakReport, backfillNodes, frequentNodesReport, attachLines, positionGames,
 } = require('../services/openingLeaks');
 const {
   recordJudgements, attachJudgements, attachBookCounts, losingHabits,
@@ -420,6 +420,10 @@ router.get('/openings/leaks', leaksJudgeLimiter, authenticateToken, async (req, 
     const every = await frequentNodesReport(pool, req.user.id, filtersOf(q));
     await attachJudgements(pool, req.user.id, every.nodes);
     report.losingHabits = losingHabits(every.nodes);
+    // The moves that led to every position on the screen, flagged or a losing
+    // habit, so the app can open it in Analysis with its game (30.9.2026).
+    await attachLines(pool, req.user.id, { subject: report.subject, color: report.color },
+      [...report.nodes, ...report.losingHabits]);
     return res.json(report);
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
@@ -453,6 +457,25 @@ router.get('/openings/nodes', authenticateToken, async (req, res) => {
   } catch (err) {
     if (err instanceof RangeError) return res.status(400).json({ error: err.message });
     return fail(res, err, 'Opening positions are not available.');
+  }
+});
+
+// GET /games/openings/games?subject=&color=&fenKey=
+//
+// The caller's games of [subject] that reached one position of the report,
+// newest first, each with the move played there — so a position can be looked
+// at game by game (30.9.2026). At most MAX_POSITION_GAMES, with the total.
+router.get('/openings/games', authenticateToken, async (req, res) => {
+  const q = req.query ?? {};
+  try {
+    return res.json(await positionGames(pool, req.user.id, {
+      subject: q.subject,
+      color: q.color ?? null,
+      fenKey: q.fenKey,
+    }));
+  } catch (err) {
+    if (err instanceof RangeError) return res.status(400).json({ error: err.message });
+    return fail(res, err, 'The games of this position are not available.');
   }
 });
 

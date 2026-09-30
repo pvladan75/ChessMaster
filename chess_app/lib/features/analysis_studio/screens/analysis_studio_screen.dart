@@ -84,6 +84,13 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// saved. Wins over the device draft for the same reason the other two do.
   final AnalysisNode? initialTree;
 
+  /// The node of [initialTree] to stand on, found by its id — which lives as
+  /// long as the tree object does — or the root when null. How a position of
+  /// the opening report opens on itself with the moves that led to it
+  /// (30.9.2026). The board faces the side to move where it stands, which
+  /// for the root is the rule the Library's saved analyses always had.
+  final String? initialNodeId;
+
   /// Opens the book scanner, when the caller has somewhere to open it from.
   ///
   /// It arrives here because the Analyse tab used to carry „Scan a book" in a
@@ -106,6 +113,7 @@ class AnalysisStudioScreen extends StatefulWidget {
     this.initialFen,
     this.initialGame,
     this.initialTree,
+    this.initialNodeId,
     this.onOpenScanner,
     this.reviewRunner,
   });
@@ -223,7 +231,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     _initAnalysisTree(startFen);
     final game = widget.initialGame;
     if (game != null) _loadGame(game);
-    if (tree != null) _loadTree(tree);
+    if (tree != null) _loadTree(tree, standOnId: widget.initialNodeId);
     _initEngine();
     _reviewRunner.attachBoard(this);
     _stockfishService.held.addListener(_onEngineHeldChanged);
@@ -431,12 +439,25 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   /// [game] as the tree, standing on its cursor ply, with the board turned to
   /// the side the player had.
   /// Opens a saved tree whole, standing on its root.
-  void _loadTree(AnalysisNode tree) {
+  void _loadTree(AnalysisNode tree, {String? standOnId}) {
+    AnalysisNode? find(AnalysisNode node) {
+      if (node.id == standOnId) return node;
+      for (final child in node.children) {
+        final hit = find(child);
+        if (hit != null) return hit;
+      }
+      return null;
+    }
+
+    final found = standOnId == null ? null : find(tree);
+    assert(standOnId == null || found != null,
+        'initialNodeId $standOnId is not a node of initialTree');
+    final node = found ?? tree;
     _rootNode = tree;
-    _currentNode = tree;
-    _chessGame = chess.Chess.fromFEN(tree.fen);
-    _boardController.loadFen(tree.fen);
-    final side = tree.fen.split(' ')[1];
+    _currentNode = node;
+    _chessGame = chess.Chess.fromFEN(node.fen);
+    _boardController.loadFen(node.fen);
+    final side = node.fen.split(' ')[1];
     _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
   }
 

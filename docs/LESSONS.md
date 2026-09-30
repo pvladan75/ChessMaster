@@ -9470,3 +9470,66 @@ feeds the owner's real shape of numbers. And an assertion about a text's
 rectangle inside an `Expanded` measures the slot, not the words: the first
 draft said the games stood too close to the label, when the label's box
 simply filled its slot.
+
+## 30.9.2026 — losing habits listed whole, a board enlarged, a position opened in Analysis with its game (the owner's report on Opening leaks)
+
+App 5218 → **5247** (29 cases, predicted before the run: 15 in
+`opening_position_tree_test`, 12 new on the screen, 2 on the real Analysis
+screen; one case rewritten openly), backend 1937 → **1942** without a database
+and 2096 → **2104** with it (both measured with `.env` aside — the 2096 that
+was quoted as derived is measured now too). Analyze the same 22. Twenty-nine
+mutations, each red on the case meant for it, and a no-op that survived, to
+prove the tool could call something a survivor.
+
+**„Drill these 9" under a list of 8 was the design, not a lost habit.** The
+button counted every losing habit; the list left out a habit whose position
+was already a card above, because the card showed it in red. Each half was
+right and together they read as a bug — „Selected: N positions" of 20.9
+again: two views of one set that count different things. The list is now
+what the button drills.
+
+**Two chess libraries spell one board two ways.** chess.js 1.4 on the server
+writes the en passant square only when a capture is possible; the app's
+`chess` 0.7.0 writes it after every double push. A check that a line reaches
+a position the server keyed compares placement, side and castling —
+`MoveTree.samePosition` compares all four fields and calls the board after
+1.e4 c5 two boards. Found by reading the package's `generate_fen` before
+writing the check, and held by a case whose fixture is exactly that board.
+
+**`scrollUntilVisible` stops when the widget is built, not when it can be
+hit.** It ends on an `ensureVisible` jump that no frame has laid out, so a tap
+straight after it lands where the widget was. An old case went red for that
+reason alone once the list above its button grew: a harness fault waiting for
+a longer list.
+
+**One fact, two guards, again.** „The whole line replays" and „the line
+reaches the position": a move that does not play always leaves the board
+short of it, so the first was subsumed by the second — deleted, not tested.
+
+**A mutation harness that runs through `cmd.exe` must not prefix a
+variable.** `VAR=value node --test` there is not a command; it exits 1 and
+read as a red with no test named. The harness now passes the environment and
+does not call a red a catch unless a test is named.
+
+## 30.9.2026 — the losing habits on top, and a position's games (`GET /games/openings/games`)
+
+App 5247 → **5259** (12 cases, predicted: 5 on the report, 7 on the new
+screen), backend 1942 → **1946** without a database and 2104 → **2109** with
+it (both measured). Analyze the same 22. Twenty-two mutations, each red on its
+case — after two corrections worth keeping.
+
+**A fake whose method takes a parameter named like its field reads the
+parameter.** The report's fake got `minGames` and `maxScore` fields, and its
+`getLeaks(minGames:, maxScore:)` passed its own null parameters on; the
+heading case was red for the fixture's reason, found by printing what the
+heading held.
+
+**A mutation named „moved" must move.** The first „habits back under the
+positions" deleted the section, and eleven cases went red — none of them about
+order. Done again as a real move, exactly the two order cases went red. And
+„the list is asked as White" survived: every door case stood on White, so the
+colour was never asked; it has a Black case now.
+
+**One fact, two guards, a third time**: the games query checked the account on
+the node and again on the joined game; a node can only name its own account's
+game, so the join's guard went (the node's stays, for the index).

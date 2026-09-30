@@ -3500,19 +3500,20 @@ odlazi na kraj spiska u alatu.
    „holds“.
    Potrebno: Windows; uvezene partije; debug build.
 
-2. [ ] **„Losing habits your score doesn't show“ pokazuje skrivene navike.**
+2. [ ] **`Losing habits` pokazuje i navike koje rezultat ne otkriva.**
    [237.3]
-   O čemu se radi: Poseban odeljak `Losing habits your score doesn't show`
-   prikazuje pozicije u kojima igrač dobro prolazi, a motor kaže da odigrani
-   potez zapravo gubi.
+   O čemu se radi: Odeljak `Losing habits` nabraja svaki potez koji igrač
+   stalno igra, a motor kaže da gubi — i one u pozicijama u kojima igrač
+   dobro prolazi, koje kartice iznad ne pokazuju. Do 30.9.2026. se zvao
+   „Losing habits your score doesn't show" i izostavljao navike čija je
+   pozicija već kartica iznad (vidi [255.1]).
    Gde: `Practise` → (Opening) `My games` → `Import games` → izaberi partije →
    `View opening leaks`.
-   Uradi: Posle presude motora, pronađi odeljak
-   `Losing habits your score doesn't show` i otvori dve navedene pozicije u
-   Analizi.
-   Treba da vidiš: Odeljak `Losing habits your score doesn't show` postoji i
-   nabraja pozicije koje inače nisu označene kao problematične; ručna provera u
-   Analizi potvrđuje da je predloženi bolji potez zaista bolji.
+   Uradi: Posle presude motora, pronađi odeljak `Losing habits` i otvori dve
+   navedene pozicije preko `Open in Analysis`.
+   Treba da vidiš: Među redovima su i pozicije koje gore nisu označene;
+   ručna provera u Analizi potvrđuje da je predloženi bolji potez zaista
+   bolji.
    Potrebno: Windows; uvezene partije; debug build.
 
 3. [ ] **Ponovni pritisak na presudu ne ponavlja posao.** [237.4]
@@ -3551,7 +3552,7 @@ odlazi na kraj spiska u alatu.
 
 6. [ ] **„Drill these … losing habits“ dodaje navike u My mistakes bez
    duplikata.** [237.7]
-   O čemu se radi: Ispod odeljka o skrivenim navikama, dugme
+   O čemu se radi: Ispod odeljka `Losing habits`, dugme
    `Drill this losing habit`/`Drill these … losing habits` dodaje ih u „My
    mistakes“ (tema „opening habit“); ponovni pritisak javlja da su već tamo,
    bez duplog dodavanja.
@@ -3739,6 +3740,101 @@ odlazi na kraj spiska u alatu.
     najmanjem, jedna na telefonu; `Judge with the engine` nije rastegnut preko
     celog prozora. Profil u četiri kolone; „1 game", ne „1 games".
     Potrebno: Windows i telefon; server; arhiva partija.
+
+24. [ ] **Broj u dugmetu za dril je broj redova iznad njega.**
+    [255.1]
+    O čemu se radi: Dugme `Drill these … losing habits` je govorilo „9"
+    ispod liste od 8 (na `Black` „3" ispod 2): deveta navika je bila na
+    kartici iznad, a lista je takve izostavljala. Sada `Losing habits`
+    nabraja sve što dugme šalje u `My mistakes`, i svaki red nosi i svoj
+    procenat (npr. `Nf3 — 8 of 8 games · 62.5%`).
+    Gde: `Practise` → `My games` → `View opening leaks`.
+    Uradi: Na `White` i na `Black` prebroj redove u `Losing habits` i
+    uporedi sa brojem u dugmetu ispod njih.
+    Treba da vidiš: Isti broj (npr. 9 redova i `Drill these 9 losing
+    habits`); navika čija je pozicija i kartica gore stoji i u listi.
+    Potrebno: Windows; server; arhiva partija sa presuđenim navikama.
+
+25. [ ] **Klik na tablu daje uvećanu tablu.**
+    [255.2]
+    O čemu se radi: Klik na tablu kartice ili reda otvara istu poziciju na
+    velikoj tabli — onoliko koliko prozor dozvoljava, najviše 720 px — sa
+    koordinatama (ako su uključene), rečima ko je na potezu, `Close` i
+    `Open in Analysis`.
+    Gde: `Practise` → `My games` → `View opening leaks`.
+    Uradi: Klikni tablu jedne kartice i jednog reda u `Losing habits`, u
+    svom prozoru i na telefonu; prebaci na `Black` i ponovi.
+    Treba da vidiš: Kvadratna tabla, cela na ekranu, sa `White to move` ili
+    `Black to move` iznad; na `Black` tabla je okrenuta sa crne strane.
+    Potrebno: Windows i telefon; server; arhiva partija.
+
+26. [ ] **`Open in Analysis` otvara poziciju sa potezima partije.**
+    [255.3]
+    O čemu se radi: Pozicija se otvara u Analizi sa potezima poslednje tvoje
+    partije koja je do nje došla, i stoji na njoj. Iz nje idu grane: potezi
+    koje si tu igrao (najčešći je glavna linija) i bolji potez motora, svaki
+    sa nekoliko poteza linije koju je motor dao kad je presuđivao — bez
+    komentara i bez ocena.
+    Gde: `Practise` → `My games` → `View opening leaks` → `Open in Analysis`
+    na kartici, na redu u `Losing habits`, ili u uvećanoj tabli.
+    Uradi: Otvori jednu karticu i jednu lošu naviku; vrati se potezima do
+    početka partije i prođi kroz grane; uključi motor.
+    Treba da vidiš: Potezi od početka su potezi prave partije; tabla stoji
+    na poziciji sa kartice i okrenuta je na tvoju stranu; kod loše navike
+    glavna linija je tvoj potez, a varijanta potez koji je red nazvao boljim.
+    Potrebno: Windows i telefon; server pokrenut posle izmene od 30.9.2026.
+    (šalje poteze do pozicije — bez toga dugmeta nema); arhiva partija.
+
+27. [ ] **Iz Analize nazad na isto mesto u izveštaju.**
+    [255.4]
+    O čemu se radi: Analiza se otvara preko izveštaja; strelica nazad vraća
+    izveštaj tačno kakav je ostavljen — ista boja, isto mesto na listi, bez
+    ponovnog učitavanja.
+    Gde: `Practise` → `My games` → `View opening leaks`.
+    Uradi: Prebaci na `Black`, spusti se do `Losing habits`, otvori jednu u
+    Analizi, odigraj potez ili dva, pa se vrati strelicom nazad.
+    Treba da vidiš: Izveštaj je i dalje na `Black`, na istom mestu liste, bez
+    kružića za učitavanje.
+    Potrebno: Windows i telefon; server; arhiva partija.
+
+28. [ ] **`Losing habits` je na vrhu izveštaja.**
+    [255.5]
+    O čemu se radi: Lista loših navika i dugme za dril stoje prvi, a kartice
+    pozicija ispod njih, pod naslovom `Positions where you score low` i
+    rečenicom sa pragovima.
+    Gde: `Practise` → `My games` → `View opening leaks`.
+    Uradi: Otvori izveštaj na `White` i na `Black`.
+    Treba da vidiš: Odmah ispod dugmeta `Judge with the engine` su `Losing
+    habits` i `Drill these … losing habits`; ispod njih naslov i rečenica
+    `Reached at least 8 times, scoring under 42%.`, pa kartice.
+    Potrebno: Windows i telefon; server; presuđene navike.
+
+29. [ ] **`Games (N)` nabraja partije kroz poziciju.**
+    [255.6]
+    O čemu se radi: Svaka kartica i svaki red navike imaju `Games (N)`, koje
+    otvara `Games through this position`: partije koje su stigle do te
+    pozicije, najnovije prve, sa ishodom rečima (`Won`, `Lost`, `Drew`),
+    datumom, protivnikom i potezom odigranim tu; čipovi biraju potez.
+    Gde: `Practise` → `My games` → `View opening leaks` → `Games (N)`.
+    Uradi: Otvori sa kartice, pa sa reda loše navike; probaj čipove.
+    Treba da vidiš: Broj partija odgovara onom na dugmetu; sa reda navike
+    lista je odmah filtrirana na potez navike; na `Black` tabla je okrenuta
+    sa crne strane.
+    Potrebno: Windows i telefon; server pokrenut posle izmene od 30.9.2026.;
+    arhiva partija.
+
+30. [ ] **Partija iz liste otvara se cela, na poziciji.**
+    [255.7]
+    O čemu se radi: `Open in Analysis` na partiji otvara celu partiju u
+    Analizi, tabla stoji na poziciji iz izveštaja; nazad se vraća na listu
+    (sa istim čipom), pa na izveštaj.
+    Gde: `Practise` → `My games` → `View opening leaks` → `Games (N)` →
+    `Open in Analysis` na jednoj partiji.
+    Uradi: Otvori partiju, idi napred do kraja, pa nazad dva puta.
+    Treba da vidiš: Potezi posle pozicije su potezi te partije; tabla na
+    tvojoj strani; lista pa izveštaj ostaju gde su bili.
+    Potrebno: Windows i telefon; server; sopstvene partije (partije
+    pripremljenog protivnika se ne otvaraju, i ekran to kaže).
 
 ### Practise — My mistakes
 

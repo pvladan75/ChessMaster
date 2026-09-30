@@ -30,6 +30,14 @@ class FakeArchiveApiService implements ArchiveApiService {
   Future<OpeningNodesReport> getOpeningNodes(
           {required String subject, String? color}) async =>
       throw UnimplementedError();
+  // Added with `GET /games/openings/games` (30.9.2026); this fake implements
+  // every method by hand, so a new one must be here to compile.
+  @override
+  Future<PositionGames> getPositionGames(
+          {required String subject,
+          String? color,
+          required String fenKey}) async =>
+      throw UnimplementedError();
   @override
   Future<HabitDrillAnswer> drillLosingHabits(
           {required String subject, String? color}) async =>

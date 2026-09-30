@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5218 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5259 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1937 without TEST_DATABASE_URL (measured 29.9.2026), 2096 with it (derived; 2054 measured 28.9.2026)
+cd chess_backend && npm test          # node --test, 1946 without TEST_DATABASE_URL, 2109 with it (both measured 30.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1167,7 +1167,21 @@ screen is two halves on a wide window, Settings flows into columns. **On
 Windows the password manager had never worked** — the engine does not even
 receive `finishAutofillContext`; then Keyboard Shortcuts and Usage the same way
 (→ **5206**), the shortcut list still naming the tabs of before 18.9; then
-Opening leaks and the player's profile (→ **5218**). Phase 6 of
+Opening leaks and the player's profile (→ **5218**). Then the owner's report
+on that screen (→ **5247**; backend → **1942 / 2104**, both measured):
+„Drill these 9 losing habits" stood under a list of 8 — the ninth was on a
+card above, which the list left out — so the list is now what the button
+drills; a click on a board enlarges it (`BoardZoomDialog`); and „Open in
+Analysis" pushes Analysis over the report holding the moves of the latest game
+that reached the position and, there, the moves played and the engine's better
+one (`openingPositionTree`, `AnalysisStudioScreen.initialNodeId`), so Back
+returns to the same place. **The server's chess.js writes the en passant
+square only when a capture is possible, the app's `chess` package after every
+double push** — across that boundary two FENs are one board by placement, side
+and castling, never by `MoveTree.samePosition`. Then, on the owner's word, the
+losing habits on top of that report and every position's games one tap
+away (`GET /games/openings/games`, `PositionGamesScreen`; → **5259**, backend
+→ **1946 / 2109**, both measured). Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

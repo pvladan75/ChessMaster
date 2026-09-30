@@ -235,6 +235,29 @@ class ArchiveApiService {
     throw Exception('Failed to fetch opening positions: ${response.body}');
   }
 
+  /// The games of [subject] that reached the position [fenKey], newest first
+  /// (`GET /games/openings/games`, 30.9.2026).
+  Future<PositionGames> getPositionGames({
+    required String subject,
+    String? color,
+    required String fenKey,
+  }) async {
+    final wire = _wireColor(color);
+    final uri = Uri.parse('$backendUrl/games/openings/games').replace(
+      queryParameters: {
+        'subject': subject,
+        if (wire != null) 'color': wire,
+        'fenKey': fenKey,
+      },
+    );
+    final response = await _get(uri, {'Authorization': 'Bearer $_token'});
+    if (response.statusCode == 200) {
+      return PositionGames.fromJson(
+          Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+    }
+    throw Exception('The games of this position could not be loaded.');
+  }
+
   /// A batch of verdicts the device's engine reached, checked like every
   /// engine finding this server takes and answered with a tally
   /// (`services/openingJudgements.js`).
