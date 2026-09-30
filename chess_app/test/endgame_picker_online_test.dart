@@ -126,7 +126,11 @@ void main() {
 
   testWidgets('and the number on the screen follows', (tester) async {
     // The owner's sentence, as a test: turning the switch must move the total.
+    // The picker opens with nothing ticked (30.9.2026), so the family is
+    // ticked first — everything ticked, which the switch keeps as everything.
     await _openPicker(tester, online: false);
+    await tester.tap(find.text('Rook endings'));
+    await tester.pumpAndSettle();
     expect(find.text('Selected: 100 positions'), findsOneWidget);
 
     await tester.tap(find.byType(SwitchListTile));
@@ -139,12 +143,11 @@ void main() {
   testWidgets('the reader does not lose their ticks to the switch',
       (tester) async {
     // A refetch is the easy way to write this and it throws the reader's work
-    // away: the pool changed, but nobody asked to start over. Untick the one
-    // family, flip the switch, and it is still unticked.
+    // away: the pool changed, but nobody asked to start over. Nothing ticked —
+    // which is how the picker opens since 30.9.2026; until then this case
+    // unticked the one family first — flip the switch, and it is still
+    // unticked.
     await _openPicker(tester, online: false);
-
-    await tester.tap(find.text('Rook endings'));
-    await tester.pumpAndSettle();
     expect(find.textContaining('No positions match'), findsOneWidget);
 
     await tester.tap(find.byType(SwitchListTile));

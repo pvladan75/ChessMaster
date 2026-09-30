@@ -77,7 +77,12 @@ Widget picker({
     );
 
 void main() {
-  testWidgets('opens with everything chosen and the whole total showing',
+  // Until 30.9.2026 the picker opened with everything ticked and its biggest
+  // family open, and these cases held that. The owner asked for the opposite
+  // — nothing ticked, every family shut — so they were rewritten in the open:
+  // each now starts from nothing and ticks what it needs.
+
+  testWidgets('opens with nothing chosen and every family shut',
       (tester) async {
     tester.view.physicalSize = const Size(400, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -86,15 +91,24 @@ void main() {
     await tester.pumpWidget(wrap(picker()));
     await tester.pumpAndSettle();
 
-    // Nothing has to be ticked before the reader can do anything: pressing the
-    // button straight away is what the two hub buttons used to do on their own.
-    expect(find.text('Selected: 1915 positions'), findsOneWidget);
     expect(find.text('Topovske završnice'), findsOneWidget);
-    // The biggest family is open, so the list does not look empty.
-    expect(find.text('top i dva pešaka protiv topa'), findsOneWidget);
+    expect(find.text('Pešačke završnice'), findsOneWidget);
+    // Shut: the shapes under a family are not drawn.
+    expect(find.text('top i dva pešaka protiv topa'), findsNothing);
+    expect(find.byIcon(Icons.expand_less), findsNothing);
+    // Nothing ticked, so nothing to start.
+    final boxes = tester
+        .widgetList<CheckboxListTile>(find.byType(CheckboxListTile))
+        .toList();
+    expect(boxes, hasLength(2));
+    expect(boxes.every((b) => b.value == false), isTrue,
+        reason: 'a family opened ticked');
+    expect(find.textContaining('No positions match'), findsOneWidget);
+    final button = tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(button.onPressed, isNull);
   });
 
-  testWidgets('unticking a family takes its positions out of the total',
+  testWidgets('ticking a family adds its positions to the total',
       (tester) async {
     tester.view.physicalSize = const Size(400, 900);
     tester.view.devicePixelRatio = 1.0;
@@ -105,8 +119,11 @@ void main() {
 
     await tester.tap(find.text('Pešačke završnice'));
     await tester.pumpAndSettle();
+    expect(find.text('Selected: 146 positions'), findsOneWidget);
 
-    expect(find.text('Selected: 1769 positions'), findsOneWidget);
+    await tester.tap(find.text('Topovske završnice'));
+    await tester.pumpAndSettle();
+    expect(find.text('Selected: 1915 positions'), findsOneWidget);
   });
 
   testWidgets('a level narrows the total without another request',
@@ -119,13 +136,17 @@ void main() {
     await tester.pumpWidget(wrap(picker()));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Topovske završnice'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pešačke završnice'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('2200 - 2400'));
     await tester.pumpAndSettle();
 
     expect(find.text('Selected: 800 positions'), findsOneWidget);
   });
 
-  testWidgets('an empty choice cannot be started', (tester) async {
+  testWidgets('an emptied choice cannot be started', (tester) async {
     tester.view.physicalSize = const Size(400, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -135,7 +156,8 @@ void main() {
 
     await tester.tap(find.text('Topovske završnice'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Pešačke završnice'));
+    expect(find.text('Selected: 1769 positions'), findsOneWidget);
+    await tester.tap(find.text('Topovske završnice'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('No positions match'), findsOneWidget);
@@ -153,6 +175,10 @@ void main() {
     await tester.pumpWidget(wrap(picker(onStart: (choice) => chosen = choice)));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('Topovske završnice'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pešačke završnice'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Start'));
     await tester.pumpAndSettle();
     expect(chosen!.materialsParam, isNull,

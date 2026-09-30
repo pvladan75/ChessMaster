@@ -471,7 +471,9 @@ class PositionStudyBuilder {
     final threat = await _threat(fen, bestChances);
 
     var sans = rootLines.first.sanMoveList;
-    if (tb != null &&
+    if (tb != null && _decisive(tb)) {
+      sans = await _tablebaseLine(fen, tb, 6);
+    } else if (tb != null &&
         tb.keeping.isNotEmpty &&
         !tb.keeping.any((k) => k.uci == rootLines.first.bestMoveLan)) {
       sans = [tb.keeping.first.san];
@@ -769,6 +771,28 @@ class PositionStudyBuilder {
         outcome: outcome, keeping: keeping, spoiling: spoiling);
   }
 
+  /// Whether the tablebase knows a win or a loss here, where its first move
+  /// is the best one; in a draw it is only one of many.
+  static bool _decisive(StudyTablebase tb) =>
+      tb.outcome != TablebaseOutcome.draw;
+
+  /// The tablebase's own line from [fen]: at every position the first move
+  /// it lists that keeps the result, for [plies] or as long as it answers.
+  Future<List<String>> _tablebaseLine(
+      String fen, StudyTablebase root, int plies) async {
+    final sans = <String>[];
+    var at = fen;
+    StudyTablebase? tb = root;
+    while (sans.length < plies && tb != null && tb.keeping.isNotEmpty) {
+      final move = playUci(at, tb.keeping.first.uci);
+      if (move == null) break;
+      sans.add(move.san);
+      at = move.fenAfter;
+      tb = await _tablebaseAt(at);
+    }
+    return sans;
+  }
+
   // --- The threat --------------------------------------------------------------
 
   Future<StudyThreat?> _threat(String fen, double bestChances) async {
@@ -833,9 +857,17 @@ class PositionStudyBuilder {
       var fromEngine = true;
       if (tb != null &&
           tb.keeping.isNotEmpty &&
-          !tb.keeping.any((k) => k.uci == move?.uci)) {
-        // The tablebase knows the result and the engine's move gives it
-        // away: the move is the tablebase's.
+          (_decisive(tb)
+              ? tb.keeping.first.uci != move?.uci
+              : !tb.keeping.any((k) => k.uci == move?.uci))) {
+        // The tablebase knows the result, and the move is its own: the first
+        // it lists that keeps the result, which is the shortest road to mate
+        // for the winner and the longest for the loser. Until 30.9.2026 the
+        // engine's move stood whenever it kept the result, and a move can
+        // keep a win and go nowhere: the owner's rook ending came back as
+        // Kf3 Rb7 Kg3 Rg7+ Kf3, a repetition. In a draw every drawing move
+        // is as good as the next, so there the engine's move stands unless
+        // it gives the draw away.
         move = playUci(at, tb.keeping.first.uci);
         fromEngine = false;
       }
@@ -883,6 +915,9 @@ class PositionStudyBuilder {
       previous = move;
 
       if (steps.length < kStudyMinPlies) continue;
+      // An exact line is not in the middle of anything the engine's rule for
+      // stopping can see: it runs its full length, as far as it can show.
+      if (tb != null && _decisive(tb)) continue;
       final next = fromEngine && best.sanMoveList.length > 1
           ? playSan(at, best.sanMoveList[1])
           : null;

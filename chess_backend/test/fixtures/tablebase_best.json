@@ -1,0 +1,1651 @@
+{
+ "note": "Real answers of tablebase.lichess.ovh, recorded 30.9.2026. `best` is the first move of Lichess's own list — lila-tablebase's sort_key. The server's bestReply must pick it from the moves in any order; the app's reader must keep the order it came in.",
+ "cases": [
+  {
+   "why": "the owner's rook ending: the only winning move",
+   "fen": "8/6R1/8/8/5p1p/6k1/r7/6K1 b - - 5 52",
+   "best": "g3f3",
+   "answer": {
+    "category": "win",
+    "dtz": 7,
+    "dtm": 55,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "g3f3",
+      "san": "Kf3",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -54,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g3h3",
+      "san": "Kh3",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "the defence DTZ got wrong: Rb7 holds four plies longer than Rh7",
+   "fen": "8/6R1/8/8/5p1p/5k2/r7/6K1 w - - 6 53",
+   "best": "g7b7",
+   "answer": {
+    "category": "loss",
+    "dtz": -6,
+    "dtm": -54,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "g7b7",
+      "san": "Rb7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 53,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7f7",
+      "san": "Rf7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 51,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7h7",
+      "san": "Rh7",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 49,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7g6",
+      "san": "Rg6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 49,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7c7",
+      "san": "Rc7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 49,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7d7",
+      "san": "Rd7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 49,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7g8",
+      "san": "Rg8",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 49,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7g5",
+      "san": "Rg5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 47,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7e7",
+      "san": "Re7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 47,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1h1",
+      "san": "Kh1",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 47,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7g4",
+      "san": "Rg4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 9,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7g2",
+      "san": "Rg2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 7,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7a7",
+      "san": "Ra7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 5,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g7g3",
+      "san": "Rg3+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 3,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1f1",
+      "san": "Kf1",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 1,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "the free pawn DTZ walked away from",
+   "fen": "8/7R/8/8/5p1p/8/5k1K/r7 w - - 10 55",
+   "best": "h7h4",
+   "answer": {
+    "category": "loss",
+    "dtz": -2,
+    "dtm": -46,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "h7h4",
+      "san": "Rxh4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 45,
+      "zeroing": true,
+      "conversion": true,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7h5",
+      "san": "Rh5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7h6",
+      "san": "Rh6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7b7",
+      "san": "Rb7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7c7",
+      "san": "Rc7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7d7",
+      "san": "Rd7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7e7",
+      "san": "Re7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7f7",
+      "san": "Rf7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7g7",
+      "san": "Rg7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7h8",
+      "san": "Rh8",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h2h3",
+      "san": "Kh3",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h7a7",
+      "san": "Ra7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 7,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "the rook trade DTZ offered",
+   "fen": "8/4R3/8/8/7p/5p1K/8/r4k2 w - - 4 58",
+   "best": "e7e3",
+   "answer": {
+    "category": "loss",
+    "dtz": -2,
+    "dtm": -36,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "e7e3",
+      "san": "Re3",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e4",
+      "san": "Re4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e5",
+      "san": "Re5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e6",
+      "san": "Re6",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7b7",
+      "san": "Rb7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7c7",
+      "san": "Rc7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7d7",
+      "san": "Rd7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7f7",
+      "san": "Rf7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7g7",
+      "san": "Rg7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7h7",
+      "san": "Rh7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e8",
+      "san": "Re8",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h3h2",
+      "san": "Kh2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h3h4",
+      "san": "Kxh4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 31,
+      "zeroing": true,
+      "conversion": true,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h3g4",
+      "san": "Kg4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 29,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e1",
+      "san": "Re1+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 15,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7a7",
+      "san": "Ra7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 15,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e2",
+      "san": "Re2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 11,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "a winner whose pawn push is not the fastest mate",
+   "fen": "8/1R6/8/8/5p1p/5k2/r7/6K1 b - - 7 53",
+   "best": "a2d2",
+   "answer": {
+    "category": "win",
+    "dtz": 1,
+    "dtm": 53,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "a2d2",
+      "san": "Rd2",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -52,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a1",
+      "san": "Ra1+",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -52,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2e2",
+      "san": "Re2",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -54,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a3",
+      "san": "Ra3",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -54,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2g2",
+      "san": "Rg2+",
+      "category": "loss",
+      "dtz": -2,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a4",
+      "san": "Ra4",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a5",
+      "san": "Ra5",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a8",
+      "san": "Ra8",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "f3e2",
+      "san": "Ke2",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "f3g3",
+      "san": "Kg3",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "f3g4",
+      "san": "Kg4",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2c2",
+      "san": "Rc2",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a6",
+      "san": "Ra6",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "f3e4",
+      "san": "Ke4",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -60,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "f3e3",
+      "san": "Ke3",
+      "category": "loss",
+      "dtz": -8,
+      "dtm": -62,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "h4h3",
+      "san": "h3",
+      "category": "loss",
+      "dtz": -34,
+      "dtm": -74,
+      "zeroing": true,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2f2",
+      "san": "Rf2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 47,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2b2",
+      "san": "Rb2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 43,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a7",
+      "san": "Ra7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 43,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2h2",
+      "san": "Rh2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 41,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "Lucena: the winner",
+   "fen": "1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1",
+   "best": "c1d1",
+   "answer": {
+    "category": "win",
+    "dtz": 15,
+    "dtm": 41,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "c1d1",
+      "san": "Rd1+",
+      "category": "loss",
+      "dtz": -14,
+      "dtm": -40,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c4",
+      "san": "Rc4",
+      "category": "loss",
+      "dtz": -14,
+      "dtm": -40,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c5",
+      "san": "Rc5",
+      "category": "loss",
+      "dtz": -14,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1b1",
+      "san": "Rb1",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1e1",
+      "san": "Re1",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1f1",
+      "san": "Rf1",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1g1",
+      "san": "Rg1",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1h1",
+      "san": "Rh1",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c3",
+      "san": "Rc3",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c6",
+      "san": "Rc6",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c8",
+      "san": "Rc8+",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -42,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c7",
+      "san": "Rc7",
+      "category": "loss",
+      "dtz": -16,
+      "dtm": -44,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1a1",
+      "san": "Ra1",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": 0,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c1c2",
+      "san": "Rc2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 39,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "Lucena: the loser after the check",
+   "fen": "1K1k4/1P6/8/8/8/8/r7/3R4 b - - 1 1",
+   "best": "d8e7",
+   "answer": {
+    "category": "loss",
+    "dtz": -14,
+    "dtm": -40,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "d8e7",
+      "san": "Ke7",
+      "category": "win",
+      "dtz": 13,
+      "dtm": 39,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d8e8",
+      "san": "Ke8",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 27,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2d2",
+      "san": "Rd2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 13,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "Lucena: a defence DTZ alone gets wrong",
+   "fen": "1K6/1P2k3/8/8/3R4/8/r7/8 b - - 3 2",
+   "best": "e7e6",
+   "answer": {
+    "category": "loss",
+    "dtz": -12,
+    "dtm": -38,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "e7e6",
+      "san": "Ke6",
+      "category": "win",
+      "dtz": 11,
+      "dtm": 37,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a1",
+      "san": "Ra1",
+      "category": "win",
+      "dtz": 11,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a3",
+      "san": "Ra3",
+      "category": "win",
+      "dtz": 11,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2b2",
+      "san": "Rb2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2e2",
+      "san": "Re2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2f2",
+      "san": "Rf2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2g2",
+      "san": "Rg2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2h2",
+      "san": "Rh2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 35,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2c2",
+      "san": "Rc2",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 33,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7f6",
+      "san": "Kf6",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 31,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a5",
+      "san": "Ra5",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 29,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a6",
+      "san": "Ra6",
+      "category": "win",
+      "dtz": 5,
+      "dtm": 29,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7f7",
+      "san": "Kf7",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 27,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7e8",
+      "san": "Ke8",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 27,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "e7f8",
+      "san": "Kf8",
+      "category": "win",
+      "dtz": 7,
+      "dtm": 25,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2d2",
+      "san": "Rd2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 13,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a4",
+      "san": "Ra4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 13,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a7",
+      "san": "Ra7",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 11,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a2a8",
+      "san": "Ra8+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 9,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "seven men, the distance to mate known for some moves only",
+   "fen": "8/8/2P5/3p4/3P4/3k4/2r4R/7K b - - 0 76",
+   "best": "c2c6",
+   "answer": {
+    "category": "win",
+    "dtz": 1,
+    "dtm": null,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "c2c6",
+      "san": "Rxc6",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -76,
+      "zeroing": true,
+      "conversion": true,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c1",
+      "san": "Rc1+",
+      "category": "loss",
+      "dtz": -1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c4",
+      "san": "Rc4",
+      "category": "draw",
+      "dtz": 0,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c3",
+      "san": "Rc3",
+      "category": "win",
+      "dtz": 3,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2a2",
+      "san": "Ra2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2b2",
+      "san": "Rb2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2d2",
+      "san": "Rd2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2e2",
+      "san": "Re2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2f2",
+      "san": "Rf2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2g2",
+      "san": "Rg2",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2c5",
+      "san": "Rc5",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c3",
+      "san": "Kc3",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e3",
+      "san": "Ke3",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3c4",
+      "san": "Kc4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3e4",
+      "san": "Ke4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "c2h2",
+      "san": "Rxh2+",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 27,
+      "zeroing": true,
+      "conversion": true,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "d3d4",
+      "san": "Kxd4",
+      "category": "win",
+      "dtz": 1,
+      "dtm": 17,
+      "zeroing": true,
+      "conversion": true,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  },
+  {
+   "why": "mate in one: the mate carries no distance to mate and still comes first",
+   "fen": "6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1",
+   "best": "a1a8",
+   "answer": {
+    "category": "win",
+    "dtz": 1,
+    "dtm": 1,
+    "checkmate": false,
+    "stalemate": false,
+    "insufficient_material": false,
+    "moves": [
+     {
+      "uci": "a1a8",
+      "san": "Ra8#",
+      "category": "loss",
+      "dtz": -1,
+      "dtm": null,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": true,
+      "stalemate": false
+     },
+     {
+      "uci": "a1a5",
+      "san": "Ra5",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1f2",
+      "san": "Kf2",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1g2",
+      "san": "Kg2",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1h2",
+      "san": "Kh2",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1a6",
+      "san": "Ra6",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -56,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1b1",
+      "san": "Rb1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1c1",
+      "san": "Rc1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1d1",
+      "san": "Rd1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1e1",
+      "san": "Re1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1f1",
+      "san": "Rf1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1a2",
+      "san": "Ra2",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1a3",
+      "san": "Ra3",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1a4",
+      "san": "Ra4",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1f1",
+      "san": "Kf1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "g1h1",
+      "san": "Kh1",
+      "category": "loss",
+      "dtz": -4,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     },
+     {
+      "uci": "a1a7",
+      "san": "Ra7",
+      "category": "loss",
+      "dtz": -6,
+      "dtm": -58,
+      "zeroing": false,
+      "conversion": false,
+      "checkmate": false,
+      "stalemate": false
+     }
+    ]
+   }
+  }
+ ]
+}

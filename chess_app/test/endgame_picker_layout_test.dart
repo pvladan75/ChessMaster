@@ -96,12 +96,12 @@ Future<void> pumpPicker(WidgetTester tester, Size size) async {
   ));
   await tester.pumpAndSettle();
 
-  // The screen opens its biggest family by itself, so that an all-shut list
-  // does not look like it holds nothing. Every case below states its own
-  // starting point instead of inheriting that one, and a shut catalogue is
-  // the state in which all six families are actually built — a `ListView`
-  // builds nothing below the fold, and rook endings open is taller than the
-  // window.
+  // The screen opens with every family shut (the owner's word of 30.9.2026;
+  // until then it opened the biggest by itself). Every case below still
+  // states its own starting point instead of inheriting the screen's, and a
+  // shut catalogue is the state in which all six families are actually built
+  // — a `ListView` builds nothing below the fold, and rook endings open is
+  // taller than the window.
   await setFamilyOpen(tester, 'Rook endings', false);
 }
 

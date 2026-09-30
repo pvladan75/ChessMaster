@@ -236,3 +236,65 @@ test('a position with no legal moves has no reply', () => {
   assert.equal(bestReply([]), null);
   assert.equal(bestReply(undefined), null);
 });
+
+// ---- The best move is Lichess's -------------------------------------------
+//
+// Real answers of tablebase.lichess.ovh (test/fixtures/tablebase_best.json,
+// shared with the app's reader). `best` is the first move of Lichess's own
+// list; bestReply must find a move just as good however the list is ordered.
+// "Just as good" rather than "the same move": where every key lila-tablebase
+// sorts by is equal, Lichess breaks the tie by the piece captured and its own
+// move generator, which a list of moves does not carry — two of these cases
+// are such ties.
+
+const BEST = require('./fixtures/tablebase_best.json').cases;
+
+/// Everything lila-tablebase ranks a move by that an answer carries.
+function rankedBy(move) {
+  return [move.category, Boolean(move.checkmate), move.dtm ?? null,
+    Boolean(move.conversion), Boolean(move.zeroing), move.dtz ?? null];
+}
+
+for (const c of BEST) {
+  test(`Lichess's best move is picked from any order: ${c.why}`, () => {
+    const best = c.answer.moves.find((m) => m.uci === c.best);
+    const moves = c.answer.moves;
+    for (const order of [moves, [...moves].reverse(),
+      [...moves.slice(3), ...moves.slice(0, 3)]]) {
+      assert.deepEqual(rankedBy(bestReply(order)), rankedBy(best));
+    }
+  });
+}
+
+test('a lost position is defended by the distance to mate, not to the next capture', () => {
+  // The owner's rook ending after Kf3: Rh7 keeps Black five plies from the
+  // next pawn move and loses in 49; Rb7 lets a pawn move at once and holds to
+  // 53. The old rule took Rh7.
+  const c = BEST.find((x) => x.best === 'g7b7');
+  assert.equal(bestReply(c.answer.moves).san, 'Rb7');
+});
+
+test('a draw is chosen by uci, as before, whatever else the moves are', () => {
+  // Among drawing moves Lichess lists a stalemate and a trade into bare kings
+  // first, and the loser's half of its key would put a capture last. Neither
+  // is a reason to prefer one drawing move to another in the draw drill, so
+  // the pick stays what it was: the same move on every run.
+  const drawn = [
+    { uci: 'h1h2', san: 'Kh2', category: 'draw', dtz: 0, zeroing: false, stalemate: true },
+    { uci: 'c3c4', san: 'Rc4', category: 'draw', dtz: 0, zeroing: false },
+    { uci: 'a3a4', san: 'Rxa4', category: 'draw', dtz: 0, zeroing: true, conversion: true },
+  ];
+  assert.equal(bestReply(drawn).uci, 'a3a4');
+});
+
+test('without a distance to mate, a loser keeps the counter running, as Lichess does', () => {
+  // Our own tables' answers carry no DTM, and lila-tablebase then orders a
+  // losing side's non-zeroing moves first: a capture or a pawn move restarts
+  // the fifty-move count for the winner. The drill's fallback follows that
+  // order, so it plays what the answer's own list puts first.
+  const lost = [
+    { uci: 'a1a8', san: 'Rxa8', category: 'win', dtz: 12, zeroing: true, conversion: true },
+    { uci: 'b1b2', san: 'Kb2', category: 'win', dtz: 8, zeroing: false },
+  ];
+  assert.equal(bestReply(lost).uci, 'b1b2');
+});

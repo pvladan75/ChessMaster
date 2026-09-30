@@ -21,8 +21,6 @@ import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 
-import '../services/holding_pattern.dart';
-
 // The service re-exports the game model, as it does the drill step.
 import '../services/endgame_api_service.dart';
 
@@ -375,11 +373,6 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
 
     final who = blunder.side == 'white' ? 'White' : 'Black';
     final lost = blunder.lostAWin ? 'let the win go' : 'lost the draw';
-    final lesson = holdingLesson(
-      fen: blunder.fen,
-      holdingUci: blunder.shouldPlayUci,
-      playedUci: blunder.playedUci,
-    );
 
     final ok = await _api.keepForLater(
       fen: blunder.fen,
@@ -387,7 +380,6 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       description: [
         '$who played ${blunder.played} and $lost.',
         'Holding moves were: ${blunder.shouldPlay.join(', ')}.',
-        lesson,
         walk.game.label,
       ].whereType<String>().join(' '),
     );
@@ -532,15 +524,13 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
             : 'Correct. Also holding was: '
                 '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
 
-    // What the moves that hold had in common, when they had anything. Said
-    // now rather than while the position was open, where it would have been a
-    // hint rather than a lesson.
-    final lesson = holdingLesson(
-      fen: blunder.fen,
-      holdingUci: blunder.shouldPlayUci,
-      playedUci: blunder.playedUci,
-    );
-    final taught = lesson == null ? verdict : '$verdict $lesson';
+    // The verdict alone. A sentence about what the holding moves had in
+    // common followed it until 30.9.2026, when the owner had it taken out
+    // everywhere as often wrong: true of the moves, it was said as a rule, and
+    // with one move holding every property of that move became one — Rd2+ is
+    // the only move, so "The Rook must stay on rank 2", which is not why it
+    // holds.
+    final taught = verdict;
 
     // The last answer opens the game to its end rather than to the next stop,
     // so it is worth saying which of the two just happened - and if there is

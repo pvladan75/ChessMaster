@@ -244,7 +244,10 @@ async function judgeMove({ fen, move, tablebase }) {
   // position they have already won, which teaches the wrong lesson twice.
   if (!held || result.finished) return result;
 
-  const afterMove = await tablebase.probe(board.fen());
+  // The reply is the one question here that needs the distance to mate: the
+  // opponent's longest resistance, which our own tables cannot tell apart
+  // from a quick collapse (bestReply).
+  const afterMove = await tablebase.probe(board.fen(), { mateDistance: true });
   const reply = bestReply(afterMove.moves);
   if (reply) {
     const replied = board.move({
@@ -271,10 +274,14 @@ async function judgeMove({ fen, move, tablebase }) {
  * "-0.3" is an opinion.
  *
  * Both sides play the tables' best, which is not the same as both sides playing
- * well: the losing side takes the longest road and the winning side the
- * shortest, so it reads like a game rather than like a resignation. bestReply
- * carries that rule, and the same fix that made the drill terminate - a winning
- * zeroing move first - is what stops this from wandering too.
+ * well: the losing side takes the longest road to mate and the winning side
+ * the shortest, so it reads like a game rather than like a resignation.
+ * bestReply carries that rule — Lichess's own order — and the distance to mate
+ * is there wherever Lichess answered (six and seven men). Five men or fewer
+ * come from our own tables, which have no such distance, and are ordered by
+ * the DTZ half of the same rule: a winning zeroing move first, which is what
+ * stops the line from wandering. Not asked of Lichess here as the drill's reply
+ * is: a line is up to sixteen probes, and Lichess is paced at one a second.
  */
 /// The material a draw cannot be lost from except by giving a piece away.
 ///

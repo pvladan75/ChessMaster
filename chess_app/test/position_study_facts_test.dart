@@ -2,8 +2,9 @@
 //
 // Built from the real engine's answers, recorded (`support/recorded_engine`):
 // Stockfish 19 at depth 20, for the owner's two positions of 28.9.2026, one
-// position of his own games with a threat in it, and a rook ending the
-// tablebase knows. What is held here is what the owner asked for in his own
+// position of his own games with a threat in it, and three rook endings the
+// tablebase knows — a win, the owner's own of 30.9.2026, and a draw. What is
+// held here is what the owner asked for in his own
 // words: the line 7...Be4 8.dxc6 Bxh1 9.Rxa7, „a capture that wins material
 // and loses evaluation", and the threat as what the other side does if the
 // side to move passes.
@@ -173,11 +174,70 @@ void main() {
       final tb = study.tablebase;
       expect(tb, isNotNull);
       expect(tb!.outcome, TablebaseOutcome.win);
-      expect([for (final k in tb.keeping) k.san], ['Rc1+', 'Rxc6']);
+      // In the tablebase's own order, best first — Rxc6 mates in 76 plies,
+      // and Rc1+'s distance to mate is not known. Until 30.9.2026 the app
+      // sorted again by the smallest DTZ and this read Rc1+, Rxc6.
+      expect([for (final k in tb.keeping) k.san], ['Rxc6', 'Rc1+']);
       expect(tb.spoiling, isNotEmpty);
-      expect(study.mainLine.first.move.san, isIn(['Rc1+', 'Rxc6']));
+      expect(study.mainLine.first.move.san, 'Rxc6');
       expect(study.tempting, isEmpty,
           reason: 'the tablebase\'s list says which moves fail');
+    });
+
+    // The owner's rook ending of 30.9.2026. The engine's line kept the win
+    // and went nowhere — 52...Kf3 53.Rb7 Kg3 54.Rg7+ Kf3, a repetition — and
+    // the study stood on it, because the tablebase was asked only whether
+    // the engine's move gave the result away. Where the tablebase knows a
+    // win or a loss, the line is now its own: the first move it lists that
+    // keeps the result, at every step, which is Lichess's line.
+    test('the owner\'s rook ending: the line is the tablebase\'s own',
+        () async {
+      final (study, _) = await _study('owner3');
+      expect(_sans(study.mainLine.map((s) => s.move)),
+          ['Kf3', 'Rb7', 'Rd2', 'Rf7', 'Rd1+', 'Kh2', 'Ke3', 'Kg2']);
+      for (final step in study.mainLine) {
+        expect(step.tablebase, isNotNull, reason: step.move.san);
+        expect(step.move.uci, step.tablebase!.keeping.first.uci,
+            reason: '${step.move.san} is not the tablebase\'s first move');
+      }
+    });
+
+    test('the owner\'s rook ending: no position of the line comes back',
+        () async {
+      final (study, _) = await _study('owner3');
+      String board(String fen) => fen.split(' ').take(2).join(' ');
+      final seen = <String>{board(study.fen)};
+      for (final step in study.mainLine) {
+        expect(seen.add(board(step.move.fenAfter)), isTrue,
+            reason: 'the line repeats after ${step.move.san}');
+      }
+    });
+
+    test('the overview walks the same line, not the engine\'s', () async {
+      final engine = RecordedEngine.read('owner3');
+      final overview = await PositionStudyBuilder(
+        analyzer: engine.analyzer,
+        depth: engine.depth,
+        tablebase: engine.tablebase,
+      ).buildOverview(engine.fen);
+      expect(engine.unanswered, isEmpty);
+      final line = _sans(overview.mainLine.map((s) => s.move));
+      expect(line.length, greaterThanOrEqualTo(kStudyMinPlies));
+      expect(
+          line, ['Kf3', 'Rb7', 'Rd2', 'Rf7', 'Rd1+', 'Kh2'].take(line.length));
+    });
+
+    test('in a draw the engine\'s move stands while it keeps the draw',
+        () async {
+      // Every drawing move is as good as the next, and the tablebase's first
+      // is only the first of its list: here Ra2, where the engine plays Rh6.
+      // Following the list would show an arbitrary draw — or a stalemate or a
+      // trade into bare kings, which Lichess lists first among draws.
+      final (study, _) = await _study('classic6');
+      final tb = study.tablebase!;
+      expect(tb.outcome, TablebaseOutcome.draw);
+      expect(tb.keeping.first.san, 'Ra2');
+      expect(study.mainLine.first.move.san, 'Rh6');
     });
 
     test('with more than seven men the tablebase is never asked', () async {

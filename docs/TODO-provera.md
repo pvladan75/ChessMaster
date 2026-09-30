@@ -4379,6 +4379,77 @@ odlazi na kraj spiska u alatu.
    (`Level`) tada ne utiče (rečenica ispod to i kaže).
    Potrebno: Windows i telefon.
 
+33. [ ] **„What to drill" se otvara bez ijednog štikliranja.** [258.1]
+   O čemu se radi: Na vlasnikovu reč od 30.9.2026 (njegova slika 2): ekran
+   se otvara bez ijedne štiklirane porodice i sa svim porodicama zatvorenim;
+   do sada je sve bilo štiklirano i najveća porodica otvorena. Prekidač
+   `Include online games` i dalje pamti poslednji izbor.
+   Gde: `Practise` → `Endgames from master games` → `Win` (pa isto za
+   `Hold a draw`).
+   Uradi: Otvori ekran. Štikliraj jednu porodicu, pa uključi i isključi
+   `Include online games`.
+   Treba da vidiš: Nijedan kvadratić nije štikliran, nijedna porodica nije
+   otvorena, dole „No positions match this selection" i `Start` siv. Posle
+   štikliranja broj „Selected: N positions" i `Start` živ; prekidač menja
+   broj, a štiklirano ostaje štiklirano.
+   Potrebno: Windows i telefon; server.
+
+34. [ ] **„Play to the end": protivnik se brani najduže do mata.** [258.2]
+   O čemu se radi: Prijavljeno 30.9.2026 („protivnik ne igra najbolje
+   poteze"). Protivnik je birao potez koji ga najduže drži od sledećeg
+   uzimanja ili poteza pešakom (DTZ), ne od mata: u vlasnikovoj topovskoj
+   završnici je odbio besplatnog pešaka i ponudio zamenu topova koja je
+   skratila mat sa 35 na 15 polupoteza. Sada bira kao Lichess: najduži put do
+   mata. Za pet figura i manje taj broj zna samo Lichess, pa se za odgovor
+   protivnika pita Lichess (treba internet); kad ne odgovori, bira se po našim
+   tabelama i server to zapiše u log.
+   Gde: `Practise` → `Endgames from master games` → `Win` → štikliraj
+   `Rook endgames` → `Start` → `Play to the end`.
+   Uradi: Odigraj bar deset poteza u jednoj završnici sa šest figura (npr.
+   KRPPvKR) i u jednoj sa pet (KRPvKR). Ako ti neki odgovor protivnika
+   izgleda slab, prepiši poziciju pre njega u lichess.org/analysis i otvori
+   tablebase.
+   Treba da vidiš: Protivnik ne ostavlja besplatnog pešaka koga može da uzme
+   i ne nudi zamenu koja mu skraćuje otpor; na Lichess-u je njegov potez prvi
+   na listi (ili ima isti „Mate in N" kao prvi). U `Settings` →
+   `Usage this month` Lichess brojač raste za oko jedan po potezu u
+   završnici sa pet figura.
+   Potrebno: Windows ili telefon; server (restartovan posle izmene — nodemon
+   to radi sam); internet.
+
+35. [ ] **Posle tačnog odgovora nema „pravila" (npr. „The Rook must stay on rank 2").** [258.3]
+   O čemu se radi: Na vlasnikovu reč od 30.9.2026 (njegova slika 3)
+   obrisane su sve rečenice o tome šta potezi koji drže imaju zajedničko:
+   „The … must stay on rank/file …", „Only the … moves hold.", „Only moves to
+   rank/the … file hold.", „Only a check holds.", „Only a capture holds." Bile
+   su tačne za listu poteza, ali izrečene kao pravilo, i često pogrešne kao
+   savet.
+   Gde: `Practise` → `Endgames from master games` → `Win`/`Hold a draw`
+   (pozicija), i isto mesto → `Game blunders` (greške iz partija).
+   Uradi: Reši poziciju tačno; tamo gde ima više poteza pritisni i `Show`.
+   Pritisni `Save for later`. U `Game blunders` odgovori tačno na grešku.
+   Treba da vidiš: Samo presudu („Correct — … That was the only move." ili
+   „Correct — Rd2+ was the only move. That was the last mistake — …") bez
+   rečenice posle nje; ni opis sačuvane pozicije nema takvu rečenicu.
+   Potrebno: Windows ili telefon; server.
+
+36. [ ] **„Why it is bad" u „Game blunders" ide najkraćim putem do mata.** [258.4]
+   O čemu se radi: Odgovor na pitanje od 30.9.2026 „kako se dobijaju potezi u
+   refutaciji": iz tablebase-a, obe strane igraju njegov najbolji potez, do 10
+   polupoteza. Do sada je i to išlo po DTZ-u; sada kao Lichess — pobednik
+   najkraćim putem do mata, gubitnik najdužim — gde Lichess zna udaljenost
+   do mata (šest i sedam figura). Za pet figura i manje i dalje po našim
+   tabelama (DTZ), jer je refutacija do 16 upita, a Lichess prima jedan u
+   sekundi.
+   Gde: `Practise` → `Endgames from master games` → `Game blunders` → (greška)
+   → `Why it is bad`.
+   Uradi: Pritisni `Why it is bad` na grešci u završnici sa šest ili sedam
+   figura.
+   Treba da vidiš: Linija se odigra do kraja; za poziciju posle greške
+   Lichess (lichess.org/analysis, tablebase) stavlja na vrh isti potez koji je
+   refutacija prvo odigrala, ili potez sa istim „Mate in N".
+   Potrebno: Windows ili telefon; server; internet.
+
 ### Practise — AI Studio i zagonetke
 
 1. [ ] **AI Studio ima prekidače za strelice motora.** [93.11]
@@ -4749,6 +4820,24 @@ odlazi na kraj spiska u alatu.
     Treba da vidiš: `AI position studies` je veći za jedan (ne za dva);
     `AI position study writing` je porastao i za tokene prevoda.
     Potrebno: Windows ili telefon; prijavljen nalog.
+
+18. [ ] **Studija završnice ide napred: linija je tablebase-ova.** [258.5]
+   O čemu se radi: Prijavljeno 30.9.2026 sa PGN-om: `Study this position` na
+   vlasnikovoj topovskoj završnici dala je 52...Kf3 53.Rb7 Kg3 54.Rg7+ Kf3 —
+   ponavljanje. Motorov potez je stajao kad god čuva pobedu, a potez može da
+   čuva pobedu i da ne ide nikud. Sada, gde tablebase zna pobedu ili poraz,
+   linija je njegova (najkraći put do mata za pobednika, najduži za
+   gubitnika) i ide do pune dužine (8 polupoteza). U remiju stoji potez
+   motora dok čuva remi. Isto važi za `Generate AI comment` na jednoj
+   poziciji.
+   Gde: `Analyse` → `Analysis` → postavi poziciju
+   `8/6R1/8/8/5p1p/6k1/r7/6K1 b - - 5 52` → `Study this position`.
+   Uradi: Napravi studiju. Zatim na istoj poziciji `Generate AI comment`.
+   Treba da vidiš: Linija 52...Kf3! 53.Rb7 Rd2 54.Rf7 Rd1+ 55.Kh2 Ke3
+   56.Kg2 (crni kralj izlazi iz kutije), nijedna pozicija se ne ponavlja;
+   komentar prati istu liniju. U završnici sa pet figura linija ide po našim
+   tabelama (bez udaljenosti do mata), ali takođe napred.
+   Potrebno: Windows; server; internet.
 
 ### Analyse — Pregled partije (Review entire game)
 

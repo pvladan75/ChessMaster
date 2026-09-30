@@ -113,15 +113,64 @@ function wdlOf(category) {
   return WDL[category];
 }
 
+/// Two optional numbers in Rust's `Option` order: none before any, then by
+/// value.
+function optionOrder(a, b) {
+  const noA = a === null || a === undefined;
+  const noB = b === null || b === undefined;
+  if (noA && noB) return 0;
+  if (noA) return -1;
+  if (noB) return 1;
+  return a - b;
+}
+
+/// Distance to mate, ordered as lila-tablebase orders it
+/// (`tightening_metric_sort_key` in its `src/metric.rs`). A move's `dtm` is
+/// the opponent's after it, in plies: negative when the opponent is being
+/// mated, so the nearest mate comes first; positive when the mover is, so the
+/// farthest comes first. A move whose distance is not known sorts after the
+/// known ones for a winner and before them for a loser — Lichess's own quirk,
+/// kept so our pick and its list agree.
+function byMateDistance(a, b) {
+  const neg = (m) => (typeof m.dtm === 'number' && m.dtm < 0 ? m.dtm : null);
+  const pos = (m) => (typeof m.dtm === 'number' && m.dtm > 0 ? m.dtm : null);
+  const nearer = optionOrder(neg(b), neg(a));
+  if (nearer !== 0) return nearer;
+  const pa = pos(a);
+  const pb = pos(b);
+  if (pa === null && pb === null) return 0;
+  if (pa === null) return -1;
+  if (pb === null) return 1;
+  return pb - pa;
+}
+
 /// The move a tablebase-perfect player makes in this position.
 ///
 /// In the drill this is the opponent's reply, but the rule is not about sides:
 /// the categories on `moves` describe the player to move *after* each move, so
-/// the mover's own result is their negation. Among moves that reach the same
-/// result the choice is not arbitrary. A losing side must take the longest
-/// road, or the drill ends early and teaches the child nothing; a winning side
-/// must take the shortest, or "you are not making progress" becomes a lie told
-/// by the opponent rather than by the child's play.
+/// the mover's own result is their negation.
+///
+/// **Among moves that reach the same result, the order is Lichess's**
+/// (`MoveInfo::sort_key` in lila-tablebase's `src/response.rs`, the server
+/// behind `tablebase.lichess.ovh` and behind our own tables): a mate first,
+/// then the distance to mate, then a conversion, then a zeroing move, then
+/// DTZ. `test/fixtures/tablebase_best.json` holds real answers to it, and the
+/// app's reader keeps the same order by never re-sorting what arrives.
+///
+/// Until 30.9.2026 this looked at DTZ alone, and a defence by DTZ is not a
+/// defence. DTZ counts to the next capture or pawn move, so the loser who
+/// maximises it keeps the winner from zeroing and nothing else: in the owner's
+/// rook ending it walked away from a free pawn (Kh3 where Rxh4 holds eight
+/// plies longer) and offered the rook trade that cut the mate from 35 plies to
+/// 15. Distance to mate is what "the longest resistance" means. Our own
+/// tables (five men or fewer) have no DTM, and there the order falls back to
+/// the DTZ half of the same key — see `probe`'s `mateDistance`.
+///
+/// A draw is left alone: every drawing move is equally good, Lichess's order
+/// among them puts a stalemate or a trade into bare kings first — which would
+/// end the draw drill on its first reply — so the pick among them is by uci,
+/// the same on every run. Without a stable tie-break the same drill would play
+/// out differently each time.
 function bestReply(moves) {
   if (!Array.isArray(moves) || moves.length === 0) return null;
 
@@ -133,32 +182,36 @@ function bestReply(moves) {
 
   const best = Math.max(...scored.map((s) => s.value));
   const tied = scored.filter((s) => s.value === best);
-  // Sorted by uci first so the pick is the same on every run; without it two
-  // equally good moves would alternate between requests and the same drill
-  // would play out differently each time.
   tied.sort((a, b) => a.move.uci.localeCompare(b.move.uci));
+  if (best === 0) return tied[0].move;
 
-  if (best > 0) {
+  const winning = best > 0;
+  // A mover who is winning wants the conversion and the zeroing move first;
+  // one who is losing wants them last: they restart the counter for the
+  // winner. The same xor lila writes as `zeroing ^ !is_positive`.
+  const later = (flag) => (winning ? !flag : Boolean(flag));
+  tied.sort((a, b) => {
+    if (Boolean(a.move.checkmate) !== Boolean(b.move.checkmate)) {
+      return a.move.checkmate ? -1 : 1;
+    }
+    const mate = byMateDistance(a.move, b.move);
+    if (mate !== 0) return mate;
+    if (later(a.move.conversion) !== later(b.move.conversion)) {
+      return later(a.move.conversion) ? 1 : -1;
+    }
     // Converting, and this is where the obvious rule is wrong. "Smallest DTZ"
     // compares distances measured from different starting points, because a
     // capture or a pawn move resets the counter: at DTZ 1 the winning move is
     // precisely the zeroing one, and its distance afterwards is whatever the
     // new ending happens to be - often larger. Played out, that rule had the
-    // winner shuffle a rook back and forth forever, holding the win and never
-    // finishing it, which is not a drill anyone can complete.
-    //
-    // So a zeroing move that keeps the win comes first: it is progress by
-    // definition, it restarts the fifty move count, and it is what guarantees
-    // the drill ends. Among the rest, the shortest road.
-    tied.sort((a, b) => {
-      if (a.move.zeroing !== b.move.zeroing) return a.move.zeroing ? -1 : 1;
-      return a.distance - b.distance;
-    });
-  } else if (best < 0) {
-    // Lost, so the longest road: ending early would teach the child nothing
-    // about converting.
-    tied.sort((a, b) => b.distance - a.distance);
-  }
+    // winner shuffle a rook back and forth forever. So a zeroing move that
+    // keeps the win comes first: it is progress by definition.
+    if (later(a.move.zeroing) !== later(b.move.zeroing)) {
+      return later(a.move.zeroing) ? 1 : -1;
+    }
+    // The shortest road for the winner, the longest for the loser.
+    return winning ? a.distance - b.distance : b.distance - a.distance;
+  });
   return tied[0].move;
 }
 
@@ -288,11 +341,20 @@ function createTablebase({
     }
   }
 
+  /// Whether our own tables are the first ones asked about this position.
+  function localFirst(fen) {
+    return Boolean(localUrl) && pieceCount(fen) <= LOCAL_MAX_MEN;
+  }
+
   async function load(fen) {
-    if (localUrl && pieceCount(fen) <= LOCAL_MAX_MEN) {
+    if (localFirst(fen)) {
       const local = await fetchLocal(fen);
-      if (local) return local;
+      if (local) return { data: local, source: 'local' };
     }
+    return { data: await loadLichess(fen), source: 'lichess' };
+  }
+
+  async function loadLichess(fen) {
     let last;
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
@@ -313,34 +375,73 @@ function createTablebase({
   /**
    * Everything known about one position: its outcome for the side to move, the
    * distance to the next zeroing move, and every legal move with the same.
+   *
+   * `mateDistance` asks for Lichess's answer where our own tables would be
+   * asked first, because only Lichess knows the distance to mate — and a move
+   * chosen as the best defence needs it (`bestReply`). Asked by the drill for
+   * its reply alone: one request a move, never a walk. When Lichess does not
+   * answer, our own tables' answer is used and the log says so — the result is
+   * exact either way, only the choice among equally lost moves is coarser.
    */
-  async function probe(fen) {
+  async function probe(fen, { mateDistance = false } = {}) {
+    if (mateDistance && localFirst(fen)) return probeWithMate(fen);
     if (cache.has(fen)) return cache.get(fen);
     if (inFlight.has(fen)) return inFlight.get(fen);
+    return tracked(fen, kept(fen, load(fen)));
+  }
 
-    const pending = load(fen).then((data) => {
+  function probeWithMate(fen) {
+    const cached = cache.get(fen);
+    if (cached && cached.source === 'lichess') return cached;
+    const key = `${fen}|dtm`;
+    if (inFlight.has(key)) return inFlight.get(key);
+    const lichess = loadLichess(fen).then((data) => ({ data, source: 'lichess' }));
+    return tracked(key, kept(fen, lichess).catch((err) => {
+      if (!(err instanceof TablebaseUnavailable)) throw err;
+      log.warn(`[TABLEBASE] Lichess nije dao udaljenost do mata (${err.message}); `
+        + `odgovor bira naša tabela: ${fen}`);
+      return probe(fen);
+    }));
+  }
+
+  /// Held under `key` while it is on its way, so a second asker waits for the
+  /// same answer — fallback included — instead of sending a second request.
+  function tracked(key, pending) {
+    const settled = pending.finally(() => inFlight.delete(key));
+    inFlight.set(key, settled);
+    return settled;
+  }
+
+  /// An answer in the service's own shape, cached under `fen`.
+  function kept(fen, loading) {
+    return loading.then(({ data, source }) => {
       const value = {
+        source,
         category: data.category,
         dtz: data.dtz ?? null,
+        // Distance to mate in plies, which Lichess has and our own tables do
+        // not: null is "not known", never "no mate".
+        dtm: data.dtm ?? null,
         checkmate: Boolean(data.checkmate),
         stalemate: Boolean(data.stalemate),
         insufficientMaterial: Boolean(data.insufficient_material),
+        // The source's order is kept: it is lila-tablebase's best first,
+        // which is what the app's reader shows and plays from.
         moves: (data.moves || []).map((m) => ({
           uci: m.uci,
           san: m.san,
           category: m.category,
           dtz: m.dtz ?? null,
+          dtm: m.dtm ?? null,
           zeroing: Boolean(m.zeroing),
+          conversion: Boolean(m.conversion),
           checkmate: Boolean(m.checkmate),
           stalemate: Boolean(m.stalemate),
         })),
       };
       remember(fen, value);
       return value;
-    }).finally(() => inFlight.delete(fen));
-
-    inFlight.set(fen, pending);
-    return pending;
+    });
   }
 
   return {

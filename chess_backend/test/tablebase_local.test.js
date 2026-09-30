@@ -158,6 +158,70 @@ test('a Lichess block holds for Lichess only: five men are still answered', asyn
     'nothing is sent to Lichess while it is blocked');
 });
 
+// ---- The distance to mate, for the drill's reply ---------------------------
+//
+// Our own tables have no DTM, and the drill's reply is chosen by it
+// (`bestReply`). So a probe with `mateDistance` goes to Lichess even for five
+// men; when Lichess cannot answer, our own tables' answer is used and the log
+// says so.
+
+test('with the distance to mate asked, five men go to Lichess', async () => {
+  const s = server(() => ANSWER);
+  const tb = createTablebase({ fetchImpl: s.fetchImpl, localUrl: LOCAL, ...clock() });
+  const probed = await tb.probe(FIVE, { mateDistance: true });
+  assert.deepEqual(s.where(), ['lichess']);
+  assert.equal(probed.source, 'lichess');
+  // And it is cached for everybody: a plain probe asks nothing more.
+  await tb.probe(FIVE);
+  assert.deepEqual(s.where(), ['lichess']);
+});
+
+test('a cached local answer does not answer a question about the distance to mate', async () => {
+  const s = server(() => ANSWER);
+  const tb = createTablebase({ fetchImpl: s.fetchImpl, localUrl: LOCAL, ...clock() });
+  await tb.probe(FIVE);
+  await tb.probe(FIVE, { mateDistance: true });
+  await tb.probe(FIVE, { mateDistance: true });
+  assert.deepEqual(s.where(), ['local', 'lichess'],
+    'Lichess is asked once, and its answer then replaces ours in the cache');
+});
+
+test('six men ask Lichess once, whatever is asked for', async () => {
+  const s = server(() => ANSWER);
+  const tb = createTablebase({ fetchImpl: s.fetchImpl, localUrl: LOCAL, ...clock() });
+  await tb.probe(SIX, { mateDistance: true });
+  await tb.probe(SIX);
+  assert.deepEqual(s.where(), ['lichess']);
+});
+
+test('when Lichess cannot answer, the reply comes from our own tables, and the log says so', async () => {
+  const s = server((url) => (url.startsWith(LOCAL) ? ANSWER : 500));
+  const w = warnings();
+  const tb = createTablebase({
+    fetchImpl: s.fetchImpl, localUrl: LOCAL, retries: 0, log: w.log, ...clock(),
+  });
+  const probed = await tb.probe(FIVE, { mateDistance: true });
+  assert.equal(probed.category, 'loss');
+  assert.equal(probed.source, 'local');
+  assert.deepEqual(s.where(), ['lichess', 'local']);
+  assert.equal(w.said.length, 1);
+  assert.match(w.said[0], /udaljenost do mata/);
+});
+
+test('two replies asked at once share one request, and its fallback', async () => {
+  const s = server((url) => (url.startsWith(LOCAL) ? ANSWER : 500));
+  const tb = createTablebase({
+    fetchImpl: s.fetchImpl, localUrl: LOCAL, retries: 0, log: warnings().log, ...clock(),
+  });
+  const [a, b] = await Promise.all([
+    tb.probe(FIVE, { mateDistance: true }),
+    tb.probe(FIVE, { mateDistance: true }),
+  ]);
+  assert.equal(a.category, 'loss');
+  assert.equal(b.category, 'loss');
+  assert.deepEqual(s.where(), ['lichess', 'local']);
+});
+
 // ---- GET /api/tablebase ------------------------------------------------------
 
 const router = require('../routes/tablebase');
@@ -189,8 +253,28 @@ test('the route answers in the explorer\'s shape, from the one service', async (
     fen: FIVE.replace(/ /g, '_'),
   });
   assert.equal(status, 200);
-  assert.deepEqual(body, ANSWER);
+  // Our own tables know no distance to mate: it is there, and null.
+  assert.deepEqual(body, {
+    ...ANSWER,
+    dtm: null,
+    moves: ANSWER.moves.map((m) => ({ ...m, dtm: null })),
+  });
   assert.deepEqual(s.where(), ['local']);
+});
+
+test('the route keeps Lichess\'s order and its distance to mate', async () => {
+  // The app plays from the first move of this list and never sorts it again,
+  // so the order the source gave is part of the answer.
+  const [, afterKf3] = require('./fixtures/tablebase_best.json').cases;
+  const s = server(() => afterKf3.answer);
+  const tb = createTablebase({ fetchImpl: s.fetchImpl, localUrl: LOCAL, ...clock() });
+  const { status, body } = await call(createTablebaseHandler({ tablebase: tb }), {
+    fen: afterKf3.fen,
+  });
+  assert.equal(status, 200);
+  assert.deepEqual(body.moves.map((m) => m.uci), afterKf3.answer.moves.map((m) => m.uci));
+  assert.deepEqual(body.moves.map((m) => m.dtm), afterKf3.answer.moves.map((m) => m.dtm));
+  assert.equal(body.dtm, afterKf3.answer.dtm);
 });
 
 test('the route refuses what no tablebase answers, and asks nothing', async () => {

@@ -15,9 +15,10 @@ import '../services/endgame_api_service.dart';
 /// them. Rook endings alone come in thirteen, so a single flat list of 128 keys
 /// would be a wall rather than a choice.
 ///
-/// Everything starts ticked. A picker that opens empty makes the reader do work
-/// before they can do anything at all, so pressing the button and going
-/// straight on is the same as it was before this screen existed.
+/// Nothing starts ticked and every family starts shut, on the owner's word of
+/// 30.9.2026: the screen is a question, and a question answered in advance
+/// with „everything" was answered by nobody. Until then everything opened
+/// ticked and the biggest family opened by itself.
 ///
 /// And the total is exact, not an estimate. The counts arrive split by rating
 /// band, so every combination is added up here rather than sent to the server
@@ -67,11 +68,12 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
 
   /// Fetches the catalogue for the current filters.
   ///
-  /// [keepChoice] is what the online switch needs: the pool changes under the
-  /// reader, but the reader did not ask to start over. The rule is stated
-  /// rather than guessed at — everything ticked stays everything ticked, so
-  /// endings that arrive with the online base are in; anything narrower keeps
-  /// exactly what is still there to keep.
+  /// The first load ticks nothing and opens nothing. [keepChoice] is what the
+  /// online switch needs: the pool changes under the reader, but the reader
+  /// did not ask to start over. The rule is stated rather than guessed at —
+  /// everything ticked stays everything ticked, so endings that arrive with
+  /// the online base are in; anything narrower keeps exactly what is still
+  /// there to keep, and nothing stays nothing.
   Future<void> _load({bool keepChoice = false}) async {
     final hadEverything =
         _catalog != null && _chosen.length >= _catalog!.allMaterials.length;
@@ -87,18 +89,13 @@ class _EndgamePickerScreenState extends State<EndgamePickerScreen> {
     setState(() {
       _catalog = catalog;
       _loading = false;
-      _chosen
-        ..clear()
-        ..addAll(keepChoice && !hadEverything
-            ? previous.where(everything.contains)
-            : everything);
-      if (keepChoice) return;
-      // The biggest family opens by itself, since it is what most sessions are
-      // about and an all-collapsed list looks like it holds nothing.
-      _open.clear();
-      if (catalog != null && catalog.families.isNotEmpty) {
-        _open.add(catalog.families.first.id);
+      _chosen.clear();
+      if (keepChoice) {
+        _chosen.addAll(
+            hadEverything ? everything : previous.where(everything.contains));
+        return;
       }
+      _open.clear();
     });
   }
 

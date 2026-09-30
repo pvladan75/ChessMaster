@@ -9658,3 +9658,67 @@ it stays in the column" (the opening's name now heads the panels), and the
 two comment-column cases. `board_view_menu_reach_test` then required the size
 slider on this screen's menu, so `Board size` now moves this board on every
 layout.
+
+## 30.9.2026 — endgames: the defence by the distance to mate, an empty picker, no „rules" after an answer, and a study that goes somewhere
+
+The owner's five points from one sitting on `Practise` → `Win`: the picker
+should open with nothing ticked; in `Play to the end` „the opponent does not
+play the best moves"; sentences like „The Rook must stay on rank 2" should go,
+being often wrong; how are the refutation's moves made; and `Study this
+position` on his rook ending (`8/6R1/8/8/5p1p/6k1/r7/6K1 b`) came back as
+52...Kf3 53.Rb7 Kg3 54.Rg7+ Kf3, a repetition.
+
+**Three reports, one cause, in three places at once.** The tablebase's
+distance to mate was thrown away on the way: `probe` dropped `dtm`, the
+route did not send it, `bestReply` defended by the largest DTZ, and the app's
+`SyzygyResult.fromJson` sorted the moves again by the smallest DTZ — so the
+drill's opponent, the refutation and the study's line all chose among
+equally lost (or won) moves by the distance to the next capture or pawn move.
+Measured on Lichess from the owner's position before anything was changed: the
+opponent walked away from a free pawn (Kh3 where Rxh4 holds eight plies
+longer) and offered the rook trade that cut mate from 35 plies to 15. **DTZ is
+what the fifty-move rule counts, not how long a side can resist.** Every
+layer was right about DTZ (rule 10); the question was which number.
+
+**The order is Lichess's, and both ends are held to Lichess's own answers.**
+`bestReply` mirrors lila-tablebase's `MoveInfo::sort_key` (result, mate, DTM,
+conversion, zeroing, DTZ); the server passes the source's order on; the app
+never sorts it again. `chess_backend/test/fixtures/tablebase_best.json` holds
+ten real answers: the server must pick a move tied with Lichess's first from
+the list in three orders, the app must keep the order. „Tied with", not
+„the same": two of the cases are genuine ties on every key the answer
+carries, broken by Lichess on the piece captured and its move generator.
+**A fixture recorded from the real source finds the key you forgot** — the
+mate in one arrives with `dtm: null` while every other move has one, so
+without „mate first" the new rule would have played Ra5 instead of Ra8#; the
+mutation that removed it survived until that answer was recorded.
+
+**A rule mirrored whole is not always wanted whole.** Among draws Lichess
+lists a stalemate and a trade into bare kings first, which as the draw
+drill's reply would end the drill at once; draws keep the old pick by uci,
+and the study keeps the engine's drawing move (`classic6`: the engine plays
+Rh6, Lichess's first is Ra2 — the recording that lets a case tell the two
+apart).
+
+**Our own tables have no DTM** (phase 1t), so for five men or fewer the
+drill's reply asks Lichess (`probe(fen, { mateDistance: true })`), and falls
+back to our own answer, logged, when Lichess does not answer. Measured before
+deciding: without DTM, 6 of 10 replies in a Lucena drill differed, each
+2–4 plies weaker, nothing thrown away — mild, but the owner's word was „the
+best moves". The in-flight entry is the whole chain, fallback included: a
+second asker waiting on the raw request got the rejection instead of the
+fallback, which one mutation showed.
+
+**Two wrong reds on the way, both in the lead's own mutation round.** A
+replacement that left a bracket behind failed to compile and read as a catch
+of three whole files; an `if (false)` in Dart lost the null promotion of
+`tb` and failed at loading. Rule 3 both times: a mutation is judged by
+*which* test fails and why, and both were redone so that they compiled.
+
+The picker's old start (everything ticked, the biggest family open) had five
+cases standing on it; they were rewritten openly, each starting from nothing.
+The holding-pattern sentences went with their file and its 12 cases; a new
+case stands where the old code spoke (both holding moves on the first rank),
+asserting the whole message, and was red with the sentence put back.
+
+App 5314 → 5318 (a full run, predicted before it; analyze the same 22); backend 1946 → 1967 (with and without `.env`).

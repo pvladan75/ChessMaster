@@ -31,10 +31,16 @@ const tablebaseLimiter = rateLimit({
 });
 
 /// The service's probe, back in the explorer's field names.
+///
+/// The moves stay in the order they came, which is lila-tablebase's best
+/// first — the app plays from that order and never sorts it again — and
+/// carry the distance to mate where the source knew it (Lichess; our own
+/// tables do not), null where it did not.
 function explorerShape(probed) {
   return {
     category: probed.category,
     dtz: probed.dtz,
+    dtm: probed.dtm ?? null,
     checkmate: probed.checkmate,
     stalemate: probed.stalemate,
     insufficient_material: probed.insufficientMaterial,
@@ -43,6 +49,7 @@ function explorerShape(probed) {
       san: m.san,
       category: m.category,
       dtz: m.dtz,
+      dtm: m.dtm ?? null,
       zeroing: m.zeroing,
       checkmate: m.checkmate,
       stalemate: m.stalemate,

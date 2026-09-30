@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5314 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5318 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1946 without TEST_DATABASE_URL, 2109 with it (both measured 30.9.2026)
+cd chess_backend && npm test          # node --test, 1967 without TEST_DATABASE_URL (measured 30.9.2026), 2130 with it (derived)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1203,6 +1203,18 @@ from sketches. **Inside the window is not seen**: `expectOnScreen` passes a
 panel laid out below the fold of its own scroll box; the gate's `_expectSeen`
 asks every `Scrollable` ancestor, and found the question's advice pushing the
 book down at 1400 × 792 and 900 × 700.
+Then the owner's endgame session (→ **5318**, a full run; backend → **1967**,
+measured with and without `.env`): the drill's opponent, the refutation and
+the position study all chose among equally lost or won moves by DTZ — `probe`
+dropped `dtm`, `bestReply` defended by the largest DTZ, and the app sorted the
+moves again by the smallest — so the opponent passed up a free pawn and the
+study of his rook ending repeated. The order is now Lichess's own
+(`bestReply` mirrors lila-tablebase's sort key, the server passes the order
+on, the app never re-sorts), held to real answers in
+`chess_backend/test/fixtures/tablebase_best.json`, and five men or fewer ask
+Lichess for the drill's reply, our own tables having no DTM. **DTZ is what
+the fifty-move rule counts, not how long a side resists.** With it, „What to
+drill" opens empty and the holding-pattern „rules" are deleted.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

@@ -24,7 +24,7 @@ import 'package:chess_app/models/analysis_models.dart';
 class RecordedEngine {
   RecordedEngine._(this.fen, this.depth, this._searches, this._tables);
 
-  /// `owner1`, `owner2`, `own1`, `classic5`.
+  /// `owner1`, `owner2`, `owner3`, `own1`, `classic5`, `classic6`.
   factory RecordedEngine.read(String name) {
     final data = jsonDecode(
         File('test/fixtures/position_study/${name}_engine.json')

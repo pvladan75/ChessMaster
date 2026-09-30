@@ -21,7 +21,6 @@ import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/endgame_puzzle.dart';
-import '../services/holding_pattern.dart';
 import '../services/endgame_api_service.dart';
 
 /// Serbian names for the mined endgame types. The keys are what the database
@@ -861,22 +860,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     });
   }
 
-  /// What the moves that hold have in common, when they have anything.
-  ///
-  /// Said once the answer is known rather than while it is being looked for:
-  /// before that it is a hint, and a strong one. Half the positions have no
-  /// such shape and get nothing, which is the point - a sentence invented to
-  /// fill the space would be worse than the silence.
-  String? _lessonFor(EndgamePuzzle puzzle) {
-    return holdingLesson(
-      fen: puzzle.fen,
-      holdingUci: puzzle.winningMoves,
-      playedUci: puzzle.playedMove == null
-          ? null
-          : uciForSan(puzzle.fen, puzzle.playedMove!),
-    );
-  }
-
   /// Whether this position has already been kept, so the button says so
   /// rather than quietly saving it twice.
   bool _kept = false;
@@ -886,8 +869,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   ///
   /// The description is composed rather than asked for. Someone who has just
   /// failed to understand a position will not stop to type why, and everything
-  /// worth recording is already on the screen at that moment - what was played,
-  /// what held, and the rule behind it. They can add their own later.
+  /// worth recording is already on the screen at that moment - what was played
+  /// and what held. They can add their own later.
   Future<void> _keepForLater() async {
     final puzzle = _solve?.puzzle;
     if (puzzle == null || _kept || _keeping) return;
@@ -897,7 +880,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         ? null
         : 'Held: ${_allHoldingSan(puzzle).join(', ')}.';
     final story = _storyText(puzzle);
-    final lesson = _lessonFor(puzzle);
     final elo = puzzle.blunderElo == null
         ? null
         : 'Missed by a ${puzzle.blunderElo} player.';
@@ -909,8 +891,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final ok = await _api.keepForLater(
       fen: puzzle.fen,
       title: '${kEndgameTypeNames[puzzle.type] ?? puzzle.type} — unclear',
-      description:
-          [task, story, held, lesson, elo, game].whereType<String>().join(' '),
+      description: [task, story, held, elo, game].whereType<String>().join(' '),
     );
     if (!mounted) return;
     setState(() {
@@ -947,19 +928,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         : 'Correct — win kept.';
     final left = _missing(solve.puzzle).length;
     if (left == 0) {
-      return _withLesson(
-        solve.puzzle.winningMoves.length == 1
-            ? '$held That was the only move.'
-            : '$held You found all moves that hold the result.',
-        solve.puzzle,
-      );
+      return solve.puzzle.winningMoves.length == 1
+          ? '$held That was the only move.'
+          : '$held You found all moves that hold the result.';
     }
-    return _withLesson('$held ${movesLeftText(left)}', solve.puzzle);
-  }
-
-  String _withLesson(String text, EndgamePuzzle puzzle) {
-    final lesson = _lessonFor(puzzle);
-    return lesson == null ? text : '$text $lesson';
+    return '$held ${movesLeftText(left)}';
   }
 
   /// Accepted moves not yet produced by the user, in UCI.
@@ -1001,14 +974,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final rest = _missingSan(puzzle);
     setState(() {
       _revealed = true;
-      _feedback = _withLesson(
-        rest.isEmpty
-            ? 'No more moves that hold the result.'
-            : (rest.length == 1
-                ? '${rest.first} also holds.'
-                : 'Also holding: ${rest.join(', ')}.'),
-        puzzle,
-      );
+      _feedback = rest.isEmpty
+          ? 'No more moves that hold the result.'
+          : (rest.length == 1
+              ? '${rest.first} also holds.'
+              : 'Also holding: ${rest.join(', ')}.');
       _feedbackIsGood = true;
     });
   }

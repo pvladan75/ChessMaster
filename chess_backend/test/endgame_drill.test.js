@@ -55,15 +55,49 @@ const PROBES = {
 
 function fakeTablebase(probes = PROBES) {
   const asked = [];
+  // The positions asked with `mateDistance`, in order.
+  const askedWithMate = [];
   return {
     asked,
-    probe: async (fen) => {
+    askedWithMate,
+    probe: async (fen, options = {}) => {
       asked.push(fen);
+      if (options.mateDistance) askedWithMate.push(fen);
       if (!(fen in probes)) throw new TablebaseUnavailable(`nema odgovora za ${fen}`);
       return probes[fen];
     },
   };
 }
+
+// Real answers of Lichess's tablebase, shared with the app's reader
+// (docs of `bestReply`).
+const BEST = require('./fixtures/tablebase_best.json').cases;
+
+test("the owner's rook ending: after Kf3 the defence is the longest one", async () => {
+  // Reported 30.9.2026 as "the opponent does not play the best moves". Here
+  // Rh7 kept the opponent furthest from the next capture or pawn move — the
+  // old rule — and Rb7 holds four plies longer before mate, which is what
+  // Lichess plays and what a defender means by holding out.
+  const [root, afterKf3] = BEST;
+  const tb = fakeTablebase({
+    [root.fen]: root.answer,
+    [afterKf3.fen]: afterKf3.answer,
+  });
+  const r = await judgeMove({ fen: root.fen, move: 'Kf3', tablebase: tb });
+
+  assert.equal(r.held, true);
+  assert.equal(r.reply.san, 'Rb7');
+});
+
+test('the reply alone is asked with the distance to mate', async () => {
+  // The judged position needs only its verdict; the reply is where the
+  // longest resistance is chosen, and only Lichess knows how long it is.
+  const tb = fakeTablebase();
+  await judgeMove({ fen: WON, move: 'd5+', tablebase: tb });
+
+  assert.deepEqual(tb.asked, [WON, AFTER_D5]);
+  assert.deepEqual(tb.askedWithMate, [AFTER_D5]);
+});
 
 test('a move that keeps the win is told so, and the opponent answers', async () => {
   const tb = fakeTablebase();

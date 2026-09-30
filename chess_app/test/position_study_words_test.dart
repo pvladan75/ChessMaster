@@ -125,7 +125,9 @@ void main() {
       final text = _slot(request, 's.position').text;
       expect(text, contains('The tablebase knows the result'));
       expect(text, contains('a win for Black'));
-      expect(text, contains('The moves that keep it: Rc1+, Rxc6.'));
+      // The tablebase's own order, best first (30.9.2026; it read
+      // „Rc1+, Rxc6" while the app sorted by the smallest DTZ).
+      expect(text, contains('The moves that keep it: Rxc6, Rc1+.'));
       expect(text, isNot(contains('With the best play, Black is')));
     });
 

@@ -82,5 +82,19 @@
   "what": "the owner's second question, 28.9.2026: after 7...Be4, 8.dxc6 and the trap 8...Bxh1",
   "fen": "rn2kbnr/pp2pppp/2p5/3PN3/4b3/1P4P1/1P1PPP1P/RNB1KB1R w KQkq - 1 8",
   "moves": ""
+ },
+ {
+  "id": "owner3",
+  "source": "owner",
+  "what": "the owner's rook ending, 30.9.2026: the study came back as Kf3 Rb7 Kg3 Rg7+ Kf3, a repetition",
+  "fen": "8/6R1/8/8/5p1p/6k1/r7/6K1 b - - 5 52",
+  "moves": ""
+ },
+ {
+  "id": "classic6",
+  "source": "classic",
+  "what": "a drawn rook ending, the rook on the third rank from the pawn: the tablebase knows a draw, and many moves keep it",
+  "fen": "4k3/8/r7/4PK2/8/8/8/1R6 b - - 0 1",
+  "moves": ""
  }
 ]

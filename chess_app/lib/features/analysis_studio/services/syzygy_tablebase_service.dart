@@ -40,29 +40,6 @@ SyzygyCategory syzygyCategoryFromString(String? raw) {
   }
 }
 
-/// Lower rank sorts first. Ranked from the perspective of the side about to
-/// play the move (i.e. inverted from [SyzygyCategory], since the API reports
-/// each move's category for the opponent who is to move afterwards).
-int _moveRankForMover(SyzygyCategory category) {
-  switch (category) {
-    case SyzygyCategory.loss:
-      return 0; // opponent loses => best for the mover
-    case SyzygyCategory.maybeLoss:
-      return 1;
-    case SyzygyCategory.blessedLoss:
-      return 2;
-    case SyzygyCategory.draw:
-    case SyzygyCategory.unknown:
-      return 3;
-    case SyzygyCategory.cursedWin:
-      return 4;
-    case SyzygyCategory.maybeWin:
-      return 5;
-    case SyzygyCategory.win:
-      return 6; // opponent wins => worst for the mover
-  }
-}
-
 class SyzygyMove {
   final String uci;
   final String san;
@@ -119,18 +96,24 @@ class SyzygyResult {
     required this.moves,
   });
 
+  /// The moves keep the order they came in, which is the best first.
+  ///
+  /// Both sources sort them by lila-tablebase's own key — Lichess directly,
+  /// and our server, which passes on what Lichess or our own lila-tablebase
+  /// gave (`chess_backend/routes/tablebase.js`): the result, a mate, the
+  /// distance to mate, a conversion, a zeroing move, then DTZ. Until
+  /// 30.9.2026 this sorted them again by the result and then by the smallest
+  /// DTZ, which put a lost side's quickest collapse first and threw the
+  /// distance to mate away — so the position study's line, which plays the
+  /// first move that keeps the result, shuffled where the tablebase made
+  /// progress. `chess_backend/test/fixtures/tablebase_best.json` holds both
+  /// ends to the same real answers.
   factory SyzygyResult.fromJson(String fen, Map<String, dynamic> json) {
     final movesJson = (json['moves'] as List?) ?? const [];
     final moves = movesJson
         .whereType<Map<String, dynamic>>()
         .map(SyzygyMove.fromJson)
-        .toList()
-      ..sort((a, b) {
-        final rankDiff = _moveRankForMover(a.category)
-            .compareTo(_moveRankForMover(b.category));
-        if (rankDiff != 0) return rankDiff;
-        return (a.dtz ?? 0).abs().compareTo((b.dtz ?? 0).abs());
-      });
+        .toList();
 
     return SyzygyResult(
       fen: fen,
