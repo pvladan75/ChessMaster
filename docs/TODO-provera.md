@@ -6197,6 +6197,106 @@ odlazi na kraj spiska u alatu.
    klik dodatno pokazuje poruku o kopiranju).
    Potrebno: Windows.
 
+34. [ ] **Traka Analize: četiri reči i dve ikone, redom kojim ide posao.**
+   [256.1]
+   O čemu se radi: Dvanaest ikona bez natpisa zamenjeno je sa `Board`,
+   `Engine`, `Save as…`, `Tutorial`, ikonom `Board view` i ⋮
+   (`PLAN-ANALIZA-TRAKA.md`, 30.9.2026). `Engine Logs` i `Scan a book` više
+   nisu na ovom ekranu. Starije stavke u ovom spisku i dalje pišu staru
+   putanju: `Setup Position / PGN` je sada `Board` → red koji treba,
+   `More tools` na telefonu su dugmad `Board`, `Engine` i ⋮, a `Panels` je u
+   meniju `Board view`.
+   Gde: `Analyse`.
+   Uradi: Otvori Analizu u prozoru od 1536 i smanji ga do najmanjeg. Pogledaj
+   traku i naslov; učitaj partiju sa imenima igrača i pogledaj naslov ponovo.
+   Treba da vidiš: Redom `Board`, `Engine`, `Save as…`, `Tutorial`, pa ikona
+   mreže i ⋮. Ništa se ne seče ni u najmanjem prozoru; imena igrača koja ne
+   staju završavaju se tačkama. Nigde nema `Engine Logs` ni `Scan a book`; u
+   ⋮ je samo `Settings`.
+   Potrebno: Windows.
+
+35. [ ] **`Board`: svaki red otvara svoj tab, `Starting position` pita.**
+   [256.2]
+   O čemu se radi: Ono što je bila ikona `Setup Position / PGN` sa pet tabova
+   sada je meni u kom je svaki način da nešto dođe na tablu svoj red; svi
+   otvaraju isti prozor, na svom tabu. `Starting position` je jedan dodir, pa
+   pita pre nego što obriše ono što je na tabli.
+   Gde: `Analyse` → `Board`.
+   Uradi: Otvori redom `Set up position…`, `Paste FEN…`, `Import PGN…`,
+   `Opening by name…`, `Game from Lichess / Chess.com…` i `Saved analysis…`.
+   Zatim odigraj nekoliko poteza i izaberi `Starting position`: prvo `Cancel`,
+   pa ponovo i `Start over`. Na kraju izaberi `Starting position` na praznoj
+   početnoj poziciji.
+   Treba da vidiš: Prvih pet redova otvara `Board Setup` na tabu `Pieces`,
+   `FEN`, `PGN`, `Openings`, `Online`; šesti otvara spisak sačuvanih analiza.
+   `Cancel` ostavlja poteze, `Start over` ih briše. Na praznoj početnoj
+   poziciji nema pitanja i ništa se ne menja.
+   Potrebno: Windows; server za `Saved analysis…`.
+
+36. [ ] **`Engine`: tri posla, svaki kaže šta obuhvata.** [256.3]
+   O čemu se radi: `Review entire game`, `Study this position` i
+   `Extend this line` (ranije `Extend branch`) su u jednom meniju, svaki sa
+   redom ispod: cela partija, ova pozicija, ova linija. Prozor za produžavanje
+   linije sada se zove isto kao svoj red.
+   Gde: `Analyse` → `Engine`.
+   Uradi: Učitaj partiju, otvori `Engine` i pokreni redom sva tri.
+   Treba da vidiš: Svaki red otvara svoj prozor, isti kao ranije iz ikone.
+   Opis ispod reda se čita ceo, i u prozoru i na telefonu.
+   Potrebno: Windows i telefon.
+
+37. [ ] **`Save as…` čuva tablu na četiri načina, kao u Preparation.** [256.4]
+   O čemu se radi: `Position` i `Exercise…` su novi u Analizi i rade isto kao
+   u Preparation (isti kod); `Analysis` je ranije bilo dugme `Save current
+   analysis` u prozoru `Saved analyses`, a `PGN` ikona `Export PGN`.
+   Gde: `Analyse` → `Save as…`.
+   Uradi: Učitaj partiju, stani na potez u sredini i sačuvaj redom kao
+   `Position`, `Exercise…`, `Analysis` i `PGN`. Pogledaj u `Teach` →
+   `Library` šta je stiglo. Ponovi `Position` odjavljen (kao gost).
+   Treba da vidiš: `Position` je pozicija na kojoj stojiš, bez linije;
+   `Exercise…` polazi od te iste pozicije; `Analysis` je celo stablo;
+   `PGN` pokazuje tekst. Gost za prva tri vidi
+   `Saving requires a signed-in account.` i ništa se ne otvara.
+   Potrebno: Windows; server.
+
+38. [ ] **`Tutorial` u prozoru je meni; paneli su u `Board view`.** [256.5]
+   O čemu se radi: Šest redova lista `Use in a tutorial` u prozoru vise ispod
+   reči `Tutorial`, bez lista sa dna. Četiri kućice za panele prešle su iz
+   zasebne ikone `Panels` u meni `Board view`, ispod strelica.
+   Gde: `Analyse` → `Tutorial`; zatim ikona mreže (`Board view`).
+   Uradi: Otvori `Tutorial` na praznoj tabli, pa sa učitanom partijom, stojeći
+   na potezu u sredini. Zatim otvori `Board view` i isključi pa uključi
+   `Move tree`.
+   Treba da vidiš: Na praznoj tabli tri reda (nov tutorijal iz pozicije, dodaj
+   poziciju, otvori tutorijal), na potezu u sredini partije svih šest. U
+   `Board view` ispod
+   strelica stoji `Panels` i četiri kućice; stablo nestaje i vraća se dok meni
+   ostaje otvoren.
+   Potrebno: Windows; server za tutorijale.
+
+39. [ ] **Traka Analize na telefonu: četiri dugmeta.** [256.6]
+   O čemu se radi: Iste grupe kao u prozoru, ikonama: `Board view`, `Board`,
+   `Engine` i ⋮. U ⋮ su pod naslovom `Keep what is on the board` četiri reda
+   iz `Save as…`, zatim `Use in a tutorial…` i `Settings`.
+   Gde: telefon, `Analyse`.
+   Uradi: Otvori sva četiri dugmeta, uspravno i sa telefonom na boku. Iz ⋮
+   otvori `Use in a tutorial…`.
+   Treba da vidiš: Sva četiri dugmeta su na ekranu u oba položaja; meni
+   `Board` staje na ekran sa svih sedam redova; `Use in a tutorial…` otvara
+   list sa dna kao ranije.
+   Potrebno: telefon.
+
+40. [ ] **Meniji trake uz uključen čitač ekrana ne ruše aplikaciju.** [256.7]
+   O čemu se radi: Svaki meni je nova ruta preko ekrana, a oba ranija pada sa
+   čitačem ekrana našla su se baš na takvim mestima (`PLAN-FORENZIKA-PADA.md`).
+   Test otvara svih šest sa uhodom i ne nalazi čvor bez roditelja; ovo je ista
+   provera uživo.
+   Gde: `Analyse`, aplikacija pokrenuta kao u [249.2].
+   Uradi: Sa uključenim čitačem ekrana otvori i zatvori redom `Board`,
+   `Engine`, `Save as…`, `Tutorial`, `Board view` i ⋮, po dva puta.
+   Treba da vidiš: Aplikacija radi dalje; u izlazu motora nema nove odbijenice
+   i `crash.log` nema novi red.
+   Potrebno: Windows; čitač ekrana.
+
 ## Teach
 
 ### Teach — Library i zadaci

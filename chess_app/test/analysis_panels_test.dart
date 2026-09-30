@@ -2,7 +2,11 @@
 //
 // Until 17.9.2026 these checkboxes were in Settings, although only the
 // Analysis Studio reads them: a reader had to leave the screen to change what
-// that screen showed.
+// that screen showed. From then until 30.9.2026 they were a sheet behind an
+// icon of their own („Panels", under „More tools" on a phone); since
+// docs/PLAN-ANALIZA-TRAKA.md they are rows of the board view menu, and the
+// case below was rewritten for that — the rule it holds is the same one: a
+// panel is switched from the board, and the board changes under the switch.
 
 import 'dart:io';
 
@@ -18,13 +22,12 @@ import 'package:chess_app/services/app_settings_service.dart';
 import 'support/landscape.dart';
 
 void main() {
-  test('the panels are read by the Studio and chosen in its sheet', () {
+  test('the panels are read by the Studio and chosen in its menu', () {
     const readers = [
       'features/analysis_studio/screens/analysis_studio_screen.dart',
-      'features/analysis_studio/widgets/analysis_panels_sheet.dart',
+      'features/analysis_studio/widgets/analysis_panels.dart',
     ];
-    const writer =
-        'features/analysis_studio/widgets/analysis_panels_sheet.dart';
+    const writer = 'features/analysis_studio/widgets/analysis_panels.dart';
     final offenders = <String>[];
     for (final f in Directory('lib')
         .listSync(recursive: true)
@@ -46,7 +49,7 @@ void main() {
     expect(offenders, isEmpty, reason: offenders.join('\n'));
   });
 
-  testWidgets('a panel unticked in the sheet leaves the board under it',
+  testWidgets('a panel unticked in the menu leaves the board under it',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
     await AppSettingsService.instance.init();
@@ -65,17 +68,16 @@ void main() {
     final tree = find.byType(AnalysisMoveTreeWidget, skipOffstage: false);
     expect(tree, findsOneWidget);
 
-    // On a phone the entry is behind the overflow menu.
-    await tester.tap(find.byTooltip('More tools'));
+    // On a phone as in a window: the board view menu, first in the bar.
+    await tester.tap(find.byTooltip('Board view'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Panels'));
-    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
 
-    await tester.tap(find.widgetWithText(CheckboxListTile, 'Move tree'));
+    await tester.tap(find.byKey(const Key('analysis-panel-Move tree')));
     await tester.pumpAndSettle();
 
     expect(AppSettingsService.instance.isPanelVisible('move_tree'), isFalse);
-    expect(find.text('Panels'), findsOneWidget, reason: 'the sheet stays open');
+    expect(find.text('Panels'), findsOneWidget, reason: 'the menu stays open');
     expect(tree, findsNothing);
   });
 }

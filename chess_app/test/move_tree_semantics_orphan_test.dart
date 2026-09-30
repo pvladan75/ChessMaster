@@ -536,6 +536,64 @@ void main() {
     handle.dispose();
   });
 
+  // The bar of 30.9.2026 (docs/PLAN-ANALIZA-TRAKA.md): four words that open
+  // menus, and the board view menu with the panels' checkboxes under its
+  // slider. Every one of them is a new route over the screen, which is where
+  // both earlier sources were found — so each is opened with the spy on.
+  for (final door in const [
+    'analysis-board-menu',
+    'analysis-engine-menu',
+    'analysis-save-menu',
+    'analysis-tutorial-menu',
+    'analysis-more',
+    'Board view',
+  ]) {
+    testWidgets('opening $door on the Analysis bar orphans nothing', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      await AppSettingsService.instance.init();
+      tester.view.physicalSize = const Size(1280, 760);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.dark().copyWith(
+            extensions: const [AppColorTokens.dark],
+          ),
+          home: AnalysisStudioScreen(
+            key: UniqueKey(),
+            userSession: UserSession(
+              token: 't',
+              id: 1,
+              email: 'a@b.c',
+              name: 'N',
+              role: 'korisnik',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final seed = _seed(tester);
+      _updates.clear();
+
+      final target =
+          door == 'Board view' ? find.byTooltip(door) : find.byKey(Key(door));
+      expect(target, findsOneWidget, reason: '$door is not in the bar');
+      await tester.tap(target);
+      await tester.pumpAndSettle();
+      expect(
+        find.byWidgetPredicate((w) => w is PopupMenuEntry),
+        findsWidgets,
+        reason: 'the menu of $door did not open',
+      );
+
+      expect(_orphansAcross([seed, ..._updates]), isEmpty);
+      handle.dispose();
+    });
+  }
+
   // The second source the live spy caught, in Preparation: opening „Board
   // view", whose menu holds the board-size `Slider`. A slider in a pushed
   // route leaves an empty node under the overlay (flutter/flutter#190357).

@@ -15,7 +15,8 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/theme/app_typography.dart';
-import 'package:chess_app/features/analysis_studio/widgets/analysis_panels_sheet.dart';
+import 'package:chess_app/features/analysis_studio/widgets/analysis_panels.dart';
+import 'package:chess_app/features/library/widgets/keep_board.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
@@ -91,21 +92,15 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// for the root is the rule the Library's saved analyses always had.
   final String? initialNodeId;
 
-  /// Opens the book scanner, when the caller has somewhere to open it from.
-  ///
-  /// It arrives here because the Analyse tab used to carry „Scan a book" in a
-  /// row of its own above the board, and that row cost three screens' worth of
-  /// height on a phone for two buttons (reported live 18.9.2026). „My games"
-  /// had a second door — the card on Practise — so it simply went; this one had
-  /// **none**: `/scan/saved` is only reachable after a scan, so deleting the
-  /// button would have deleted the way into the scanner. It is in the toolbar
-  /// instead, which is behind „More tools" on a phone and costs no height.
-  final VoidCallback? onOpenScanner;
-
   /// The review's home; defaults to the app's one runner. A test passes its
   /// own so a review started on it lands on this screen without reaching the
   /// real singleton.
   final GameReviewRunner? reviewRunner;
+
+  /// The services „Save as…" keeps a position and an exercise through. Built
+  /// from the session when null; a test passes its own, over a fake client.
+  final LessonApiService? lessonApi;
+  final ExerciseApiService? exerciseApi;
 
   const AnalysisStudioScreen({
     super.key,
@@ -114,8 +109,9 @@ class AnalysisStudioScreen extends StatefulWidget {
     this.initialGame,
     this.initialTree,
     this.initialNodeId,
-    this.onOpenScanner,
     this.reviewRunner,
+    this.lessonApi,
+    this.exerciseApi,
   });
 
   @override
@@ -225,7 +221,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     final startFen = tree?.fen ??
         widget.initialGame?.startFen ??
         widget.initialFen ??
-        'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+        _startFen;
     AppLogger.log(
         '[AnalysisStudio] 🎬 initState initialized with FEN: $startFen');
     _initAnalysisTree(startFen);
@@ -332,88 +328,360 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     );
   }
 
-  /// The toolbar's actions, as icons on a wide screen and behind a menu on a
-  /// narrow one.
-  ///
-  /// There are ten of them. An `AppBar` does not wrap or scroll its actions —
-  /// it clips them, silently — so on a phone the last two were simply not
-  /// reachable: "Settings" and "Setup Position / PGN" sat past the right
-  /// edge with nothing to say they were there. Reported from a phone on
-  /// 20.8.2026, and invisible in a release build, which paints no overflow
-  /// warning.
+  // ── the bar ───────────────────────────────────────────────────────────
+  //
+  // `docs/PLAN-ANALIZA-TRAKA.md`. Until 30.9.2026 this was twelve icons with
+  // no words and five colours that meant nothing, in the order they had been
+  // added. It reads in the order the work goes now: „Board" puts something on
+  // the board, „Engine" works on it, „Save as…" keeps it and „Tutorial" makes
+  // teaching material of it; then what the screen shows, and the rest. „Board"
+  // and „Save as…" are Preparation's two words and mean what they mean there.
+  //
+  // An `AppBar` does not wrap or scroll its actions — it clips them, silently —
+  // so a phone gets the same groups as four buttons: the two that start a piece
+  // of work keep an icon each, and „Save as…" and the tutorial door are in ⋮.
+
+  static const String _startFen =
+      'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+  late final LessonApiService _lessonApi =
+      widget.lessonApi ?? LessonApiService(authToken: widget.userSession.token);
+
+  /// The labels this account has used, asked for the first time „Save as…"
+  /// needs them and not on arrival. Null until answered.
+  List<String>? _labels;
+
+  Future<List<String>> _userLabels() async {
+    final known = _labels;
+    if (known != null) return known;
+    final fetched = await _lessonApi.fetchLabels();
+    if (mounted) _labels = fetched;
+    return fetched;
+  }
+
+  List<PopupMenuEntry<String>> _boardMenuItems() => const [
+        PopupMenuItem(
+            key: Key('analysis-board-setup'),
+            value: 'board-setup',
+            child: Text('Set up position…')),
+        PopupMenuItem(
+            key: Key('analysis-board-fen'),
+            value: 'board-fen',
+            child: Text('Paste FEN…')),
+        PopupMenuItem(
+            key: Key('analysis-board-pgn'),
+            value: 'board-pgn',
+            child: Text('Import PGN…')),
+        PopupMenuItem(
+            key: Key('analysis-board-openings'),
+            value: 'board-openings',
+            child: Text('Opening by name…')),
+        PopupMenuItem(
+            key: Key('analysis-board-online'),
+            value: 'board-online',
+            child: Text('Game from Lichess / Chess.com…')),
+        PopupMenuDivider(),
+        PopupMenuItem(
+            key: Key('analysis-board-saved'),
+            value: 'board-saved',
+            child: Text('Saved analysis…')),
+        PopupMenuDivider(),
+        PopupMenuItem(
+            key: Key('analysis-board-start'),
+            value: 'board-start',
+            child: Text('Starting position')),
+      ];
+
+  /// The three jobs differ by what they cover — the game, the position, the
+  /// line — which three icons never said. Each row says it.
+  List<PopupMenuEntry<String>> _engineMenuItems() => [
+        _engineRow(
+            'analysis-engine-review',
+            'engine-review',
+            'Review entire game',
+            'The whole game: mistakes, puzzles, key moments'),
+        _engineRow(
+            'analysis-engine-study',
+            'engine-study',
+            PositionStudyDialog.title,
+            'This position: main line, tempting moves, traps'),
+        _engineRow(
+            'analysis-engine-extend',
+            'engine-extend',
+            QuickExtendDialog.title,
+            "This line: the engine's best continuation"),
+      ];
+
+  PopupMenuItem<String> _engineRow(
+          String key, String value, String label, String covers) =>
+      PopupMenuItem<String>(
+        key: Key(key),
+        value: value,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(label),
+              Text(covers,
+                  style: AppText.caption
+                      .copyWith(color: context.colors.textMuted)),
+            ],
+          ),
+        ),
+      );
+
+  List<PopupMenuEntry<String>> _saveMenuItems() => const [
+        PopupMenuItem(
+            key: Key('analysis-save-position'),
+            value: 'save-position',
+            child: Text('Position')),
+        PopupMenuItem(
+            key: Key('analysis-save-exercise'),
+            value: 'save-exercise',
+            child: Text('Exercise…')),
+        PopupMenuItem(
+            key: Key('analysis-save-analysis'),
+            value: 'save-analysis',
+            child: Text('Analysis')),
+        PopupMenuItem(
+            key: Key('analysis-save-pgn'),
+            value: 'save-pgn',
+            child: Text('PGN')),
+      ];
+
+  static const PopupMenuItem<String> _settingsItem = PopupMenuItem(
+      key: Key('analysis-more-settings'),
+      value: 'settings',
+      child: Text('Settings'));
+
+  /// A phone's ⋮: what keeps the board, under Preparation's own heading, the
+  /// door into teaching material, and Settings.
+  List<PopupMenuEntry<String>> _phoneMoreItems() => [
+        const PopupMenuItem<String>(
+            enabled: false, child: Text('Keep what is on the board')),
+        ..._saveMenuItems(),
+        const PopupMenuDivider(),
+        const PopupMenuItem<String>(
+            key: Key('analysis-more-tutorial'),
+            value: 'tutorial',
+            child: Text('${TeachMenuSheet.title}…')),
+        const PopupMenuDivider(),
+        _settingsItem,
+      ];
+
+  void _onBarAction(String value) {
+    switch (value) {
+      case 'board-setup':
+        _showSetupDialog(BoardSetupTab.manual);
+      case 'board-fen':
+        _showSetupDialog(BoardSetupTab.fen);
+      case 'board-pgn':
+        _showSetupDialog(BoardSetupTab.pgn);
+      case 'board-openings':
+        _showSetupDialog(BoardSetupTab.openings);
+      case 'board-online':
+        _showSetupDialog(BoardSetupTab.platform);
+      case 'board-saved':
+        _showSavedAnalysesDialog();
+      case 'board-start':
+        _startOver();
+      case 'engine-review':
+        _showGameReviewDialog();
+      case 'engine-study':
+        _showPositionStudyDialog();
+      case 'engine-extend':
+        _showQuickExtendDialog();
+      case 'save-position':
+        _keepAsPosition();
+      case 'save-exercise':
+        _keepAsExercise();
+      case 'save-analysis':
+        _keepAsAnalysis();
+      case 'save-pgn':
+        _exportPgn();
+      case 'tutorial':
+        _openTeachMenu();
+      case 'settings':
+        _openAppSettings();
+    }
+  }
+
+  /// A word of the bar that opens a list. Forty pixels tall whatever the text
+  /// is: a `PopupMenuButton` is as big as its child, and a bare word is a
+  /// target the height of its letters.
+  Widget _barWord<T>({
+    required String key,
+    required String word,
+    required PopupMenuItemSelected<T> onSelected,
+    required PopupMenuItemBuilder<T> itemBuilder,
+  }) =>
+      PopupMenuButton<T>(
+        key: Key(key),
+        position: PopupMenuPosition.under,
+        onSelected: onSelected,
+        itemBuilder: itemBuilder,
+        child: SizedBox(
+          height: 40,
+          child: Center(
+            widthFactor: 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+              child: Text(word),
+            ),
+          ),
+        ),
+      );
+
   List<Widget> _toolbarActions(BuildContext context) {
-    final actions = <_ToolAction>[
-      _ToolAction(Icons.tune, context.colors.accent, 'Setup Position / PGN',
-          _showSetupDialog),
-      _ToolAction(Icons.fact_check, context.colors.accent, 'Review entire game',
-          _showGameReviewDialog),
-      _ToolAction(Icons.auto_stories, context.colors.warning,
-          PositionStudyDialog.title, _showPositionStudyDialog),
-      _ToolAction(Icons.trending_flat, context.colors.accent,
-          'Extend branch (engine best line)', _showQuickExtendDialog),
-      // S2 of docs/PLAN-REORGANIZACIJA.md: the four doors into teaching
-      // material — two "add to a tutorial" actions and two "start a new
-      // tutorial" actions, the latter pair drawn only where the studio
-      // exists — became one door and one sheet (`TeachMenuSheet`), and the
-      // question of which of the six flows is asked inside it, after the tap.
-      _ToolAction(Icons.school, context.colors.success, 'Use in a tutorial',
-          _openTeachMenu),
-      // Drawn only when it was given, like everything else in this bar
-      // (rule 15): the screen is pushed from a dozen places and only the tab
-      // has a scanner to offer.
-      if (widget.onOpenScanner != null)
-        _ToolAction(Icons.document_scanner_outlined, context.colors.info,
-            'Scan a book', widget.onOpenScanner!),
-      _ToolAction(Icons.share, context.colors.info, 'Export PGN', _exportPgn),
-      _ToolAction(Icons.cloud_outlined, context.colors.info, 'Saved analyses',
-          _showSavedAnalysesDialog),
-      _ToolAction(Icons.view_quilt_outlined, context.colors.textMuted, 'Panels',
-          () => showAnalysisPanelsSheet(context)),
-      _ToolAction(Icons.settings, context.colors.textMuted, 'Settings',
-          _openAppSettings),
-      _ToolAction(Icons.terminal, context.colors.warning, 'Engine Logs 📜',
-          () => dialogs.showLogsDialog(context)),
-    ];
-
-    Widget asIcon(_ToolAction a) => IconButton(
-        icon: Icon(a.icon, color: a.color),
-        tooltip: a.tooltip,
-        onPressed: a.onPressed);
-
-    // Kept out of the list and never folded into the overflow menu: it is the
-    // one control here that changes what the board *looks* like, and it draws
-    // its own state, which a `_ToolAction` cannot.
-    const coordinates = BoardViewMenu(arrows: true, boardSize: true);
+    // What the screen shows, in one menu: the board's view and, under it, the
+    // panels. It draws its own state, which is why it is never folded away.
+    const view = BoardViewMenu(
+      arrows: true,
+      boardSize: true,
+      trailing: analysisPanelMenuEntries,
+    );
 
     if (Breakpoints.isWide(context)) {
-      return [coordinates, ...actions.map(asIcon)];
+      return [
+        _barWord<String>(
+          key: 'analysis-board-menu',
+          word: 'Board',
+          onSelected: _onBarAction,
+          itemBuilder: (_) => _boardMenuItems(),
+        ),
+        _barWord<String>(
+          key: 'analysis-engine-menu',
+          word: 'Engine',
+          onSelected: _onBarAction,
+          itemBuilder: (_) => _engineMenuItems(),
+        ),
+        _barWord<String>(
+          key: 'analysis-save-menu',
+          word: 'Save as…',
+          onSelected: _onBarAction,
+          itemBuilder: (_) => _saveMenuItems(),
+        ),
+        _barWord<TeachRow>(
+          key: 'analysis-tutorial-menu',
+          word: 'Tutorial',
+          onSelected: _onTeachRow,
+          itemBuilder: (_) => teachMenuEntries(
+            hasLine: _currentNode.children.isNotEmpty,
+            hasGame: _rootNode.children.isNotEmpty,
+          ),
+        ),
+        view,
+        PopupMenuButton<String>(
+          key: const Key('analysis-more'),
+          icon: const Icon(Icons.more_vert),
+          tooltip: 'More',
+          onSelected: _onBarAction,
+          itemBuilder: (_) => const [_settingsItem],
+        ),
+      ];
     }
 
-    // The two that start a piece of work stay on the bar; the rest are one tap
-    // further away but reachable, which is the whole point.
-    const visible = 2;
     return [
-      coordinates,
-      ...actions.take(visible).map(asIcon),
-      PopupMenuButton<int>(
+      view,
+      PopupMenuButton<String>(
+        key: const Key('analysis-board-menu'),
+        icon: const Icon(Icons.tune),
+        tooltip: 'Board',
+        onSelected: _onBarAction,
+        itemBuilder: (_) => _boardMenuItems(),
+      ),
+      PopupMenuButton<String>(
+        key: const Key('analysis-engine-menu'),
+        icon: const Icon(Icons.psychology_outlined),
+        tooltip: 'Engine',
+        onSelected: _onBarAction,
+        itemBuilder: (_) => _engineMenuItems(),
+      ),
+      PopupMenuButton<String>(
+        key: const Key('analysis-more'),
         icon: const Icon(Icons.more_vert),
-        tooltip: 'More tools',
-        onSelected: (index) => actions[index].onPressed(),
-        itemBuilder: (context) => [
-          for (var i = visible; i < actions.length; i += 1)
-            PopupMenuItem<int>(
-              value: i,
-              child: Row(
-                children: [
-                  Icon(actions[i].icon, color: actions[i].color, size: 20),
-                  const SizedBox(width: AppSpacing.md),
-                  Flexible(child: Text(actions[i].tooltip)),
-                ],
-              ),
-            ),
-        ],
+        tooltip: 'More',
+        onSelected: _onBarAction,
+        itemBuilder: (_) => _phoneMoreItems(),
       ),
     ];
+  }
+
+  // ── „Board": the one row that is not the setup dialog ────────────────
+
+  /// „Starting position". Asked about, unlike the same button inside the
+  /// setup dialog, because there it takes a second press to apply and here it
+  /// is one tap on a row: a tree of an evening's work must not go that way.
+  Future<void> _startOver() async {
+    if (_rootNode.children.isEmpty && _rootNode.fen == _startFen) return;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Start from the starting position?'),
+        content: const Text(
+            'This replaces what is on the board. It cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const Key('analysis-start-over'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Start over'),
+          ),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
+    setState(() => _initAnalysisTree(_startFen));
+    _saveDraft();
+    _triggerEngineAnalysis();
+  }
+
+  // ── „Save as…" ───────────────────────────────────────────────────────
+
+  /// Three of the four rows keep to the account; a guest has none.
+  bool _needsAccount() {
+    if (!widget.userSession.isGuest) return false;
+    AppFeedback.warning(context, 'Saving requires a signed-in account.');
+    return true;
+  }
+
+  Future<void> _keepAsPosition() async {
+    if (_needsAccount()) return;
+    final labels = await _userLabels();
+    if (!mounted) return;
+    keepBoardAsPosition(
+      context,
+      api: _lessonApi,
+      fen: _currentNode.fen,
+      labels: labels,
+    );
+  }
+
+  Future<void> _keepAsExercise() async {
+    if (_needsAccount()) return;
+    final labels = await _userLabels();
+    if (!mounted) return;
+    await keepBoardAsExercise(
+      context,
+      api: widget.exerciseApi ??
+          ExerciseApiService(authToken: widget.userSession.token),
+      from: _currentNode,
+      labels: labels,
+    );
+  }
+
+  Future<void> _keepAsAnalysis() async {
+    if (_needsAccount()) return;
+    await dialogs.promptSaveAnalysisDialog(
+      context,
+      rootNode: _rootNode,
+      userSession: widget.userSession,
+    );
   }
 
   Future<void> _restoreDraft() async {
@@ -1147,21 +1415,38 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     }
   }
 
-  /// Opens the one door into teaching material — S2 of
-  /// `docs/PLAN-REORGANIZACIJA.md`. The sheet asks which of the six flows the
-  /// trainer wants; every callback below is one of the three flows this
-  /// screen used to reach with a separate bar action each.
+  /// The door into teaching material — S2 of `docs/PLAN-REORGANIZACIJA.md`:
+  /// one door, and which of the six flows is asked after the tap. On a phone
+  /// it is this sheet, behind ⋮; in a window the same rows hang under
+  /// „Tutorial" in the bar. Both end in [_onTeachRow].
   Future<void> _openTeachMenu() => showTeachMenu(
         context,
         hasLine: _currentNode.children.isNotEmpty,
         hasGame: _rootNode.children.isNotEmpty,
-        onNewFromPosition: () => _openTutorialStudio(wholeLine: false),
-        onNewFromLine: () => _openTutorialStudio(wholeLine: true),
-        onNewFromGame: _makeTutorialFromGame,
-        onAddPosition: () => _addToTutorial(anchor: _currentNode),
-        onAddLine: _addLineToTutorial,
-        onEdit: _editLessonSteps,
+        onNewFromPosition: () => _onTeachRow(TeachRow.newFromPosition),
+        onNewFromLine: () => _onTeachRow(TeachRow.newFromLine),
+        onNewFromGame: () => _onTeachRow(TeachRow.newFromGame),
+        onAddPosition: () => _onTeachRow(TeachRow.addPosition),
+        onAddLine: () => _onTeachRow(TeachRow.addLine),
+        onEdit: () => _onTeachRow(TeachRow.edit),
       );
+
+  void _onTeachRow(TeachRow row) {
+    switch (row) {
+      case TeachRow.newFromPosition:
+        _openTutorialStudio(wholeLine: false);
+      case TeachRow.newFromLine:
+        _openTutorialStudio(wholeLine: true);
+      case TeachRow.newFromGame:
+        _makeTutorialFromGame();
+      case TeachRow.addPosition:
+        _addToTutorial(anchor: _currentNode);
+      case TeachRow.addLine:
+        _addLineToTutorial();
+      case TeachRow.edit:
+        _editLessonSteps();
+    }
+  }
 
   /// Hands the line worked out here over to the tutorial studio.
   ///
@@ -1325,11 +1610,12 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     return '$white – $black';
   }
 
-  void _showSetupDialog() {
+  void _showSetupDialog(BoardSetupTab tab) {
     showDialog(
       context: context,
       builder: (ctx) => AnalysisBoardSetupDialog(
         initialFen: _currentNode.fen,
+        initialTab: tab,
         onPositionSet: (newFen) {
           setState(() {
             _initAnalysisTree(newFen);
@@ -2188,16 +2474,4 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     parent.removeChild(node);
     _jumpToNode(parent);
   }
-}
-
-/// One toolbar action. A plain class rather than a record because the theme
-/// hands back nullable colours and a record's field type would have to spell
-/// that out at every call site.
-class _ToolAction {
-  final IconData icon;
-  final Color? color;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  const _ToolAction(this.icon, this.color, this.tooltip, this.onPressed);
 }

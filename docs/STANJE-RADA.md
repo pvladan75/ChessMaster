@@ -55,6 +55,47 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
+## Traka Analize: četiri reči redom kojim ide posao — 30.9.2026, u kodu, ostaje provera uživo ([256.1]–[256.7])
+
+Vlasnik, sa slikom ekrana: dugmići gore desno u Analizi su „nabacana bez
+reda", da se pregrupišu „slično kao u Preparation". Plan je
+`PLAN-ANALIZA-TRAKA.md`; predlog mu je poslat kao dve slike (njegov ekran sa
+novom trakom, i mapa gde koje od dvanaest dugmadi odlazi), a odluke su njegove:
+„Slažem se sa ostalim predlozima", uz dve svoje — `Engine Logs` se uklanja
+(„koristili smo ga dok smo rešavali problem korišćenja engine-a") i
+`Scan a book` odlazi sa ovog ekrana.
+
+- **Traka.** Dvanaest ikona bez natpisa → `Board` (stavlja nešto na tablu),
+  `Engine` (radi na tome), `Save as…` (čuva), `Tutorial` (pravi materijal),
+  pa `Board view` i ⋮. `Board` i `Save as…` znače isto što u Preparation. Na
+  telefonu četiri dugmeta, kao i do sada: `Board view`, `Board`, `Engine`, ⋮.
+- **`Board`** ima red za svaki tab prozora `Board Setup` (prozor se otvara na
+  tom tabu — `initialTab`), pa `Saved analysis…` i `Starting position`, koji
+  pita pre nego što obriše ono što je na tabli.
+- **`Save as…`** je u Analizi dobio `Position` i `Exercise…`. To je isti kod
+  koji sada zove i Preparation: `features/library/widgets/keep_board.dart`.
+- **`Tutorial`** u prozoru je meni sa šest redova lista; list i meni čitaju
+  jedan spisak (`teachRowGroups`) i završavaju u jednom `_onTeachRow`.
+- **Paneli** su redovi menija `Board view` (`BoardViewMenu.trailing`); fajl
+  `analysis_panels.dart` je i dalje jedini koji ih upisuje.
+- **Otišlo:** prozor `Engine Logs` i bafer od 5000 redova u `AppLogger` koji
+  je samo on čitao; `onOpenScanner` sa ekrana i sa taba `Analyse`; klasa
+  `_ToolAction`.
+
+**Nije dirano, a vidi se odavde:** reči `Board` i `Save as…` u traci
+Preparation su meta visoka 20 px (izmereno) — ovde su 40; telo ekrana Analize
+(panel motora je ispod preloma desne kolone) nije deo ovog plana.
+
+**Starije stavke u `TODO-provera.md`** (dvadesetak) i dalje pišu staru putanju
+`Setup Position / PGN`, `More tools`, `Panels`. Nisu prepravljane, jer alat za
+proveru vezuje odgovor za tekst stavke; stavka [256.1] kaže šta je sada gde.
+Dve opisuju staru traku po suštini: [221.1] (`Panels` kao dugme) i stavka o
+`Use in a tutorial` pod „Tutorijal iz partije".
+
+Aplikacija 5259 → **5295** (pun prolaz, ništa drugo nije radilo; 30 slučajeva
+kapije i 6 sa uhodom za čitač ekrana, predviđeno pre prolaza). `flutter
+analyze` istih 22. Server nije diran.
+
 ## Navike u otvaranju: uvećana tabla, Analiza sa potezima partije, i lista koja broji isto što i dugme — 30.9.2026, u kodu, ostaje provera uživo ([255.1]–[255.4])
 
 Vlasnik, sa dve slike ekrana `Opening leaks`: dugme kaže „Drill these 9

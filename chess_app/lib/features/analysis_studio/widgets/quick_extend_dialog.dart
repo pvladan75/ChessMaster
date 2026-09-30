@@ -21,6 +21,9 @@ class QuickExtendDialog extends StatefulWidget {
   /// position was already game-over) once the run finishes.
   final ValueChanged<AnalysisNode?> onCompleted;
 
+  /// The dialog's name, and its row in the Analysis bar's „Engine" menu.
+  static const String title = 'Extend this line';
+
   const QuickExtendDialog({
     super.key,
     required this.startNode,
@@ -117,7 +120,7 @@ class _QuickExtendDialogState extends State<QuickExtendDialog> {
                       Icon(Icons.trending_flat,
                           color: context.colors.accent, size: 22),
                       const SizedBox(width: AppSpacing.sm),
-                      Text('Extend the branch',
+                      Text(QuickExtendDialog.title,
                           style: AppText.title
                               .copyWith(color: context.colors.textPrimary)),
                     ],

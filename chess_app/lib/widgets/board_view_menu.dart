@@ -11,6 +11,7 @@ class BoardViewMenu extends StatelessWidget {
     this.color,
     this.arrows = false,
     this.boardSize = false,
+    this.trailing,
     bool? chosenMove,
     bool? statistics,
     bool? engine,
@@ -43,6 +44,11 @@ class BoardViewMenu extends StatelessWidget {
   /// `board_view_menu_reach_test` holds both halves: a screen that reads the scale
   /// offers the slider on every menu it mounts, and no other screen does.
   final bool boardSize;
+
+  /// More rows of the screen's own, under a divider — the Analysis board's
+  /// panels, so that everything that decides what that screen shows is in
+  /// one menu (`docs/PLAN-ANALIZA-TRAKA.md`). Built when the menu opens.
+  final List<PopupMenuEntry<void>> Function(BuildContext context)? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +132,10 @@ class BoardViewMenu extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (trailing != null) ...[
+                const PopupMenuDivider(),
+                ...trailing!(context),
+              ],
             ];
           },
         );

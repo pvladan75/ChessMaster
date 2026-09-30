@@ -926,10 +926,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // The board is the tab. Built on first visit only (the stack above
           // sees to that): it starts an engine, and nobody pays for it who
           // never opens it.
-          return AnalyseTab(
-            session: widget.session,
-            onOpenScanner: () => context.push(AppRoutes.scan),
-          );
+          return AnalyseTab(session: widget.session);
         default:
           return TeachTab(
             tutorialCard: TutorialLibraryCard(session: widget.session),

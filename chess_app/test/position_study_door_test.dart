@@ -45,6 +45,17 @@ Future<void> _open(WidgetTester tester, Size size, {String token = 't'}) async {
   await tester.pumpAndSettle();
 }
 
+/// „Engine" in the bar — a word in a window, an icon on a phone, the same
+/// key on both — and the study's row under it. Until 30.9.2026 the study was
+/// an icon of its own in a window and a row of „More tools" on a phone
+/// (docs/PLAN-ANALIZA-TRAKA.md); the three cases below were rewritten for the
+/// menu and hold what they held: the door exists, by its name, and opens the
+/// study of the position on the board.
+Future<void> _openEngineMenu(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('analysis-engine-menu')));
+  await tester.pumpAndSettle();
+}
+
 Map<String, String> _sourcesOfLib() => {
       for (final file in Directory('lib').listSync(recursive: true))
         if (file is File && file.path.endsWith('.dart'))
@@ -58,11 +69,13 @@ void main() {
   });
 
   testWidgets(
-      'in a window the bar has „Study this position", and it opens '
+      'in a window „Engine" has „Study this position", and it opens '
       'the study', (tester) async {
     await _open(tester, const Size(1280, 900));
     expect(find.byTooltip('Auto Analysis ⚡'), findsNothing);
-    final door = find.byTooltip(PositionStudyDialog.title);
+    await _openEngineMenu(tester);
+    expect(find.text('Auto Analysis ⚡'), findsNothing);
+    final door = find.text(PositionStudyDialog.title);
     expect(door, findsOneWidget);
 
     await tester.tap(door);
@@ -79,12 +92,12 @@ void main() {
     expect(dialog.onRelease, isNotNull);
   });
 
-  testWidgets('on a phone it is behind „More tools", by its name',
+  testWidgets('on a phone it is behind the Engine button, by its name',
       (tester) async {
     await _open(tester, const Size(360, 640));
     expect(tester.takeException(), isNull);
-    await tester.tap(find.byTooltip('More tools'));
-    await tester.pumpAndSettle();
+    expect(find.byTooltip('Engine'), findsOneWidget);
+    await _openEngineMenu(tester);
     expect(find.text('Auto Analysis ⚡'), findsNothing);
     final row = find.text(PositionStudyDialog.title);
     expect(row, findsOneWidget);
@@ -102,7 +115,8 @@ void main() {
 
   testWidgets('a guest is offered the study without its words', (tester) async {
     await _open(tester, const Size(1280, 900), token: '');
-    await tester.tap(find.byTooltip(PositionStudyDialog.title));
+    await _openEngineMenu(tester);
+    await tester.tap(find.text(PositionStudyDialog.title));
     await tester.pumpAndSettle();
     final dialog =
         tester.widget<PositionStudyDialog>(find.byType(PositionStudyDialog));

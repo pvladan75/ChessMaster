@@ -9533,3 +9533,40 @@ colour was never asked; it has a Black case now.
 **One fact, two guards, a third time**: the games query checked the account on
 the node and again on the joined game; a node can only name its own account's
 game, so the join's guard went (the node's stays, for the index).
+
+## 30.9.2026 — the Analysis bar: four words instead of twelve icons (`docs/PLAN-ANALIZA-TRAKA.md`)
+
+App 5259 → **5295** (36 cases, predicted before the run: 30 in the gate, 6
+menus opened with the semantics spy on). Analyze the same 22. No server
+change. Eighteen mutations, each red on its case — after one survivor.
+
+**A gate that does not compile on the old code has not been seen red.** The
+gate passes the screen two services over a fake client, and the screen took
+neither. The two parameters went in first, alone; then all thirty cases were
+red for the reason they name — the door is not on the screen — and only then
+was the bar written.
+
+**A case that stands on the root cannot tell „the board in front of you" from
+„where the tree starts".** „Exercise… from the root instead of the node"
+survived, because the case opened the menu without playing a move; both
+„Position" and „Exercise…" now step off the root first and say which position
+was kept. Rule 6, in the shape it takes on every screen with a tree.
+
+**A slice that starts at the first `indexOf` follows whoever is written
+first.** The tutorial door's old gate cut the argument list of
+`makeTutorialFromGame(` out of the screen's source; a switch added above it
+calls `_makeTutorialFromGame()`, the slice moved there, and the case went red
+on code that had not changed. It now asks for the call itself.
+
+**When a door is deleted, ask what was kept only for it.** „Engine Logs" was
+one dialog — and a 5000-line buffer in `AppLogger`, filled on every log line
+of the app, that nothing else read.
+
+**A `PopupMenuButton` is as big as its child.** A word in an app bar is a
+target 20 px tall (measured on Preparation's „Board"); the gate asks for 40,
+and a mutation that halves the box is caught.
+
+**„Only this file writes the setting" shaped the design rather than blocking
+it.** The panels moved from a sheet into another widget's menu; the guard
+that names their one writer stayed green because the menu takes its extra
+rows from that file instead of learning about panels.

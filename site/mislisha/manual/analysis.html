@@ -18,30 +18,38 @@ line you like becomes part of a tutorial.</p>
 
 <h2>Open it</h2>
 <p>Analysis is the <span class="ui">Analyse</span> tab — the board is the tab
-itself. Its bar carries <span class="ui">Saved analyses</span> and
-<span class="ui">Scan a book</span> among its tools — on a phone, behind ⋮.</p>
+itself. Its bar reads in the order the work goes: <span class="ui">Board</span>
+puts something on the board, <span class="ui">Engine</span> works on it,
+<span class="ui">Save as…</span> keeps it and <span class="ui">Tutorial</span> makes
+teaching material of it. On a phone the first two are buttons and the other
+two are behind ⋮.</p>
 
 <h2>Get a position onto the board</h2>
+<p>Everything here is a row of <span class="ui">Board</span>.</p>
 <ul>
-<li><span class="ui">Board Setup</span> puts pieces where you want them, with
+<li><span class="ui">Set up position…</span> opens <span class="ui">Board Setup</span>, which puts pieces where you want them, with
     the side to move and <span class="ui">Castling:</span> rights;
     <span class="ui">Clear board</span> empties it first, and
     <span class="ui">Erase</span> takes single pieces off.</li>
-<li>A game can be pasted or opened as a PGN file on the
-    <span class="ui">PGN</span> tab, or fetched from a Chess.com or Lichess
-    account on the <span class="ui">Online</span> tab with
-    <span class="ui">Download Games</span>.</li>
+<li><span class="ui">Import PGN…</span> takes a game pasted or opened as a PGN
+    file, and <span class="ui">Game from Lichess / Chess.com…</span> fetches one from
+    an account with <span class="ui">Download Games</span>; both are tabs of the same
+    window, <span class="ui">PGN</span> and <span class="ui">Online</span>.</li>
+<li><span class="ui">Saved analysis…</span> lists the analyses you have kept, and
+    <span class="ui">Starting position</span> clears the board — after asking, when
+    there is something on it to lose.</li>
 <li>Anything in your library — a saved position, a game of your own — can be
-    loaded onto the board.</li>
+    opened on this board from the Library.</li>
 </ul>
 
 <h2>The engine</h2>
 <p>Stockfish runs on your own machine, and the panel beside the board shows
 what it thinks and the lines it is considering. Which panels you see is your
-choice, under <span class="ui">Panels</span> in the board's toolbar; the engine
+choice, under <span class="ui">Panels</span> in the <span class="ui">Board view</span> menu of the bar; the engine
 itself is configured in Settings, with <span class="ui">Configure local engine</span> for a
 <span class="ui">Custom local engine (.exe)</span> if you have one.</p>
-<p><span class="ui">Review entire game</span> walks a whole game
+<p>The engine's three longer jobs are under <span class="ui">Engine</span>, each
+with a line saying what it covers. <span class="ui">Review entire game</span> walks a whole game
 instead of one position, and <span class="ui">Blunder detection</span> is what
 marks the moments worth talking about. It can be told
 <span class="ui">Analyze only from the current position forward</span> when the
@@ -106,10 +114,15 @@ if you want a starting point. It is written in the language chosen under
 opens in the comment editor, and is yours only once you save it.</p>
 
 <h2>Keep it, or teach from it</h2>
-<p><span class="ui">Save analysis</span> keeps the tree in your library so you
-can come back to it.</p>
-<p>To turn what is on the board into teaching material, press
-<span class="ui">Use in a tutorial</span>. It offers three ways to
+<p><span class="ui">Save as…</span> keeps what is on the board, in four ways:
+<span class="ui">Position</span> is the board in front of you and no line,
+<span class="ui">Exercise…</span> is that position with a task,
+<span class="ui">Analysis</span> is the whole tree — it asks for a name under
+<span class="ui">Save analysis</span> — and <span class="ui">PGN</span> is the text, to copy
+or save as a file. The first three need an account.</p>
+<p>To turn what is on the board into teaching material, open
+<span class="ui">Tutorial</span> in the bar — on a phone,
+<span class="ui">Use in a tutorial</span> behind ⋮. It offers three ways to
 start a new tutorial:</p>
 <ul>
 <li><span class="ui">New tutorial from this position</span></li>

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
@@ -105,96 +104,6 @@ void showNagSelector(BuildContext context, ValueChanged<String?> onSelected) {
         ),
       );
     },
-  );
-}
-
-void showLogsDialog(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.terminal, color: ctx.colors.warning),
-              const SizedBox(width: AppSpacing.sm),
-              Text('Engine Logs 📜',
-                  style: AppText.title.copyWith(color: ctx.colors.textPrimary)),
-            ],
-          ),
-          IconButton(
-            icon:
-                Icon(Icons.delete_outline, color: ctx.colors.danger, size: 20),
-            tooltip: 'Clear logs',
-            onPressed: () {
-              AppLogger.clear();
-              (ctx as Element).markNeedsBuild();
-            },
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: 600,
-        height: 400,
-        child: ValueListenableBuilder<int>(
-          valueListenable: AppLogger.logUpdateNotifier,
-          builder: (context, _, __) {
-            final logs = AppLogger.logs;
-            if (logs.isEmpty) {
-              return Center(
-                child: Text('No logs recorded.',
-                    style: AppText.body.copyWith(color: ctx.colors.textMuted)),
-              );
-            }
-            return Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: ctx.colors.canvas,
-                borderRadius: AppRadii.roundedSm,
-                border: Border.all(color: ctx.colors.surfaceRaised),
-              ),
-              child: SingleChildScrollView(
-                reverse: true,
-                child: SelectableText(
-                  logs.join('\n'),
-                  style: AppText.caption.copyWith(
-                    fontFamily: 'monospace',
-                    color: ctx.colors.success,
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      actions: [
-        ElevatedButton.icon(
-          icon: const Icon(Icons.copy, size: 16),
-          label: const Text('Copy Logs'),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: ctx.colors.accent,
-              foregroundColor: ctx.colors.canvas),
-          onPressed: () async {
-            await Clipboard.setData(
-                ClipboardData(text: AppLogger.formattedLogs));
-            if (ctx.mounted) {
-              AppFeedback.show(
-                ctx,
-                () => SnackBar(
-                    content: Text('✅ Logs copied to clipboard!',
-                        style: TextStyle(color: ctx.colors.canvas)),
-                    backgroundColor: ctx.colors.accent),
-              );
-            }
-          },
-        ),
-        TextButton(
-          child: const Text('Close'),
-          onPressed: () => Navigator.pop(ctx),
-        ),
-      ],
-    ),
   );
 }
 

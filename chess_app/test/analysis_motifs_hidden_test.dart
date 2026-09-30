@@ -17,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/screens/analysis_studio_screen.dart';
-import 'package:chess_app/features/analysis_studio/widgets/analysis_panels_sheet.dart';
+import 'package:chess_app/features/analysis_studio/widgets/analysis_panels.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';

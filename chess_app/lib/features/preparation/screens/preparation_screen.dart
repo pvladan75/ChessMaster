@@ -24,7 +24,6 @@ import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
-import 'package:chess_app/features/exercises/widgets/make_exercise_sheet.dart';
 import 'package:chess_app/features/lessons/models/part_titles.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
 import 'package:chess_app/features/library/models/library_entry.dart';
@@ -73,6 +72,7 @@ import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/widgets/game_screen/board_annotation_bar.dart';
+import 'package:chess_app/features/library/widgets/keep_board.dart';
 import 'package:chess_app/widgets/game_screen/board_annotation_controller.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
@@ -80,7 +80,6 @@ import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
 import 'package:chess_app/widgets/game_selector_dialog.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/pgn_import_dialog.dart';
-import 'package:chess_app/widgets/save_position_dialog.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 
 const _startFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
@@ -821,55 +820,24 @@ class _PreparationScreenState extends State<PreparationScreen>
   Future<void> _openSavePositionDialog() async {
     final labels = await _userLabels();
     if (!mounted) return;
-    showDialog<void>(
-      context: context,
-      builder: (_) => SavePositionDialog(
-        availableUserLabels: labels,
-        initialPersistedLabels: const [],
-        initialShouldPersist: false,
-        onSave: (title, description, tags, persist) =>
-            _savePosition(title, description, tags),
-      ),
-    );
-  }
-
-  Future<void> _savePosition(
-      String title, String description, List<String> tags) async {
-    final error = await _lessonApi.save(
-      title: title,
-      description: description,
-      tags: tags,
+    keepBoardAsPosition(
+      context,
+      api: _lessonApi,
       fen: _currentNode.fen,
+      labels: labels,
     );
-    if (!mounted) return;
-    if (error != null) {
-      AppFeedback.error(context, error);
-      return;
-    }
-    AppFeedback.success(context, 'Position saved.');
   }
 
   Future<void> _openMakeExerciseSheet() async {
-    final pgn = PgnExporterService.exportToPgn(_currentNode);
-    final parsed = MoveTree.parsePgn(pgn, startingFen: _currentNode.fen);
-    if (parsed == null || parsed.rejectedMoves > 0) {
-      final n = parsed?.rejectedMoves ?? 0;
-      AppFeedback.error(context,
-          '$n ${n == 1 ? 'move' : 'moves'} on this board could not be read back, so making an exercise of it would answer a different line than you built.');
-      return;
-    }
     final labels = await _userLabels();
     if (!mounted) return;
-    final saved = await openMakeExerciseSheet(
+    await keepBoardAsExercise(
       context,
       api: widget.exerciseApi ??
           ExerciseApiService(authToken: widget.userSession.token),
-      moveTree: parsed,
-      availableUserLabels: labels,
+      from: _currentNode,
+      labels: labels,
     );
-    if (saved != null && mounted) {
-      AppFeedback.success(context, 'Exercise saved.');
-    }
   }
 
   /// The standard start with no move and no mark on it.

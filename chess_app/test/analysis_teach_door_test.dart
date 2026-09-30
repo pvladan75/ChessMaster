@@ -41,18 +41,40 @@ void main() {
     }
   });
 
-  test('the bar has one tutorial action and it opens the sheet', () {
+  // Rewritten 30.9.2026 (docs/PLAN-ANALIZA-TRAKA.md, D4). It used to count
+  // the literal „Use in a tutorial" in the screen — one icon, named once. The
+  // bar has words now: „Tutorial" in a window, with the sheet's rows under it
+  // as a menu, and the sheet itself behind ⋮ on a phone. The rule is the same
+  // one — a single door, its rows written down once — so what is held is that
+  // both ways in read the sheet's own list and end in one switch.
+  test('the bar has one tutorial door, as a menu and as the sheet', () {
     final code = codeOf(screen);
     final literals = literalsIn(screen);
-    expect(literals.where((s) => s == 'Use in a tutorial').length, 1,
-        reason: 'the bar action is named once, in the screen');
+    expect(literals.where((s) => s.contains('Use in a tutorial')), isEmpty,
+        reason: 'the door is named by TeachMenuSheet.title, not spelled again');
+    for (final row in [
+      'New tutorial from this position',
+      'New tutorial from this line',
+      'New tutorial from this game',
+      'Add this position to a tutorial…',
+      'Add this line to a tutorial…',
+      'Open a tutorial to edit…',
+    ]) {
+      expect(literals, isNot(contains(row)),
+          reason: '„$row" is spelled a second time, in the screen');
+    }
     expect(code, contains('showTeachMenu('),
         reason: 'the screen never opens the sheet');
+    expect(code, contains('teachMenuEntries('),
+        reason: '„Tutorial" in the bar does not read the rows of the sheet');
+    expect('_onTeachRow('.allMatches(code).length, greaterThanOrEqualTo(7),
+        reason: 'the six rows of the sheet and the menu end in one switch');
     // Since phase 6c the rows are drawn on every platform, behind nothing.
     expect(code, isNot(contains('studioAvailable')));
     // The game flow keeps its session and engine settings, and no orientation
     // (the owner, 14.9.2026) — same rule game_tutorial_door_test held.
-    final start = code.indexOf('makeTutorialFromGame(');
+    // The call itself, not `_makeTutorialFromGame()` in the switch above it.
+    final start = code.indexOf('=> makeTutorialFromGame(');
     expect(start, greaterThan(0));
     final call = code.substring(start, code.indexOf(');', start));
     expect(call, contains('session: widget.userSession'));

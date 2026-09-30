@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5259 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5295 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1946 without TEST_DATABASE_URL, 2109 with it (both measured 30.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1181,7 +1181,16 @@ double push** — across that boundary two FENs are one board by placement, side
 and castling, never by `MoveTree.samePosition`. Then, on the owner's word, the
 losing habits on top of that report and every position's games one tap
 away (`GET /games/openings/games`, `PositionGamesScreen`; → **5259**, backend
-→ **1946 / 2109**, both measured). Phase 6 of
+→ **1946 / 2109**, both measured). Then the Analysis bar
+(`docs/PLAN-ANALIZA-TRAKA.md`, → **5295**, a full run with nothing else
+running; analyze the same 22; the server untouched): twelve unlabelled icons
+became `Board`, `Engine`, `Save as…`, `Tutorial`, the board view menu and ⋮,
+in the order the work goes, the first and third meaning what they mean in
+Preparation; „Engine Logs" and its buffer are deleted and „Scan a book" left
+the screen, on the owner's word. **A case that stands on the root cannot tell
+„the board in front of you" from „where the tree starts"** — the one
+surviving mutation, until both „Position" and „Exercise…" stepped off it.
+Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
 with its arithmetic and what it taught, is in **`docs/LESSONS.md`** — append the

@@ -33,14 +33,14 @@ import 'package:chess_app/widgets/app_feedback.dart';
 ///
 /// Each one still says what it takes: a FEN, a PGN, pieces you place, an
 /// opening by name, a game from an online account.
-enum _SetupTab {
+enum BoardSetupTab {
   fen(Icons.edit_note, 'FEN'),
   pgn(Icons.file_upload, 'PGN'),
   manual(Icons.grid_on, 'Pieces'),
   openings(Icons.travel_explore, 'Openings'),
   platform(Icons.cloud_download, 'Online');
 
-  const _SetupTab(this.icon, this.label);
+  const BoardSetupTab(this.icon, this.label);
 
   final IconData icon;
   final String label;
@@ -56,6 +56,11 @@ enum _SetupTab {
 
 class AnalysisBoardSetupDialog extends StatefulWidget {
   final String initialFen;
+
+  /// The tab to open on — the row of the Analysis bar's „Board" menu that was
+  /// tapped. Ignored when the dialog does not draw that tab (see `_tabs`), and
+  /// a [referencePicture] still opens on the builder.
+  final BoardSetupTab? initialTab;
   final Function(String fen) onPositionSet;
   final Function(String pgn)? onPgnLoaded;
 
@@ -79,6 +84,7 @@ class AnalysisBoardSetupDialog extends StatefulWidget {
     super.key,
     required this.initialFen,
     required this.onPositionSet,
+    this.initialTab,
     this.onPgnLoaded,
     this.referencePicture,
     this.placementOnly = false,
@@ -130,13 +136,13 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
   /// Same fault as the tree's context menu, which drew "Delete This Variation"
   /// for a screen that had wired nothing to it. The tabs are drawn where they
   /// work.
-  late final List<_SetupTab> _tabs = [
-    _SetupTab.fen,
-    if (widget.onPgnLoaded != null) _SetupTab.pgn,
-    _SetupTab.manual,
+  late final List<BoardSetupTab> _tabs = [
+    BoardSetupTab.fen,
+    if (widget.onPgnLoaded != null) BoardSetupTab.pgn,
+    BoardSetupTab.manual,
     if (widget.onPgnLoaded != null) ...[
-      _SetupTab.openings,
-      _SetupTab.platform,
+      BoardSetupTab.openings,
+      BoardSetupTab.platform,
     ],
   ];
 
@@ -146,8 +152,11 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
     _tabController = TabController(
       length: _tabs.length,
       vsync: this,
-      initialIndex:
-          widget.referencePicture != null ? _tabs.indexOf(_SetupTab.manual) : 0,
+      initialIndex: math.max(
+          0,
+          _tabs.indexOf(widget.referencePicture != null
+              ? BoardSetupTab.manual
+              : widget.initialTab ?? _tabs.first)),
     );
     _fenTextController = TextEditingController(text: widget.initialFen);
     _validateFen(widget.initialFen);
@@ -189,7 +198,7 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
       if (!mounted) return;
       // By name, not by number: the tabs are built from what the caller can
       // receive, so „the second one" is not always the PGN tab.
-      _tabController.animateTo(_tabs.indexOf(_SetupTab.pgn));
+      _tabController.animateTo(_tabs.indexOf(BoardSetupTab.pgn));
     } on ChessImportException catch (e) {
       _showPgnFileError(e.message);
     } catch (e) {
@@ -463,11 +472,11 @@ class _AnalysisBoardSetupDialogState extends State<AnalysisBoardSetupDialog>
                 children: [
                   for (final tab in _tabs)
                     switch (tab) {
-                      _SetupTab.fen => _buildFenInputTab(),
-                      _SetupTab.pgn => _buildPgnImportTab(),
-                      _SetupTab.manual => _buildManualBuilderTab(),
-                      _SetupTab.openings => _buildOpeningSearchTab(),
-                      _SetupTab.platform => _buildPlatformImportTab(),
+                      BoardSetupTab.fen => _buildFenInputTab(),
+                      BoardSetupTab.pgn => _buildPgnImportTab(),
+                      BoardSetupTab.manual => _buildManualBuilderTab(),
+                      BoardSetupTab.openings => _buildOpeningSearchTab(),
+                      BoardSetupTab.platform => _buildPlatformImportTab(),
                     },
                 ],
               ),

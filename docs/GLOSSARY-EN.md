@@ -61,7 +61,7 @@ trainer already uses. „Prep" is fine in prose, never as a title.
 |---|---|
 | **Home** | What is for me now: resume, today's sessions, what is set for me, join a session, recordings. Built from data, never from a role |
 | **Practise** | The hub: repertoire, my games, my mistakes, tactics, mates, endgames. Nothing here needs another person |
-| **Analyse** | The Analysis board itself, with saved analyses, my games and the book scanner beside it |
+| **Analyse** | The Analysis board itself. Its bar is four words in the order the work goes — **Board** (puts something on the board), **Engine**, **Save as…** (keeps what is on it) and **Tutorial** — the first and third meaning what they mean in Preparation (`docs/PLAN-ANALIZA-TRAKA.md`, 30.9.2026) |
 | **Teach** | Tutorials, Preparation, sessions, students, and the Library — everything you keep |
 
 A tab is a verb, or a shelf; never a person. **„People" is gone** as a tab
