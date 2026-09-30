@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5295 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5298 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1946 without TEST_DATABASE_URL, 2109 with it (both measured 30.9.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1190,6 +1190,11 @@ Preparation; „Engine Logs" and its buffer are deleted and „Scan a book" left
 the screen, on the owner's word. **A case that stands on the root cannot tell
 „the board in front of you" from „where the tree starts"** — the one
 surviving mutation, until both „Position" and „Exercise…" stepped off it.
+Then Preparation's „Board" and „Save as…", which were targets 20 px tall
+(→ **5298**, a full run; analyze the same 22): both screens draw the word
+through `BarWordMenu`, 40 px, and Preparation's menus open under the word as
+Analysis's do. **A bar clamps what it is handed**: „the target stays inside
+the bar" survived a 48 px target in a 44 px bar and was deleted, not kept.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

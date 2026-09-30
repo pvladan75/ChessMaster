@@ -388,6 +388,45 @@ void main() {
       expect(tester.takeException(), isNull);
     }, variant: windows);
 
+    // A `PopupMenuButton` is as big as its child, and a bare word is a target
+    // the height of its letters — measured 20 px on 30.9.2026. The last size
+    // is a phone on its side, where the bar itself is 44 and would hand a
+    // taller target 44 and no more.
+    for (final (size, platform) in [
+      (_desktop, windows),
+      (const Size(900, 700), windows),
+      (const Size(932, 430), android),
+    ]) {
+      testWidgets(
+          '„Board" and „Save as…" are targets 40 px tall, the word in the '
+          'middle, at ${sizeLabel(size)}', (tester) async {
+        await _open(tester, size: size);
+        expect(tester.takeException(), isNull);
+        for (final (key, word) in const [
+          (Key('prep-board-menu'), 'Board'),
+          (Key('prep-save-menu'), 'Save as…'),
+        ]) {
+          final door = find.byKey(key);
+          expect(door, findsOneWidget, reason: '„$word" is not in the bar');
+          expect(find.descendant(of: door, matching: find.text(word)),
+              findsOneWidget,
+              reason: 'the door does not read „$word"');
+          final rect = tester.getRect(door);
+          expect(rect.height, greaterThanOrEqualTo(40),
+              reason: '„$word" is a target ${rect.height} px tall');
+          // The word stays where it was read: in the middle of its target,
+          // and no taller than its letters — a text stretched to the target
+          // has the target's centre and is drawn at its top.
+          final text = tester
+              .getRect(find.descendant(of: door, matching: find.text(word)));
+          expect(text.height, lessThan(rect.height),
+              reason: '„$word" is stretched over its target');
+          expect((text.center.dy - rect.center.dy).abs(), lessThan(1),
+              reason: '„$word" is not centred in its target');
+        }
+      }, variant: platform);
+    }
+
     testWidgets('each menu has its items, and only its own', (tester) async {
       await _open(tester);
       await _press(tester, const Key('prep-board-menu'));

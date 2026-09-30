@@ -68,6 +68,7 @@ import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart' show EngineArrow;
+import 'package:chess_app/widgets/bar_word_menu.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
@@ -1432,23 +1433,17 @@ class _PreparationScreenState extends State<PreparationScreen>
             onPressed: _toggleLibrary,
             child: const Text('Library'),
           ),
-          PopupMenuButton<String>(
+          BarWordMenu<String>(
             key: const Key('prep-board-menu'),
+            word: 'Board',
             onSelected: _onMenuAction,
             itemBuilder: (_) => _boardMenuItems(),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text('Board'),
-            ),
           ),
-          PopupMenuButton<String>(
+          BarWordMenu<String>(
             key: const Key('prep-save-menu'),
+            word: 'Save as…',
             onSelected: _onMenuAction,
             itemBuilder: (_) => _saveMenuItems(),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
-              child: Text('Save as…'),
-            ),
           ),
           TextButton(
             key: const Key('prep-record'),
@@ -1497,14 +1492,11 @@ class _PreparationScreenState extends State<PreparationScreen>
           onPressed: _toggleLibrary,
           child: const Text('Library'),
         ),
-        PopupMenuButton<String>(
+        BarWordMenu<String>(
           key: const Key('prep-board-menu'),
+          word: 'Board',
           onSelected: _onMenuAction,
           itemBuilder: (_) => _boardMenuItems(),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Text('Board'),
-          ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),

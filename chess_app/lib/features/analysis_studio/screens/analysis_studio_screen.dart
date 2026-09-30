@@ -21,6 +21,7 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
+import 'package:chess_app/widgets/bar_word_menu.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
@@ -508,32 +509,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     }
   }
 
-  /// A word of the bar that opens a list. Forty pixels tall whatever the text
-  /// is: a `PopupMenuButton` is as big as its child, and a bare word is a
-  /// target the height of its letters.
-  Widget _barWord<T>({
-    required String key,
-    required String word,
-    required PopupMenuItemSelected<T> onSelected,
-    required PopupMenuItemBuilder<T> itemBuilder,
-  }) =>
-      PopupMenuButton<T>(
-        key: Key(key),
-        position: PopupMenuPosition.under,
-        onSelected: onSelected,
-        itemBuilder: itemBuilder,
-        child: SizedBox(
-          height: 40,
-          child: Center(
-            widthFactor: 1,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-              child: Text(word),
-            ),
-          ),
-        ),
-      );
-
   List<Widget> _toolbarActions(BuildContext context) {
     // What the screen shows, in one menu: the board's view and, under it, the
     // panels. It draws its own state, which is why it is never folded away.
@@ -545,26 +520,26 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
 
     if (Breakpoints.isWide(context)) {
       return [
-        _barWord<String>(
-          key: 'analysis-board-menu',
+        BarWordMenu<String>(
+          key: const Key('analysis-board-menu'),
           word: 'Board',
           onSelected: _onBarAction,
           itemBuilder: (_) => _boardMenuItems(),
         ),
-        _barWord<String>(
-          key: 'analysis-engine-menu',
+        BarWordMenu<String>(
+          key: const Key('analysis-engine-menu'),
           word: 'Engine',
           onSelected: _onBarAction,
           itemBuilder: (_) => _engineMenuItems(),
         ),
-        _barWord<String>(
-          key: 'analysis-save-menu',
+        BarWordMenu<String>(
+          key: const Key('analysis-save-menu'),
           word: 'Save as…',
           onSelected: _onBarAction,
           itemBuilder: (_) => _saveMenuItems(),
         ),
-        _barWord<TeachRow>(
-          key: 'analysis-tutorial-menu',
+        BarWordMenu<TeachRow>(
+          key: const Key('analysis-tutorial-menu'),
           word: 'Tutorial',
           onSelected: _onTeachRow,
           itemBuilder: (_) => teachMenuEntries(

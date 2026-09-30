@@ -9570,3 +9570,34 @@ and a mutation that halves the box is caught.
 it.** The panels moved from a sheet into another widget's menu; the guard
 that names their one writer stayed green because the menu takes its extra
 rows from that file instead of learning about panels.
+
+## 30.9.2026 — Preparation's „Board" and „Save as…" are targets 40 px tall (`BarWordMenu`)
+
+App 5295 → **5298** (3 cases, predicted before the run; a full run). Analyze
+the same 22. No server change.
+
+Both words were a `PopupMenuButton` around a padded `Text`: measured
+`Size(87.3, 20.0)` in an `AppBar` under `AppTheme.dark`, in three places (the
+bar builds „Board" a second time while a take runs). Analysis had solved it
+the same day with a private `_barWord`; that body is now
+`lib/widgets/bar_word_menu.dart`, used by both screens — four words in
+Analysis, three sites in Preparation — measured `Size(87.3, 40.0)` and
+`Size(130.0, 40.0)`. Preparation's menus now open **under** the word, as
+Analysis's do; that came with the shared widget and was not asked for.
+
+Red first on the old screen at 1536 x 792, 900 x 700 and a phone on its side
+(932 x 430), and in the recording case: „a target 20.0 px tall". Mutations: a
+height of 39 turned five cases red (the three sizes, the recording case and
+Analysis's own bar case); the word top-aligned and the `Center` removed each
+turned the three size cases red.
+
+**A bar clamps what it is handed.** The first draft also asserted that the
+target lies inside the bar. A 48 px target in the 44 px bar of a phone on its
+side **survived**: the toolbar lays its actions out under its own height, so
+the target is cut to 44 and nothing runs over. The assertion could not fail
+and was deleted. What the phone case does guard is that 40 is *reached* there.
+
+**A text handed a tight height has its target's centre and is drawn at its
+top.** Without the `Center`, the word's rectangle is the whole 40 px, so
+„centred" alone passes; the case also asks that the word is no taller than
+its letters.

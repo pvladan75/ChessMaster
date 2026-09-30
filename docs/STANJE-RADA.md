@@ -96,6 +96,13 @@ Aplikacija 5259 → **5295** (pun prolaz, ništa drugo nije radilo; 30 slučajev
 kapije i 6 sa uhodom za čitač ekrana, predviđeno pre prolaza). `flutter
 analyze` istih 22. Server nije diran.
 
+Zatim, istog dana: `Board` i `Save as…` u traci Pripreme bili su meta visoka
+20 px (tri mesta, jer se `Board` gradi i dok traje snimanje). Oba ekrana sada
+crtaju reč kroz `BarWordMenu` (`lib/widgets/bar_word_menu.dart`), 40 px, a
+meniji Pripreme se otvaraju ispod reči kao u Analizi — to je došlo sa
+zajedničkim vidžetom i nije traženo. Aplikacija 5295 → **5298** (pun prolaz),
+`flutter analyze` istih 22.
+
 ## Navike u otvaranju: uvećana tabla, Analiza sa potezima partije, i lista koja broji isto što i dugme — 30.9.2026, u kodu, ostaje provera uživo ([255.1]–[255.4])
 
 Vlasnik, sa dve slike ekrana `Opening leaks`: dugme kaže „Drill these 9

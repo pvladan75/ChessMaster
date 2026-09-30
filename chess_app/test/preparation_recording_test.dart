@@ -576,6 +576,12 @@ void main() {
                 'mid-recording is part of the recording');
         expectOnScreen(tester, _desktop, find.byKey(key));
       }
+      // The bar builds „Board" a second time for a take, and that one is a
+      // target of the same height as the first.
+      final board = tester.getRect(find.byKey(const Key('prep-board-menu')));
+      expect(board.height, greaterThanOrEqualTo(40),
+          reason: '„Board" is a target ${board.height} px tall while a take '
+              'runs');
       expect(find.byKey(const Key('prep-save-menu')), findsNothing);
       expect(find.byKey(const Key('prep-more')), findsNothing);
       // A cap of a minute: the take stops itself at 59 s, and one has passed.
