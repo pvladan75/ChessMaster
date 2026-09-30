@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 5318 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1967 without TEST_DATABASE_URL (measured 30.9.2026), 2130 with it (derived)
+cd chess_backend && npm test          # node --test, 1979 without TEST_DATABASE_URL (measured 30.9.2026), 2142 with it (derived)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1215,6 +1215,19 @@ on, the app never re-sorts), held to real answers in
 Lichess for the drill's reply, our own tables having no DTM. **DTZ is what
 the fifty-move rule counts, not how long a side resists.** With it, „What to
 drill" opens empty and the holding-pattern „rules" are deleted.
+Then the server's error lines (backend → **1979**, measured with and without
+`.env`): 156 calls wrote `logger.error('message:', err)`, and pino drops a
+value after a message with no placeholder, so most error lines printed the
+sentence alone — the owner's AUTH line with no cause. Every one is now
+`logger.error({ err }, 'message:')`, and `logger_error_cause.test.js` reads
+the sources by their tokens (`test/support/jsTokens.js`) and fails if the old
+shape comes back. A grep for it had found 145: **a grep's answer is bounded
+by the names it guessed** — five templates, one escaped quote and five errors
+not called `err`. And an error that now reached the log carried what
+`REDACT_PATHS` keeps out, where no path can name it — a refused recipient in
+nodemailer's `rejected`, a failing row in Postgres's `detail` — so the logger's
+`err` serializer masks addresses and leaves such a row out. **When a fix lets a
+value reach an output it never reached, read what the value carries.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

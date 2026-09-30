@@ -1972,7 +1972,7 @@ async function initDB(target = pool) {
 
 
   } catch (err) {
-    logger.error('Database migration/connection error:', err);
+    logger.error({ err }, 'Database migration/connection error:');
     throw err;
   } finally {
     client.release();

@@ -34,7 +34,7 @@ async function notify(pool, {
       [recipientId, senderId, roomCode, title, message, kind, refId]
     );
   } catch (err) {
-    logger.error(`Could not create '${kind}' notification:`, err);
+    logger.error({ err }, `Could not create '${kind}' notification:`);
     return false;
   }
 

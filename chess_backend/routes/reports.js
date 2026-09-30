@@ -61,7 +61,7 @@ router.get('/:id', authenticateReportToken, async (req, res) => {
     });
     res.type('html').send(reports.renderHtml(report));
   } catch (err) {
-    logger.error('Error rendering parent report:', err);
+    logger.error({ err }, 'Error rendering parent report:');
     sendPlainError(res, 500, 'Report cannot be displayed at this time.');
   }
 });

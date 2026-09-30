@@ -193,7 +193,7 @@ Povlačenje ne utiče na zakonitost obrade obavljene do tog trenutka.</p>
 </p>
 `));
   } catch (err) {
-    logger.error('[SAGLASNOST] Stranica nije mogla da se prikaže:', err);
+    logger.error({ err }, '[SAGLASNOST] Stranica nije mogla da se prikaže:');
     return res.status(500).type('html').send(notice(
       'Trenutno ne možemo da prikažemo stranicu',
       'Pokušajte ponovo za nekoliko minuta, sa istim linkom.',
@@ -245,7 +245,7 @@ router.post('/consent/:token', async (req, res) => {
 javite se treneru ili nam pišite.</p>
 `));
   } catch (err) {
-    logger.error('[SAGLASNOST] Odgovor nije mogao da se upiše:', err);
+    logger.error({ err }, '[SAGLASNOST] Odgovor nije mogao da se upiše:');
     return res.status(500).type('html').send(notice(
       'Odgovor nije sačuvan',
       'Ništa nije zabeleženo. Otvorite isti link ponovo za nekoliko minuta i '

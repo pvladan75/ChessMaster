@@ -59,7 +59,7 @@ router.post('/token', authenticateToken, async (req, res) => {
       userId: req.user.id,
     });
   } catch (err) {
-    logger.error('[AGORA] Provera pristupa sobi nije uspela:', err);
+    logger.error({ err }, '[AGORA] Provera pristupa sobi nije uspela:');
     return res.status(500).json({ error: 'Error checking room access.' });
   }
 
@@ -117,7 +117,7 @@ router.post('/token', authenticateToken, async (req, res) => {
       role: seat.role,
     });
   } catch (err) {
-    logger.error('[AGORA] Failed to build RTC token:', err);
+    logger.error({ err }, '[AGORA] Failed to build RTC token:');
     res.status(500).json({ error: 'Error generating Agora token.' });
   }
 });

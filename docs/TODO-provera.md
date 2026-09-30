@@ -10949,6 +10949,24 @@ odlazi na kraj spiska u alatu.
    pet meseci nema ničega.
    Potrebno: server (baza).
 
+15. [ ] **Crvena linija u logu servera nosi i samu grešku, ne samo rečenicu.** [259.1]
+   O čemu se radi: Do 30.9.2026 je 156 poziva pisalo grešku kao
+   `logger.error('poruka:', err)`, a pino taj drugi argument baca bez reči,
+   pa je u logu stajala samo rečenica (npr. `[AUTH] Nalog nije mogao da se
+   proveri:` bez uzroka dok baza nije odgovarala). Sada je svaki
+   `logger.error({ err }, 'poruka:')`, a adresa koja se nađe u grešci
+   upisuje se maskirana.
+   Gde: terminal u kom radi backend (`npm run dev`), posle spajanja ove
+   izmene.
+   Uradi: Sačekaj sledeću crvenu liniju u logu (bilo koju). Može i da se
+   izazove — isključi mrežu računara dok radiš nešto u aplikaciji — ali
+   pool baze nema rok za povezivanje, pa linija stiže tek kad veza sama
+   padne, ako padne pre nego što mreža ponovo proradi.
+   Treba da vidiš: Ispod rečenice blok `err:` sa `type`, `message` i
+   `stack` (i `code` kad ga greška ima, npr. `ETIMEDOUT`). Ako greška nosi
+   adresu, vidi se kao `p***@domen`, nikad cela.
+   Potrebno: server.
+
 ### Server i alati — Arhiva partija i izveštaji
 
 1. [ ] **Priprema za protivnika: isključeno = odbijeno.** [59.1]

@@ -29,7 +29,7 @@ router.post('/', authenticateToken, async (req, res) => {
   try {
     answer(res, await authoring.createExercise(pool, { ownerId: req.user.id, payload: req.body }), 201);
   } catch (err) {
-    logger.error('Error creating exercise:', err);
+    logger.error({ err }, 'Error creating exercise:');
     res.status(500).json({ error: 'Error saving the exercise.' });
   }
 });
@@ -41,7 +41,7 @@ router.get('/queue', authenticateToken, async (req, res) => {
   try {
     res.json(await solo.queueOf(pool, req.user.id));
   } catch (err) {
-    logger.error('Error reading the exercise queue:', err);
+    logger.error({ err }, 'Error reading the exercise queue:');
     res.status(500).json({ error: 'Error loading your exercises.' });
   }
 });
@@ -57,7 +57,7 @@ router.post('/:id/attempt', authenticateToken, async (req, res) => {
     if (!out.ok) return res.status(out.status).json({ error: out.error });
     res.json(out.result);
   } catch (err) {
-    logger.error('Error judging an own attempt:', err);
+    logger.error({ err }, 'Error judging an own attempt:');
     res.status(500).json({ error: 'Error checking answer.' });
   }
 });
@@ -74,7 +74,7 @@ router.post('/:id/game-result', authenticateToken, async (req, res) => {
     if (!out.ok) return res.status(out.status).json({ error: out.error });
     res.json(out.result);
   } catch (err) {
-    logger.error('Error recording an own game:', err);
+    logger.error({ err }, 'Error recording an own game:');
     res.status(500).json({ error: 'Error recording the game.' });
   }
 });
@@ -84,7 +84,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
   try {
     answer(res, await authoring.readExercise(pool, { ownerId: req.user.id, puzzleId: req.params.id }));
   } catch (err) {
-    logger.error('Error reading exercise:', err);
+    logger.error({ err }, 'Error reading exercise:');
     res.status(500).json({ error: 'Error loading the exercise.' });
   }
 });
@@ -97,7 +97,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
       ownerId: req.user.id, puzzleId: req.params.id, payload: req.body,
     }));
   } catch (err) {
-    logger.error('Error updating exercise:', err);
+    logger.error({ err }, 'Error updating exercise:');
     res.status(500).json({ error: 'Error saving the exercise.' });
   }
 });

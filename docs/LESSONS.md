@@ -9722,3 +9722,73 @@ case stands where the old code spoke (both holding moves on the first rank),
 asserting the whole message, and was red with the sentence put back.
 
 App 5314 → 5318 (a full run, predicted before it; analyze the same 22); backend 1946 → 1967 (with and without `.env`).
+
+## 30.9.2026 — the server's error lines carry the error (`{ err }`), and what the error carries is masked
+
+The owner saw `[AUTH] Nalog nije mogao da se proveri:` with nothing after it
+while the managed database briefly did not answer. The call was
+`logger.error('[AUTH] …:', standing.cause)`, and pino reads an argument after
+the message only as a value for a `%s` in it; with no placeholder the value
+is dropped without a word. Measured first:
+`require('pino')().error('msg:', new Error('x'))` writes no `err` field,
+`.error({ err }, 'msg')` does. Nothing on the server had ever logged an error
+object through pino's serializer — 73 calls wrote `${err.message}` into the
+sentence, 3 wrote `{ err: err.message }`, and the rest of the error logging
+was this shape.
+
+**How many.** A grep for `logger.(error|warn|info)('…', (err|e|error|standing.cause))`
+found 145. A tokenizer found 156 of 459 logger calls:
+**a grep's answer is bounded by the names it guessed** — five messages were
+templates, one had an escaped quote (`recording\'s voice`), and five second
+arguments were `mailErr` (twice), `cleanErr`, `recordErr` and `meterErr`. All
+156 were rewritten from the tokenizer's own argument spans (literal kept byte
+for byte, the separator between the arguments kept), after the binding of
+every second argument was read: 150 `catch (x)`, six callbacks or
+`standing.cause`, which is the `err` of `accountGuard`'s catch. None was a
+string meant to be concatenated, and no call used a placeholder.
+
+**What a restored value carries.** `pino-std-serializers` copies every
+enumerable field of an error, and some errors here hold what `REDACT_PATHS`
+exists to keep out, where a path cannot name it: nodemailer puts a refused
+recipient in `err.rejected` and in the message (`EENVELOPE`, the likely
+failure of a mistyped parent address in the consent flow), and Postgres writes
+the offending key into `detail` (`Key (email)=(…) already exists`) or, for a
+NOT NULL or CHECK violation, the whole failing row — address, password hash,
+name. `users` has both kinds of constraint. So the logger's `err` serializer
+is pino's own with every address in every string masked by `maskEmail`, on a
+copy (the caller's error is never changed), and a `Failing row contains …`
+detail left out. Google's client redacts its own headers (gaxios 7), and no
+call passes an error as its only argument, which would put an unmasked
+`err.message` into `msg`. **When a fix lets a value reach an output it never
+reached, read what the value carries** — the exposure was dormant for exactly
+as long as the bug.
+
+**The gate.** `test/logger_error_cause.test.js` reads every `.js`, `.mjs` and
+`.cjs` outside the tests by its tokens (`test/support/jsTokens.js`: comments
+out, a string or template one token, `${…}` kept apart, a regex told from a
+division by the token before it, every bracket matched, and a lexer that loses
+its place **throws** with the file and line rather than reading half a file).
+It fails on a call whose first argument begins with a string or template and
+is followed by more arguments with no placeholder; receivers are `logger` and
+whatever a file binds to it (`log = logger` in `tablebaseService.js`, a
+`child`, a require or import of `…/logger`). A second test drives
+`authenticateToken` with a pool that throws and reads the line the real logger
+wrote by swapping its stream (`pino.symbols.streamSym`). Against the original
+sources it listed exactly the 156. Sixteen mutations — four call sites put
+back (the auth line, a multi-line template in `rooms.js`, the `log` alias,
+`server.js`'s `e`), six in the gate's own reader and six in the serializer —
+all red on the case meant to catch them, but only after two survivors:
+`'100%% sure'` could not tell „`%%` is an escaped percent" from „`%%` is two
+percents", because the letter after it is where the readings differ (`%%s`);
+and no case had a comma inside brackets in the first argument
+(`'Totals: ' + [a, b].join(', ')`), which is the only shape where splitting at
+every comma gives a different answer. Rule 6 twice: **a case must be one where
+the right and the wrong reading disagree.** One mutation first did not apply —
+the harness had turned a written `\\n` into a newline — and was redone rather
+than counted.
+
+Backend 1967 → 1979 (+7 in the new file, +4 in `personal_data_exposure.test.js`,
++1 because `node --test` counts a file under `test/` with no tests, as it does
+the other four support files), with and without `.env`, and the same names
+passing as before plus the twelve; 2130 → 2142 with a database (derived — none
+of the new tests touch one).

@@ -19,7 +19,7 @@ router.post('/', authenticateToken, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    logger.error('Save analysis error:', err);
+    logger.error({ err }, 'Save analysis error:');
     res.status(500).json({ error: 'Server error saving analysis.' });
   }
 });
@@ -33,7 +33,7 @@ router.get('/', authenticateToken, async (req, res) => {
     );
     res.json(result.rows);
   } catch (err) {
-    logger.error('List analyses error:', err);
+    logger.error({ err }, 'List analyses error:');
     res.status(500).json({ error: 'Server error loading analysis list.' });
   }
 });
@@ -50,7 +50,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
-    logger.error('Load analysis error:', err);
+    logger.error({ err }, 'Load analysis error:');
     res.status(500).json({ error: 'Server error loading analysis.' });
   }
 });
@@ -81,7 +81,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
-    logger.error('Replace analysis error:', err);
+    logger.error({ err }, 'Replace analysis error:');
     res.status(500).json({ error: 'Server error replacing analysis.' });
   }
 });
@@ -98,7 +98,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    logger.error('Delete analysis error:', err);
+    logger.error({ err }, 'Delete analysis error:');
     res.status(500).json({ error: 'Server error deleting analysis.' });
   }
 });

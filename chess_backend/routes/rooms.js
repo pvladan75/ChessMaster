@@ -44,7 +44,7 @@ router.post('/create', authenticateToken, async (req, res) => {
       room_code: roomCode,
     });
   } catch (err) {
-    logger.error('Room creation error:', err);
+    logger.error({ err }, 'Room creation error:');
     res.status(500).json({ error: 'Server error during room creation' });
   }
 });
@@ -56,7 +56,7 @@ function announceEnded(roomCodes, reason) {
     try {
       realtime.closeRoom(code, { reason });
     } catch (err) {
-      logger.error(`[SOBA] Kraj sesije ${code} nije objavljen:`, err);
+      logger.error({ err }, `[SOBA] Kraj sesije ${code} nije objavljen:`);
     }
   }
 }
@@ -75,7 +75,7 @@ router.post('/:roomCode/end', authenticateToken, async (req, res) => {
     if (ended) announceEnded([req.params.roomCode], 'ended');
     res.json({ ended });
   } catch (err) {
-    logger.error('[SOBA] Sesija nije mogla da se završi:', err);
+    logger.error({ err }, '[SOBA] Sesija nije mogla da se završi:');
     res.status(500).json({ error: 'Could not end the session.' });
   }
 });
@@ -89,7 +89,7 @@ router.get('/live', authenticateToken, async (req, res) => {
   try {
     res.json({ sessions: await liveSessionsFor(pool, req.user.id) });
   } catch (err) {
-    logger.error('[SOBA] Žive sesije nisu mogle da se pročitaju:', err);
+    logger.error({ err }, '[SOBA] Žive sesije nisu mogle da se pročitaju:');
     res.status(500).json({ error: 'Could not read the sessions.' });
   }
 });
@@ -116,7 +116,7 @@ router.get('/:roomCode/state', stateLimiter, authenticateToken, async (req, res)
     });
     res.json({ state });
   } catch (err) {
-    logger.error('[SOBA] Stanje sobe nije moglo da se pročita:', err);
+    logger.error({ err }, '[SOBA] Stanje sobe nije moglo da se pročita:');
     res.status(500).json({ error: 'Could not read the room.' });
   }
 });
@@ -141,7 +141,7 @@ router.get('/:roomCode/guest-access', authenticateToken, async (req, res) => {
     }
     res.json({ allowGuests });
   } catch (err) {
-    logger.error('[SOBA] Prekidač za goste nije mogao da se pročita:', err);
+    logger.error({ err }, '[SOBA] Prekidač za goste nije mogao da se pročita:');
     res.status(500).json({ error: 'Could not read room settings.' });
   }
 });
@@ -172,7 +172,7 @@ router.patch('/:roomCode/guest-access', authenticateToken, async (req, res) => {
     );
     res.json({ allowGuests });
   } catch (err) {
-    logger.error('[SOBA] Prekidač za goste nije mogao da se promeni:', err);
+    logger.error({ err }, '[SOBA] Prekidač za goste nije mogao da se promeni:');
     res.status(500).json({ error: 'Could not save room settings.' });
   }
 });

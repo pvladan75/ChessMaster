@@ -52,7 +52,7 @@ async function authenticateToken(req, res, next) {
   const standing = await tokenHolderStanding(pool, user.id);
   if (!standing.ok) {
     if (standing.cause) {
-      logger.error('[AUTH] Nalog nije mogao da se proveri:', standing.cause);
+      logger.error({ err: standing.cause }, '[AUTH] Nalog nije mogao da se proveri:');
     } else {
       logger.warn(`[AUTH] Odbijen token: ${standing.reason} (id ${user.id})`);
     }
@@ -95,7 +95,7 @@ async function optionalAuth(req, res, next) {
 
   const standing = await tokenHolderStanding(pool, user.id);
   if (!standing.ok && standing.cause) {
-    logger.error('[AUTH] Nalog nije mogao da se proveri:', standing.cause);
+    logger.error({ err: standing.cause }, '[AUTH] Nalog nije mogao da se proveri:');
   }
   req.user = standing.ok ? user : null;
   next();
@@ -211,7 +211,7 @@ function authenticateAssignmentVideoToken(req, res, next) {
   }
   return tokenHolderStanding(pool, payload.id).then((standing) => {
     if (!standing.ok) {
-      if (standing.cause) logger.error('[AUTH] Nalog nije mogao da se proveri:', standing.cause);
+      if (standing.cause) logger.error({ err: standing.cause }, '[AUTH] Nalog nije mogao da se proveri:');
       return res.status(standing.status).json({ error: standing.error, reason: standing.reason });
     }
     req.downloadUser = payload;

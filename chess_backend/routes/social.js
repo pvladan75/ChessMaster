@@ -69,7 +69,7 @@ router.post('/trainer/students/add', authenticateToken, async (req, res) => {
       student,
     });
   } catch (err) {
-    logger.error('Error requesting student:', err);
+    logger.error({ err }, 'Error requesting student:');
     res.status(500).json({ error: 'Error sending invitation.' });
   }
 });
@@ -111,7 +111,7 @@ router.post('/students/trainers/request', authenticateToken, async (req, res) =>
       trainer,
     });
   } catch (err) {
-    logger.error('Error requesting trainer:', err);
+    logger.error({ err }, 'Error requesting trainer:');
     res.status(500).json({ error: 'Error sending request.' });
   }
 });
@@ -121,7 +121,7 @@ router.get('/relationships/pending', authenticateToken, async (req, res) => {
   try {
     res.json({ requests: await relationships.pendingForUser(pool, req.user.id) });
   } catch (err) {
-    logger.error('Error fetching pending relationships:', err);
+    logger.error({ err }, 'Error fetching pending relationships:');
     res.status(500).json({ error: 'Error fetching requests.' });
   }
 });
@@ -177,7 +177,7 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
         // was asked when nothing left the server.
         delivered = false;
         deliveryError = mailErr.message;
-        logger.error('[SAGLASNOST] Poruka roditelju nije poslata:', mailErr);
+        logger.error({ err: mailErr }, '[SAGLASNOST] Poruka roditelju nije poslata:');
       }
 
       await relationships.notifyAwaitingParent(pool, {
@@ -209,7 +209,7 @@ router.post('/relationships/:id/accept', authenticateToken, async (req, res) => 
 
     res.json({ status: 'accepted', message: 'Relationship established.' });
   } catch (err) {
-    logger.error('Error accepting relationship:', err);
+    logger.error({ err }, 'Error accepting relationship:');
     res.status(500).json({ error: 'Error accepting request.' });
   }
 });
@@ -238,7 +238,7 @@ router.post('/relationships/:id/decline', authenticateToken, async (req, res) =>
 
     res.json({ message: 'Request declined.' });
   } catch (err) {
-    logger.error('Error declining relationship:', err);
+    logger.error({ err }, 'Error declining relationship:');
     res.status(500).json({ error: 'Error declining request.' });
   }
 });
@@ -251,7 +251,7 @@ router.get('/trainer/students', authenticateToken, async (req, res) => {
   try {
     res.json({ students: await relationships.listStudents(pool, req.user.id) });
   } catch (err) {
-    logger.error('Error fetching students:', err);
+    logger.error({ err }, 'Error fetching students:');
     res.status(500).json({ error: 'Error fetching list.' });
   }
 });
@@ -261,7 +261,7 @@ router.get('/students/trainers', authenticateToken, async (req, res) => {
   try {
     res.json({ trainers: await relationships.listTrainers(pool, req.user.id) });
   } catch (err) {
-    logger.error('Error fetching trainers:', err);
+    logger.error({ err }, 'Error fetching trainers:');
     res.status(500).json({ error: 'Error fetching list.' });
   }
 });
@@ -299,7 +299,7 @@ router.patch('/trainer/students/:studentId/voice', authenticateToken, async (req
     );
     res.json({ level: result.level });
   } catch (err) {
-    logger.error('[GLAS] Nivo glasa nije mogao da se promeni:', err);
+    logger.error({ err }, '[GLAS] Nivo glasa nije mogao da se promeni:');
     res.status(500).json({ error: 'Failed to save change.' });
   }
 });
@@ -315,7 +315,7 @@ router.delete('/trainer/students/:studentId', authenticateToken, async (req, res
     await relationships.removeRelationship(pool, { userId: req.user.id, otherId });
     res.json({ message: 'Relationship terminated.' });
   } catch (err) {
-    logger.error('Error removing relationship:', err);
+    logger.error({ err }, 'Error removing relationship:');
     res.status(500).json({ error: 'Error removing relationship.' });
   }
 });
@@ -326,7 +326,7 @@ router.get('/users/me/stats', authenticateToken, async (req, res) => {
     const stats = await getUserStats(pool, req.user.id);
     res.json(stats);
   } catch (err) {
-    logger.error('Error fetching user stats:', err);
+    logger.error({ err }, 'Error fetching user stats:');
     res.status(500).json({ error: 'Error fetching stats.' });
   }
 });
@@ -371,7 +371,7 @@ router.post('/users/account-type', authenticateToken, requireRole('admin'), asyn
       user: updated
     });
   } catch (err) {
-    logger.error('Error updating account type:', err);
+    logger.error({ err }, 'Error updating account type:');
     res.status(500).json({ error: 'Error updating account type.' });
   }
 });
@@ -389,7 +389,7 @@ router.get('/friends', authenticateToken, async (req, res) => {
     );
     res.json({ friends: result.rows });
   } catch (err) {
-    logger.error('Error fetching friends:', err);
+    logger.error({ err }, 'Error fetching friends:');
     res.status(500).json({ error: 'Error fetching friends list.' });
   }
 });
@@ -433,7 +433,7 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     );
     res.json({ notifications: result.rows });
   } catch (err) {
-    logger.error('Error fetching notifications:', err);
+    logger.error({ err }, 'Error fetching notifications:');
     res.status(500).json({ error: 'Error fetching notifications.' });
   }
 });
@@ -456,7 +456,7 @@ router.post('/notifications/read', authenticateToken, async (req, res) => {
     );
     res.json({ success: true, marked: result.rowCount });
   } catch (err) {
-    logger.error('Error marking notifications read:', err);
+    logger.error({ err }, 'Error marking notifications read:');
     res.status(500).json({ error: 'Error updating notifications.' });
   }
 });
@@ -467,7 +467,7 @@ router.post('/notifications/:id/read', authenticateToken, async (req, res) => {
     await pool.query('UPDATE user_notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error marking notification read:', err);
+    logger.error({ err }, 'Error marking notification read:');
     res.status(500).json({ error: 'Error updating notification.' });
   }
 });
@@ -478,7 +478,7 @@ router.delete('/notifications/read', authenticateToken, async (req, res) => {
   try {
     res.json({ deleted: await clearRead(pool, { userId: req.user.id }) });
   } catch (err) {
-    logger.error('Error clearing notifications:', err);
+    logger.error({ err }, 'Error clearing notifications:');
     res.status(500).json({ error: 'Error deleting notifications.' });
   }
 });
@@ -493,7 +493,7 @@ router.delete('/notifications/:id', authenticateToken, async (req, res) => {
     }
     res.json({ deleted: id });
   } catch (err) {
-    logger.error('Error deleting notification:', err);
+    logger.error({ err }, 'Error deleting notification:');
     res.status(500).json({ error: 'Error deleting notification.' });
   }
 });
@@ -573,7 +573,7 @@ router.post('/invitations/send', authenticateToken, async (req, res) => {
       sent: allowed.length,
     });
   } catch (err) {
-    logger.error('Error sending invitation:', err);
+    logger.error({ err }, 'Error sending invitation:');
     res.status(500).json({ error: 'Error sending invitation.' });
   }
 });

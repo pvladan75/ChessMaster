@@ -216,7 +216,7 @@ router.post('/', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (req, r
     res.status(201).json({ success: true, assignment: result.assignment });
   } catch (err) {
     await refundQuota(req);
-    logger.error('Error creating assignment:', err);
+    logger.error({ err }, 'Error creating assignment:');
     res.status(500).json({ error: 'Error creating assignment.' });
   }
 });
@@ -261,7 +261,7 @@ router.post('/custom', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
     });
   } catch (err) {
     await refundQuota(req);
-    logger.error('Error creating custom assignment:', err);
+    logger.error({ err }, 'Error creating custom assignment:');
     res.status(500).json({ error: 'Error creating assignment.' });
   }
 });
@@ -340,7 +340,7 @@ router.post('/:id/custom-attempt', authenticateToken, async (req, res) => {
       review: reviewOf(item.rows[0]),
     });
   } catch (err) {
-    logger.error('Error judging custom attempt:', err);
+    logger.error({ err }, 'Error judging custom attempt:');
     res.status(500).json({ error: 'Error checking answer.' });
   }
 });
@@ -375,7 +375,7 @@ router.post('/lesson', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async (
     res.status(201).json({ success: true, assignment: result.assignment });
   } catch (err) {
     await refundQuota(req);
-    logger.error('Error creating lesson assignment:', err);
+    logger.error({ err }, 'Error creating lesson assignment:');
     res.status(500).json({ error: 'Error assigning tutorial.' });
   }
 });
@@ -412,7 +412,7 @@ router.get('/:id/video', authenticateToken, async (req, res) => {
         + `?token=${encodeURIComponent(signAssignmentVideoToken(req.user.id, id, filename))}`,
     });
   } catch (err) {
-    logger.error('Error fetching an assignment video link:', err);
+    logger.error({ err }, 'Error fetching an assignment video link:');
     res.status(500).json({ error: 'Error fetching the video.' });
   }
 });
@@ -459,7 +459,7 @@ router.get('/video-download/:filename', authenticateAssignmentVideoToken, async 
       }
     });
   } catch (err) {
-    logger.error('Error serving an assignment video:', err);
+    logger.error({ err }, 'Error serving an assignment video:');
     if (!res.headersSent) res.status(500).json({ error: 'Error fetching the video.' });
   }
 });
@@ -469,7 +469,7 @@ router.get('/mine', authenticateToken, async (req, res) => {
   try {
     res.json({ assignments: await assignments.getStudentAssignments(pool, req.user.id) });
   } catch (err) {
-    logger.error('Error fetching student assignments:', err);
+    logger.error({ err }, 'Error fetching student assignments:');
     res.status(500).json({ error: 'Error fetching assignments.' });
   }
 });
@@ -486,7 +486,7 @@ router.get('/given', authenticateToken, async (req, res) => {
       assignments: await assignments.getTrainerAssignments(pool, req.user.id, { studentId }),
     });
   } catch (err) {
-    logger.error('Error fetching trainer assignments:', err);
+    logger.error({ err }, 'Error fetching trainer assignments:');
     res.status(500).json({ error: 'Error fetching assignments.' });
   }
 });
@@ -514,7 +514,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     res.json(detail);
   } catch (err) {
-    logger.error('Error fetching assignment detail:', err);
+    logger.error({ err }, 'Error fetching assignment detail:');
     res.status(500).json({ error: 'Error fetching assignment.' });
   }
 });
@@ -540,7 +540,7 @@ router.get('/:id/review', authenticateToken, async (req, res) => {
     }
     res.json(review);
   } catch (err) {
-    logger.error('Error building assignment review:', err);
+    logger.error({ err }, 'Error building assignment review:');
     res.status(500).json({ error: 'Error fetching review.' });
   }
 });
@@ -566,7 +566,7 @@ router.post('/:id/reviewed', authenticateToken, async (req, res) => {
     const marked = await markReviewed(pool, { assignmentId: id, trainerId: req.user.id });
     res.json({ ok: true, marked });
   } catch (err) {
-    logger.error('Error marking assignment reviewed:', err);
+    logger.error({ err }, 'Error marking assignment reviewed:');
     res.status(500).json({ error: 'Error marking assignment.' });
   }
 });
@@ -615,7 +615,7 @@ router.post('/:id/notes', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, note: result.note });
   } catch (err) {
-    logger.error('Error adding assignment note:', err);
+    logger.error({ err }, 'Error adding assignment note:');
     res.status(500).json({ error: 'Error saving note.' });
   }
 });
@@ -639,7 +639,7 @@ router.delete('/:id/notes/:noteId', authenticateToken, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error deleting assignment note:', err);
+    logger.error({ err }, 'Error deleting assignment note:');
     res.status(500).json({ error: 'Error deleting note.' });
   }
 });
@@ -665,7 +665,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error deleting assignment:', err);
+    logger.error({ err }, 'Error deleting assignment:');
     res.status(500).json({ error: 'Error deleting assignment.' });
   }
 });
@@ -698,7 +698,7 @@ router.post('/:id/game-result', authenticateToken, async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    logger.error('Error recording an assigned game:', err);
+    logger.error({ err }, 'Error recording an assigned game:');
     res.status(500).json({ error: 'Error recording the game.' });
   }
 });
@@ -724,7 +724,7 @@ router.post('/:id/game-verdict', authenticateToken, async (req, res) => {
     }
     res.json({ goalMet: result.goalMet, judgedBy: result.judgedBy, pending: result.pending });
   } catch (err) {
-    logger.error('Error recording a trainer verdict:', err);
+    logger.error({ err }, 'Error recording a trainer verdict:');
     res.status(500).json({ error: 'Error recording the verdict.' });
   }
 });
@@ -745,7 +745,7 @@ router.post('/:id/open-gate', authenticateToken, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error opening homework gate:', err);
+    logger.error({ err }, 'Error opening homework gate:');
     res.status(500).json({ error: 'Error unlocking the item.' });
   }
 });
@@ -805,7 +805,7 @@ router.post('/report/:studentId', authenticateToken, async (req, res) => {
       hasData: snapshot.totalAttempts > 0,
     });
   } catch (err) {
-    logger.error('Error generating parent report:', err);
+    logger.error({ err }, 'Error generating parent report:');
     res.status(500).json({ error: 'Error generating report.' });
   }
 });
@@ -816,7 +816,7 @@ router.get('/progress/me', authenticateToken, async (req, res) => {
   try {
     res.json(await assignments.getStudentProgress(pool, req.user.id, { days }));
   } catch (err) {
-    logger.error('Error building own progress report:', err);
+    logger.error({ err }, 'Error building own progress report:');
     res.status(500).json({ error: 'Error generating report.' });
   }
 });
@@ -836,7 +836,7 @@ router.get('/progress/:studentId', authenticateToken, async (req, res) => {
     }
     res.json(await assignments.getStudentProgress(pool, studentId, { days }));
   } catch (err) {
-    logger.error('Error building student progress report:', err);
+    logger.error({ err }, 'Error building student progress report:');
     res.status(500).json({ error: 'Error generating report.' });
   }
 });

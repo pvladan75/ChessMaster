@@ -26,7 +26,7 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     res.json({ homeworks: await template.listHomeworks(pool, req.user.id) });
   } catch (err) {
-    logger.error('Error listing homeworks:', err);
+    logger.error({ err }, 'Error listing homeworks:');
     res.status(500).json({ error: 'Error loading homeworks.' });
   }
 });
@@ -41,7 +41,7 @@ router.post('/', authenticateToken, async (req, res) => {
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     res.status(201).json(result.homework);
   } catch (err) {
-    logger.error('Error creating a homework:', err);
+    logger.error({ err }, 'Error creating a homework:');
     res.status(500).json({ error: 'Error saving the homework.' });
   }
 });
@@ -57,7 +57,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     if (!homework) return res.status(404).json({ error: 'Homework not found.' });
     res.json(homework);
   } catch (err) {
-    logger.error('Error loading a homework:', err);
+    logger.error({ err }, 'Error loading a homework:');
     res.status(500).json({ error: 'Error loading the homework.' });
   }
 });
@@ -81,7 +81,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     res.json(result.homework);
   } catch (err) {
-    logger.error('Error saving a homework:', err);
+    logger.error({ err }, 'Error saving a homework:');
     res.status(500).json({ error: 'Error saving the homework.' });
   }
 });
@@ -132,7 +132,7 @@ router.post('/:id/send', authenticateToken, requireQuota(ENT.ASSIGNMENTS), async
     res.status(201).json(result.assignment);
   } catch (err) {
     await refundQuota(req);
-    logger.error('Error sending a homework:', err);
+    logger.error({ err }, 'Error sending a homework:');
     res.status(500).json({ error: 'Error sending the homework.' });
   }
 });
@@ -147,7 +147,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     if (!gone) return res.status(404).json({ error: 'Homework not found.' });
     res.json({ success: true });
   } catch (err) {
-    logger.error('Error deleting a homework:', err);
+    logger.error({ err }, 'Error deleting a homework:');
     res.status(500).json({ error: 'Error deleting the homework.' });
   }
 });

@@ -356,7 +356,7 @@ async function closeRequestNotification(pool, requestId) {
   } catch (err) {
     // Best effort, like raising it was: an answered request must not be undone
     // because its notification could not be tidied up.
-    logger.error('Could not close relationship notification:', err);
+    logger.error({ err }, 'Could not close relationship notification:');
   }
 }
 

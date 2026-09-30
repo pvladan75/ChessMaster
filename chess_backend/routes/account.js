@@ -72,7 +72,7 @@ router.get('/me/standing', authenticateToken, async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('[NALOG] Stanje naloga nije moglo da se pročita:', err);
+    logger.error({ err }, '[NALOG] Stanje naloga nije moglo da se pročita:');
     res.status(500).json({ error: 'Failed to read account standing.' });
   }
 });
@@ -156,7 +156,7 @@ router.post('/me/age', authenticateToken, async (req, res) => {
 
     res.json({ ageKnown: age !== null, birthYear: result.rows[0].birth_year, age, minor });
   } catch (err) {
-    logger.error('[NALOG] Godina rođenja nije mogla da se upiše:', err);
+    logger.error({ err }, '[NALOG] Godina rođenja nije mogla da se upiše:');
     res.status(500).json({ error: 'Failed to save birth year.' });
   }
 });
@@ -186,7 +186,7 @@ async function notifyTrainersOfStatedAge(studentId, studentName) {
       });
     }
   } catch (err) {
-    logger.error('[NALOG] Treneri nisu obavešteni o unetoj godini:', err);
+    logger.error({ err }, '[NALOG] Treneri nisu obavešteni o unetoj godini:');
   }
 }
 
@@ -254,7 +254,7 @@ router.post('/me/parent-email', authenticateToken, parentEmailLimiter, async (re
         // The request row stands either way, so this is a letter to send again
         // rather than a state to rebuild. Counted and reported, never hidden.
         failed.push(row.trainer_name);
-        logger.error('[SAGLASNOST] Poruka roditelju nije poslata:', mailErr);
+        logger.error({ err: mailErr }, '[SAGLASNOST] Poruka roditelju nije poslata:');
       }
     }
 
@@ -275,7 +275,7 @@ router.post('/me/parent-email', authenticateToken, parentEmailLimiter, async (re
             + 'Please try again in a few minutes.',
     });
   } catch (err) {
-    logger.error('[NALOG] Email roditelja nije mogao da se upiše:', err);
+    logger.error({ err }, '[NALOG] Email roditelja nije mogao da se upiše:');
     res.status(500).json({ error: 'Failed to save parent address.' });
   }
 });

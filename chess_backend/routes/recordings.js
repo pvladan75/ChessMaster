@@ -43,7 +43,7 @@ async function lessonGate(req, res, next) {
     if (!consent.allowed) return res.status(403).json({ error: consent.reason });
     return next();
   } catch (err) {
-    logger.error('[LESSON] Gate failed:', err);
+    logger.error({ err }, '[LESSON] Gate failed:');
     return res.status(500).json({ error: 'Server error while checking the recording.' });
   }
 }
@@ -78,7 +78,7 @@ function receiveLesson(req, res, next) {
           + 'which is the most one recording may be. Record a shorter one.',
       });
     }
-    logger.error('[LESSON] Upload failed:', err);
+    logger.error({ err }, '[LESSON] Upload failed:');
     return res.status(400).json({ error: 'The recording could not be received. Upload it again.' });
   });
 }
@@ -126,7 +126,7 @@ async function saveLesson(req, res) {
     );
     return res.status(201).json({ recording: result.rows[0] });
   } catch (err) {
-    logger.error('[LESSON] Could not keep the recording:', err);
+    logger.error({ err }, '[LESSON] Could not keep the recording:');
     return drop(500, 'Server error while keeping the recording.');
   }
 }
@@ -147,7 +147,7 @@ router.get('/lesson-limits', authenticateToken, async (req, res) => {
       maxMs: narrationUpload.narrationMaxSeconds() * 1000,
     });
   } catch (err) {
-    logger.error('[LESSON] Limits failed:', err);
+    logger.error({ err }, '[LESSON] Limits failed:');
     return res.status(500).json({ error: 'Server error while checking the recording.' });
   }
 });
@@ -168,7 +168,7 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     res.json(await recordingShares.readableRecordings(pool, req.user.id));
   } catch (err) {
-    logger.error('Error fetching recordings:', err);
+    logger.error({ err }, 'Error fetching recordings:');
     res.status(500).json({ error: 'Error fetching recordings.' });
   }
 });
@@ -179,7 +179,7 @@ router.get('/:id/shares', authenticateToken, async (req, res) => {
   try {
     res.json({ studentIds: await recordingShares.sharedWith(pool, req.params.id, req.user.id) });
   } catch (err) {
-    logger.error('Error fetching shares:', err);
+    logger.error({ err }, 'Error fetching shares:');
     res.status(500).json({ error: 'Error fetching who this is shared with.' });
   }
 });
@@ -197,7 +197,7 @@ router.put('/:id/shares', authenticateToken, async (req, res) => {
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     return res.json({ added: result.added });
   } catch (err) {
-    logger.error('Error sharing a recording:', err);
+    logger.error({ err }, 'Error sharing a recording:');
     return res.status(500).json({ error: 'Error sharing the recording.' });
   }
 });
@@ -242,7 +242,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     delete row.video_url;
     res.json(row);
   } catch (err) {
-    logger.error('Error fetching recording details:', err);
+    logger.error({ err }, 'Error fetching recording details:');
     res.status(500).json({ error: 'Error fetching recording details.' });
   }
 });
@@ -262,7 +262,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     narrationUpload.removeQuietly(lessonRecording.soundOf(deleted));
     return res.json({ deleted: true });
   } catch (err) {
-    logger.error('Error deleting a recording:', err);
+    logger.error({ err }, 'Error deleting a recording:');
     return res.status(500).json({ error: 'Error deleting the recording.' });
   }
 });
@@ -421,7 +421,7 @@ router.post('/:id/export-mp4', authenticateToken, requireEntitlement(ENT.MP4_EXP
       filename: filename
     });
   } catch (err) {
-    logger.error('Error initiating MP4 export:', err);
+    logger.error({ err }, 'Error initiating MP4 export:');
     res.status(500).json({ error: 'Error initiating MP4 export.' });
   }
 });

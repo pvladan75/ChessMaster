@@ -58,7 +58,7 @@ function createTranscriptHandlers({
         transcript,
       });
     } catch (err) {
-      logger.error('[TRANSCRIPT] Read failed:', err);
+      logger.error({ err }, '[TRANSCRIPT] Read failed:');
       return res.status(500).json({ error: 'Server error while reading the transcript.' });
     }
   }
@@ -74,7 +74,7 @@ function createTranscriptHandlers({
     try {
       row = await store.hostRecording(pool, req.params.id, req.user.id);
     } catch (err) {
-      logger.error('[TRANSCRIPT] Lookup failed:', err);
+      logger.error({ err }, '[TRANSCRIPT] Lookup failed:');
       return res.status(500).json({ error: 'Server error while transcribing the recording.' });
     }
     if (!row) return res.status(404).json(NOT_FOUND);
@@ -136,7 +136,7 @@ function createTranscriptHandlers({
       });
       return res.status(201).json({ transcript: store.wireOf(saved) });
     } catch (err) {
-      logger.error('[TRANSCRIPT] Transcription failed:', err);
+      logger.error({ err }, '[TRANSCRIPT] Transcription failed:');
       return res.status(500).json({ error: 'Server error while transcribing the recording.' });
     } finally {
       hearing.delete(row.id);
@@ -155,7 +155,7 @@ function createTranscriptHandlers({
       if (!saved) return res.status(404).json({ error: 'This recording has no transcript yet.' });
       return res.json({ transcript: store.wireOf(saved) });
     } catch (err) {
-      logger.error('[TRANSCRIPT] Correction failed:', err);
+      logger.error({ err }, '[TRANSCRIPT] Correction failed:');
       return res.status(500).json({ error: 'Server error while saving the correction.' });
     }
   }

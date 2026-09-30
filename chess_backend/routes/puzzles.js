@@ -147,7 +147,7 @@ router.get('/puzzles/next', authenticateToken, async (req, res) => {
     logger.info('============================================================================\n');
     res.json(responsePayload);
   } catch (err) {
-    logger.error('Error fetching next puzzle:', err);
+    logger.error({ err }, 'Error fetching next puzzle:');
     res.status(500).json({ error: 'Error fetching puzzle.' });
   }
 });
@@ -196,7 +196,7 @@ router.get('/puzzles/endgame/catalog', authenticateToken, async (req, res) => {
       oppositeBishops: opposite,
     });
   } catch (err) {
-    logger.error('Error building endgame catalog:', err);
+    logger.error({ err }, 'Error building endgame catalog:');
     res.status(500).json({ error: 'Error fetching endgame list.' });
   }
 });
@@ -292,7 +292,7 @@ router.get('/puzzles/endgame/next', authenticateToken, async (req, res) => {
     const item = result.rows[0];
     res.json({ endgame: buildEndgamePayload(item) });
   } catch (err) {
-    logger.error('Error fetching endgame puzzle:', err);
+    logger.error({ err }, 'Error fetching endgame puzzle:');
     res.status(500).json({ error: 'Error fetching endgame.' });
   }
 });
@@ -322,7 +322,7 @@ router.post('/puzzles/endgame/play', authenticateToken, drillLimiter, async (req
       logger.warn(`[ZAVRSNICE] tablica nedostupna: ${err.message}`);
       return res.status(503).json({ error: err.message });
     }
-    logger.error('Error judging endgame move:', err);
+    logger.error({ err }, 'Error judging endgame move:');
     res.status(500).json({ error: 'Error judging move.' });
   }
 });
@@ -431,7 +431,7 @@ router.get('/puzzles/endgame/game/next', authenticateToken, async (req, res) => 
       },
     });
   } catch (err) {
-    logger.error('Error fetching blunder game:', err);
+    logger.error({ err }, 'Error fetching blunder game:');
     res.status(500).json({ error: 'Error fetching game.' });
   }
 });
@@ -462,7 +462,7 @@ router.get('/puzzles/endgame/line', authenticateToken, drillLimiter,
         logger.warn(`[ZAVRSNICE] tablica nedostupna: ${err.message}`);
         return res.status(503).json({ error: err.message });
       }
-      logger.error('Error building endgame line:', err);
+      logger.error({ err }, 'Error building endgame line:');
       res.status(500).json({ error: 'Error generating line.' });
     }
   });
@@ -497,7 +497,7 @@ router.get('/puzzles/adaptive', authenticateToken, async (req, res) => {
       },
     });
   } catch (err) {
-    logger.error('Error selecting adaptive puzzle:', err);
+    logger.error({ err }, 'Error selecting adaptive puzzle:');
     res.status(500).json({ error: 'Error selecting puzzle.' });
   }
 });
@@ -523,7 +523,7 @@ router.get('/puzzles/themes', authenticateToken, async (req, res) => {
 
     res.json({ overallRating: profile.overallRating, themes });
   } catch (err) {
-    logger.error('Error reading theme ratings:', err);
+    logger.error({ err }, 'Error reading theme ratings:');
     res.status(500).json({ error: 'Error reading rating by theme.' });
   }
 });
@@ -568,7 +568,7 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
       );
       return res.json({ success: true, source, solved, skipped: isSkipped });
     } catch (err) {
-      logger.error('Error recording puzzle attempt:', err);
+      logger.error({ err }, 'Error recording puzzle attempt:');
       return res.status(500).json({ error: 'Error saving result.' });
     }
   }
@@ -657,7 +657,7 @@ router.post('/puzzles/attempt', authenticateToken, async (req, res) => {
       assignmentItemsMarked: markedItems,
     });
   } catch (err) {
-    logger.error('Error recording puzzle attempt:', err);
+    logger.error({ err }, 'Error recording puzzle attempt:');
     res.status(500).json({ error: 'Error saving result.' });
   }
 });
@@ -707,7 +707,7 @@ router.get('/puzzles/by-id/:puzzleId', authenticateToken, async (req, res) => {
     // puzzle id — neither has a by-id in this phase.
     return res.status(400).json({ error: `Unsupported puzzle source for by-id: ${source}` });
   } catch (err) {
-    logger.error('Error fetching puzzle by id:', err);
+    logger.error({ err }, 'Error fetching puzzle by id:');
     res.status(500).json({ error: 'Error fetching puzzle.' });
   }
 });
@@ -718,7 +718,7 @@ router.get('/puzzles/progress', authenticateToken, async (req, res) => {
   try {
     res.json(await puzzleProgress.progressOf(pool, req.user.id));
   } catch (err) {
-    logger.error('Error reading puzzle progress:', err);
+    logger.error({ err }, 'Error reading puzzle progress:');
     res.status(500).json({ error: 'Error reading puzzle progress.' });
   }
 });
@@ -734,7 +734,7 @@ router.get('/puzzles/retry', authenticateToken, async (req, res) => {
   try {
     res.json({ source, ids: await puzzleProgress.retryIdsOf(pool, req.user.id, source) });
   } catch (err) {
-    logger.error('Error reading puzzle retry queue:', err);
+    logger.error({ err }, 'Error reading puzzle retry queue:');
     res.status(500).json({ error: 'Error reading retry queue.' });
   }
 });
@@ -817,7 +817,7 @@ router.post('/puzzles/submit', authenticateToken, async (req, res) => {
       puzzlesFailed: failedCount
     });
   } catch (err) {
-    logger.error('Error submitting puzzle result:', err);
+    logger.error({ err }, 'Error submitting puzzle result:');
     res.status(500).json({ error: 'Error saving result.' });
   }
 });

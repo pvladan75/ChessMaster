@@ -768,7 +768,7 @@ async function getAssignmentDetail(pool, assignmentId, userId, { tablebase } = {
     try {
       await judgePendingGames(pool, { assignmentId, ...(tablebase ? { tablebase } : {}) });
     } catch (err) {
-      logger.error('A waiting game could not be judged on this read:', err);
+      logger.error({ err }, 'A waiting game could not be judged on this read:');
     }
   }
 

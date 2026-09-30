@@ -60,7 +60,7 @@ function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileg
       const res = await pool.query('SELECT board_control FROM rooms WHERE room_code = $1', [roomId]);
       room = res.rows[0];
     } catch (err) {
-      logger.error('Error checking board control:', err);
+      logger.error({ err }, 'Error checking board control:');
       return false;
     }
     if (!room) return true;
@@ -82,7 +82,7 @@ function registerRoomBoardEvents(socket, { pool, canAdministerRoom, denyPrivileg
     try {
       await pool.query('UPDATE rooms SET current_fen = $1 WHERE room_code = $2', [currentFen, roomId]);
     } catch (err) {
-      logger.error('Error updating room FEN:', err);
+      logger.error({ err }, 'Error updating room FEN:');
     }
   });
 

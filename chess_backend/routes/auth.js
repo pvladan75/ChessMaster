@@ -99,7 +99,7 @@ router.post('/register', async (req, res) => {
       message: 'Registration successful. Enter the verification code.'
     });
   } catch (err) {
-    logger.error('Registration error:', err);
+    logger.error({ err }, 'Registration error:');
     res.status(500).json({ error: 'Server error during registration' });
   }
 });
@@ -184,7 +184,7 @@ router.post(['/verify-email', '/auth/verify-email'], async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('Verification error:', err);
+    logger.error({ err }, 'Verification error:');
     res.status(500).json({ error: 'Server error during verification' });
   }
 });
@@ -251,7 +251,7 @@ router.post('/login', async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('Login error:', err);
+    logger.error({ err }, 'Login error:');
     res.status(500).json({ error: 'Server error during login' });
   }
 });
@@ -381,7 +381,7 @@ router.post(['/google', '/auth/google'], async (req, res) => {
       }
     });
   } catch (err) {
-    logger.error('[GOOGLE_AUTH_ERROR]', err);
+    logger.error({ err }, '[GOOGLE_AUTH_ERROR]');
     res.status(500).json({ error: 'Server error during Google sign-in: ' + (err.message || err.toString()) });
   }
 });

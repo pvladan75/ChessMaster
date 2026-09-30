@@ -241,7 +241,7 @@ async function isRoomCreator(roomId, userId) {
     const res = await pool.query('SELECT creator_id FROM rooms WHERE room_code = $1', [roomId]);
     return res.rows.length > 0 && res.rows[0].creator_id === userId;
   } catch (e) {
-    logger.error('Error checking room creator:', e);
+    logger.error({ err: e }, 'Error checking room creator:');
     return false;
   }
 }
@@ -361,7 +361,7 @@ io.on('connection', (socket) => {
         }
       }
     } catch (e) {
-      logger.error('Error fetching room permissions:', e);
+      logger.error({ err: e }, 'Error fetching room permissions:');
     }
   });
 
@@ -380,7 +380,7 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('permissions_updated', { boardControl: stored });
       logger.info(`[PERMISSIONS] Room ${roomId} boardControl updated to ${stored}`);
     } catch (e) {
-      logger.error('Error updating permissions:', e);
+      logger.error({ err: e }, 'Error updating permissions:');
     }
   });
 
@@ -606,7 +606,7 @@ async function startServer() {
     runCleanup();
     setInterval(runCleanup, 24 * 60 * 60 * 1000);
   } catch (err) {
-    logger.error('Failed to start server due to DB initialization failure:', err);
+    logger.error({ err }, 'Failed to start server due to DB initialization failure:');
     process.exit(1);
   }
 }

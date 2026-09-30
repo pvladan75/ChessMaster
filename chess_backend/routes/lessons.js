@@ -90,7 +90,7 @@ router.post('/save', authenticateToken, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    logger.error('Save lesson error:', err);
+    logger.error({ err }, 'Save lesson error:');
     res.status(500).json({ error: 'Server error while saving lesson' });
   }
 });
@@ -146,7 +146,7 @@ router.get('/tts/voices', authenticateToken, async (req, res) => {
     const voices = await tts.voices();
     res.json({ available, voices });
   } catch (err) {
-    logger.error('Fetch TTS voices error:', err);
+    logger.error({ err }, 'Fetch TTS voices error:');
     res.status(500).json({ error: 'Server error while fetching TTS voices' });
   }
 });
@@ -197,7 +197,7 @@ router.get('/tts/sample', authenticateToken, async (req, res) => {
     res.set('Cache-Control', 'private, max-age=3600');
     return res.sendFile(clip.path);
   } catch (err) {
-    logger.error('TTS sample error:', err);
+    logger.error({ err }, 'TTS sample error:');
     return res.status(500).json({ error: 'Server error while speaking the sample' });
   }
 });
@@ -295,7 +295,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
-    logger.error('Update lesson error:', err);
+    logger.error({ err }, 'Update lesson error:');
     res.status(500).json({ error: 'Server error while updating lesson' });
   }
 });
@@ -369,7 +369,7 @@ router.post('/:id/steps', authenticateToken, async (req, res) => {
 
     res.status(201).json({ success: true, lesson: result.rows[0] });
   } catch (err) {
-    logger.error('Append lesson step error:', err);
+    logger.error({ err }, 'Append lesson step error:');
     res.status(500).json({ error: 'Server error while appending lesson step' });
   }
 });
@@ -438,7 +438,7 @@ router.post('/:id/clone', authenticateToken, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    logger.error('Clone lesson error:', err);
+    logger.error({ err }, 'Clone lesson error:');
     res.status(500).json({ error: 'Server error while cloning lesson' });
   }
 });
@@ -472,7 +472,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    logger.error('Delete lesson error:', err);
+    logger.error({ err }, 'Delete lesson error:');
     res.status(500).json({ error: 'Server error while deleting lesson' });
   }
 });
@@ -506,7 +506,7 @@ async function narrationGate(req, res, next) {
     }
     return next();
   } catch (err) {
-    logger.error('[NARRATION] Gate failed:', err);
+    logger.error({ err }, '[NARRATION] Gate failed:');
     return res.status(500).json({ error: 'Server error while checking the recording.' });
   }
 }
@@ -542,7 +542,7 @@ function receiveNarration(req, res, next) {
           + 'which is the most one recording may be. Split the tutorial into two, or record a shorter narration.',
       });
     }
-    logger.error('[NARRATION] Upload failed:', err);
+    logger.error({ err }, '[NARRATION] Upload failed:');
     return res.status(400).json({ error: 'The recording could not be received. Upload it again.' });
   });
 }
@@ -606,7 +606,7 @@ async function saveNarration(req, res) {
     );
   } catch (err) {
     narrationUpload.removeQuietly(file.path);
-    logger.error('[NARRATION] Could not keep the recording:', err);
+    logger.error({ err }, '[NARRATION] Could not keep the recording:');
     return res.status(500).json({ error: 'Server error while keeping the recording.' });
   }
   if (result.rowCount === 0) {
@@ -669,7 +669,7 @@ router.get('/:id/narration', authenticateToken, async (req, res) => {
       signature: row.narration_signature || null,
     });
   } catch (err) {
-    logger.error('[NARRATION] Could not read the recording:', err);
+    logger.error({ err }, '[NARRATION] Could not read the recording:');
     return res.status(500).json({ error: 'Server error while reading the recording.' });
   }
 });
@@ -712,7 +712,7 @@ async function attachRecordingVoice(req, res) {
   try {
     recording = await recordingTranscripts.hostRecording(pool, body.recordingId, req.user.id);
   } catch (err) {
-    logger.error('[NARRATION] Recording lookup failed:', err);
+    logger.error({ err }, '[NARRATION] Recording lookup failed:');
     return res.status(500).json({ error: 'Server error while reading the recording.' });
   }
   // Only the host's own, only one made in Preparation — the transcript's rule,
@@ -730,7 +730,7 @@ async function attachRecordingVoice(req, res) {
   try {
     filename = narrationUpload.copyIntoNarration(source, lessonId);
   } catch (err) {
-    logger.error('[NARRATION] Could not copy the recording:', err);
+    logger.error({ err }, '[NARRATION] Could not copy the recording:');
     return res.status(500).json({ error: 'Server error while copying the recording.' });
   }
   const copy = path.join(narrationUpload.narrationDir(), filename);
@@ -761,7 +761,7 @@ async function attachRecordingVoice(req, res) {
     );
   } catch (err) {
     narrationUpload.removeQuietly(copy);
-    logger.error('[NARRATION] Could not keep the recording\'s voice:', err);
+    logger.error({ err }, '[NARRATION] Could not keep the recording\'s voice:');
     return res.status(500).json({ error: 'Server error while keeping the recording\'s voice.' });
   }
   if (result.rowCount === 0) {
@@ -1080,7 +1080,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
               fs.unlinkSync(narrationAudioPath);
             }
           } catch (cleanErr) {
-            logger.warn('[TTS] Failed to clean up narration audio file:', cleanErr);
+            logger.warn({ err: cleanErr }, '[TTS] Failed to clean up narration audio file:');
           }
         }
       }
@@ -1121,7 +1121,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         // The film exists and the trainer is about to be told so. Failing the
         // export because a bookkeeping write failed would throw away work that
         // succeeded.
-        logger.error('Could not record the tutorial video:', recordErr);
+        logger.error({ err: recordErr }, 'Could not record the tutorial video:');
       }
 
       if (replaced && replaced !== filename) {
@@ -1140,7 +1140,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
         await recordUsage(pool, req.user.id, METRIC.MP4_RENDERS, 1);
         await recordUsage(pool, req.user.id, METRIC.MP4_RENDER_SECONDS, renderDuration);
       } catch (meterErr) {
-        logger.error('Could not meter the tutorial video:', meterErr);
+        logger.error({ err: meterErr }, 'Could not meter the tutorial video:');
       }
 
       renderProgress.finish(jobId);
@@ -1174,7 +1174,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
           }),
         };
       }
-      logger.error('Tutorial video render failed:', err);
+      logger.error({ err }, 'Tutorial video render failed:');
       return { status: 'failed', error: RENDER_FAILED };
     };
 
@@ -1229,7 +1229,7 @@ router.post('/:id/export-video', authenticateToken, requireEntitlement(ENT.MP4_E
 
     return res.status(202).json({ jobId, status: 'running' });
   } catch (err) {
-    logger.error('Error initiating video export:', err);
+    logger.error({ err }, 'Error initiating video export:');
     res.status(500).json({ error: 'Error initiating video export.' });
   }
 });
@@ -1279,7 +1279,7 @@ router.get('/export-video/:jobId/progress', authenticateToken, async (req, res) 
     if (row.status === 'failed') answer.error = row.error;
     return res.json(answer);
   } catch (err) {
-    logger.error('Render progress error:', err);
+    logger.error({ err }, 'Render progress error:');
     return res.status(500).json({ error: 'Server error while reading the render.' });
   }
 });
@@ -1304,7 +1304,7 @@ router.delete('/export-video/:jobId', authenticateToken, async (req, res) => {
     renderJobs.cancel(job);
     return res.status(202).json({ status: 'cancelling' });
   } catch (err) {
-    logger.error('Render cancel error:', err);
+    logger.error({ err }, 'Render cancel error:');
     return res.status(500).json({ error: 'Server error while cancelling the render.' });
   }
 });
@@ -1393,7 +1393,7 @@ router.post('/:id/preview-frames', authenticateToken, previewLimiter, requireEnt
     // rendering blind, which is what it exists to stop.
     res.json({ frames });
   } catch (err) {
-    logger.error('Error rendering preview frames:', err);
+    logger.error({ err }, 'Error rendering preview frames:');
     res.status(500).json({ error: 'Error rendering the preview.' });
   }
 });
@@ -1446,7 +1446,7 @@ router.get('/:id/video', authenticateToken, async (req, res) => {
       narrated: lesson.video_narrated === true,
     });
   } catch (err) {
-    logger.error('Fetch tutorial video error:', err);
+    logger.error({ err }, 'Fetch tutorial video error:');
     res.status(500).json({ error: 'Server error while looking for the video.' });
   }
 });
@@ -1464,7 +1464,7 @@ router.get('/labels', authenticateToken, async (req, res) => {
     const labels = result.rows.map(row => row.label).filter(Boolean);
     res.json(labels);
   } catch (err) {
-    logger.error('Fetch labels error:', err);
+    logger.error({ err }, 'Fetch labels error:');
     res.status(500).json({ error: 'Server error while fetching labels' });
   }
 });
@@ -1550,7 +1550,7 @@ router.get('/', authenticateToken, async (req, res) => {
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
-    logger.error('Fetch lessons error:', err);
+    logger.error({ err }, 'Fetch lessons error:');
     res.status(500).json({ error: 'Server error while fetching lessons' });
   }
 });
@@ -1584,7 +1584,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     }
     res.json(lesson);
   } catch (err) {
-    logger.error('Fetch one lesson error:', err);
+    logger.error({ err }, 'Fetch one lesson error:');
     res.status(500).json({ error: 'Server error while fetching the tutorial.' });
   }
 });

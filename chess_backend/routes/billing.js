@@ -83,7 +83,7 @@ router.get('/entitlements', authenticateToken, async (req, res) => {
   try {
     res.json(await entitlements.getEntitlementState(pool, req.user.id));
   } catch (err) {
-    logger.error('Error reading entitlements:', err);
+    logger.error({ err }, 'Error reading entitlements:');
     res.status(500).json({ error: 'Error reading entitlements.' });
   }
 });
@@ -102,7 +102,7 @@ router.get('/usage', authenticateToken, requireRole('admin'), async (req, res) =
   try {
     res.json(await entitlements.getUsageReport(pool, { month: month || null }));
   } catch (err) {
-    logger.error('Error building usage report:', err);
+    logger.error({ err }, 'Error building usage report:');
     res.status(500).json({ error: 'Error generating usage report.' });
   }
 });
@@ -120,7 +120,7 @@ router.get('/usage/me', authenticateToken, async (req, res) => {
       agoraMinutes: own?.agoraMinutes || 0,
     });
   } catch (err) {
-    logger.error('Error reading own usage:', err);
+    logger.error({ err }, 'Error reading own usage:');
     res.status(500).json({ error: 'Error reading usage.' });
   }
 });
@@ -161,7 +161,7 @@ router.post('/play/verify', authenticateToken, async (req, res) => {
       ...(await entitlements.getEntitlementState(pool, req.user.id)),
     });
   } catch (err) {
-    logger.error('Play purchase verification failed:', err);
+    logger.error({ err }, 'Play purchase verification failed:');
     res.status(502).json({ error: 'Google could not verify the purchase. Please try again.' });
   }
 });
@@ -206,7 +206,7 @@ router.post('/play/rtdn', async (req, res) => {
   } catch (err) {
     // A transient Google outage: fail loudly so Pub/Sub redelivers rather than
     // dropping a renewal on the floor.
-    logger.error('RTDN processing failed, asking Pub/Sub to retry:', err);
+    logger.error({ err }, 'RTDN processing failed, asking Pub/Sub to retry:');
     return res.status(500).json({ error: 'Retry' });
   }
 });

@@ -29,7 +29,7 @@ function requireEntitlement(entitlement) {
       req.tier = tier;
       next();
     } catch (err) {
-      logger.error('Entitlement check failed:', err);
+      logger.error({ err }, 'Entitlement check failed:');
       res.status(500).json({ error: 'Error checking entitlements.' });
     }
   };
@@ -61,7 +61,7 @@ function requireQuota(metric) {
       req.quota = { metric, ...result };
       next();
     } catch (err) {
-      logger.error('Quota check failed:', err);
+      logger.error({ err }, 'Quota check failed:');
       res.status(500).json({ error: 'Error checking quota.' });
     }
   };
@@ -78,7 +78,7 @@ async function refundQuota(req) {
       [req.user.id, req.quota.metric, entitlements.periodStart()]
     );
   } catch (err) {
-    logger.error('Quota refund failed:', err);
+    logger.error({ err }, 'Quota refund failed:');
   }
 }
 

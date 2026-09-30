@@ -56,6 +56,76 @@ test('a masked address keeps its domain and loses the person', () => {
   assert.equal(logger.maskEmail(undefined), '[address]');
 });
 
+// ── 11, again: addresses inside an error ─────────────────────────────────────
+//
+// Since 30.9.2026 an error reaches the log whole, with every field of its own
+// (`logger_error_cause.test.js`), and a field is somewhere a redaction path
+// cannot reach: a mail server's refusal names the recipient in the message,
+// and Postgres names the key, or dumps the whole failing row, in `detail`.
+
+/// What the logger writes for `logger.error({ err: value }, 'x')`, read back.
+function loggedError(value) {
+  const lines = [];
+  const stream = new Writable({
+    write(chunk, _enc, done) {
+      lines.push(String(chunk));
+      done();
+    },
+  });
+  pino({ serializers: { err: logger.errSerializer } }, stream).error({ err: value }, 'x');
+  return JSON.parse(lines[0]).err;
+}
+
+test('the server\'s logger serializes an error through that masking', () => {
+  assert.equal(logger[pino.symbols.serializersSym].err, logger.errSerializer);
+});
+
+test('a refused recipient is masked in the message, the stack and its own fields', () => {
+  const refused = Object.assign(
+    new Error('Can\'t send mail - all recipients were rejected: 550 5.1.1 <parent@example.test>: User unknown'),
+    { code: 'EENVELOPE', command: 'RCPT TO', rejected: ['parent@example.test'] },
+  );
+  const err = loggedError(refused);
+  assert.ok(!JSON.stringify(err).includes('parent@example.test'), JSON.stringify(err));
+  assert.match(err.message, /<p\*\*\*@example\.test>: User unknown$/);
+  assert.match(err.stack, /^Error: Can't send mail/);
+  assert.deepEqual(err.rejected, ['p***@example.test']);
+  assert.equal(err.code, 'EENVELOPE');
+  // The error the caller still holds is not the one that was written.
+  assert.deepEqual(refused.rejected, ['parent@example.test']);
+  assert.match(refused.message, /<parent@example\.test>/);
+});
+
+test('a row Postgres dumps into detail is left out, and a key it names is masked', () => {
+  const notNull = loggedError(Object.assign(
+    new Error('null value in column "name" of relation "users" violates not-null constraint'),
+    { code: '23502', table: 'users', column: 'name',
+      detail: 'Failing row contains (7, child@example.test, $2b$10$hashhashhash, null, korisnik).' },
+  ));
+  assert.equal(notNull.detail, '[the failing row is not logged]');
+  assert.equal(notNull.table, 'users');
+  assert.equal(notNull.column, 'name');
+  assert.equal(notNull.code, '23502');
+
+  const unique = loggedError(Object.assign(
+    new Error('duplicate key value violates unique constraint "users_email_key"'),
+    { code: '23505', detail: 'Key (email)=(child@example.test) already exists.' },
+  ));
+  assert.equal(unique.detail, 'Key (email)=(c***@example.test) already exists.');
+});
+
+test('a cause, a nested field and a value that is not an error are masked too', () => {
+  const wrapped = new Error('delivery failed', { cause: new Error('refused child@example.test') });
+  wrapped.response = { lines: ['550 <parent@example.test>'] };
+  const err = loggedError(wrapped);
+  assert.ok(!JSON.stringify(err).includes('child@example.test'), JSON.stringify(err));
+  assert.ok(!JSON.stringify(err).includes('parent@example.test'), JSON.stringify(err));
+  assert.match(err.message, /c\*\*\*@example\.test/, 'pino writes a cause into the message');
+  assert.deepEqual(wrapped.response.lines, ['550 <parent@example.test>']);
+
+  assert.equal(loggedError('sent to parent@example.test'), 'sent to p***@example.test');
+});
+
 /// Every argument list of a `logger.<level>(...)` call, with string contents
 /// removed but template interpolations kept — so a word in a sentence is not an
 /// address and `${email}` is.

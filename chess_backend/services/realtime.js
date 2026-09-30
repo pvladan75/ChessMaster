@@ -88,7 +88,7 @@ function emitToUser(userId, event, payload) {
   } catch (err) {
     // The transport failing is a runtime condition, not a wiring mistake: the
     // notification row is already written and the action already happened.
-    logger.error(`[REALTIME] could not send ${event} to user ${userId}:`, err);
+    logger.error({ err }, `[REALTIME] could not send ${event} to user ${userId}:`);
     return false;
   }
   logger.info(`[REALTIME] ${event} -> user ${userId}`);
@@ -119,13 +119,13 @@ function closeRoom(roomCode, { reason = 'ended' } = {}) {
     io.to(roomCode).emit('session_ended', { roomId: roomCode, reason });
     io.in(roomCode).socketsLeave(roomCode);
   } catch (err) {
-    logger.error(`[REALTIME] could not announce the end of room ${roomCode}:`, err);
+    logger.error({ err }, `[REALTIME] could not announce the end of room ${roomCode}:`);
   }
   for (const closer of roomClosers) {
     try {
       closer(roomCode);
     } catch (err) {
-      logger.error(`[REALTIME] a closer failed for room ${roomCode}:`, err);
+      logger.error({ err }, `[REALTIME] a closer failed for room ${roomCode}:`);
     }
   }
   logger.info(`[SOBA] ${roomCode}: sesija završena (${reason})`);
