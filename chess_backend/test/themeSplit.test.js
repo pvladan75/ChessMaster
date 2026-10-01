@@ -3,12 +3,21 @@ const assert = require('node:assert/strict');
 
 const { summariseAttempts } = require('../services/assignmentService');
 
-/// Builds `count` attempt rows for one theme, `solved` of them correct.
+/// Builds `count` puzzles of one theme, each met once, `solved` of them
+/// solved at that first meeting. One row per puzzle, each with its own id:
+/// since 1.10.2026 the summary counts puzzles (`puzzlesOf`), not rows.
+let serial = 0;
 function attempts(theme, count, solved) {
-  return Array.from({ length: count }, (_, i) => ({
-    themes: [theme],
-    solved: i < solved,
-  }));
+  return Array.from({ length: count }, (_, i) => {
+    serial += 1;
+    return {
+      puzzle_id: `${theme}-${serial}`,
+      source: 'lichess',
+      themes: [theme],
+      solved: i < solved,
+      created_at: new Date(Date.UTC(2026, 7, 15, 0, 0, serial)).toISOString(),
+    };
+  });
 }
 
 test('a theme is never both a strength and a weakness', () => {

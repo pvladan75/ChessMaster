@@ -94,8 +94,12 @@ async function buildSnapshot(pool, { studentId, studentName, trainerName, days }
     trainerName,
     rating: progress.overallRating,
     ratingChange: progress.ratingChange ?? null,
-    totalAttempts: progress.totalAttempts,
-    solvedAttempts: progress.solvedAttempts,
+    // Puzzles, each counted once, a skip apart from a failure, and the
+    // accuracy over new puzzles met first in the period (summariseAttempts).
+    puzzles: progress.puzzles,
+    solved: progress.solved,
+    skipped: progress.skipped,
+    firstTries: progress.firstTries,
     accuracy: progress.accuracy,
     activeDays: progress.activeDays,
     lifetimeSolved: progress.lifetimeSolved,
@@ -105,6 +109,47 @@ async function buildSnapshot(pool, { studentId, studentName, trainerName, days }
   };
 }
 
+function plural(count, noun) {
+  return `${count} ${count === 1 ? noun : `${noun}s`}`;
+}
+
+/// The page's figures, from either shape a stored snapshot has.
+///
+/// A snapshot is frozen when it is sent (rule 2 above). Those built before
+/// 1.10.2026 counted attempts — a puzzle tried five times was five, a skip a
+/// wrong answer — and say so in their own field names, `totalAttempts` and
+/// `solvedAttempts`. They are read in those names and under their old labels,
+/// so a link still shows what it showed when it was sent. Links last 60 days
+/// (`REPORT_TTL_DAYS`), so this branch has nothing left to read after
+/// 30.11.2026 and can go then.
+function figuresOf(s) {
+  if (s.puzzles === undefined) {
+    return {
+      seen: s.totalAttempts,
+      solved: s.solvedAttempts,
+      skipped: 0,
+      solvedLabel: 'Puzzles solved correctly',
+      accuracyLabel: 'Accuracy',
+    };
+  }
+  return {
+    seen: s.puzzles,
+    solved: s.solved,
+    skipped: s.skipped,
+    solvedLabel: 'Puzzles solved',
+    accuracyLabel: s.accuracy === null
+      ? 'Solved at the first attempt'
+      : `Solved at the first attempt, of ${plural(s.firstTries, 'new puzzle')}`,
+  };
+}
+
+/// Whether a snapshot has anything to show. One rule for the page, which then
+/// shows figures rather than "no practice recorded", and for the route that
+/// tells the trainer which of the two the parent will see.
+function snapshotHasData(s) {
+  return figuresOf(s).seen > 0;
+}
+
 /// Renders the snapshot as a self-contained page.
 ///
 /// Deliberately one file with inline styles and a print stylesheet: the parent
@@ -112,7 +157,8 @@ async function buildSnapshot(pool, { studentId, studentName, trainerName, days }
 /// from the browser when a paper copy is wanted.
 function renderHtml(report) {
   const s = report.snapshot;
-  const hasData = s.totalAttempts > 0;
+  const figures = figuresOf(s);
+  const hasData = snapshotHasData(s);
 
   const themeList = (themes, emptyText) => {
     if (!themes || themes.length === 0) return `<p class="muted">${esc(emptyText)}</p>`;
@@ -120,7 +166,7 @@ function renderHtml(report) {
       .map(
         (t) =>
           `<li><span>${esc(themeLabel(t.theme))}</span><b>${t.accuracy}%</b>` +
-          `<small>${t.attempts} ${t.attempts === 1 ? 'puzzle' : 'puzzles'}</small></li>`
+          `<small>${plural(t.firstTries ?? t.attempts, 'puzzle')}</small></li>`
       )
       .join('')}</ul>`;
   };
@@ -194,8 +240,13 @@ ${
     ? `
 <div class="grid">
   <div class="stat"><b>${ratingLine}</b><span>Puzzle solving rating</span></div>
-  <div class="stat"><b>${s.solvedAttempts}/${s.totalAttempts}</b><span>Puzzles solved correctly</span></div>
-  <div class="stat"><b>${s.accuracy === null ? '—' : `${s.accuracy}%`}</b><span>Accuracy</span></div>
+  <div class="stat"><b>${figures.solved}/${figures.seen}</b><span>${figures.solvedLabel}</span></div>
+  <div class="stat"><b>${s.accuracy === null ? '—' : `${s.accuracy}%`}</b><span>${esc(figures.accuracyLabel)}</span></div>${
+    figures.skipped > 0
+      ? `
+  <div class="stat"><b>${figures.skipped}</b><span>Skipped</span></div>`
+      : ''
+  }
   <div class="stat"><b>${s.activeDays}</b><span>Days with practice</span></div>
 </div>
 
@@ -205,8 +256,9 @@ ${themeList(s.strengths, 'Not enough puzzles solved yet to highlight a strong th
 <h2>What we are working on next</h2>
 ${themeList(s.toWorkOn, 'Not enough puzzles solved yet to highlight a weak theme.')}
 <p class="muted" style="font-size:13px">
-  A theme only enters the report once the student completes several puzzles from it — a
-  single missed puzzle does not mean it is a weakness.
+  A theme is measured by how often its puzzles are solved at the first attempt, and only
+  enters the report once the student has met several of them — a single missed puzzle
+  does not mean it is a weakness.
 </p>
 
 <h2>Assignments</h2>
@@ -240,4 +292,6 @@ ${
 </html>`;
 }
 
-module.exports = { THEME_LABELS, themeLabel, esc, buildSnapshot, renderHtml, formatDate };
+module.exports = {
+  THEME_LABELS, themeLabel, esc, buildSnapshot, renderHtml, formatDate, snapshotHasData,
+};

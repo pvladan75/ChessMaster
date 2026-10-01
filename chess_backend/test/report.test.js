@@ -19,14 +19,16 @@ function snapshot(overrides = {}) {
     trainerName: 'Vladan',
     rating: 1620,
     ratingChange: 45,
-    totalAttempts: 40,
-    solvedAttempts: 26,
+    puzzles: 40,
+    solved: 30,
+    skipped: 4,
+    firstTries: 34,
     accuracy: 65,
     activeDays: 9,
     lifetimeSolved: 210,
     assignments: { total: 6, completed: 4, overdue: 1 },
-    strengths: [{ theme: 'fork', attempts: 12, solved: 11, accuracy: 92 }],
-    toWorkOn: [{ theme: 'pin', attempts: 8, solved: 2, accuracy: 25 }],
+    strengths: [{ theme: 'fork', firstTries: 12, solvedFirstTry: 11, accuracy: 92 }],
+    toWorkOn: [{ theme: 'pin', firstTries: 8, solvedFirstTry: 2, accuracy: 25 }],
     ...overrides,
   };
 }
@@ -61,8 +63,8 @@ test('a student name with markup characters is escaped too', () => {
 
 test('motif codes are shown with readable labels, not as raw tags', () => {
   const html = renderHtml({ snapshot: snapshot({
-    strengths: [{ theme: 'doubleCheck', attempts: 12, solved: 11, accuracy: 92 }],
-    toWorkOn: [{ theme: 'hangingPiece', attempts: 8, solved: 2, accuracy: 25 }],
+    strengths: [{ theme: 'doubleCheck', firstTries: 12, solvedFirstTry: 11, accuracy: 92 }],
+    toWorkOn: [{ theme: 'hangingPiece', firstTries: 8, solvedFirstTry: 2, accuracy: 25 }],
   }) });
 
   // A parent cannot be expected to know what "hangingPiece" means.
@@ -76,12 +78,12 @@ test('an unknown motif falls back to its raw tag rather than disappearing', () =
   assert.equal(themeLabel('brandNewTheme'), 'brandNewTheme');
 
   const html = renderHtml({
-    snapshot: snapshot({ toWorkOn: [{ theme: 'brandNewTheme', attempts: 5, accuracy: 40 }] }),
+    snapshot: snapshot({ toWorkOn: [{ theme: 'brandNewTheme', firstTries: 5, accuracy: 40 }] }),
   });
   assert.ok(html.includes('brandNewTheme'));
 });
 
-test('every theme line states how many attempts it is based on', () => {
+test('every theme line states how many puzzles it is based on', () => {
   const html = renderHtml({ snapshot: snapshot() });
 
   // "25%" alone invites a parent to read a bad month as a verdict; "8 puzzles"
@@ -92,7 +94,7 @@ test('every theme line states how many attempts it is based on', () => {
 
 test('a single attempt is counted in the singular', () => {
   const html = renderHtml({
-    snapshot: snapshot({ toWorkOn: [{ theme: 'pin', attempts: 1, accuracy: 0 }] }),
+    snapshot: snapshot({ toWorkOn: [{ theme: 'pin', firstTries: 1, accuracy: 0 }] }),
   });
   assert.ok(html.includes('1 puzzle<'), 'English singular, not "1 puzzles"');
 });
@@ -100,8 +102,10 @@ test('a single attempt is counted in the singular', () => {
 test('a period with no activity says so instead of showing zeroes', () => {
   const html = renderHtml({
     snapshot: snapshot({
-      totalAttempts: 0,
-      solvedAttempts: 0,
+      puzzles: 0,
+      solved: 0,
+      skipped: 0,
+      firstTries: 0,
       accuracy: null,
       activeDays: 0,
       ratingChange: null,
@@ -112,7 +116,8 @@ test('a period with no activity says so instead of showing zeroes', () => {
 
   assert.ok(html.includes('no practice recorded'));
   // A wall of zeroes would read as failure rather than as absence of data.
-  assert.ok(!html.includes('Accuracy'));
+  assert.ok(!html.includes('first attempt'));
+  assert.ok(!html.includes('Puzzles solved'));
   assert.ok(html.includes('does not mean the student'));
 });
 
@@ -127,6 +132,65 @@ test('rating movement is signed, and absent when there is nothing to compare', (
 
   const flat = renderHtml({ snapshot: snapshot({ ratingChange: null }) });
   assert.ok(!flat.includes('+0'), 'no data must not be dressed up as no change');
+});
+
+// ── 1.10.2026: puzzles counted once, and a skip shown as a skip ─────────
+
+test('the solved figure counts puzzles, and a skip is shown as a skip', () => {
+  const html = renderHtml({ snapshot: snapshot() });
+  assert.ok(html.includes('<b>30/40</b><span>Puzzles solved</span>'));
+  assert.ok(html.includes('<b>4</b><span>Skipped</span>'));
+  // „correctly" belonged to the old count, where a skip was a wrong answer.
+  assert.ok(!html.includes('solved correctly'));
+});
+
+test('no skip, no skipped figure', () => {
+  const html = renderHtml({ snapshot: snapshot({ skipped: 0 }) });
+  assert.ok(!html.includes('Skipped'));
+});
+
+test('the accuracy says what it measures and how many puzzles it rests on', () => {
+  const html = renderHtml({ snapshot: snapshot() });
+  assert.ok(html.includes('<b>65%</b><span>Solved at the first attempt, of 34 new puzzles</span>'));
+  assert.ok(!html.includes('<span>Accuracy</span>'));
+  const one = renderHtml({ snapshot: snapshot({ firstTries: 1, accuracy: 100 }) });
+  assert.ok(one.includes('of 1 new puzzle<'), 'singular');
+});
+
+test('only retries and skips: something was done, and there is no accuracy', () => {
+  const html = renderHtml({ snapshot: snapshot({ firstTries: 0, accuracy: null }) });
+  assert.ok(html.includes('<b>—</b><span>Solved at the first attempt</span>'));
+  assert.ok(html.includes('<b>30/40</b>'), 'the period still has its numbers');
+});
+
+test('a report sent before 1.10.2026 still shows what it showed', () => {
+  // Rule 2 of reportService.js: the link shows what was sent. Those snapshots
+  // counted attempts and carry their own field names.
+  const sent = {
+    generatedAt: '2026-09-15T10:00:00Z',
+    periodDays: 30,
+    studentName: 'Marko Petrović',
+    trainerName: 'Vladan',
+    rating: 1620,
+    ratingChange: 45,
+    totalAttempts: 40,
+    solvedAttempts: 26,
+    accuracy: 65,
+    activeDays: 9,
+    lifetimeSolved: 210,
+    assignments: { total: 6, completed: 4, overdue: 1 },
+    strengths: [{ theme: 'fork', attempts: 12, solved: 11, accuracy: 92 }],
+    toWorkOn: [{ theme: 'pin', attempts: 8, solved: 2, accuracy: 25 }],
+  };
+  const html = renderHtml({ snapshot: sent });
+  assert.ok(html.includes('<b>26/40</b><span>Puzzles solved correctly</span>'));
+  assert.ok(html.includes('<b>65%</b><span>Accuracy</span>'));
+  assert.ok(html.includes('12 puzzles') && html.includes('8 puzzles'));
+  assert.ok(!html.includes('undefined'));
+  assert.ok(!html.includes('Skipped'));
+
+  const quiet = renderHtml({ snapshot: { ...sent, totalAttempts: 0, solvedAttempts: 0 } });
+  assert.ok(quiet.includes('no practice recorded'));
 });
 
 test('empty theme lists explain themselves rather than rendering blank', () => {

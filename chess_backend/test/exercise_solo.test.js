@@ -254,16 +254,22 @@ test('the queue hands out positions, never their answers', async () => {
 // quiet, both read the whole log. An exercise solved alone *is* activity, so
 // neither filters by source — and if one ever starts to, this is where that
 // choice has to be made on purpose.
+//
+// Rewritten 1.10.2026, when the report began counting puzzles through the
+// Practise cards' fold: that query has to *select* `source` (a puzzle is a
+// source and an id) and joins on it, so „the SQL never says source" became
+// „its WHERE never does" — the thing that would drop a drill from the report.
 test('a student\'s progress counts `own` rows, in accuracy too', async () => {
   const calls = [];
+  const row = (id, solved) => ({
+    puzzle_id: id, source: 'own', solved, skipped: false, hinted: false, themes: [],
+    rating_before: null, rating_after: null, created_at: new Date(),
+  });
   const pool = {
     query: async (text, values) => {
       calls.push(String(text));
       if (/FROM user_puzzle_attempts/.test(text)) {
-        return { rows: [
-          { solved: true, themes: [], puzzle_rating: null, rating_before: null, rating_after: null, created_at: new Date(), source: 'own' },
-          { solved: false, themes: [], puzzle_rating: null, rating_before: null, rating_after: null, created_at: new Date(), source: 'own' },
-        ] };
+        return { rows: [row('ex_1', true), row('ex_2', false)] };
       }
       if (/COUNT\(\*\)/.test(text)) return { rows: [{ total: 0, completed: 0, overdue: 0 }] };
       return { rows: [] };
@@ -271,8 +277,10 @@ test('a student\'s progress counts `own` rows, in accuracy too', async () => {
   };
   const progress = await getStudentProgress(pool, 9);
   const attemptsSql = calls.find((t) => /FROM user_puzzle_attempts/.test(t));
-  assert.doesNotMatch(attemptsSql, /source/);
-  assert.equal(progress.totalAttempts, 2);
+  const where = attemptsSql.split(/\bWHERE\b/)[1].split(/\bORDER BY\b/)[0];
+  assert.match(where, /user_id/);
+  assert.doesNotMatch(where, /source/);
+  assert.equal(progress.puzzles, 2);
   assert.equal(progress.accuracy, 50);
 });
 

@@ -36,21 +36,104 @@ function stubPool(results = [[]]) {
   };
 }
 
-function attempt(solved, themes) {
-  return { solved, themes, puzzle_rating: 1500, created_at: '2026-08-15T10:00:00Z' };
+/// One row of the attempt log, as `attemptsOf` reads it. Every puzzle gets its
+/// own id: since 1.10.2026 the summary counts puzzles, not rows, so two rows
+/// with one id are one puzzle tried twice.
+let minuteOfAugust = 0;
+function attempt(id, solved, themes, extra = {}) {
+  minuteOfAugust += 1;
+  return {
+    puzzle_id: id,
+    source: 'lichess',
+    solved,
+    skipped: false,
+    hinted: false,
+    themes,
+    // As the database hands them: a drill that does not rate writes null.
+    rating_before: null,
+    rating_after: null,
+    created_at: new Date(Date.UTC(2026, 7, 15, 10, minuteOfAugust)).toISOString(),
+    ...extra,
+  };
 }
 
-test('accuracy is computed over all attempts', () => {
+let nextId = 0;
+const fresh = () => `p${(nextId += 1)}`;
+
+// Until 1.10.2026 the summary counted rows: „accuracy is computed over all
+// attempts" held 2 of 4 rows as 50%, a puzzle tried five times as five, and a
+// skip — `solved` false — as a wrong answer. It now counts puzzles through the
+// Practise cards' own fold (`puzzlesOf`), and the cases below hold that.
+
+test('a puzzle counts once, however often it is tried', () => {
+  const id = fresh();
   const summary = summariseAttempts([
-    attempt(true, ['fork']),
-    attempt(true, ['fork']),
-    attempt(false, ['pin']),
-    attempt(false, ['pin']),
+    attempt(id, false, ['fork']),
+    attempt(id, false, ['fork']),
+    attempt(id, false, ['fork']),
+    attempt(id, false, ['fork']),
+    attempt(id, true, ['fork']),
   ]);
 
-  assert.equal(summary.totalAttempts, 4);
-  assert.equal(summary.solvedAttempts, 2);
+  assert.equal(summary.puzzles, 1);
+  assert.equal(summary.solved, 1, 'it stands solved: its latest try solved it');
+  assert.equal(summary.firstTries, 1);
+  assert.equal(summary.solvedFirstTry, 0, 'but it was not solved when first met');
+  assert.equal(summary.accuracy, 0);
+});
+
+test('a skip is a skip: never a failure, and out of the accuracy', () => {
+  const summary = summariseAttempts([
+    attempt(fresh(), true, ['fork']),
+    attempt(fresh(), false, ['fork']),
+    attempt(fresh(), false, ['fork'], { skipped: true }),
+  ]);
+
+  assert.equal(summary.puzzles, 3);
+  assert.equal(summary.solved, 1);
+  assert.equal(summary.failed, 1);
+  assert.equal(summary.skipped, 1);
+  assert.equal(summary.firstTries, 2, 'a puzzle skipped at first sight was not answered');
   assert.equal(summary.accuracy, 50);
+});
+
+test('a hinted first solve is a solve, but not at the first attempt', () => {
+  const summary = summariseAttempts([
+    attempt(fresh(), true, ['fork'], { hinted: true }),
+    attempt(fresh(), true, ['fork']),
+  ]);
+
+  assert.equal(summary.solved, 2);
+  assert.equal(summary.firstTries, 2);
+  assert.equal(summary.solvedFirstTry, 1);
+  assert.equal(summary.accuracy, 50);
+});
+
+test('a puzzle met before the period is in what was done, not in the accuracy', () => {
+  const since = '2026-08-15T10:30:00Z';
+  const old = fresh();
+  const rows = [
+    attempt(old, false, ['pin'], { created_at: '2026-08-01T09:00:00Z' }),
+    attempt(old, true, ['pin'], { created_at: '2026-08-20T09:00:00Z' }),
+    // Every row before the period: not in it at all.
+    attempt(fresh(), false, ['pin'], { created_at: '2026-08-02T09:00:00Z' }),
+    // Met in the period and solved there.
+    attempt(fresh(), true, ['fork'], { created_at: '2026-08-21T09:00:00Z' }),
+  ];
+
+  const summary = summariseAttempts(rows, { since });
+  assert.equal(summary.puzzles, 2);
+  assert.equal(summary.solved, 2);
+  assert.equal(summary.firstTries, 1, 'the old puzzle was first met before the period');
+  assert.equal(summary.accuracy, 100);
+  assert.deepEqual(summary.themes.map((t) => t.theme), ['fork']);
+
+  // And without a period, the whole log.
+  const lifetime = summariseAttempts(rows);
+  assert.equal(lifetime.puzzles, 3);
+  assert.equal(lifetime.failed, 1);
+  assert.equal(lifetime.firstTries, 3);
+  assert.equal(lifetime.accuracy, 33);
 });
 
 test('a student with no attempts reports null accuracy, not zero', () => {
@@ -59,23 +142,32 @@ test('a student with no attempts reports null accuracy, not zero', () => {
   // Zero would read as "gets everything wrong"; null reads as "no data", which
   // is the truth and the only honest thing to show a parent.
   assert.equal(summary.accuracy, null);
-  assert.equal(summary.totalAttempts, 0);
+  assert.equal(summary.puzzles, 0);
   assert.deepEqual(summary.weakestThemes, []);
 });
 
-test('a theme needs enough attempts before it counts as a weakness', () => {
+test('only skips: something was done, and there is no accuracy to report', () => {
+  const summary = summariseAttempts([
+    attempt(fresh(), false, ['fork'], { skipped: true }),
+  ]);
+  assert.equal(summary.puzzles, 1);
+  assert.equal(summary.skipped, 1);
+  assert.equal(summary.accuracy, null);
+});
+
+test('a theme needs enough puzzles before it counts as a weakness', () => {
   const rows = [
-    // pin: one attempt, failed — 0% but meaningless.
-    attempt(false, ['pin']),
-    // fork: five attempts, two solved — 40% and real.
-    attempt(true, ['fork']),
-    attempt(true, ['fork']),
-    attempt(false, ['fork']),
-    attempt(false, ['fork']),
-    attempt(false, ['fork']),
+    // pin: one puzzle, failed — 0% but meaningless.
+    attempt(fresh(), false, ['pin']),
+    // fork: five puzzles, two solved — 40% and real.
+    attempt(fresh(), true, ['fork']),
+    attempt(fresh(), true, ['fork']),
+    attempt(fresh(), false, ['fork']),
+    attempt(fresh(), false, ['fork']),
+    attempt(fresh(), false, ['fork']),
   ];
 
-  const summary = summariseAttempts(rows, { minAttemptsPerTheme: 4 });
+  const summary = summariseAttempts(rows, { minPuzzlesPerTheme: 4 });
 
   assert.deepEqual(
     summary.weakestThemes.map((entry) => entry.theme),
@@ -85,11 +177,24 @@ test('a theme needs enough attempts before it counts as a weakness', () => {
   assert.equal(summary.weakestThemes[0].accuracy, 40);
 });
 
+test('one puzzle tried four times is one puzzle towards the threshold, not four', () => {
+  const id = fresh();
+  const summary = summariseAttempts([
+    attempt(id, false, ['pin']),
+    attempt(id, false, ['pin']),
+    attempt(id, false, ['pin']),
+    attempt(id, false, ['pin']),
+  ]);
+  assert.deepEqual(summary.weakestThemes, [],
+    'four tries of one puzzle used to brand „pin" a weakness');
+  assert.equal(summary.themes[0].firstTries, 1);
+});
+
 test('weakest and strongest are ordered from the same measured set', () => {
   const rows = [];
-  for (let i = 0; i < 5; i++) rows.push(attempt(true, ['fork']));
-  for (let i = 0; i < 5; i++) rows.push(attempt(false, ['pin']));
-  for (let i = 0; i < 5; i++) rows.push(attempt(i < 3, ['skewer']));
+  for (let i = 0; i < 5; i++) rows.push(attempt(fresh(), true, ['fork']));
+  for (let i = 0; i < 5; i++) rows.push(attempt(fresh(), false, ['pin']));
+  for (let i = 0; i < 5; i++) rows.push(attempt(fresh(), i < 3, ['skewer']));
 
   const summary = summariseAttempts(rows);
 
@@ -101,25 +206,102 @@ test('weakest and strongest are ordered from the same measured set', () => {
 
 test('a puzzle tagged with several motifs counts towards each', () => {
   const summary = summariseAttempts([
-    attempt(true, ['fork', 'hangingPiece']),
-    attempt(false, ['fork', 'pin']),
+    attempt(fresh(), true, ['fork', 'hangingPiece']),
+    attempt(fresh(), false, ['fork', 'pin']),
   ]);
 
   const byTheme = Object.fromEntries(summary.themes.map((entry) => [entry.theme, entry]));
-  assert.equal(byTheme.fork.attempts, 2);
-  assert.equal(byTheme.hangingPiece.attempts, 1);
-  assert.equal(byTheme.pin.attempts, 1);
+  assert.equal(byTheme.fork.firstTries, 2);
+  assert.equal(byTheme.hangingPiece.firstTries, 1);
+  assert.equal(byTheme.pin.firstTries, 1);
 });
 
 test('attempts without themes do not break the summary', () => {
   const summary = summariseAttempts([
-    { solved: true, themes: null },
-    { solved: false },
+    attempt(fresh(), true, null),
+    attempt(fresh(), false, undefined),
   ]);
 
-  assert.equal(summary.totalAttempts, 2);
+  assert.equal(summary.puzzles, 2);
   assert.equal(summary.accuracy, 50);
   assert.deepEqual(summary.themes, []);
+});
+
+// ── the whole report, from the one query the cards read ──────────────────
+
+/// A pool that answers the report's three questions by what they ask.
+function progressPool(attemptRows, { rating = null, assignments = { total: 0, completed: 0, overdue: 0 } } = {}) {
+  const calls = [];
+  return {
+    calls,
+    async query(text, params) {
+      calls.push({ text: String(text), params });
+      if (/FROM user_puzzle_attempts/.test(text)) return { rows: attemptRows };
+      if (/FROM user_puzzle_ratings/.test(text)) return { rows: rating ? [rating] : [] };
+      if (/FROM assignments/.test(text)) return { rows: [assignments] };
+      throw new Error(`unexpected query: ${text}`);
+    },
+  };
+}
+
+const NOW = Date.parse('2026-09-30T12:00:00Z');
+const daysAgo = (n) => new Date(NOW - n * 24 * 60 * 60 * 1000).toISOString();
+
+test('the report reads the whole log once, and counts its period by `now`', async () => {
+  const { getStudentProgress } = require('../services/assignmentService');
+  const old = fresh();
+  const pool = progressPool([
+    attempt(old, false, ['pin'], { created_at: daysAgo(40) }),
+    attempt(old, true, ['pin'], { created_at: daysAgo(3) }),
+    attempt(fresh(), true, ['fork'], { created_at: daysAgo(2), source: 'mate_puzzle' }),
+    attempt(fresh(), false, [], { created_at: daysAgo(2), source: 'endgame', skipped: true }),
+    attempt(fresh(), true, [], { created_at: daysAgo(35), source: 'blunder_game' }),
+  ]);
+
+  const progress = await getStudentProgress(pool, 9, { days: 30, now: NOW });
+
+  const asked = pool.calls.filter((c) => /FROM user_puzzle_attempts/.test(c.text));
+  assert.equal(asked.length, 1);
+  assert.deepEqual(asked[0].params, [9]);
+  // The cards' query, whole: no window in SQL, because a period's puzzles
+  // need first rows older than the period.
+  assert.match(asked[0].text, /WHERE a\.user_id = \$1\s+ORDER BY/);
+
+  assert.equal(progress.puzzles, 3, 'the 40-day-old puzzle retried in the period, the mate, the skipped endgame');
+  assert.equal(progress.solved, 2);
+  assert.equal(progress.skipped, 1);
+  assert.equal(progress.failed, 0);
+  assert.equal(progress.firstTries, 1, 'only the mate was first met in the period and answered');
+  assert.equal(progress.accuracy, 100);
+  assert.equal(progress.activeDays, 2);
+  // Lifetime: every puzzle of the log, by where it stands.
+  assert.equal(progress.lifetimeSolved, 3);
+  assert.equal(progress.lifetimeFailed, 0);
+});
+
+test('rating movement is read from rated rows, whatever drill sits at either end', async () => {
+  const { getStudentProgress } = require('../services/assignmentService');
+  const pool = progressPool([
+    // An endgame first and a game blunder last carry no rating. Until
+    // 1.10.2026 either one at an end of the period made the change null.
+    attempt(fresh(), true, [], { created_at: daysAgo(20), source: 'endgame' }),
+    attempt(fresh(), true, ['fork'], { created_at: daysAgo(15), rating_before: 1500, rating_after: 1512 }),
+    attempt(fresh(), false, ['pin'], { created_at: daysAgo(10), rating_before: 1512, rating_after: 1505 }),
+    attempt(fresh(), true, ['fork'], { created_at: daysAgo(5), rating_before: 1505, rating_after: 1520 }),
+    attempt(fresh(), false, [], { created_at: daysAgo(1), source: 'blunder_game' }),
+  ]);
+
+  const progress = await getStudentProgress(pool, 9, { days: 30, now: NOW });
+  assert.equal(progress.ratingChange, 20);
+});
+
+test('no rated row in the period is no rating change, not +0', async () => {
+  const { getStudentProgress } = require('../services/assignmentService');
+  const pool = progressPool([
+    attempt(fresh(), true, [], { created_at: daysAgo(2), source: 'endgame' }),
+  ]);
+  const progress = await getStudentProgress(pool, 9, { days: 30, now: NOW });
+  assert.equal(progress.ratingChange, null);
 });
 
 test('assigned puzzles exclude ones the student already attempted', async () => {

@@ -802,7 +802,9 @@ router.post('/report/:studentId', authenticateToken, async (req, res) => {
       reportId: report.id,
       url,
       expiresAt: expiresAt.toISOString(),
-      hasData: snapshot.totalAttempts > 0,
+      // The page's own rule. This read `snapshot.totalAttempts` until the
+      // snapshot began counting puzzles (1.10.2026).
+      hasData: reports.snapshotHasData(snapshot),
     });
   } catch (err) {
     logger.error({ err }, 'Error generating parent report:');

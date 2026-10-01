@@ -28,11 +28,15 @@ class StudentProgressScreen extends StatefulWidget {
     required this.session,
     required this.studentId,
     required this.studentName,
+    this.api,
   });
 
   final UserSession session;
   final int studentId;
   final String studentName;
+
+  /// For tests, which have no server to answer.
+  final AssignmentApiService? api;
 
   @override
   State<StudentProgressScreen> createState() => _StudentProgressScreenState();
@@ -50,7 +54,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
   @override
   void initState() {
     super.initState();
-    _api = AssignmentApiService(authToken: widget.session.token);
+    _api = widget.api ?? AssignmentApiService(authToken: widget.session.token);
     _refresh();
   }
 
@@ -305,11 +309,15 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 spacing: 20,
                 runSpacing: 12,
                 children: [
-                  _stat('Solved',
-                      '${progress.solvedAttempts}/${progress.totalAttempts}'),
-                  // Null accuracy is rendered as a dash, never as 0%.
+                  // Puzzles, each counted once — as the Practise cards count
+                  // them — and a skip apart from a failure.
+                  _stat('Solved', '${progress.solved}/${progress.puzzles}'),
+                  if (progress.skipped > 0)
+                    _stat('Skipped', '${progress.skipped}'),
+                  // New puzzles solved at the first attempt. Null is rendered
+                  // as a dash, never as 0%.
                   _stat(
-                      'Accuracy',
+                      'First try',
                       progress.accuracy == null
                           ? '—'
                           : '${progress.accuracy}%'),
@@ -356,8 +364,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Text(
-            'Not enough attempts yet to identify weak themes. '
-            'A theme appears in the report only after several puzzles solved.',
+            'Not enough puzzles yet to identify weak themes. A theme '
+            'appears only after several of its puzzles were met for the first time.',
             style:
                 AppText.bodyLarge.copyWith(color: context.colors.textSecondary),
           ),
@@ -375,7 +383,8 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             const Text('By theme', style: AppText.title),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Only themes with enough attempts for the number to be meaningful are shown.',
+              'Solved at the first attempt. Only themes with enough puzzles '
+              'for the number to mean something are shown.',
               style: TextStyle(fontSize: 11.5, color: context.colors.textMuted),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -426,7 +435,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           SizedBox(
             width: 74,
             child: Text(
-              '$accuracy% (${theme.attempts})',
+              '$accuracy% (${theme.firstTries})',
               style: AppText.body.copyWith(color: context.colors.textSecondary),
               textAlign: TextAlign.right,
             ),

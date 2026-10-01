@@ -183,34 +183,77 @@ void main() {
   });
 
   group('StudentProgress', () {
+    // The payload is the server's own: `getStudentProgress` run over a small
+    // log on 1.10.2026 (four pin puzzles, one solved at once and one retried,
+    // four forks, a skipped endgame, a failed game blunder). Since that day
+    // the report counts each puzzle once and a skip apart.
     test('parses the report and its assignment counters', () {
       final progress = StudentProgress.fromJson({
         'periodDays': 30,
         'overallRating': 1620,
-        'totalAttempts': 40,
-        'solvedAttempts': 26,
-        'accuracy': 65,
-        'activeDays': 9,
-        'lifetimeSolved': 210,
+        'ratingChange': 7,
+        'themeRatings': {},
+        'lifetimeSolved': 6,
+        'lifetimeFailed': 3,
+        'activeDays': 5,
+        'assignments': {'total': 6, 'completed': 4, 'overdue': 1},
+        'puzzles': 10,
+        'solved': 6,
+        'failed': 3,
+        'skipped': 1,
+        'firstTries': 9,
+        'solvedFirstTry': 5,
+        'accuracy': 56,
+        'themes': [
+          {
+            'theme': 'pin',
+            'firstTries': 4,
+            'solvedFirstTry': 1,
+            'accuracy': 25
+          },
+          {
+            'theme': 'fork',
+            'firstTries': 4,
+            'solvedFirstTry': 4,
+            'accuracy': 100
+          },
+        ],
         'weakestThemes': [
-          {'theme': 'pin', 'attempts': 8, 'solved': 2, 'accuracy': 25},
+          {
+            'theme': 'pin',
+            'firstTries': 4,
+            'solvedFirstTry': 1,
+            'accuracy': 25
+          },
         ],
         'strongestThemes': [
-          {'theme': 'fork', 'attempts': 12, 'solved': 11, 'accuracy': 92},
+          {
+            'theme': 'fork',
+            'firstTries': 4,
+            'solvedFirstTry': 4,
+            'accuracy': 100
+          },
         ],
-        'assignments': {'total': 6, 'completed': 4, 'overdue': 1},
       });
 
       expect(progress.hasData, isTrue);
-      expect(progress.accuracy, 65);
+      expect(progress.puzzles, 10);
+      expect(progress.solved, 6);
+      expect(progress.failed, 3);
+      expect(progress.skipped, 1);
+      expect(progress.firstTries, 9);
+      expect(progress.accuracy, 56);
+      expect(progress.lifetimeSolved, 6);
       expect(progress.weakestThemes.single.theme, 'pin');
+      expect(progress.weakestThemes.single.firstTries, 4);
+      expect(progress.strongestThemes.single.solvedFirstTry, 4);
       expect(progress.assignmentsOverdue, 1);
     });
 
     test('a student with no attempts reports no data rather than zero accuracy',
         () {
       final progress =
-          StudentProgress.fromJson({'totalAttempts': 0, 'accuracy': null});
+          StudentProgress.fromJson({'puzzles': 0, 'accuracy': null});
 
       expect(progress.hasData, isFalse);
       expect(progress.accuracy, isNull);

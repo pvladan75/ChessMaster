@@ -202,9 +202,16 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                     .copyWith(color: context.colors.textSecondary),
               )
             else ...[
+              // Counted as the Practise cards count: each puzzle once, a
+              // skip apart, and the share of new puzzles solved at the first
+              // attempt — absent rather than „null%" when there were none.
               Text(
-                'Last ${progress.periodDays} days: ${progress.totalAttempts} puzzles, '
-                'accuracy ${progress.accuracy}%, ${progress.activeDays} active days.',
+                key: const Key('my-progress-line'),
+                'Last ${progress.periodDays} days: '
+                '${progress.puzzles} ${progress.puzzles == 1 ? 'puzzle' : 'puzzles'}, ${progress.solved} solved'
+                '${progress.skipped > 0 ? ', ${progress.skipped} skipped' : ''}'
+                '${progress.accuracy == null ? '' : ', ${progress.accuracy}% at the first attempt'}'
+                ', ${progress.activeDays} active ${progress.activeDays == 1 ? 'day' : 'days'}.',
                 style: AppText.bodyLarge
                     .copyWith(color: context.colors.textSecondary),
               ),

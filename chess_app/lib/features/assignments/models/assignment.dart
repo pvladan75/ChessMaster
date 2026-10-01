@@ -359,37 +359,53 @@ class AssignmentDetail {
       );
 }
 
-/// How a student is doing on one motif.
+/// How a student meets the puzzles of one motif: of the [firstTries] puzzles
+/// first met in the period and answered, how many were solved at that first
+/// attempt.
 class ThemeAccuracy {
   final String theme;
-  final int attempts;
-  final int solved;
+  final int firstTries;
+  final int solvedFirstTry;
   final int? accuracy;
 
   const ThemeAccuracy({
     required this.theme,
-    required this.attempts,
-    required this.solved,
+    required this.firstTries,
+    required this.solvedFirstTry,
     this.accuracy,
   });
 
   factory ThemeAccuracy.fromJson(Map<String, dynamic> json) => ThemeAccuracy(
         theme: json['theme']?.toString() ?? '',
-        attempts: (json['attempts'] as num?)?.toInt() ?? 0,
-        solved: (json['solved'] as num?)?.toInt() ?? 0,
+        firstTries: (json['firstTries'] as num?)?.toInt() ?? 0,
+        solvedFirstTry: (json['solvedFirstTry'] as num?)?.toInt() ?? 0,
         accuracy: (json['accuracy'] as num?)?.toInt(),
       );
 }
 
-/// A student's report over a period.
+/// A student's report over a period, counted the way the Practise cards count
+/// (`summariseAttempts` on the server, over `puzzleProgress`'s fold): **each
+/// puzzle once, and a skip as a skip.** Until 1.10.2026 it counted attempts,
+/// so a puzzle tried five times was five and a skip was a wrong answer.
 class StudentProgress {
   final int periodDays;
   final int overallRating;
-  final int totalAttempts;
-  final int solvedAttempts;
 
-  /// Null when nothing has been attempted — distinct from 0%, which would read
-  /// as "gets everything wrong".
+  /// The puzzles the student touched in the period, each once.
+  final int puzzles;
+
+  /// Of [puzzles], where each stands now: solved, failed or skipped.
+  final int solved;
+  final int failed;
+  final int skipped;
+
+  /// The puzzles first met in the period and answered rather than skipped —
+  /// what [accuracy] rests on.
+  final int firstTries;
+
+  /// The share of [firstTries] solved at the first attempt, with no hint.
+  /// Null when there is none — distinct from 0%, which would read as „gets
+  /// everything wrong".
   final int? accuracy;
 
   final int activeDays;
@@ -403,8 +419,11 @@ class StudentProgress {
   const StudentProgress({
     required this.periodDays,
     required this.overallRating,
-    required this.totalAttempts,
-    required this.solvedAttempts,
+    required this.puzzles,
+    required this.solved,
+    required this.failed,
+    required this.skipped,
+    required this.firstTries,
     required this.accuracy,
     required this.activeDays,
     required this.lifetimeSolved,
@@ -415,12 +434,13 @@ class StudentProgress {
     required this.assignmentsOverdue,
   });
 
-  bool get hasData => totalAttempts > 0;
+  bool get hasData => puzzles > 0;
 
   factory StudentProgress.fromJson(Map<String, dynamic> json) {
     List<ThemeAccuracy> themes(String key) => ((json[key] as List?) ?? const [])
         .map((e) => ThemeAccuracy.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+    int count(String key) => (json[key] as num?)?.toInt() ?? 0;
 
     final assignments =
         Map<String, dynamic>.from(json['assignments'] ?? const {});
@@ -428,8 +448,11 @@ class StudentProgress {
     return StudentProgress(
       periodDays: (json['periodDays'] as num?)?.toInt() ?? 30,
       overallRating: (json['overallRating'] as num?)?.toInt() ?? 1500,
-      totalAttempts: (json['totalAttempts'] as num?)?.toInt() ?? 0,
-      solvedAttempts: (json['solvedAttempts'] as num?)?.toInt() ?? 0,
+      puzzles: count('puzzles'),
+      solved: count('solved'),
+      failed: count('failed'),
+      skipped: count('skipped'),
+      firstTries: count('firstTries'),
       accuracy: (json['accuracy'] as num?)?.toInt(),
       activeDays: (json['activeDays'] as num?)?.toInt() ?? 0,
       lifetimeSolved: (json['lifetimeSolved'] as num?)?.toInt() ?? 0,

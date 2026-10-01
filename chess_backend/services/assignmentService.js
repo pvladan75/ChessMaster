@@ -20,6 +20,9 @@ const { trainableThemes } = require('./puzzleSelectionService');
 const { filmColumns, filmOf, filmFacts, noFilmReason } = require('./tutorialFilm');
 const homework = require('./homeworkService');
 const { judgeEngineGame, goalMetByTablebase } = require('./engineGameTask');
+const {
+  attemptsOf, puzzlesOf, stateOf, solvedFirstTry,
+} = require('./puzzleProgress');
 
 /// Refuses a write into a homework item that is still locked. Interpolated
 /// into every UPDATE a student's answer goes through, so the gate holds at
@@ -841,36 +844,73 @@ async function loadCustomPositions(pool, itemRows) {
   return positions.rows.length > 0 ? positions.rows : null;
 }
 
-/// Turns raw attempt rows into the summary a trainer reads.
+/// Turns a student's attempt log into the summary a trainer and a parent read.
 ///
-/// Pure so the arithmetic is testable: accuracy that silently divides by zero,
-/// or a "weakest motif" drawn from two attempts, is exactly the kind of number
-/// that gets repeated to a parent.
-function summariseAttempts(rows, { minAttemptsPerTheme = 4 } = {}) {
-  const total = rows.length;
-  const solved = rows.filter((row) => row.solved).length;
-
+/// **A puzzle counts once and a skip is a skip**, decided where the Practise
+/// cards decide it (`puzzlesOf`, `stateOf` and `solvedFirstTry` in
+/// puzzleProgress.js), which is what docs/PLAN-NAPREDAK-VEZBI.md §4 promised
+/// this report and its phase 2 never delivered. Until 1.10.2026 it summed
+/// rows: a puzzle tried five times was five, and a skip — `solved` false —
+/// was a wrong answer in the report a parent reads.
+///
+/// A period asks two questions, so it has two populations:
+///
+///   - **What was done in it**: every puzzle with a row since `since`,
+///     standing where its latest row leaves it — `solved`, `failed` or
+///     `skipped`. A window that ends now holds the latest row of every puzzle
+///     it touches.
+///   - **How a new puzzle is met** (`accuracy`, and the themes): the puzzles
+///     *first met* in the period and answered there rather than skipped
+///     (`firstTries`), and how many of those first answers solved it with no
+///     hint (`solvedFirstTry`). A retry is not a first meeting: a month spent
+///     clearing old failures would otherwise carry the failures of the month
+///     before it, and a puzzle failed three times and then solved would read
+///     as solved.
+///
+/// Without `since`, the whole log — the lifetime figures.
+///
+/// Pure so the arithmetic is testable: an accuracy that silently divides by
+/// zero, or a "weakest motif" drawn from two puzzles, is exactly the kind of
+/// number that gets repeated to a parent.
+function summariseAttempts(rows, { since = null, minPuzzlesPerTheme = 4 } = {}) {
+  const from = since == null ? -Infinity : new Date(since).getTime();
+  const states = { solved: 0, failed: 0, skipped: 0 };
+  let puzzles = 0;
+  let firstTries = 0;
+  let solvedFirst = 0;
   const byTheme = new Map();
-  for (const row of rows) {
-    for (const theme of row.themes || []) {
-      if (!byTheme.has(theme)) byTheme.set(theme, { theme, attempts: 0, solved: 0 });
-      const entry = byTheme.get(theme);
-      entry.attempts++;
-      if (row.solved) entry.solved++;
+
+  for (const entry of puzzlesOf(rows)) {
+    if (entry.latest.at < from) continue;
+    puzzles += 1;
+    states[stateOf(entry)] += 1;
+
+    // The first meeting counts here only if it was in this period and was an
+    // answer; a skip says nothing about how the puzzle was met.
+    if (entry.first.at < from || entry.first.skipped) continue;
+    const solved = solvedFirstTry(entry);
+    firstTries += 1;
+    if (solved) solvedFirst += 1;
+    const themes = entry.first.themes.length > 0 ? entry.first.themes : entry.latest.themes;
+    for (const theme of themes) {
+      if (!byTheme.has(theme)) byTheme.set(theme, { theme, firstTries: 0, solvedFirstTry: 0 });
+      const tally = byTheme.get(theme);
+      tally.firstTries += 1;
+      if (solved) tally.solvedFirstTry += 1;
     }
   }
 
   const themes = [...byTheme.values()].map((entry) => ({
     ...entry,
-    accuracy: entry.attempts === 0 ? null : Math.round((entry.solved / entry.attempts) * 100),
+    accuracy: Math.round((entry.solvedFirstTry / entry.firstTries) * 100),
   }));
 
-  // Only themes with enough attempts can be called a weakness; the rest are
+  // Only themes met often enough can be called a weakness; the rest are
   // simply unmeasured, and saying otherwise would misinform the trainer.
-  const measured = themes.filter((entry) => entry.attempts >= minAttemptsPerTheme);
-  measured.sort((a, b) => a.accuracy - b.accuracy);
+  const measured = themes.filter((entry) => entry.firstTries >= minPuzzlesPerTheme);
 
-  // Split by how the child is actually doing, not by position in a sorted list.
+  // Split by how the student is actually doing, not by position in a sorted
+  // list.
   //
   // Taking the first five and the last five put every theme in *both* lists
   // whenever fewer than six were measured — so a parent's report announced 25%
@@ -891,27 +931,57 @@ function summariseAttempts(rows, { minAttemptsPerTheme = 4 } = {}) {
     .slice(0, 5);
 
   return {
-    totalAttempts: total,
-    solvedAttempts: solved,
-    accuracy: total === 0 ? null : Math.round((solved / total) * 100),
-    themes: themes.sort((a, b) => b.attempts - a.attempts),
+    puzzles,
+    solved: states.solved,
+    failed: states.failed,
+    skipped: states.skipped,
+    firstTries,
+    solvedFirstTry: solvedFirst,
+    // Null when no new puzzle was answered — distinct from 0%, which would
+    // read as "gets everything wrong".
+    accuracy: firstTries === 0 ? null : Math.round((solvedFirst / firstTries) * 100),
+    themes: themes.sort((a, b) => b.firstTries - a.firstTries),
     weakestThemes,
     strongestThemes,
   };
 }
 
+/// Rating movement across some rows, from the ones that carry a rating
+/// (tactics, mates, winning positions): the oldest holds where the student
+/// started, the newest where they stand. Until 1.10.2026 this took the oldest
+/// and the newest row of any drill, and an endgame or a game blunder at either
+/// end — they carry no rating — made it null: "no data" in a month full of
+/// rated puzzles. Null when nothing rated is there; a parent report must not
+/// show "+0" where the honest answer is "no data".
+function ratingChangeOf(rows) {
+  let start = null;
+  let end = null;
+  for (const row of rows) {
+    const at = new Date(row.created_at).getTime();
+    if (row.rating_before != null && (start === null || at < start.at)) {
+      start = { at, rating: row.rating_before };
+    }
+    if (row.rating_after != null && (end === null || at >= end.at)) {
+      end = { at, rating: row.rating_after };
+    }
+  }
+  return start && end ? end.rating - start.rating : null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /// A student's report, readable by the student themselves or by their trainer.
-async function getStudentProgress(pool, studentId, { days = 30 } = {}) {
-  const [attemptRes, ratingRes, assignmentRes] = await Promise.all([
+///
+/// The log is read whole, through `attemptsOf` — the one query the Practise
+/// cards read: a period's puzzles need their first rows, which may be older
+/// than the period, and the lifetime count is the same fold over all of it.
+/// `now` is a parameter so that a test does not read the wall clock.
+async function getStudentProgress(pool, studentId, { days = 30, now = Date.now() } = {}) {
+  const since = new Date(now).getTime() - days * DAY_MS;
+  const [rows, ratingRes, assignmentRes] = await Promise.all([
+    attemptsOf(pool, studentId),
     pool.query(
-      `SELECT solved, themes, puzzle_rating, rating_before, rating_after, created_at
-       FROM user_puzzle_attempts
-       WHERE user_id = $1 AND created_at >= CURRENT_TIMESTAMP - ($2 || ' days')::interval
-       ORDER BY created_at DESC`,
-      [studentId, days]
-    ),
-    pool.query(
-      'SELECT overall_rating, theme_ratings, puzzles_solved, puzzles_failed FROM user_puzzle_ratings WHERE user_id = $1',
+      'SELECT overall_rating, theme_ratings FROM user_puzzle_ratings WHERE user_id = $1',
       [studentId]
     ),
     pool.query(
@@ -924,32 +994,26 @@ async function getStudentProgress(pool, studentId, { days = 30 } = {}) {
     ),
   ]);
 
-  const summary = summariseAttempts(attemptRes.rows);
+  const period = summariseAttempts(rows, { since });
+  const lifetime = summariseAttempts(rows);
+  const inPeriod = rows.filter((row) => new Date(row.created_at).getTime() >= since);
   const activeDays = new Set(
-    attemptRes.rows.map((row) => new Date(row.created_at).toISOString().slice(0, 10))
+    inPeriod.map((row) => new Date(row.created_at).toISOString().slice(0, 10))
   ).size;
-
-  // Movement across the period, from the attempts themselves. The rows come
-  // back newest-first, so the oldest one holds where the student started.
-  // Null when there is nothing in the window — a parent report must not show
-  // "+0" where the honest answer is "no data".
-  const oldest = attemptRes.rows[attemptRes.rows.length - 1];
-  const newest = attemptRes.rows[0];
-  const ratingChange =
-    oldest && newest && oldest.rating_before !== null && newest.rating_after !== null
-      ? newest.rating_after - oldest.rating_before
-      : null;
 
   return {
     periodDays: days,
     overallRating: ratingRes.rows[0]?.overall_rating || 1500,
-    ratingChange,
+    ratingChange: ratingChangeOf(inPeriod),
     themeRatings: ratingRes.rows[0]?.theme_ratings || {},
-    lifetimeSolved: ratingRes.rows[0]?.puzzles_solved || 0,
-    lifetimeFailed: ratingRes.rows[0]?.puzzles_failed || 0,
+    // The same fold over the whole log: puzzles, as the cards count them.
+    // Until 1.10.2026 these read `user_puzzle_ratings`' two counters, which
+    // count rows, and only of the drills that rate.
+    lifetimeSolved: lifetime.solved,
+    lifetimeFailed: lifetime.failed,
     activeDays,
     assignments: assignmentRes.rows[0],
-    ...summary,
+    ...period,
   };
 }
 
