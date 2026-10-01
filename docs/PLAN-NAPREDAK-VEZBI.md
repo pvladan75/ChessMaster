@@ -223,6 +223,15 @@ disagreed with the report beside it:
 - The parent report's snapshot carries the new figures under new names;
   snapshots sent before that day are still rendered in their own names, so a
   link shows what it showed (until their 60 days run out, 30.11.2026).
+- **A drill is not a motif** (the owner's choice (b), the same day, over „no
+  theme" and „a label"): `/submit` had stored `['mate_puzzle']` or
+  `['winning_position']` as a row's themes, and the report printed them as
+  motifs. A row's themes are now `motifsOf` (`puzzleProgress.js`): only the
+  motifs the server trains count, a mate puzzle is the „mate in N" its depth
+  names — one tally with the Lichess mates of that depth — and a winning
+  position has none. It is read where the log is read, so the rows written
+  before count the same way; `/submit` stores no themes. A snapshot sent
+  before shows the two names in words (`FROZEN_DRILL_LABELS`).
 
 ### 7.3 What exists to build on
 

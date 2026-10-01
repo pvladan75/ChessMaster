@@ -16,6 +16,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-not-used-for-sig
 
 const router = require('../routes/assignments');
 const db = require('../db');
+const { renderHtml } = require('../services/reportService');
 
 const NOW = Date.now();
 const daysAgo = (n) => new Date(NOW - n * 24 * 60 * 60 * 1000).toISOString();
@@ -84,6 +85,27 @@ test('a period with puzzles is reported as having data, and stored as puzzles', 
   assert.equal(stored.firstTries, 1);
   assert.equal(stored.accuracy, 0);
   assert.equal(stored.totalAttempts, undefined, 'the attempt count is not frozen any more');
+});
+
+test('the parent reads „mate in 2", and never a drill\'s name', async () => {
+  // The owner's choice (b), 1.10.2026: a mate puzzle counts under the mate its
+  // depth names, a winning position under no motif. The rows are the ones
+  // /submit stored until that day, the drill's name as their theme, and they
+  // stay in the log.
+  const mates = [1, 2, 3, 4].map((i) => row(`m${i}`, i === 1, daysAgo(10 - i), {
+    source: 'mate_puzzle', themes: ['mate_puzzle'], bucket: '2',
+  }));
+  const winning = [1, 2, 3, 4].map((i) => row(`w${i}`, true, daysAgo(5 - i), {
+    source: 'winning_position', themes: ['winning_position'], bucket: '4',
+  }));
+  const { stored } = await report([...mates, ...winning]);
+
+  assert.deepEqual(stored.toWorkOn.map((t) => [t.theme, t.accuracy, t.firstTries]), [['mateIn2', 25, 4]]);
+  assert.deepEqual(stored.strengths, [], 'four solved winning positions read „winning_position 100%" until then');
+
+  const html = renderHtml({ snapshot: stored });
+  assert.match(html, /<span>mate in 2<\/span><b>25%<\/b>/);
+  assert.doesNotMatch(html, /mate_puzzle|winning_position|mateIn/);
 });
 
 test('a period with nothing in it is reported as having none', async () => {

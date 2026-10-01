@@ -193,6 +193,21 @@ test('a report sent before 1.10.2026 still shows what it showed', () => {
   assert.ok(quiet.includes('no practice recorded'));
 });
 
+test('a report sent before the drills stopped being themes names them in words', () => {
+  // Until 1.10.2026 the mate drill and winning positions stored their own
+  // names as themes, and a snapshot frozen then can hold one; the link shows
+  // what it showed (rule 2), readably (rule 1). A snapshot made since cannot
+  // hold them: the report counts motifs only (puzzleProgress, `motifsOf`).
+  const html = renderHtml({ snapshot: snapshot({
+    strengths: [{ theme: 'winning_position', attempts: 6, solved: 6, accuracy: 100 }],
+    toWorkOn: [{ theme: 'mate_puzzle', attempts: 5, solved: 1, accuracy: 20 }],
+  }) });
+
+  assert.ok(html.includes('<span>winning positions</span><b>100%</b>'));
+  assert.ok(html.includes('<span>mate puzzles</span><b>20%</b>'));
+  assert.ok(!html.includes('mate_puzzle') && !html.includes('winning_position'));
+});
+
 test('empty theme lists explain themselves rather than rendering blank', () => {
   const html = renderHtml({ snapshot: snapshot({ strengths: [], toWorkOn: [] }) });
   assert.ok(html.includes('Not enough puzzles solved yet'));

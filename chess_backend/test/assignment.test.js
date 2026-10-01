@@ -227,6 +227,45 @@ test('attempts without themes do not break the summary', () => {
   assert.deepEqual(summary.themes, []);
 });
 
+// A drill is not a motif (the owner's choice (b), 1.10.2026): until then
+// `/submit` stored ['mate_puzzle'] or ['winning_position'] as a row's themes,
+// and the report named them as motifs. The rows are as `attemptsOf` hands
+// them back — the puzzle's depth joined as text in `bucket`.
+
+test('mate puzzles count under their mate in N, beside the Lichess mates of that depth', () => {
+  const summary = summariseAttempts([
+    // Two as /submit wrote them until 1.10.2026, two as it writes now.
+    attempt(fresh(), false, ['mate_puzzle'], { source: 'mate_puzzle', bucket: '2' }),
+    attempt(fresh(), false, ['mate_puzzle'], { source: 'mate_puzzle', bucket: '2' }),
+    attempt(fresh(), true, [], { source: 'mate_puzzle', bucket: '2' }),
+    attempt(fresh(), false, [], { source: 'mate_puzzle', bucket: '2' }),
+    // A Lichess mate in two is the same motif and the same tally.
+    attempt(fresh(), false, ['mateIn2']),
+  ]);
+
+  assert.deepEqual(
+    summary.themes.map((t) => [t.theme, t.firstTries, t.solvedFirstTry]),
+    [['mateIn2', 5, 1]]
+  );
+  assert.deepEqual(summary.weakestThemes.map((t) => [t.theme, t.accuracy]), [['mateIn2', 20]]);
+});
+
+test('a winning position is in the totals and under no motif, whatever its depth', () => {
+  // Depth 4: `mateIn4` is a motif, so reading the depth of any puzzle would
+  // file these under it.
+  const rows = [];
+  for (let i = 0; i < 4; i++) {
+    rows.push(attempt(fresh(), false, ['winning_position'], { source: 'winning_position', bucket: '4' }));
+  }
+  const summary = summariseAttempts(rows);
+
+  assert.equal(summary.puzzles, 4);
+  assert.equal(summary.firstTries, 4);
+  assert.equal(summary.accuracy, 0);
+  assert.deepEqual(summary.themes, [], 'four failed first tries read „winning_position 0%" until 1.10.2026');
+  assert.deepEqual(summary.weakestThemes, []);
+});
+
 // ── the whole report, from the one query the cards read ──────────────────
 
 /// A pool that answers the report's three questions by what they ask.

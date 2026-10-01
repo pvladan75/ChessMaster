@@ -11,6 +11,8 @@
 // can feed it rows in any order and read the answer. The SQL is one line, and
 // the one thing a test asks of it is that it is the right line.
 
+const { trainableThemes } = require('./puzzleSelectionService');
+
 const SOURCES = Object.freeze([
   'lichess',          // tactics — the Lichess id
   'mate_puzzle',      // puzzles.puzzle_id
@@ -40,11 +42,41 @@ function emptyTally() {
   return { seen: 0, solved: 0, firstTry: 0, failed: 0, skipped: 0, toRetry: 0 };
 }
 
+/// The motifs a row counts under: what the trainer's report and the parent
+/// report call its themes. Read here, where the log is read, so a row written
+/// before 1.10.2026 counts as one written after it:
+///
+///   - a stored tag counts only if it is a motif the server trains
+///     (`trainableThemes`). A Lichess puzzle's tags are; a drill's name is
+///     not, and `POST /api/puzzles/submit` stored ['mate_puzzle'] or
+///     ['winning_position'] until 1.10.2026, which both reports printed as a
+///     motif;
+///   - a mate puzzle is the mate in N its own depth names (`bucket`, joined
+///     from `puzzles.mate_depth`): the motif Lichess mates carry, so a mate in
+///     two from either drill is one tally. The puzzle knows what kind it is;
+///     the log only says that it was tried;
+///   - a winning position has no motif, whatever its depth: when its puzzle is
+///     a long mate, the mate is the way to win, not the task.
+///
+/// The owner's choice (b) of 1.10.2026 (docs/PLAN-NAPREDAK-VEZBI.md §7.2).
+/// Nothing is stored for it on purpose: `getUserRatingProfile` counts the
+/// stored themes of every row, and a `mateIn2` written by the mate drill would
+/// count there as a tactics attempt: the selector would stop exploring mate in
+/// two, and its four-attempt threshold would be met by puzzles that never
+/// moved its rating.
+function motifsOf(row) {
+  if (row.source === 'mate_puzzle') {
+    // A puzzle gone from the pool joins no depth, and `mateInnull` is no
+    // motif: the filter is the whole rule, so there is no second check.
+    return trainableThemes([`mateIn${row.bucket}`]);
+  }
+  return trainableThemes(Array.isArray(row.themes) ? row.themes.map(String) : []);
+}
+
 /// One row of the log as the fold reads it. `bucket` is optional and names a
 /// finer group inside the source (a mate depth, an endgame mode); phase 1
-/// supplies it from a join, phase 0 only carries it through. `themes` is what
-/// the trainer's report groups by; only tactics, mates and winning positions
-/// write any.
+/// supplies it from a join, phase 0 only carries it through. `themes` are the
+/// row's motifs (`motifsOf`), what the trainer's report groups by.
 function normalise(row) {
   return {
     puzzleId: String(row.puzzle_id),
@@ -53,7 +85,7 @@ function normalise(row) {
     skipped: row.skipped === true,
     hinted: row.hinted === true,
     bucket: row.bucket == null ? null : String(row.bucket),
-    themes: Array.isArray(row.themes) ? row.themes.map(String) : [],
+    themes: motifsOf(row),
     at: new Date(row.created_at).getTime(),
   };
 }

@@ -12,7 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const {
-  SOURCES, isKnownSource, foldAttempts, retryIds, progressOf, retryIdsOf,
+  SOURCES, isKnownSource, foldAttempts, retryIds, progressOf, retryIdsOf, puzzlesOf,
 } = require('../services/puzzleProgress');
 
 let clock = 0;
@@ -153,4 +153,57 @@ test('retryIdsOf reads the same log with the same query', async () => {
   assert.deepEqual(await retryIdsOf(pool, 7, 'lichess'), ['a']);
   assert.deepEqual(pool.calls[0].params, [7]);
   assert.match(pool.calls[0].text, /ORDER BY a\.created_at ASC/);
+});
+
+// ── the motifs a logged puzzle counts under ──────────────────────────────
+//
+// The trainer's report and the parent report group by `themes`. Until
+// 1.10.2026 `POST /api/puzzles/submit` stored its drill's name there —
+// ['mate_puzzle'], ['winning_position'] — and both reports printed it as a
+// motif. The owner chose (b) that day: a mate puzzle counts under the mate in
+// N its own depth names, the motif Lichess mates carry, and a winning
+// position under none. The rows written before stay in the log, so the rule
+// is applied where a row is read, to old rows and new alike.
+
+const motifsOfRows = (...rows) => puzzlesOf(rows).map((entry) => entry.latest.themes);
+
+test('a mate puzzle counts under the mate its own depth names, whatever the row stored', () => {
+  assert.deepEqual(motifsOfRows(
+    // As /submit wrote it until 1.10.2026, and as the database hands it back:
+    // the depth joined from `puzzles.mate_depth`, as text.
+    row({ puzzle_id: 'm-old', source: 'mate_puzzle', themes: ['mate_puzzle'], bucket: '2' }),
+    // As it writes now: nothing stored, the column's default.
+    row({ puzzle_id: 'm-new', source: 'mate_puzzle', themes: [], bucket: '3' }),
+    // No writer stores a motif on a mate row; if one did, the depth would
+    // still be the one answer, so a puzzle cannot count twice for one mate.
+    row({ puzzle_id: 'm-tagged', source: 'mate_puzzle', themes: ['mateIn3', 'fork'], bucket: '2' }),
+  ), [['mateIn2'], ['mateIn3'], ['mateIn2']]);
+});
+
+test('a winning position counts under no motif, even when its puzzle is a long mate', () => {
+  // Depth 4 and 5 stand on the boundary: `mateIn4` and `mateIn5` are motifs
+  // the report names, so a rule that read the depth of any puzzle would file
+  // these under them. The importer gives a winning position a depth whenever
+  // its evaluation is a mate.
+  assert.deepEqual(motifsOfRows(
+    row({ puzzle_id: 'w-old', source: 'winning_position', themes: ['winning_position'], bucket: '4' }),
+    row({ puzzle_id: 'w-new', source: 'winning_position', themes: [], bucket: '5' }),
+  ), [[], []]);
+});
+
+test('a mate puzzle gone from the pool, or deeper than any motif, counts under none', () => {
+  assert.deepEqual(motifsOfRows(
+    row({ puzzle_id: 'gone', source: 'mate_puzzle', themes: ['mate_puzzle'], bucket: null }),
+    row({ puzzle_id: 'deep', source: 'mate_puzzle', themes: [], bucket: '6' }),
+  ), [[], []]);
+  // Still a puzzle, counted with the rest.
+  assert.equal(foldAttempts([row({ puzzle_id: 'gone', source: 'mate_puzzle', bucket: null })]).mate_puzzle.seen, 1);
+});
+
+test('a stored tag counts only if it is a motif, and a Lichess puzzle keeps its motifs', () => {
+  assert.deepEqual(motifsOfRows(
+    row({ puzzle_id: 'l', themes: ['fork', 'mateIn2'] }),
+    // An outcome tag is not a skill (puzzleSelectionService, MOTIF_THEMES).
+    row({ puzzle_id: 'o', themes: ['crushing', 'pin'] }),
+  ), [['fork', 'mateIn2'], ['pin']]);
 });

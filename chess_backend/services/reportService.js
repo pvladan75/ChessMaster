@@ -12,7 +12,7 @@
 
 const { getStudentProgress } = require('./assignmentService');
 
-/// Serbian names for the Lichess motif tags.
+/// Readable names for the Lichess motif tags.
 ///
 /// Duplicated from `chess_app/lib/features/assignments/models/assignment.dart`,
 /// which needs the same table for the in-app UI. Kept in sync by hand — new
@@ -58,8 +58,21 @@ const THEME_LABELS = {
   bishopEndgame: 'bishop endgame',
 };
 
+/// Two names no new snapshot can hold. Until 1.10.2026 the mate drill and
+/// winning positions stored their own names as themes (`POST /api/puzzles/
+/// submit`), so a report frozen before then may list one; it is shown as it
+/// was sent, in words (rules 1 and 2 above). Only this page needs them — the
+/// app reads live figures, which count motifs only (puzzleProgress,
+/// `motifsOf`) — so they stay out of the table the app shares. Links last 60
+/// days (`REPORT_TTL_DAYS`): once this has been live that long, nothing reads
+/// these and they can go.
+const FROZEN_DRILL_LABELS = {
+  mate_puzzle: 'mate puzzles',
+  winning_position: 'winning positions',
+};
+
 function themeLabel(theme) {
-  return THEME_LABELS[theme] || theme;
+  return THEME_LABELS[theme] || FROZEN_DRILL_LABELS[theme] || theme;
 }
 
 /// Escapes text that came from a person before it goes into HTML.

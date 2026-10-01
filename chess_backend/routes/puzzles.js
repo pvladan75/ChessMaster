@@ -827,11 +827,14 @@ router.post('/puzzles/submit', authenticateToken, async (req, res) => {
 
     // One attempt row per submit, sourced from the puzzle's own type — the
     // same log every other drill writes to (docs/PLAN-NAPREDAK-VEZBI.md §3.1).
+    // No themes: a drill's name is not a motif. Until 1.10.2026 this stored
+    // [source], and the reports printed „mate_puzzle" as one; a mate's motif
+    // is read from its depth where the log is read (puzzleProgress, motifsOf).
     await pool.query(
       `INSERT INTO user_puzzle_attempts
-         (user_id, puzzle_id, source, solved, skipped, hinted, puzzle_rating, rating_before, rating_after, themes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [userId, puzzleId, source, solved, skipped === true, hinted === true, puzzleRating, currentRating, newRating, [source]]
+         (user_id, puzzle_id, source, solved, skipped, hinted, puzzle_rating, rating_before, rating_after)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [userId, puzzleId, source, solved, skipped === true, hinted === true, puzzleRating, currentRating, newRating]
     );
 
     res.json({

@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 5400 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 2033 without TEST_DATABASE_URL, 2197 with it (both measured 1.10.2026)
+cd chess_backend && npm test          # node --test, 2042 without TEST_DATABASE_URL, 2206 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1272,6 +1272,15 @@ plans the list of *which* puzzles, and its phase 5, the server, followed
 the board each puzzle asked about (a Lichess one after its setup move), one
 query per table. **A test over two mirror images can only see totals** — the
 fold's own „latest row wins" case stayed green when the rows' order was lost.
+Then a drill is not a motif (backend → **2042 / 2206**, both measured; the app
+untouched): `/submit` had stored ['mate_puzzle'] or ['winning_position'] as a
+row's themes, and the report printed them as motifs. On the owner's choice a
+mate puzzle counts as the „mate in N" its depth names and a winning position
+under none, read where the log is read (`motifsOf`), so the old rows need no
+migration. **Before writing a new value into a shared column, list its
+readers**: the tactics selector counts every row's stored themes, so a
+stored `mateIn2` would have stopped it exploring mate in two, and met that
+theme's four-attempt threshold with puzzles that never moved its rating.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

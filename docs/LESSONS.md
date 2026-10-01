@@ -10036,3 +10036,55 @@ skippable frame that Node's decoder refuses („Unknown frame descriptor");
 the real frame starts 12 bytes in. Its first row gave the gate a puzzle
 whose setup move is a capture, and the board after it was worked out by
 hand, rank by rank, rather than by the code under test.
+
+## 1.10.2026 — a drill is not a motif: mate puzzles count as „mate in N"
+
+`POST /api/puzzles/submit` had stored its drill's name as the row's themes
+since 17.9 — ['mate_puzzle'], ['winning_position'] — and the trainer's
+Overview, the student's own card and the parent report group by themes, so
+„mate_puzzle 80%" could stand under „What is going well" as a raw tag
+(`THEME_LABELS` has no entry for it). The owner was offered three answers — no
+theme, a real motif, a label — and took the motif: a mate puzzle counts under
+the mate in N its depth names, the motif Lichess mates carry, and a winning
+position under none. Backend 2033 → **2042** (+9: four on the fold, one on
+`/submit`, two on the summary, one through the report route, one on the
+renderer), 2197 → **2206** with a database, both measured on top of the
+list's phase 5 (2016 / 2179 on the base before it), the second on a
+throwaway cluster. App 5400 and analyze's 22 measured on the same base before
+the change; no Dart file changed.
+
+**A rule read where the log is read reaches every row ever written; a rule
+applied where it is written needs a migration for the rows before it.** The
+depth was already joined into the report's one query as `bucket`, so the old
+rows count as „mate in 2" with nothing rewritten, and the writer only stops
+storing the name.
+
+**Before writing a new value into a shared column, list its readers.** Storing
+`mateIn2` was the obvious fix, and the tactics selector counts the stored
+themes of every row (`getUserRatingProfile`, `UNNEST(themes)`): a mate drill's
+`mateIn2` would have counted there as a tactics attempt, so the selector would
+have stopped exploring mate in two, and the four attempts that make a theme's
+rating a measurement would have been met by puzzles that never moved it. A
+reader nobody was looking at decided where the rule lives.
+
+**Follow a value past the screen it was reported on, to its last reader.** The
+weakest themes also preselect the homework dialog's themes
+(`suggestedThemes.take(3)`), including ones the dialog draws no chip for: a
+weak „mate_puzzle" would have titled a homework „Drill: mate_puzzle" and sent
+unfiltered puzzles, because the server drops what is not a motif. A real motif
+now asks for Lichess mates in two. That the dialog preselects motifs it does
+not draw, and offers `rookEndgame` / `pawnEndgame` that the server drops, is
+its own task.
+
+**A fixture made of names no writer can store is luckier than the real thing**
+(rule 6). `themeSplit.test.js` used 'dvojni napad' and 'a' to 'd'; once only
+motifs counted, five of its cases went red for a reason unrelated to the split
+they protect, and a sixth, „too few attempts means unmeasured", stayed green
+only because its theme had vanished whole. Renamed to real tags, openly.
+
+Mutations: nine. Seven were red on the case written for them. One was inert —
+the `bucket == null` check, since `mateInnull` is no motif and the filter
+drops it — and the check was deleted. One survived: a mate row keeping its
+stored tags beside the depth, which no row stored today can tell apart. The
+case's title already claimed „whatever the row stored", so a row now makes it
+true; a motif stored on a mate row would otherwise count one puzzle twice.

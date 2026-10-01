@@ -9454,6 +9454,13 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: U `Overview`: `Solved` je „2/3" (ili toliko više koliko je ranije bilo), `Skipped` 1, `First try` je procenat, ne „Accuracy". U izveštaju: „Puzzles solved", „Skipped" i „Solved at the first attempt, of N new puzzles". Na učenikovoj kartici: „… 3 puzzles, 2 solved, 1 skipped, …% at the first attempt …". Nigde „null".
    Potrebno: Windows; nalog trenera i učenika; server (restartovan posle izmene — nodemon to radi sam).
 
+17. [ ] **Zagonetke mata se u napretku učenika broje kao „mate in N", a ime vežbe se nigde ne vidi.** [263.1]
+   O čemu se radi: Do 1.10.2026 vežba mata i „winning positions" su upisivale svoje ime kao temu, pa su napredak učenika i roditeljski izveštaj mogli da pokažu sirovu oznaku „mate_puzzle" ili „winning_position" (npr. pod „What is going well"). Sada se zagonetka mata broji pod „mate in 1/2/3" po svojoj dubini, zajedno sa Lichess matovima te dubine, a dobijena pozicija nema temu i broji se samo u ukupnim brojevima. Važi i za zagonetke rešene pre izmene. Tema se pojavljuje tek posle četiri nove zagonetke, a u `Overview` samo kao slaba (ispod 50% iz prvog pokušaja).
+   Gde: kao učenik `Practise` → `Puzzles: Mate in 1, 2 or 3 moves` → `Mate in 2`; kao trener `Teach` → `Students and trainers` → (red učenika) → `Progress` (tab `Platform`, kartica `Overview`), pa ikonica `Parent report` → `Create` → `Open`, pa dugme `Assign drill`; pa opet kao učenik `Home` → `Set for me` (kartica napretka na vrhu liste).
+   Uradi: Kao učenik reši četiri nova mata u dva tako da tri promašiš iz prvog pokušaja. Kao trener otvori `Overview`, napravi i otvori roditeljski izveštaj, pa otvori `Assign drill` i zatvori ga bez slanja.
+   Treba da vidiš: U `Overview` red „mate in 2" sa procentom i brojem zagonetki; u izveštaju „mate in 2" pod „What we are working on next"; u `Assign drill` štikliran čip „mate in 2" i naslov koji počinje sa „Drill:" i sadrži „mate in 2"; na učenikovoj kartici „Most mistakes: … mate in 2 …". Nigde „mate_puzzle", „winning_position" ni „mateIn2".
+   Potrebno: Windows; nalog trenera i učenika; server (restartovan posle izmene — nodemon to radi sam).
+
 ### Teach — Preparation
 
 1. [ ] **Provera pri čuvanju ne remeti uključenu analizu motora.** [187.6]

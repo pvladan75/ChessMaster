@@ -104,6 +104,25 @@ test('/submit still refuses a missing puzzleId', async () => {
   assert.equal(insertsOf(out.calls).length, 0);
 });
 
+test('/submit stores no drill name as a theme', async () => {
+  // Until 1.10.2026 it stored [source], and the trainer's report and the
+  // parent report printed „mate_puzzle" as a motif. A mate's motif is read
+  // from its depth where the log is read (puzzleProgress, `motifsOf`), so the
+  // row stores none — as the endgame, blunder and own-exercise rows do.
+  for (const type of ['mate_puzzle', 'winning_position']) {
+    const out = await call('post', '/puzzles/submit', {
+      body: { puzzleId: 'p-1', solved: true },
+      answer: (text) => (/FROM puzzles WHERE puzzle_id/.test(text)
+        ? { rows: [{ eval_value: 2, type }] } : { rows: [] }),
+    });
+    const inserts = insertsOf(out.calls);
+    assert.equal(inserts.length, 1, `${type}: one attempt row`);
+    assert.equal(inserts[0].params[2], type, `${type}: the source is still the puzzle's type`);
+    assert.deepEqual(inserts[0].params.filter((p) => Array.isArray(p) && p.length > 0), [],
+      `${type}: no theme list is written`);
+  }
+});
+
 // ── /attempt takes a source, a skip and a hint ───────────────────────────
 
 test('/attempt without a source is the Lichess path it always was', async () => {
