@@ -4547,6 +4547,14 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Vraćeni potez je ogranak bez nastavka, pored poteza koji je odigran umesto njega; Syzygy panel na toj poziciji pokazuje da on gubi.
    Potrebno: Windows ili telefon; server; internet.
 
+51. [ ] **`Tablebase findings` ređa poteze od najboljeg do najgoreg i kaže „mate in N".** [262.1]
+   O čemu se radi: Prijavljeno 1.10.2026: lista je stavljala dva uzimanja sa „DTZ -30" iznad najbržeg mata, i svaki red je govorio samo DTZ, pa se nije videlo koji je potez najbolji. Sada je redosled tablebase-ov (najbolji prvi za stranu koja je na potezu, po udaljenosti do mata), a red kaže „mate in N" ili „mated in N". Za tu udaljenost se pita Lichess i kad je pet figura ili manje; gde je ne zna (sedam figura, ili Lichess nije odgovorio), red kaže DTZ i ispod piše da to nije udaljenost do mata.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` → (izaberi vrste) → `Start` → `Play to the end` → `Tablebase findings`.
+   Uradi: Otvori nalaz u završnici sa pet ili šest figura, pa u jednoj sa sedam. Uporedi prvih nekoliko poteza sa lichess.org/analysis (tablebase).
+   Treba da vidiš: Prvi red je potez sa najmanjim „mate in N"; uzimanje ili potez pešakom nije iznad bržeg mata; potezi koji gube stoje na dnu, onaj koji najduže drži prvi među njima („mated in N" najveće); remi potez nema broj. Kod sedam figura ispod liste piše „…DTZ is shown: … not to mate."
+   Potrebno: Windows ili telefon; server (restartovan posle izmene — nodemon to radi sam); internet.
+
 ### Practise — AI Studio i zagonetke
 
 1. [ ] **AI Studio ima prekidače za strelice motora.** [93.11]
@@ -6008,6 +6016,13 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Analiza ide 6–50 bez preskakanja; `Review entire game` i
    `Auto Analysis` idu do 50.
    Potrebno: Windows; debug build.
+
+7. [ ] **Syzygy panel u Analizi: najbolji potez je prvi i piše „mate in N".** [262.2]
+   O čemu se radi: Do 1.10.2026 panel je bojio svaki potez rezultatom protivnika posle njega, pa je najbolji potez dobijene pozicije bio crven („Loss"), a broj uz potez je bio DTZ. Sada je boja iz ugla strane koja vuče potez, uz potez piše „(mate in N)" ili „(mated in N)", a za tu udaljenost server pita Lichess i za pet figura. Kad tablebase ne odgovori (npr. Lichess je posle 429 zaustavljen na minut), panel to kaže umesto „No tablebase for this position."
+   Gde: Analyse → `Panels` → uključi `Tablebase (Syzygy)` → pozicija sa najviše 7 figura (npr. `Setup Position / PGN` → FEN `7r/8/4k3/8/3K4/8/8/3Q4 w - - 0 1`).
+   Uradi: Stani na tu poziciju, pa prođi nekoliko poteza napred i nazad.
+   Treba da vidiš: Prvi potez je `Qg4+ (mate in 21)`, gornji desni znak `Win · mate in 21`; tekst je dokaz, ne boja (boja pobede/poraza je sada iz ugla onoga ko vuče, ali to drži test); remi potezi bez broja; potezi koji gube na kraju, sa „mated in N". Brzo listanje ne ostavlja panel da čeka duže od par sekundi.
+   Potrebno: Windows; server; internet.
 
 ### Analyse — Analysis
 
@@ -9431,6 +9446,13 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Prikaz je mesečna aktivnost/broj partija/skor, ne uporedni
    prikaz "pre" i "posle".
    Potrebno: Windows i telefon; nalog trenera i učenika.
+
+16. [ ] **Napredak učenika broji zagonetke, ne pokušaje, a preskočena nije greška.** [262.3]
+   O čemu se radi: Do 1.10.2026 izveštaj je brojao pokušaje: zagonetka pokušana pet puta bila je pet, a preskočena se brojala kao netačna. Sada se svaka zagonetka broji jednom (kao na karticama u Practise), preskočena se vidi kao „Skipped", a procenat je „rešeno iz prvog pokušaja" nad novim zagonetkama u periodu. Stavka 14 [132.5] kaže „brojevi nepromenjeni" — to se odnosilo na prelazak na engleski; od 1.10 brojevi se računaju ovako.
+   Gde: `Teach` → `Students and trainers` → (red učenika) → `Progress` (tab `Platform`, kartica `Overview`); pa ikonica `Parent report` → `Create` → `Open`; pa kao učenik: `Home` → `Set for me` (kartica napretka na vrhu liste).
+   Uradi: Kao učenik reši jednu zagonetku iz prvog puta, jednu promaši pa je reši iz `Retry failed`, jednu preskoči (`Skip`). Kao trener otvori `Overview`, pa napravi i otvori roditeljski izveštaj.
+   Treba da vidiš: U `Overview`: `Solved` je „2/3" (ili toliko više koliko je ranije bilo), `Skipped` 1, `First try` je procenat, ne „Accuracy". U izveštaju: „Puzzles solved", „Skipped" i „Solved at the first attempt, of N new puzzles". Na učenikovoj kartici: „… 3 puzzles, 2 solved, 1 skipped, …% at the first attempt …". Nigde „null".
+   Potrebno: Windows; nalog trenera i učenika; server (restartovan posle izmene — nodemon to radi sam).
 
 ### Teach — Preparation
 

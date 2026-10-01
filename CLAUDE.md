@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5383 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5400 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1985 without TEST_DATABASE_URL, 2148 with it (both measured 1.10.2026)
+cd chess_backend && npm test          # node --test, 2007 without TEST_DATABASE_URL, 2170 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1251,6 +1251,23 @@ draft belongs to the Analyse tab (`_ownsDraft`, one getter, three readers);
 and Back finds it as it was; Exploring is gone. **A stand-in pushed by the
 test cannot see how the product pushes** — the way back is walked through the
 real Analysis, and `pushReplacement` turns all six cases red.
+Then the owner's picture of `Tablebase findings` (→ **5395**, a full run with
+nothing else running; backend → **1992** measured, 2155 derived; analyze the
+same 22): two captures with DTZ −30 stood above the fastest mate, because
+`readout` still sorted by itself and asked our own tables, which hold no DTM.
+It now keeps the tablebase's order and asks Lichess for the distance, as does
+Analysis's panel through `GET /api/tablebase?mate=1`; both read `dtm` through
+`lib/core/services/mate_distance.dart`, and a question about it skips a Lichess
+queue of three. **The fix of a rule is not done until every reader of it is
+found** — the third order was a small `.sort(` in a route for a human reader.
+Then the student's report (→ **5400**; backend → **2007 / 2170**, both
+measured): the trainer's Overview, the student's card and the parent report
+summed attempt rows, so a puzzle tried five times was five and a skip a wrong
+answer; they now read the Practise cards' own fold (`puzzlesOf`, `stateOf`,
+`solvedFirstTry`), and the accuracy is solved at the first attempt over new
+puzzles. **A promise in a plan's prose is not a phase** — §4 of
+`PLAN-NAPREDAK-VEZBI.md` had said the report would follow „for free". Its §7
+plans the list of *which* puzzles.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

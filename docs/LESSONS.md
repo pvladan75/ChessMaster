@@ -9914,3 +9914,92 @@ lives beside the builder; the mutation is red in the tree test.
 (rule 5, the lead's own gate): `find.textContaining('Find the rest')` also
 matched the instruction under the board.
 
+## 1.10.2026 — the tablebase list, best first and with the distance to mate
+
+The owner sent a picture of the trainer's `Tablebase findings`: two captures
+with DTZ −30 above the fastest mate, every row saying only DTZ, and asked
+which move was best. The 30.9 fix (`bestReply` by DTM) had not reached this
+list: `readout` sorted the moves **itself** (zeroing first, then the smallest
+|DTZ|) and asked our own tables, which hold no DTM at all. Now it keeps the
+source's order and asks Lichess for the distance; `GET /api/tablebase?mate=1`
+does the same for Analysis's panel, and every bulk caller leaves it out.
+App 5383 → **5395**, 1 skipped (a full run with nothing else running) (+12: five for the reader of `dtm`, one request
+case, three panel cases, three findings cases); backend 1985 → **1992** (+7:
+four in the drill, the `mate=1` route, two for the queue), 2148 → 2155 with a
+database derived — every new case is on fakes. Analyze the same 22.
+
+**The fix of a rule is not done until every reader of the rule is found.**
+30.9 changed the pick and the app's reader and wrote „the app never re-sorts";
+the server had a third order, in a route for a human reader, written as its
+own small sort. Grep for `.sort(` beside the data, not only for the function
+that was wrong.
+
+**Syzygy holds no DTM**, only WDL and DTZ. Measured on the shared fixture,
+Lichess knows it for every move with five men, nearly every move with six,
+and 3 of 17 with seven — so „ask Lichess" is the answer up to six, and the
+screen must still say when it does not know.
+
+**A panel that colours a move by the tablebase's category colours it from the
+wrong side.** A move's category is the opponent's after it; Analysis's chips
+had drawn the best move of a won position as a loss for as long as the panel
+existed, and its one test asserted the order, not the colour.
+
+**A rate limit has two faces: the 429 and the queue.** The 429 was handled
+(one minute, never retried). The queue was not: a person stepping through an
+ending in Analysis would have queued a Lichess request a position, one a
+second, and the app's ten-second wait for the server would then have asked
+Lichess directly — the same request twice. A question about the distance to
+mate now takes our own tables when three are already waiting.
+
+**A mutation whose red is a hang is not the right red** (rule 3): removing the
+queue check first turned the new case red only by the file's 120-second
+timeout, because the request waited forever behind the gate the test held. The
+case now races a one-second deadline and fails in a second.
+
+**A colour check for a colourblind owner is a text check.** The live item says
+„mate in N" / „mated in N" is the proof; the colour is held by a test.
+
+## 1.10.2026 — the student's report counts puzzles, not attempts
+
+The owner asked whether the app can follow which puzzles a user solved and
+which not. Every drill has written the attempt log since 17.9, and the
+Practise cards fold it per puzzle — but the trainer's Overview, the student's
+own card and the parent report summed **rows**: a puzzle tried five times was
+five, and a skip, `solved` false, was a wrong answer in front of a parent.
+`PLAN-NAPREDAK-VEZBI.md` §4 had promised the trainer's view the cards'
+numbers „for free"; phase 2's gate never looked at that screen. Fixed before
+the list was planned (its §7), because a list would otherwise disagree with
+the report beside it. App 5395 → **5400**; backend 1992 → **2007**
+(measured with `.env` aside), 2155 → **2170** (measured on a throwaway
+cluster — and 2155 + 15 = 2170 confirms that earlier derived figure).
+
+**A promise in a plan's prose is not a phase.** „It gains the same line for
+free" had no gate, so nothing failed when it did not happen. If a plan says a
+second screen will follow, the follow belongs in the phase table with a test,
+or it is a wish.
+
+**Renaming a field is a grep for every reader of the object, not of the
+field.** The report's `totalAttempts` had five readers; the sixth was a
+route that read it off the *snapshot* to tell the trainer whether there was
+data, and with the field gone it would have said „nothing" for every report.
+The grep at the start of the work listed it; a test through the handler holds
+it now.
+
+**A frozen snapshot is read in the names it was frozen in.** The parent report
+promises that a link shows what was sent, so the renderer reads both shapes
+and a test renders an old one; the branch has an end date (the links' 60
+days).
+
+**A text check that a word is absent from SQL cannot tell selecting from
+filtering.** „The progress query never says `source`" went red the moment the
+fold had to select it; the rule it meant — the WHERE never filters a drill out
+— is now what it checks.
+
+**A NUL byte in a source file makes git call it binary**, and every diff of it
+unreadable — this one too. `\u0000` in the template is the same string.
+
+Mutations: eleven on the fold and the report, ten red on the case written for
+them; the eleventh changed nothing (`+= 0`) — not a survivor — and its
+question, whether `new Set(themes)` carried anything, was answered by
+deleting it: a puzzle's tags never repeat. Seven on the two screens, each red
+on its case; one on the route, red.
