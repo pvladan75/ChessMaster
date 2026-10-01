@@ -21,7 +21,10 @@ import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
+import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
+
 import '../models/endgame_puzzle.dart';
+import '../services/endgame_analysis_tree.dart';
 import '../services/endgame_api_service.dart';
 
 /// Serbian names for the mined endgame types. The keys are what the database
@@ -203,6 +206,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   int _drillMistakes = 0;
 
   int _drillMoves = 0;
+
+  /// The drill's moves, for `Open in Analysis` — the drill keeps no history
+  /// of its own (docs/PLAN-TRENER-ZAVRSNICA.md, phase 5).
+  final DrillLog _drillLog = DrillLog();
 
   /// The failed-puzzle ids, fetched once, when [EndgameTrainerScreen.retry]
   /// is set. Null until asked for; empty is a real answer.
@@ -529,6 +536,47 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         : 'That move drops the win. Try another.';
   }
 
+  /// Pushes Analysis over the trainer with the position as a tree of moves
+  /// (D1). Pushed, so Back finds this screen as it was left — the position,
+  /// its state, the selection and the retry queue — and nothing is saved or
+  /// restored for it (D5). From a drill, Analysis stands where the drill
+  /// stopped and faces the reader's side (D14).
+  Future<void> _openInAnalysis() async {
+    final puzzle = _solve?.puzzle;
+    if (puzzle == null) return;
+    SpeechService.instance.stop();
+    final fromDrill = _drilling;
+    final tree = endgameAnalysisTree(
+      EndgameTreeInput(
+        fen: puzzle.fen,
+        found: _found.toList(),
+        replies: Map.of(_replies),
+        holding: puzzle.winningMoves,
+        gameMoveSan: puzzle.playedMove,
+        drill: _drillLog.moves,
+        drillFromGameMove: _drillLog.fromGameMove,
+      ),
+      fromDrill: fromDrill,
+    );
+    await openTreeInAnalysis(
+      context,
+      root: tree.root,
+      standOn: tree.standOn,
+      blackOrientation: _orientation == PlayerColor.black,
+    );
+  }
+
+  /// Whether the screen has stopped asking a question: solved, answer shown,
+  /// or the drill over. Not while one is open — an engine beside an open
+  /// question gives the answer away.
+  bool get _canOpenInAnalysis {
+    final solve = _solve;
+    if (solve == null) return false;
+    if (_drilling) return _drillEnd != null;
+    return solve.status == EndgameSolveStatus.solved ||
+        solve.status == EndgameSolveStatus.revealed;
+  }
+
   /// What the ending is called: the picker's words when the server sent them,
   /// with a capital letter, else the mined category's name (D12).
   String _endingName(EndgamePuzzle puzzle) {
@@ -594,6 +642,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _beginDrill(String fen,
       {required bool punishing, required String intro}) {
     _boardSerial++;
+    _drillLog.start(fromGameMove: punishing);
     setState(() {
       _drilling = true;
       _punishing = punishing;
@@ -619,6 +668,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _retryDrillMove() {
     final fen = _drillRetryFen;
     if (fen == null) return;
+    _drillLog.takeBack();
     setState(() {
       _game = chess.Chess.fromFEN(fen);
       _drillEnd = null;
@@ -709,6 +759,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     }
 
     final step = result.step!;
+    _drillLog.played(fenBefore, step.playedUci ?? uci, replyUci: step.replyUci);
     setState(() {
       _game = chess.Chess.fromFEN(step.fen);
       _boardLocked = false;
@@ -1406,6 +1457,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               icon: const Icon(Icons.handshake_outlined),
               label: const Text('Conclude draw'),
             ),
+          if (_canOpenInAnalysis)
+            OutlinedButton.icon(
+              onPressed: _openInAnalysis,
+              icon: const Icon(Icons.analytics_outlined),
+              label: const Text('Open in Analysis'),
+            ),
           OutlinedButton.icon(
             onPressed: _boardLocked ? null : _stopDrill,
             icon: const Icon(Icons.close),
@@ -1456,6 +1513,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
               label: const Text('Show'),
             ),
         ],
+        if (_canOpenInAnalysis)
+          OutlinedButton.icon(
+            onPressed: _openInAnalysis,
+            icon: const Icon(Icons.analytics_outlined),
+            label: const Text('Open in Analysis'),
+          ),
         // Offered before and after an answer alike. "I found it and still do
         // not see why" is the commoner case than a miss, and the one that
         // slips away.

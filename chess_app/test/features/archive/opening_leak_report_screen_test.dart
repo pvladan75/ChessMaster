@@ -632,7 +632,9 @@ void main() {
     /// Analysis, as the door is asked for it: remembered, and — when
     /// [push] — stood in for by a page on top, as the real one is pushed.
     void fakeAnalysis({bool push = false}) {
-      debugOpenTreeInAnalysis = (context, root, standOn) async {
+      // A fourth parameter since 1.10.2026 (docs/PLAN-TRENER-ZAVRSNICA.md,
+      // D14): the endgame trainer turns the board; this report passes null.
+      debugOpenTreeInAnalysis = (context, root, standOn, _) async {
         opened.add((root: root, standOn: standOn));
         if (!push) return;
         await Navigator.of(context).push(MaterialPageRoute<void>(

@@ -93,6 +93,12 @@ class AnalysisStudioScreen extends StatefulWidget {
   /// for the root is the rule the Library's saved analyses always had.
   final String? initialNodeId;
 
+  /// Which way the board faces for [initialTree], when the caller decides;
+  /// null keeps the rule above — the side to move where it stands. The
+  /// endgame trainer passes its own board's (`docs/PLAN-TRENER-ZAVRSNICA.md`,
+  /// D14).
+  final bool? initialBlackOrientation;
+
   /// The review's home; defaults to the app's one runner. A test passes its
   /// own so a review started on it lands on this screen without reaching the
   /// real singleton.
@@ -110,6 +116,7 @@ class AnalysisStudioScreen extends StatefulWidget {
     this.initialGame,
     this.initialTree,
     this.initialNodeId,
+    this.initialBlackOrientation,
     this.reviewRunner,
     this.lessonApi,
     this.exerciseApi,
@@ -717,7 +724,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     _chessGame = chess.Chess.fromFEN(node.fen);
     _boardController.loadFen(node.fen);
     final side = node.fen.split(' ')[1];
-    _orientation = side == 'b' ? PlayerColor.black : PlayerColor.white;
+    final black = widget.initialBlackOrientation ?? side == 'b';
+    _orientation = black ? PlayerColor.black : PlayerColor.white;
   }
 
   void _loadGame(AnalysisGame game) {

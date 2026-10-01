@@ -62,29 +62,35 @@ Future<void> _pushAnalysis(BuildContext context, AnalysisGame game) =>
 /// Null — the default — pushes the real screen; a test sets it, for the same
 /// reason as [debugOpenGameInAnalysis].
 @visibleForTesting
-Future<void> Function(
-        BuildContext context, AnalysisNode root, AnalysisNode standOn)?
-    debugOpenTreeInAnalysis;
+Future<void> Function(BuildContext context, AnalysisNode root,
+    AnalysisNode standOn, bool? blackOrientation)? debugOpenTreeInAnalysis;
 
 /// A tree opened standing on one of its nodes, with its branches — how a
 /// position of the opening report opens with the moves that led to it
 /// (30.9.2026). **Pushed, like a game**: the screen that opened it stays
 /// underneath as it was left, so Back returns to the same place.
+///
+/// [blackOrientation] turns the board to a side of the caller's choosing —
+/// the endgame trainer passes its own board's, so a drill that ended on the
+/// reader's losing move faces the reader and not the side to move (D14 of
+/// `docs/PLAN-TRENER-ZAVRSNICA.md`). Null keeps Analysis's own rule.
 Future<void> openTreeInAnalysis(
   BuildContext context, {
   required AnalysisNode root,
   required AnalysisNode standOn,
+  bool? blackOrientation,
 }) {
   final open = debugOpenTreeInAnalysis ?? _pushTree;
-  return open(context, root, standOn);
+  return open(context, root, standOn, blackOrientation);
 }
 
-Future<void> _pushTree(
-        BuildContext context, AnalysisNode root, AnalysisNode standOn) =>
+Future<void> _pushTree(BuildContext context, AnalysisNode root,
+        AnalysisNode standOn, bool? blackOrientation) =>
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => AnalysisStudioScreen(
         userSession: SessionService.instance.current,
         initialTree: root,
         initialNodeId: standOn.id,
+        initialBlackOrientation: blackOrientation,
       ),
     ));

@@ -693,6 +693,20 @@ Also:
 
 ### Phase 5 — `Open in Analysis`, and the way back [implementer; gate by the lead]
 
+**Built by the lead, 1.10.2026** — the one phase Fable named for escalation;
+none was needed, the gate caught what it was written for. `DrillLog` lives
+beside the builder, so `Take back` is tested pure (the plan's „removeLast"
+mutation could not be red in the tree test while the take-back lived in the
+screen). The way back is walked with the **real** Analysis, pushed by the
+real `openTreeInAnalysis` and left by its own back arrow, not a stand-in: a
+stand-in pushed by the test's hook cannot see the product push another way,
+and `pushReplacement` in `_pushTree` turns all six way-back cases red. At
+360 × 640 the pushed bar fits, back arrow included — the dormant overflow the
+review feared is not there. Tree 12 cases, door and way back 10; seven tree
+mutations and seven door mutations, every one red on its own case (one added
+beyond the table: Analysis ignoring `initialBlackOrientation`, red in case 5,
+which now reads the real board's orientation).
+
 Covers D1, D2, D5, D6 and D14.
 - A pure builder, `EG/services/endgame_analysis_tree.dart`, in the shape of
   `opening_position_tree.dart`: a child that plays the same move is reused,
