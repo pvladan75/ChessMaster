@@ -2,7 +2,8 @@
 
 Proposed 17.9.2026 at the owner's request, as a lean design. Phases 0–2 were built and merged the same day; phase 3 (SM-2) stays optional and unbuilt.
 On 1.10.2026 the trainer's report was brought onto the same fold (§7.2), and
-§7 proposes the list of *which* puzzles — phases 5–8, not started.
+§7 proposes the list of *which* puzzles, each account its own — phases
+5–8, not started; D3 answered, D2 and D4 open.
 It sits inside `PLAN-REORGANIZACIJA.md`: the Practise tab is „the hub,
 unchanged", and this plan is the one thing that changes on its cards.
 
@@ -192,8 +193,15 @@ and `puzzlesOf` / `stateOf` / `solvedFirstTry` (`services/puzzleProgress.js`)
 say where each puzzle stands — but every screen shows only **counts**: the
 Practise cards („Solved 48 · 9 to retry"), the trainer's Overview and the
 parent report. Nobody can see *which* puzzles, open one, or try a particular
-one again. This section is that list: for the player themselves, and for a
-trainer looking at one of their students.
+one again. This section is that list, **for the individual**: every account
+sees its own puzzles, and only its own.
+
+The owner, answering D3 the same day: not every user is a trainer or a
+student, and these puzzles are an individual's own work, whoever they are —
+roles play no part in them. So nothing in this section asks who the user
+is; it asks only whose log it is. The first draft had a trainer's view of a
+student's list and a rule that let a trainer do what a player could not;
+both are gone (D1, D3, D5).
 
 ### 7.2 Done first, the same day: the report counts what the cards count
 
@@ -226,11 +234,11 @@ disagreed with the report beside it:
 | The two sources with no by-id | `blunder_game` = `<blunder_games.id>:<ply>` (the position is `blunders[ply].fen`); `basic_mate` = `basic:<preset>:<first four FEN fields>` (the position is in the id) | both can still give a board; neither can be served again as a drill (`PuzzleSource.retryable`) |
 | Retry mode | each drill's `retry: true`, which fetches `retryIds(source)` and walks it | „Try again" for one puzzle is the same mode handed a queue of one |
 | The list + pane pattern | `LibraryList` (`onSelect`, `selectedId`), `BoardPreviewPanel`, `AdaptiveCardGrid` (`docs/PLAN-LISTE.md`, pattern B) | the layout, and its gates' widths |
-| The trainer's right to read | `trainerOwnsStudent` | the only gate for a student's list |
+| The caller | `authenticateToken` (`req.user.id`) | the list's only owner: the account comes from the session, never from the request |
 
 ### 7.4 The design
 
-**One service function, two routes.** `puzzleListOf(pool, userId, { source,
+**One service function, one route.** `puzzleListOf(pool, userId, { source,
 state, since, before, limit })` in `puzzleProgress.js`: `attemptsOf`, then
 `puzzlesOf`, then one row per puzzle —
 
@@ -254,10 +262,11 @@ opponent's move, and the drill plays `setup_move` first
 does, and the gate holds a real row to it — a list of tactics drawn one move
 early would show every player a position they never saw.
 
-- `GET /api/puzzles/list` — the caller's own list.
-- `GET /assignments/progress/:studentId/puzzles` — a trainer's view of one
-  student, behind `trainerOwnsStudent` (403 otherwise), beside the report it
-  belongs to.
+`GET /api/puzzles/list` is the caller's own list, the caller taken from the
+session and never from a parameter. There is no second route: no account
+reads another's list (§7.7). An `own` position is joined only for the
+caller's own exercise (`custom_puzzles.owner_id`), so an id in the log
+cannot fetch another account's board.
 
 **A puzzle that no longer exists stays in the list** with `available:
 false` and no board — an own exercise deleted since, or a pool row removed.
@@ -265,7 +274,7 @@ It still counts in the cards (the fold reads the log, not the pool), so
 hiding it would make the list shorter than the number above it; „Selected:
 N positions" taught that two answers to „how many" must count one set.
 
-**The screen** (one widget, `PuzzleHistoryList`, drawn in both places):
+**The screen** (one widget, `PuzzleHistoryList`):
 
 - Each row: a board (48 px — the `ListTile` slot is 48 high on a desktop,
   measured 21.9.2026), what it is (source and kind: „Mate in 2", „Tactics ·
@@ -280,44 +289,38 @@ N positions" taught that two answers to „how many" must count one set.
 - Wide (≥ 840): the list and a pane beside it with the selected puzzle's
   board, as the Library does. Narrow: a tap opens the same pane as a sheet.
 
-**Doors.**
-
-- *The player*: a card's progress line („Solved 48 · 9 to retry") becomes a
-  door to the list filtered to that card's source; and `Settings` → nothing —
-  the list belongs to Practise, where the numbers are.
-- *The trainer*: the Overview on the student's `Platform` tab gains a
-  `Puzzles` row („10 puzzles this month · see which") that opens the same
-  list for that student, read-only.
+**The door.** A card's progress line on the Practise tab („Solved 48 · 9 to
+retry") opens the list filtered to that card's source. The Practise tab is
+the same for every account, so the door is too — an account with no trainer
+and no students reaches it like any other. Nowhere else: the list belongs
+where its numbers are.
 
 **Actions from the pane** (phase 7, smallest set):
 
-- `Try again` — for the player, on a retryable source: the drill's retry mode
-  with a queue of one (an `initialRetryIds` parameter beside the existing
-  `retry` flag). Writes an ordinary attempt row, so the list and the card
-  move together.
-- `Open in Analysis` — the position, for the player once the puzzle is
-  solved or skipped, and for the trainer always (D3).
-- `Add to homework` — for the trainer, on a position the homework editor can
-  hold, through the editor's existing `initialItems`.
+- `Try again` — on a retryable source: the drill's retry mode with a queue
+  of one (an `initialRetryIds` parameter beside the existing `retry` flag).
+  Writes an ordinary attempt row, so the list and the card move together.
+- `Open in Analysis` — the position, once the puzzle is solved or skipped
+  (D3). One rule for every account.
 
 ### 7.5 Decisions for the owner
 
 | # | Question | Recommended |
 |---|---|---|
-| D1 | Does the trainer see the student's **own** exercises (`own` source) in the list? They are the student's private material, made or scanned by them | **No** — the list for a trainer leaves `own` out and says so in one line; the counts in the report still include them, as PLAN-MATERIJAL decided |
+| D1 | ~~Does the trainer see the student's own exercises in the list?~~ | **Withdrawn** with the trainer's view (D3's answer). An account's own exercises are in its own list like any other source |
 | D2 | Do game blunders and basic mates appear, though neither can be tried again from the list? | **Yes**, with no `Try again` — they are solved and failed like the rest, and the cards count them |
-| D3 | May the player open a puzzle **still to retry** in Analysis, with the engine one tap away? | **Not until it is solved or skipped**; the button says why. A trainer always may |
+| D3 | May a puzzle **still to retry** be opened in Analysis, with the engine one tap away? | **Answered 1.10.2026: roles play no part.** Not every user is a trainer or a student, and these puzzles are an individual's own work. One rule for every account: the puzzle opens once it is solved or skipped, and the button says why until then. *(The owner's answer settled the roles; the „solved or skipped" half is the first draft's recommendation, carried over and open to loosening.)* |
 | D4 | How far back does the list go? | **All of it**, newest first, paged; the period chips of the report are not repeated here |
-| D5 | Is the trainer's list one more tab (`Platform` · `Games` · `Puzzles`) or a row in the Overview that opens it? | **A row that opens it** — the tab bar stays as it is, and the list is reached from the numbers it explains |
+| D5 | ~~The trainer's list: a tab or a row in the Overview?~~ | **Withdrawn** with the trainer's view (D3's answer) |
 
 ### 7.6 Phases
 
 | # | Phase | Carrier | Gate |
 |---|---|---|---|
-| 5 | Server: `puzzleListOf` and the two routes; positions joined per source; `available: false`; the `before` cursor | lead writes the gate, implementer builds | Stub pools asserting the SQL each source is asked (one query per source, never per row); **the list's states summed equal `foldAttempts` over the same rows** (one home, a property over random logs); a deleted own exercise listed with `available: false`; a real Lichess row's board is the position after its `setup_move`, not the stored FEN; paging returns every puzzle exactly once across pages while a new attempt arrives between them; 403 for a stranger and for a pending relationship; D1 as decided |
-| 6 | App: `PuzzleHistoryList`, the card's door, the trainer's row | implementer | Widget tests at 360 × 640, 900 × 700, 1536 × 792; state in words on every row; filters that compose (a fixture where each cuts differently); boards square on both platforms' densities; an absence check that stands where the row would be drawn; the request carries the filters the chips show |
-| 7 | Actions: `Try again` (retry mode with a queue of one, per retryable drill), `Open in Analysis` under D3, `Add to homework` | implementer | A try writes one attempt row with the right source and id (fake the client); the list moves after it; D3's refusal holds on an unsolved puzzle and lifts once solved |
-| 8 | Live pass, items in `TODO-provera.md` under Practise and the trainer's student screen | owner | ticked |
+| 5 | Server: `puzzleListOf` and `GET /api/puzzles/list`; positions joined per source; `available: false`; the `before` cursor | lead writes the gate, implementer builds | Stub pools asserting the SQL each source is asked (one query per source, never per row); **the list's states summed equal `foldAttempts` over the same rows** (one home, a property over random logs); a deleted own exercise listed with `available: false`; a real Lichess row's board is the position after its `setup_move`, not the stored FEN; paging returns every puzzle exactly once across pages while a new attempt arrives between them; **the list is the caller's alone** — the SQL is bound to the session's id, a `userId` or `studentId` in the query changes nothing, and an `own` exercise of another account named by an id in the log comes back with no board |
+| 6 | App: `PuzzleHistoryList` and the cards' door | implementer | Widget tests at 360 × 640, 900 × 700, 1536 × 792; the door is on the card for an account with no trainer and no students; state in words on every row; filters that compose (a fixture where each cuts differently); boards square on both platforms' densities; an absence check that stands where the row would be drawn; the request carries the filters the chips show |
+| 7 | Actions: `Try again` (retry mode with a queue of one, per retryable drill) and `Open in Analysis` under D3 | implementer | A try writes one attempt row with the right source and id (fake the client); the list moves after it; D3's refusal holds on an unsolved puzzle and lifts once solved, the same for an account that teaches, one that is taught and one that is neither |
+| 8 | Live pass, items in `TODO-provera.md` under Practise | owner | ticked |
 
 Phase 5 needs no schema change: the log, the pools and the fold exist. If
 `attemptsOf` over a long tactics history proves slow in phase 5's
@@ -328,6 +331,13 @@ next step — measured first, not assumed.
 
 - No new store: the list is the fold over the log, as the cards are.
 - No SM-2 (phase 3 stays optional), no streaks, no leaderboard.
-- No list for a parent. The report a parent reads stays the summary.
+- **No account reads another's list** — not a trainer, not a parent. The
+  puzzles are an individual's own work (owner, 1.10.2026). What a trainer
+  sees of a student stays where it was: the report's counts (§7.2), which
+  the trainer–student relationship already shows, and a parent's report
+  stays the summary.
+- No `Add to homework` from the list. Sending a puzzle to someone is an act
+  between two accounts, and the list is one account's own; the homework
+  editor has its own doors.
 - It does not change what counts as solved — `stateOf` is the one rule, and
   the list only shows it.
