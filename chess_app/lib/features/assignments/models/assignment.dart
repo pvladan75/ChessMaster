@@ -467,6 +467,12 @@ class StudentProgress {
 
 /// Human-readable labels for the Lichess motif tags, so a trainer's report does
 /// not read as jargon.
+///
+/// The same words as the server's `THEME_LABELS`, held to
+/// `chess_backend/test/fixtures/puzzle_themes.json` by
+/// `test/homework_themes_test.dart`: every motif the server trains has words
+/// here, and every theme here is one a puzzle homework keeps, since the
+/// homework editor offers a chip for each.
 const Map<String, String> themeLabels = {
   'fork': 'fork',
   'pin': 'pin',
@@ -489,6 +495,12 @@ const Map<String, String> themeLabels = {
   'exposedKing': 'exposed king',
   'backRankMate': 'back-rank mate',
   'smotheredMate': 'smothered mate',
+  'anastasiaMate': "Anastasia's mate",
+  'arabianMate': 'Arabian mate',
+  'bodenMate': "Boden's mate",
+  'doubleBishopMate': 'double bishop mate',
+  'dovetailMate': 'dovetail mate',
+  'hookMate': 'hook mate',
   'advancedPawn': 'advanced pawn',
   'promotion': 'promotion',
   'underPromotion': 'underpromotion',

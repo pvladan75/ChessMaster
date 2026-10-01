@@ -10116,3 +10116,41 @@ is the test machine's, not the screen's.
 would have filtered them in the app by the label map's keys — a second rule
 beside the server's `trainableThemes`, which the report already reads. The
 other session working on the report pointed it out; the server filters now.
+
+## 1.10.2026 — a homework chip does what it says
+
+Found beside the drill-themes fix: both homework dialogs offered „rook
+endgame" and „pawn endgame", and the server kept only the motifs it trains,
+so such a homework went out as puzzles of any kind and nobody was told — this
+codebase's recurring shape, a step that skips silently and reports success.
+„Assign drill" also ticked a suggested weakness it drew no chip for, and six
+trained motifs had no words. The owner chose (a): a game phase filters a
+homework and is never rated or reported, so `homeworkThemes` stands beside
+`trainableThemes` instead of changing it. Backend 2042 → **2049**, 2206 →
+**2213** with a database; app 5421 → **5426**; analyze the same 22.
+
+**Copies of one vocabulary drift in the seams nobody owns.** The server's
+motif list, its label table, the app's label table and the dialog's curated
+chips were each right on their own; the faults were between them — a chip with
+no meaning on the server, a motif with no words on either side. One fixture
+both suites read now holds the seams: the words equal, every motif named,
+every named theme kept by a homework.
+
+**A selection the user cannot see is one the user cannot undo.** The drill
+dialog preselected suggestions by value and drew its chips from a fixed list,
+so a suggestion outside the list was ticked, put in the title and sent, with
+no control on the screen. When state is set from data, draw it from the same
+data.
+
+**Two rules that overlap are two rules, not one with an exception.** „What a
+homework may ask for" and „what is a skill" differ by the game phases; written
+as its own function the homework rule leaves the report, the ratings and the
+tactics selector exactly as they were, and a test pins that a phase is still
+not a skill — the mutation that made it one was caught there and nowhere else.
+
+**A mutation tool that cannot see a failure calls everything a survivor** —
+again. The app round first reported all six mutations as survivors while
+every run exited 1 and the control exited 0: the parser's pattern had lost its
+backslashes on the way into a string. The exit codes disagreed with the list,
+and the tool was proved on the one mutation known to fail before the list was
+read again. Read a mutation round's exit codes beside its list.

@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5421 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5426 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 2042 without TEST_DATABASE_URL, 2206 with it (both measured 1.10.2026)
+cd chess_backend && npm test          # node --test, 2049 without TEST_DATABASE_URL, 2213 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1285,6 +1285,15 @@ migration. **Before writing a new value into a shared column, list its
 readers**: the tactics selector counts every row's stored themes, so a
 stored `mateIn2` would have stopped it exploring mate in two, and met that
 theme's four-attempt threshold with puzzles that never moved its rating.
+Then a homework chip does what it says (→ **5426**; backend → **2049 /
+2213**, all measured): both homework dialogs offered „rook endgame" and
+„pawn endgame", which the server dropped, so such a homework sent puzzles of
+any kind. On the owner's choice a game phase now filters a homework
+(`homeworkThemes`) and is still never rated or reported; „Assign drill"
+draws a chip for every theme it ticks; six mate motifs have words; and both
+label tables are held to `chess_backend/test/fixtures/puzzle_themes.json`,
+which both suites read. **A selection the user cannot see is one the user
+cannot undo.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

@@ -31,6 +31,7 @@ const MATE_THEMES = ['mateIn1', 'mateIn2', 'mateIn3', 'mateIn4', 'mateIn5'];
 
 const TRAINABLE_THEMES = [...MOTIF_THEMES, ...MATE_THEMES];
 const TRAINABLE_SET = new Set(TRAINABLE_THEMES);
+const PHASE_SET = new Set(PHASE_THEMES);
 
 /// How many attempts a theme needs before its rating is treated as a measurement
 /// rather than noise. Below this, one unlucky puzzle would brand a theme as the
@@ -66,6 +67,18 @@ function splitSolution(movesText) {
 /// Keeps only the themes worth showing or rating.
 function trainableThemes(themes) {
   return (themes || []).filter((theme) => TRAINABLE_SET.has(theme));
+}
+
+/// Keeps the themes a homework of puzzles may ask for: every motif above, and
+/// the game phases, which narrow a set („only rook endgames") without being a
+/// skill — nothing rates or reports them, because `trainableThemes` does not
+/// take them. The owner's choice of 1.10.2026: until then a homework kept
+/// motifs only, while both homework dialogs offered „rook endgame", so such a
+/// homework went out as puzzles of any kind with no word said. One home for
+/// what a homework keeps: the drill a trainer assigns, the homework editor and
+/// the send all read it.
+function homeworkThemes(themes) {
+  return (themes || []).filter((theme) => TRAINABLE_SET.has(theme) || PHASE_SET.has(theme));
 }
 
 /// Chooses which theme to train next.
@@ -221,6 +234,7 @@ module.exports = {
   EXPLORATION_RATE,
   splitSolution,
   trainableThemes,
+  homeworkThemes,
   pickTargetTheme,
   ratingBand,
   getUserRatingProfile,

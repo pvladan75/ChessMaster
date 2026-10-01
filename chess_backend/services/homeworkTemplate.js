@@ -18,7 +18,7 @@ const crypto = require('crypto');
 const logger = require('./logger');
 const { parseEngineGameTask } = require('./engineGameTask');
 const { assignableProblem, exerciseColumns } = require('./exercise');
-const { trainableThemes } = require('./puzzleSelectionService');
+const { homeworkThemes } = require('./puzzleSelectionService');
 
 const KINDS = ['lesson', 'positions', 'puzzles', 'engine_game'];
 const MAX_ITEMS = 20;
@@ -74,7 +74,7 @@ function parseItem(raw, { index }) {
       if (!Number.isInteger(count) || count < 1 || count > 50) {
         return { ok: false, error: `${where}: a puzzle set needs a count from 1 to 50.` };
       }
-      const themes = trainableThemes(Array.isArray(task.themes) ? task.themes : []);
+      const themes = homeworkThemes(Array.isArray(task.themes) ? task.themes : []);
       const min = task.minRating === undefined || task.minRating === null
         ? null
         : Number.parseInt(task.minRating, 10);

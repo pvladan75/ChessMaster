@@ -16,7 +16,7 @@ const { notify } = require('./notifications');
 const STRONG_THEME_ACCURACY = 70;
 const WEAK_THEME_ACCURACY = 50;
 const { assignableProblem, exerciseColumns } = require('./exercise');
-const { trainableThemes } = require('./puzzleSelectionService');
+const { homeworkThemes } = require('./puzzleSelectionService');
 const { filmColumns, filmOf, filmFacts, noFilmReason } = require('./tutorialFilm');
 const homework = require('./homeworkService');
 const { judgeEngineGame, goalMetByTablebase } = require('./engineGameTask');
@@ -105,7 +105,7 @@ async function assignmentParticipant(pool, assignmentId, userId) {
 /// if the filters leave nothing, so an assignment is never silently empty.
 async function resolvePuzzles(pool, { studentId, themes, minRating, maxRating, count }) {
   const wanted = Math.min(Math.max(count || DEFAULT_ITEMS, 1), MAX_ITEMS);
-  const cleanThemes = trainableThemes(themes || []);
+  const cleanThemes = homeworkThemes(themes || []);
 
   const conditions = ['p.rating BETWEEN $1 AND $2'];
   const filters = [minRating || 400, maxRating || 3200];
@@ -178,7 +178,7 @@ async function createPuzzleAssignment(pool, {
        RETURNING *`,
       [
         trainerId, studentId, title, instructions || null,
-        trainableThemes(themes || []), minRating || null, maxRating || null, dueAt || null,
+        homeworkThemes(themes || []), minRating || null, maxRating || null, dueAt || null,
       ]
     );
     const assignment = assignmentRes.rows[0];

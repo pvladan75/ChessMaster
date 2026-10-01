@@ -14,10 +14,13 @@ const { getStudentProgress } = require('./assignmentService');
 
 /// Readable names for the Lichess motif tags.
 ///
-/// Duplicated from `chess_app/lib/features/assignments/models/assignment.dart`,
-/// which needs the same table for the in-app UI. Kept in sync by hand — new
-/// Lichess themes appear rarely, and both sides fall back to the raw tag, so a
-/// missed entry degrades to "untranslated" rather than "missing".
+/// The app has the same table (`themeLabels` in
+/// `chess_app/lib/features/assignments/models/assignment.dart`), and both are
+/// held to `test/fixtures/puzzle_themes.json`, which both suites read: the two
+/// say the same words, every motif the server trains has them, and every
+/// theme here is one a puzzle homework keeps (`homeworkThemes`). Until
+/// 1.10.2026 they were kept in sync by hand, and six mate motifs had no words
+/// on either side. Both still fall back to the raw tag.
 const THEME_LABELS = {
   fork: 'fork',
   pin: 'pin',
@@ -40,6 +43,12 @@ const THEME_LABELS = {
   exposedKing: 'exposed king',
   backRankMate: 'back-rank mate',
   smotheredMate: 'smothered mate',
+  anastasiaMate: "Anastasia's mate",
+  arabianMate: 'Arabian mate',
+  bodenMate: "Boden's mate",
+  doubleBishopMate: 'double bishop mate',
+  dovetailMate: 'dovetail mate',
+  hookMate: 'hook mate',
   advancedPawn: 'advanced pawn',
   promotion: 'promotion',
   underPromotion: 'underpromotion',

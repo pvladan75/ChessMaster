@@ -55,6 +55,12 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
   final _instructions = TextEditingController();
 
   late Set<String> _themes;
+
+  /// The chips: the usual choices, then any suggested weakness they leave out.
+  /// A suggestion is ticked from the start, so it has to be on the screen to
+  /// be seen and unticked; until 1.10.2026 a weak „zugzwang" went into the
+  /// title and the request with no chip for it.
+  late final List<String> _chips;
   int _count = 10;
   RangeValues _ratingRange = const RangeValues(1000, 1800);
   DateTime? _dueAt;
@@ -65,6 +71,10 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
   void initState() {
     super.initState();
     _themes = widget.suggestedThemes.take(3).toSet();
+    _chips = [
+      ..._offerableThemes,
+      ..._themes.where((theme) => !_offerableThemes.contains(theme)),
+    ];
     _title = TextEditingController(
       text: _themes.isEmpty
           ? 'Assignment'
@@ -175,7 +185,7 @@ class _CreateAssignmentDialogState extends State<CreateAssignmentDialog> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  for (final theme in _offerableThemes)
+                  for (final theme in _chips)
                     FilterChip(
                       label: Text(themeLabel(theme), style: AppText.body),
                       selected: _themes.contains(theme),

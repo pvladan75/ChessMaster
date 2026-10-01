@@ -363,7 +363,7 @@ test('several chosen themes mean "any of", not "all of"', async () => {
   assert.ok(pool.calls[0].params.some((p) => Array.isArray(p) && p.includes('fork')));
 });
 
-test('non-trainable themes are dropped from the filter', async () => {
+test('a tag that is neither a motif nor a game phase is dropped from the filter', async () => {
   const pool = stubPool([[{ puzzle_id: 'a', rating: 1400 }]]);
   await resolvePuzzles(pool, { studentId: 7, themes: ['crushing', 'long'], count: 5 });
 

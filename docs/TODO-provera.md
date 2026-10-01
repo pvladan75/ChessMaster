@@ -9489,6 +9489,13 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: U `Overview` red „mate in 2" sa procentom i brojem zagonetki; u izveštaju „mate in 2" pod „What we are working on next"; u `Assign drill` štikliran čip „mate in 2" i naslov koji počinje sa „Drill:" i sadrži „mate in 2"; na učenikovoj kartici „Most mistakes: … mate in 2 …". Nigde „mate_puzzle", „winning_position" ni „mateIn2".
    Potrebno: Windows; nalog trenera i učenika; server (restartovan posle izmene — nodemon to radi sam).
 
+18. [ ] **Čipovi „rook endgame" i „pawn endgame" u domaćem daju zagonetke tih završnica, a predložena slaba tema se vidi kao čip.** [263.2]
+   O čemu se radi: Do 1.10.2026 oba dijaloga za domaći su nudila „rook endgame" i „pawn endgame", ali ih je server odbacivao, pa je takav domaći bio bilo kakve zagonetke iz raspona rejtinga. Sada je faza partije filter domaćeg (ne ocenjuje se i ne ulazi u izveštaj). Uz to `Assign drill` crta čip i za predloženu slabu temu koje nema među uobičajenim čipovima (do sada je bila štiklirana a nevidljiva), a šest matnih motiva ima reči (npr. „Anastasia's mate", „hook mate").
+   Gde: `Teach` → `Students and trainers` → (red učenika) → `Progress` → `Assign drill`; i `Teach` → `Homework` → `New homework` → `Add` → `A puzzle set`.
+   Uradi: U `Assign drill` ostavi štikliran samo „rook endgame" i pošalji; kao učenik otvori taj domaći. Pa u uređivaču domaćeg dodaj `A puzzle set` sa samo „pawn endgame" i pošalji domaći učeniku.
+   Treba da vidiš: U prvom domaćem na svakoj tabli su samo kraljevi, topovi i pešaci, u drugom samo kraljevi i pešaci (tako Lichess označava te završnice). Ako učenikova slaba tema nije među uobičajenim čipovima (npr. „zugzwang"), u `Assign drill` je njen čip vidljiv i štikliran i može da se skine. Među čipovima `A puzzle set` su „Anastasia's mate" i ostalih pet matnih motiva; nigde sirova oznaka kao „anastasiaMate".
+   Potrebno: Windows; nalog trenera i učenika; server (restartovan posle izmene — nodemon to radi sam).
+
 ### Teach — Preparation
 
 1. [ ] **Provera pri čuvanju ne remeti uključenu analizu motora.** [187.6]
