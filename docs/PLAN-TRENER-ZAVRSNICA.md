@@ -557,7 +557,20 @@ The work is done in a worktree, because the owner's nodemon restarts on every
   - *(Fable, 1.10.2026)* the null guard removed — `labelOf(null)` is `''`, and
     the app would draw an empty chip.
 
-### Phase 3 — the draft belongs to the Analyse tab [implementer]
+### Phase 3 — the draft belongs to the Analyse tab [implementer] — built by the lead, 1.10.2026
+
+Small enough to do inline. `_ownsDraft`, one getter read by restoring,
+`_saveDraft` and the `dispose` flush. `T/analysis_draft_owner_test.dart`, ten
+cases (the tab's screen, and three per kind of `initial…`): nine red on the
+old code; the `_saveDraft` guard off turns exactly the three „after a move"
+cases and the three „byte for byte" cases red, the flush guard off exactly the
+three „when it is popped" and the three „byte for byte". Of the seven files
+the grep named, **one** relied on a pushed screen writing the draft:
+`engine_hold_test`'s „a review lands on the live Analysis screen … and goes
+into its draft" pumped a screen handed `initialTree`. Split openly in two —
+the marks land on a pushed screen and leave the draft alone, and they reach
+the draft on the tab's own screen (seeded with the unmarked game). The other
+six, run on their own: 53 green.
 
 **Before the change:** grep `T` for `AnalysisDraftService` and
 `analysis_studio_draft`. These files use it:

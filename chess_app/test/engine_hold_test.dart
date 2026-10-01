@@ -31,6 +31,7 @@ import 'package:chess_app/features/analysis_studio/services/game_review_runner.d
 import 'package:chess_app/features/tutorial_studio/services/game_tutorial_io/masters_walk.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/services/account_local_state.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/review_notice.dart';
@@ -270,22 +271,17 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
   });
 
-  testWidgets(
-      'a review lands on the live Analysis screen that holds the game, and '
-      'goes into its draft', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    EvalCache.instance.clear();
-    tester.view.physicalSize = const Size(400, 900);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-
-    final runner =
-        GameReviewRunner(book: _noBook, tablebase: (_) async => null);
-    final shown = analysisTreeFromMoves(_start, _scholar).root;
+  // Split in two on 1.10.2026 (docs/PLAN-TRENER-ZAVRSNICA.md, D7). This case
+  // pumped a screen handed `initialTree` and read the marks back from the
+  // device draft — but the draft belongs to the Analyse tab now, and a screen
+  // handed a tree no longer writes it. What it protected is kept: the marks
+  // land on the board the reader holds, and they reach the draft when that
+  // board is the tab's own (the second case, which starts from a draft).
+  Future<GameReviewRun> reviewOnto(WidgetTester tester,
+      AnalysisStudioScreen screen, GameReviewRunner runner) async {
     await tester.pumpWidget(MaterialApp(
       theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
-      home: AnalysisStudioScreen(
-          userSession: _session(), initialTree: shown, reviewRunner: runner),
+      home: screen,
     ));
     await tester.pumpAndSettle();
 
@@ -300,19 +296,71 @@ void main() {
     );
     await run.finished;
     await tester.pump(const Duration(seconds: 1));
+    return run;
+  }
 
-    expect(run.landing, ReviewLanding.onBoard);
-    AnalysisNode node = shown;
+  AnalysisNode sixth(AnalysisNode root) {
+    var node = root;
     for (var i = 0; i < 6; i++) {
       node = node.children.first;
     }
-    expect(node.nag, '??', reason: '3...Nf6 allows mate in one');
+    return node;
+  }
 
+  testWidgets(
+      'a review lands on a pushed Analysis screen that holds the game, and '
+      'leaves the draft alone', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    EvalCache.instance.clear();
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final runner =
+        GameReviewRunner(book: _noBook, tablebase: (_) async => null);
+    final shown = analysisTreeFromMoves(_start, _scholar).root;
+    final run = await reviewOnto(
+        tester,
+        AnalysisStudioScreen(
+            userSession: _session(), initialTree: shown, reviewRunner: runner),
+        runner);
+
+    expect(run.landing, ReviewLanding.onBoard);
+    expect(sixth(shown).nag, '??', reason: '3...Nf6 allows mate in one');
+    expect(await AnalysisDraftService.instance.load(), isNull,
+        reason: "a screen handed a tree does not write the tab's draft");
+  });
+
+  testWidgets(
+      "a review lands on the Analyse tab's own screen, and goes into its "
+      'draft', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    EvalCache.instance.clear();
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    // The tab's own work, without a mark on it: what the review is to change.
+    final work = analysisTreeFromMoves(_start, _scholar).root;
+    await AnalysisDraftService.instance.flush(
+      rootNode: work,
+      currentNode: work,
+      blackOrientation: false,
+      epoch: AccountLocalState.epoch,
+    );
+    expect(sixth((await AnalysisDraftService.instance.load())!.rootNode).nag,
+        isNot('??'));
+
+    final runner =
+        GameReviewRunner(book: _noBook, tablebase: (_) async => null);
+    final run = await reviewOnto(
+        tester,
+        AnalysisStudioScreen(userSession: _session(), reviewRunner: runner),
+        runner);
+
+    expect(run.landing, ReviewLanding.onBoard);
     final draft = await AnalysisDraftService.instance.load();
-    AnalysisNode saved = draft!.rootNode;
-    for (var i = 0; i < 6; i++) {
-      saved = saved.children.first;
-    }
-    expect(saved.nag, '??', reason: 'the marks did not reach the draft');
+    expect(sixth(draft!.rootNode).nag, '??',
+        reason: 'the marks did not reach the draft');
   });
 }

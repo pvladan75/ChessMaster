@@ -239,10 +239,23 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     // An explicit initialFen, game or tree means the caller wants exactly
     // that (e.g. exported from a game), so it must not be overwritten by a
     // draft.
-    if (widget.initialFen == null && game == null && tree == null) {
-      _restoreDraft();
-    }
+    if (_ownsDraft) _restoreDraft();
   }
+
+  /// Whether this is the Analyse tab's own screen, the one the device draft
+  /// belongs to: handed no position, game or tree.
+  ///
+  /// One condition, three readers — restoring, [_saveDraft] and the `dispose`
+  /// flush (docs/PLAN-TRENER-ZAVRSNICA.md, D7). Until 1.10.2026 only
+  /// restoring asked it, so every pushed Analysis (the Library, Preparation,
+  /// the opening report, a game from the archive or a homework) still wrote
+  /// the one slot, and the next start showed that tree in the Analyse tab in
+  /// place of the tab's own work. Work in a pushed Analysis is kept by
+  /// `Save as…`.
+  bool get _ownsDraft =>
+      widget.initialFen == null &&
+      widget.initialGame == null &&
+      widget.initialTree == null;
 
   /// The board size slider and the panel checkboxes are on this screen — its
   /// board menu and its Panels sheet — so what they change has to follow them
@@ -307,12 +320,14 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     _reviewRunner.detachBoard(this);
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     // A debounced write would be lost with this screen, so force it out first.
-    unawaited(AnalysisDraftService.instance.flush(
-      rootNode: _rootNode,
-      currentNode: _currentNode,
-      blackOrientation: _orientation == PlayerColor.black,
-      epoch: _draftEpoch,
-    ));
+    if (_ownsDraft) {
+      unawaited(AnalysisDraftService.instance.flush(
+        rootNode: _rootNode,
+        currentNode: _currentNode,
+        blackOrientation: _orientation == PlayerColor.black,
+        epoch: _draftEpoch,
+      ));
+    }
     // Hands the shared engine back to the screen that pushed this one.
     _stockfishService.detach(this);
     super.dispose();
@@ -321,6 +336,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   /// Persists the working tree so leaving the screen — to change a setting, to
   /// take a call, or because Android reclaimed memory — never loses analysis.
   void _saveDraft() {
+    if (!_ownsDraft) return;
     AnalysisDraftService.instance.scheduleSave(
       rootNode: _rootNode,
       currentNode: _currentNode,
