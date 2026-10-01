@@ -102,6 +102,99 @@ class SourceProgress {
   static int _int(dynamic v) => (v as num?)?.toInt() ?? 0;
 }
 
+/// Where a puzzle stands, as the server's `stateOf` says it — the Practise
+/// cards' fold, read one puzzle at a time.
+abstract final class PuzzleState {
+  static const String solved = 'solved';
+  static const String failed = 'failed';
+  static const String skipped = 'skipped';
+
+  static const List<String> all = [failed, skipped, solved];
+}
+
+/// One puzzle an account has met — a row of `GET /api/puzzles/list`
+/// (docs/PLAN-NAPREDAK-VEZBI.md §7). The server decides everything here; the
+/// app only words it (`puzzle_history_words.dart`).
+class PuzzleListItem {
+  const PuzzleListItem({
+    required this.source,
+    required this.puzzleId,
+    required this.state,
+    required this.firstTry,
+    required this.tries,
+    required this.solvedOnTry,
+    required this.firstAt,
+    required this.latestAt,
+    required this.available,
+    required this.fen,
+    required this.detail,
+  });
+
+  final String source;
+  final String puzzleId;
+
+  /// One of [PuzzleState].
+  final String state;
+
+  /// Whether the first meeting solved it, with no hint and no skip.
+  final bool firstTry;
+
+  /// Answers given — a skip is not one.
+  final int tries;
+
+  /// Which answer first solved it, or null if none has.
+  final int? solvedOnTry;
+
+  final DateTime firstAt;
+  final DateTime latestAt;
+
+  /// False when the puzzle's row is gone — an own exercise deleted since —
+  /// and so is its board. It stays in the list: the cards still count it.
+  final bool available;
+
+  /// The board the puzzle asked about (a Lichess one after its setup move),
+  /// or null when [available] is false.
+  final String? fen;
+
+  /// What the puzzle's own table says of it: a mate's depth, an ending's mode
+  /// and label, a game blunder's players, a tactic's motifs, a basic mate's
+  /// preset, an own exercise's task. Empty when [available] is false.
+  final Map<String, dynamic> detail;
+
+  /// One puzzle in the whole list: ids are unique only within a source.
+  String get key => '$source:$puzzleId';
+
+  factory PuzzleListItem.fromJson(Map<String, dynamic> json) => PuzzleListItem(
+        source: json['source']?.toString() ?? '',
+        puzzleId: json['puzzleId']?.toString() ?? '',
+        state: json['state']?.toString() ?? PuzzleState.failed,
+        firstTry: json['firstTry'] == true,
+        tries: (json['tries'] as num?)?.toInt() ?? 0,
+        solvedOnTry: (json['solvedOnTry'] as num?)?.toInt(),
+        firstAt: DateTime.parse(json['firstAt'] as String),
+        latestAt: DateTime.parse(json['latestAt'] as String),
+        available: json['available'] == true,
+        fen: json['fen'] as String?,
+        detail: (json['detail'] as Map<String, dynamic>?) ?? const {},
+      );
+}
+
+/// One page of the list, and the cursor for the next — null on the last.
+class PuzzleListPage {
+  const PuzzleListPage({required this.puzzles, required this.next});
+
+  final List<PuzzleListItem> puzzles;
+  final String? next;
+
+  factory PuzzleListPage.fromJson(Map<String, dynamic> json) => PuzzleListPage(
+        puzzles: ((json['puzzles'] as List?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(PuzzleListItem.fromJson)
+            .toList(),
+        next: json['next'] as String?,
+      );
+}
+
 /// Attempt writes still in flight, and the one thing that makes a read of the
 /// log correct straight after one.
 ///
@@ -230,6 +323,44 @@ class PuzzleAttemptApi {
       };
     } catch (e) {
       AppLogger.log('[Puzzles] progress not read: $e');
+      return null;
+    }
+  }
+
+  /// One page of the puzzles this account has met, newest first
+  /// (`GET /api/puzzles/list`). Each argument narrows the list only when it is
+  /// given — an absent one is not sent. [before] is the `next` of the page
+  /// before. Null when the server could not be reached, which the screen
+  /// says, and which is not an empty list.
+  Future<PuzzleListPage?> list({
+    String? source,
+    String? state,
+    String? before,
+    int? limit,
+  }) async {
+    final query = <String, String>{
+      if (source != null) 'source': source,
+      if (state != null) 'state': state,
+      if (before != null) 'before': before,
+      if (limit != null) 'limit': '$limit',
+    };
+    try {
+      // A write still on its way would leave the list one try behind the
+      // drill the reader just left — the reason the barrier exists.
+      await PuzzleAttemptWrites.settled();
+      final uri = Uri.parse('$backendUrl/api/puzzles/list')
+          .replace(queryParameters: query.isEmpty ? null : query);
+      final res = await _client
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 12));
+      if (res.statusCode != 200) {
+        AppLogger.log('[Puzzles] list not read: ${res.statusCode}');
+        return null;
+      }
+      return PuzzleListPage.fromJson(
+          jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>);
+    } catch (e) {
+      AppLogger.log('[Puzzles] list not read: $e');
       return null;
     }
   }

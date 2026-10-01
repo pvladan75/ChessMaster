@@ -16,7 +16,7 @@ const { Chess } = require('chess.js');
 const {
   attemptsOf, puzzlesOf, stateOf, solvedFirstTry, isKnownSource,
 } = require('./puzzleProgress');
-const { splitSolution } = require('./puzzleSelectionService');
+const { splitSolution, trainableThemes } = require('./puzzleSelectionService');
 const { labelOf } = require('./endgameCatalog');
 
 /// Where a puzzle can stand — `stateOf`'s three answers.
@@ -174,7 +174,10 @@ async function boardsOf(pool, userId, page) {
     ).then(({ rows }) => {
       for (const row of rows) {
         const fen = afterSetupMove(row);
-        if (fen) put('lichess', row.puzzle_id, fen, { rating: row.rating, themes: row.themes || [] });
+        // Motifs only, by the server's one rule for what a motif is — the
+        // report reads them through the same filter. „crushing", „long" or
+        // „middlegame" tell a reader nothing to learn from.
+        if (fen) put('lichess', row.puzzle_id, fen, { rating: row.rating, themes: trainableThemes(row.themes) });
       }
     }));
   }

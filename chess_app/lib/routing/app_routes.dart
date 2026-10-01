@@ -57,6 +57,16 @@ abstract final class AppRoutes {
   /// that failed last time.
   static const String ownExercises = '/exercises/solve';
 
+  /// Which puzzles this account has met, one row each, newest first
+  /// (`docs/PLAN-NAPREDAK-VEZBI.md` §7). `?source=` opens it on one source,
+  /// as a Practise card's progress line does.
+  static const String puzzleHistory = '/puzzles/history';
+
+  static String puzzleHistoryPath({String? source}) => source == null
+      ? puzzleHistory
+      : Uri(path: puzzleHistory, queryParameters: {'source': source})
+          .toString();
+
   /// The student's own opening repertoire: the list of what they have started,
   /// and the screen that asks them what they would play. Its own route because
   /// it is a place, and because the training hub and Settings both name it.

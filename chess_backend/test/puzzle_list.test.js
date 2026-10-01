@@ -336,7 +336,10 @@ test('a Lichess puzzle shows the board after its setup move, not the stored one'
   assert.equal(by['00008'].fen, 'r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25');
   assert.equal(by['0008Q'].fen, '8/5R2/1p2P3/p4r2/P6p/1P3Pk1/4K3/8 b - - 2 64');
   assert.equal(by['00008'].available, true);
-  assert.deepEqual(by['00008'].detail, { rating: 1939, themes: LICHESS_00008.themes });
+  // Motifs only (trainableThemes): of crushing, hangingPiece, long and
+  // middlegame, one names something a reader can learn.
+  assert.deepEqual(by['00008'].detail, { rating: 1939, themes: ['hangingPiece'] });
+  assert.deepEqual(by['0008Q'].detail.themes, [], 'advantage, endgame, rookEndgame and short are none');
 });
 
 test('a Lichess row whose setup move cannot be played shows no board rather than a wrong one', async () => {

@@ -104,7 +104,7 @@ describe('the puzzle list on a real database', { skip: skip ? skip.skip : false 
     assert.equal(page.next, null);
     assert.equal(by['00008'].fen, LICHESS_SHOWN);
     assert.equal(by['00008'].state, 'failed', "the other account's solve is not this list's");
-    assert.deepEqual(by['00008'].detail.themes, ['crushing', 'hangingPiece', 'long', 'middlegame']);
+    assert.deepEqual(by['00008'].detail.themes, ['hangingPiece'], 'motifs only');
     assert.equal(by.m1.fen, MATE_FEN);
     assert.deepEqual(by.m1.detail, { mateDepth: 2 });
     assert.equal(by.eg_1.fen, ENDGAME_FEN);

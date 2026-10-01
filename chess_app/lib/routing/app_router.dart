@@ -37,6 +37,7 @@ import 'package:chess_app/features/archive/screens/player_profile_screen.dart';
 import 'package:chess_app/features/archive/screens/repertoire_diff_screen.dart';
 import 'package:chess_app/features/training/screens/training_hub_screen.dart';
 import 'package:chess_app/features/exercises/screens/own_exercise_solve_screen.dart';
+import 'package:chess_app/features/puzzle_history/screens/puzzle_history_screen.dart';
 import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/features/position_scanner/screens/scan_review_screen.dart';
 import 'package:chess_app/features/library/screens/library_screen.dart';
@@ -258,6 +259,13 @@ final List<RouteBase> appRouteTable = [
     builder: (context, state) => OwnExerciseSolveScreen(
       session: SessionService.instance.current,
       retry: state.uri.queryParameters['retry'] == '1',
+    ),
+  ),
+  GoRoute(
+    path: AppRoutes.puzzleHistory,
+    builder: (context, state) => PuzzleHistoryScreen(
+      session: SessionService.instance.current,
+      initialSource: state.uri.queryParameters['source'],
     ),
   ),
   GoRoute(

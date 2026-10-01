@@ -186,6 +186,10 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
                     _pushAndRefresh(AppRoutes.drillPath('winning_position')),
                 progress: _progress,
                 onRetry: _onRetry,
+                // The same for every account: the puzzles are an individual's
+                // own work, and roles play no part in them (§7, D3).
+                onOpenList: (source) => _pushAndRefresh(
+                    AppRoutes.puzzleHistoryPath(source: source)),
                 onSelectOwnExercises: _hasOwnExercises
                     ? () => _pushAndRefresh(AppRoutes.ownExercises)
                     : null,

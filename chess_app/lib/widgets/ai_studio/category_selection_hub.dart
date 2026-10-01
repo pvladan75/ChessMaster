@@ -39,6 +39,12 @@ class CategorySelectionHubWidget extends StatelessWidget {
   /// retryable source with something to retry.
   final void Function(String source)? onRetry;
 
+  /// The list of *which* puzzles (docs/PLAN-NAPREDAK-VEZBI.md §7), opened on a
+  /// card's source by tapping its progress line. Null leaves every line words
+  /// only: a line that looked like a door and opened nothing would be worse
+  /// than a line.
+  final void Function(String source)? onOpenList;
+
   /// „Solve" on the „My exercises" card — one's own find exercises, solved
   /// alone (`docs/PLAN-MATERIJAL.md`, phase 1). **The card is drawn only when
   /// this is given**: the screen passes it for an account that owns at least
@@ -65,6 +71,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
     required this.onSelectMistakesDrill,
     this.progress,
     this.onRetry,
+    this.onOpenList,
     this.onSelectOwnExercises,
     this.ownExercisesWaiting,
   });
@@ -87,6 +94,13 @@ class CategorySelectionHubWidget extends StatelessWidget {
         ? 'Solved ${p.solved} · ${p.toRetry} to retry'
         : 'Solved ${p.solved}';
     return label == null ? line : '$label: $line';
+  }
+
+  /// What a tap on [source]'s progress line does, or null when there is no
+  /// list to open.
+  VoidCallback? _opener(String source) {
+    final open = onOpenList;
+    return open == null ? null : () => open(source);
   }
 
   /// „Retry failed (M)", only for a retryable source with something to
@@ -207,6 +221,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'Puzzles from the Lichess database, matched to your rating and the theme '
           'you struggle with most. Rating is tracked per motif separately.',
       progressLine: _progressLine(PuzzleSource.lichess),
+      onOpenProgress: _opener(PuzzleSource.lichess),
       retryButton: _retryButton(PuzzleSource.lichess),
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
@@ -234,6 +249,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
       description: 'The find-the-move exercises you made or scanned, solved '
           'on your own and checked the way homework is.',
       progressLine: _progressLine(PuzzleSource.own),
+      onOpenProgress: _opener(PuzzleSource.own),
       retryButton: _retryButton(PuzzleSource.own),
       action: FilledButton.icon(
         icon: const Icon(Icons.play_arrow),
@@ -251,6 +267,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
       description:
           'Solve forced checkmate sequences in the requested number of moves.',
       progressLine: _progressLine(PuzzleSource.matePuzzle),
+      onOpenProgress: _opener(PuzzleSource.matePuzzle),
       retryButton: _retryButton(PuzzleSource.matePuzzle),
       action: Wrap(
         spacing: AppSpacing.sm,
@@ -287,8 +304,10 @@ class CategorySelectionHubWidget extends StatelessWidget {
           'move that preserves the result is accepted, not just one. Before '
           'starting, choose the endgame type and difficulty level.',
       progressLine: _progressLine(PuzzleSource.endgame, label: 'Endgames'),
+      onOpenProgress: _opener(PuzzleSource.endgame),
       secondaryLine:
           _progressLine(PuzzleSource.blunderGame, label: 'Game blunders'),
+      onOpenSecondary: _opener(PuzzleSource.blunderGame),
       retryButton: _retryButton(PuzzleSource.endgame),
       action: Wrap(
         spacing: AppSpacing.sm,
@@ -322,6 +341,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
       description:
           'Checkmate the opponent in classic mating positions against Stockfish.',
       progressLine: _progressLine(PuzzleSource.basicMate),
+      onOpenProgress: _opener(PuzzleSource.basicMate),
       action: Wrap(
         spacing: AppSpacing.sm,
         runSpacing: AppSpacing.sm,
@@ -363,6 +383,7 @@ class CategorySelectionHubWidget extends StatelessWidget {
       description:
           'Play winning positions out against Stockfish with optional Blunder Alert.',
       progressLine: _progressLine(PuzzleSource.winningPosition),
+      onOpenProgress: _opener(PuzzleSource.winningPosition),
       retryButton: _retryButton(PuzzleSource.winningPosition),
       action: FilledButton.icon(
         style: FilledButton.styleFrom(
@@ -489,6 +510,11 @@ class _CategoryCard extends StatelessWidget {
   /// fits a 360 dp phone.
   final Widget? retryButton;
 
+  /// Where a tap on [progressLine] / [secondaryLine] leads — the list of
+  /// which puzzles, on that line's source. Null draws the line as words.
+  final VoidCallback? onOpenProgress;
+  final VoidCallback? onOpenSecondary;
+
   const _CategoryCard({
     super.key,
     required this.accentColor,
@@ -499,7 +525,31 @@ class _CategoryCard extends StatelessWidget {
     this.progressLine,
     this.secondaryLine,
     this.retryButton,
+    this.onOpenProgress,
+    this.onOpenSecondary,
   });
+
+  /// A progress line: words, or — given somewhere to go — a door to the
+  /// list, marked by a chevron. The text stays one `Text` with the line's own
+  /// words, so a reader and a finder see the same thing either way.
+  Widget _line(String text, TextStyle style, VoidCallback? onTap) {
+    final words = Text(text, style: style);
+    if (onTap == null) return words;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: AppRadii.roundedSm,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: words),
+            Icon(Icons.chevron_right, size: 18, color: style.color),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -542,16 +592,18 @@ class _CategoryCard extends StatelessWidget {
             ),
             if (progressLine != null) ...[
               const SizedBox(height: AppSpacing.sm),
-              Text(
+              _line(
                 progressLine!,
-                style: AppText.bodyBold.copyWith(color: accentColor),
+                AppText.bodyBold.copyWith(color: accentColor),
+                onOpenProgress,
               ),
             ],
             if (secondaryLine != null) ...[
               const SizedBox(height: AppSpacing.xs),
-              Text(
+              _line(
                 secondaryLine!,
-                style: AppText.body.copyWith(color: colors.textSecondary),
+                AppText.body.copyWith(color: colors.textSecondary),
+                onOpenSecondary,
               ),
             ],
             const SizedBox(height: AppSpacing.lg),
