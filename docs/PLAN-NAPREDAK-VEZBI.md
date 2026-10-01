@@ -2,8 +2,8 @@
 
 Proposed 17.9.2026 at the owner's request, as a lean design. Phases 0–2 were built and merged the same day; phase 3 (SM-2) stays optional and unbuilt.
 On 1.10.2026 the trainer's report was brought onto the same fold (§7.2), and
-§7 proposes the list of *which* puzzles, each account its own — phases
-5–8, not started; D3 answered, D2 and D4 open.
+§7 plans the list of *which* puzzles, each account its own — every
+decision answered 1.10.2026; phases 5–8 not started.
 It sits inside `PLAN-REORGANIZACIJA.md`: the Practise tab is „the hub,
 unchanged", and this plan is the one thing that changes on its cards.
 
@@ -300,17 +300,22 @@ where its numbers are.
 - `Try again` — on a retryable source: the drill's retry mode with a queue
   of one (an `initialRetryIds` parameter beside the existing `retry` flag).
   Writes an ordinary attempt row, so the list and the card move together.
-- `Open in Analysis` — the position, once the puzzle is solved or skipped
-  (D3). One rule for every account.
+- `Open in Analysis` — on every row that has a board, whatever its state
+  (D3: everything opens, for every account). A row with `available: false`
+  has no board and so no door. Looking does not move the numbers it should
+  not: a puzzle opened there and then tried again counts as solved, never as
+  solved at the first attempt — `solvedFirstTry` reads the first row — so the
+  report's accuracy, which is the first attempt, cannot be raised by
+  looking.
 
-### 7.5 Decisions for the owner
+### 7.5 Decisions (all answered 1.10.2026)
 
-| # | Question | Recommended |
+| # | Question | Answer |
 |---|---|---|
 | D1 | ~~Does the trainer see the student's own exercises in the list?~~ | **Withdrawn** with the trainer's view (D3's answer). An account's own exercises are in its own list like any other source |
-| D2 | Do game blunders and basic mates appear, though neither can be tried again from the list? | **Yes**, with no `Try again` — they are solved and failed like the rest, and the cards count them |
-| D3 | May a puzzle **still to retry** be opened in Analysis, with the engine one tap away? | **Answered 1.10.2026: roles play no part.** Not every user is a trainer or a student, and these puzzles are an individual's own work. One rule for every account: the puzzle opens once it is solved or skipped, and the button says why until then. *(The owner's answer settled the roles; the „solved or skipped" half is the first draft's recommendation, carried over and open to loosening.)* |
-| D4 | How far back does the list go? | **All of it**, newest first, paged; the period chips of the report are not repeated here |
+| D2 | Do game blunders and basic mates appear, though neither can be tried again from the list? | **Answered 1.10.2026, as recommended: yes**, with no `Try again` — they are solved and failed like the rest, and the cards count them |
+| D3 | May a puzzle **still to retry** be opened in Analysis, with the engine one tap away? | **Answered 1.10.2026: everything opens, for every account.** Not every user is a trainer or a student, the puzzles are an individual's own work, and roles play no part in them; whether to look before solving is the individual's choice. The first draft's „not until solved or skipped" and its trainer exception are both gone |
+| D4 | How far back does the list go? | **Answered 1.10.2026, as recommended: all of it**, newest first, paged; the period chips of the report are not repeated here |
 | D5 | ~~The trainer's list: a tab or a row in the Overview?~~ | **Withdrawn** with the trainer's view (D3's answer) |
 
 ### 7.6 Phases
@@ -319,7 +324,7 @@ where its numbers are.
 |---|---|---|---|
 | 5 | Server: `puzzleListOf` and `GET /api/puzzles/list`; positions joined per source; `available: false`; the `before` cursor | lead writes the gate, implementer builds | Stub pools asserting the SQL each source is asked (one query per source, never per row); **the list's states summed equal `foldAttempts` over the same rows** (one home, a property over random logs); a deleted own exercise listed with `available: false`; a real Lichess row's board is the position after its `setup_move`, not the stored FEN; paging returns every puzzle exactly once across pages while a new attempt arrives between them; **the list is the caller's alone** — the SQL is bound to the session's id, a `userId` or `studentId` in the query changes nothing, and an `own` exercise of another account named by an id in the log comes back with no board |
 | 6 | App: `PuzzleHistoryList` and the cards' door | implementer | Widget tests at 360 × 640, 900 × 700, 1536 × 792; the door is on the card for an account with no trainer and no students; state in words on every row; filters that compose (a fixture where each cuts differently); boards square on both platforms' densities; an absence check that stands where the row would be drawn; the request carries the filters the chips show |
-| 7 | Actions: `Try again` (retry mode with a queue of one, per retryable drill) and `Open in Analysis` under D3 | implementer | A try writes one attempt row with the right source and id (fake the client); the list moves after it; D3's refusal holds on an unsolved puzzle and lifts once solved, the same for an account that teaches, one that is taught and one that is neither |
+| 7 | Actions: `Try again` (retry mode with a queue of one, per retryable drill) and `Open in Analysis` (D3) | implementer | A try writes one attempt row with the right source and id (fake the client); the list moves after it; `Try again` is on no `blunder_game` or `basic_mate` row (D2); `Open in Analysis` is on every row with a board — failed, skipped and solved alike — and on none without one, and it opens the row's own board (a Lichess row after its `setup_move`); a look followed by a solved try moves `solved` and leaves `firstTry` false |
 | 8 | Live pass, items in `TODO-provera.md` under Practise | owner | ticked |
 
 Phase 5 needs no schema change: the log, the pools and the fold exist. If
