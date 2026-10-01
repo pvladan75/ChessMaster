@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 5326 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 1979 without TEST_DATABASE_URL (measured 30.9.2026), 2142 with it (derived)
+cd chess_backend && npm test          # node --test, 1985 without TEST_DATABASE_URL, 2148 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1237,6 +1237,11 @@ shape: **a button that creates something is locked while its request is out,
 and the lock is in the method, not the button.** And `rememberSaved` never
 announced that the saved version was known, because nothing had read it
 before `canSave` did.
+Then `docs/PLAN-TRENER-ZAVRSNICA.md`, the endgame trainer's final version:
+phase 0's baseline (5326 / 1979 / 2142, the last measured for the first time)
+and read-only counts, and phase 2, the server (backend → **1985 / 2148**):
+`material_label` beside `material`, and no stored line in the payload. **A
+fixture that writes one value in two columns cannot tell which was read.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

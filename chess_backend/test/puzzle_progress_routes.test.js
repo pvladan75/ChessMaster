@@ -247,6 +247,13 @@ test('/by-id?source=endgame reads `endgame_puzzles` and answers in /puzzles/endg
   assert.equal(out.json.endgame.puzzle_id, 'eg-91');
   assert.equal(out.json.endgame.mode, 'win');
   assert.deepEqual(out.json.endgame.winning_moves, ['e1d2']);
+  // Since docs/PLAN-TRENER-ZAVRSNICA.md phase 2 (1.10.2026) the shared shape
+  // carries the picker's name for the ending and no longer the stored line.
+  // The fixture row keeps `solution` / `solution_san`, because the table keeps
+  // the columns; the payload drops them.
+  assert.equal(out.json.endgame.material_label, 'pawn versus bare king');
+  assert.equal('solution' in out.json.endgame, false);
+  assert.equal('solution_san' in out.json.endgame, false);
 });
 
 test('/by-id with an unknown source is a 400; a missing row is a 404', async () => {

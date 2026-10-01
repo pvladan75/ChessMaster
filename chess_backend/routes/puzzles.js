@@ -7,7 +7,7 @@ const { excludeOnlineClause } = require('../services/endgameSources');
 const { authenticateToken } = require('../middleware/auth');
 const puzzleSelection = require('../services/puzzleSelectionService');
 const {
-  buildCatalog, ELO_BANDS, ELO_BAND_SQL,
+  buildCatalog, ELO_BANDS, ELO_BAND_SQL, labelOf,
 } = require('../services/endgameCatalog');
 const endgameDrill = require('../services/endgameDrill');
 const { tablebase, TablebaseUnavailable } = require('../services/tablebaseService');
@@ -40,6 +40,10 @@ function buildPuzzlePayload(puzzle) {
 
 // The `{ endgame: {...} }` shape of /puzzles/endgame/next, shared with
 // /puzzles/by-id?source=endgame for the same reason.
+//
+// No `solution` / `solution_san`: the columns stay, because the miner writes
+// them, but no screen reads the stored line any more — the reply after a
+// correct answer comes from /endgame/play (docs/PLAN-TRENER-ZAVRSNICA.md, D8).
 function buildEndgamePayload(item) {
   return {
     puzzle_id: item.puzzle_id,
@@ -48,14 +52,17 @@ function buildEndgamePayload(item) {
     mode: item.mode,
     side_to_move: item.side_to_move,
     winning_moves: item.winning_moves,
-    solution: item.solution,
-    solution_san: item.solution_san,
     difficulty: item.difficulty,
     difficulty_score: item.difficulty_score,
     piece_count: item.piece_count,
     pawn_count: item.pawn_count,
     source: item.source,
     material: item.material,
+    // The picker's own words for the ending, so the chip and the picker say
+    // the same thing (docs/PLAN-TRENER-ZAVRSNICA.md, D12). Guarded, because
+    // labelOf(null) is '' and the app would draw an empty chip; the mined rows
+    // carry no material and keep their own seven names.
+    material_label: item.material == null ? null : labelOf(item.material),
     blunder_elo: item.blunder_elo,
     played_move: item.played_move,
     evaluation: item.evaluation,

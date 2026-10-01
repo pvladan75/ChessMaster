@@ -9851,3 +9851,22 @@ limit is written into [260.2] rather than fixed here.
 both notifications, both buttons), all red on the case meant for them; two did
 not apply at first because the file is CRLF, and the helper refused rather
 than run an unmutated suite. App 5318 → 5326 (+5, +2, +1).
+
+## 1.10.2026 — the endgame trainer, phases 0 and 2 (`docs/PLAN-TRENER-ZAVRSNICA.md`)
+
+**Phase 0.** The baseline measured in a fresh worktree with nothing else
+running: app 5326 (1 skipped), analyze 22, backend 1979 without a database and
+2142 with a throwaway cluster — the 2142 measured for the first time rather
+than derived. The database counts were read by a script with its own pool in a
+`BEGIN READ ONLY` transaction; neither `db.js` nor `server.js` was loaded (the
+23.9 lesson). Every one of the 1089 mined rows has no `material`, so D12's map
+stays as their fallback; every `endgame_type` they carry is one of its seven
+keys. No `material` key defeats `labelOf`.
+
+**Phase 2.** `material_label` and no stored line, one builder for both routes.
+Backend 1979 → 1985 / 2142 → 2148 (+6: three cases per route). **A fixture
+that writes the same value in two columns cannot tell which column was read**:
+the blunder row carried `KRPvKR` as both its type and its material, so a label
+taken from the type survived; the type is now written the other way round, as
+an unnormalised key is.
+

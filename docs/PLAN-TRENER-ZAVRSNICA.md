@@ -468,6 +468,35 @@ Order:
   The first count sizes D9.
 - **Gate:** the numbers, written here.
 
+**Measured 1.10.2026** (the lead, a read-only node script in its own
+`BEGIN READ ONLY` transaction, its own pool, `labelOf` required from
+`services/endgameCatalog.js`; neither `db.js` nor `server.js` loaded):
+
+| source | rows | servable | `material IS NULL` (servable) | with `played_move` |
+|---|---|---|---|---|
+| `blunder` | 13501 | 13501 | 0 | 13501 |
+| `engine` | 493 | 493 | 493 | 0 |
+| `lichess` | 63 | 63 | 63 | 0 |
+| `syzygy` | 533 | 533 | 533 | 0 |
+| null (the old generator) | 510 | 0 | — | 0 |
+
+- 160 distinct `material` keys; **none** that `labelOf` cannot parse.
+- `played_move` is on every blunder row and on nothing else, as §3 read it.
+- D9's engine rows, by pieces: 8 → 66, 9 → 68, 10 → 85, 11 → 51, 12 → 80,
+  13 → 56, 14 → 47, 15 → 24, 16 → 16 (493).
+- **D12: the map stays as a fallback.** All 1089 mined rows (engine, lichess,
+  syzygy) have no `material`; their `endgame_type` is always one of the seven
+  keys `kEndgameTypeNames` already names, so the fallback names every one.
+- Read beside the counts, for §7's open question and not acted on: a row with
+  no `material` is reached only when the picker sends no `material` — every
+  ending ticked — and the band is `all` or the unrated band (mined rows have no
+  `blunder_elo`). So D9's 493 engine positions are reachable today only that
+  way, and the picker's „Selected: N" never counts them.
+- Baseline, in the worktree with nothing else running: app **5326** (1
+  skipped), backend **1979** without a database and **2142** with a throwaway
+  cluster (both measured — the 2142 was derived until now), analyze the same
+  **22** infos. All as quoted.
+
 ### Phase 1 — the ground: unused code and the words [lead]
 
 Covers D10, D11, D13 and the deletions of §5 that need nothing else:
@@ -496,7 +525,15 @@ Covers D10, D11, D13 and the deletions of §5 that need nothing else:
   The new cases assert the sentence through that enum's label, so a renamed
   chip turns the case red instead of leaving a sentence that points nowhere.
 
-### Phase 2 — the server [lead]
+### Phase 2 — the server [lead] — built 1.10.2026
+
+Backend 1979 → **1985** without a database (with and without `.env`), 2142 →
+**2148** with one: six cases in `test/endgame_payload.test.js` (three per
+route), and the `/by-id` case of `puzzle_progress_routes.test.js` given three
+assertions, rewritten openly. All three mutations red on their cases. The
+first of them — the label from `endgame_type` — **survived** at first,
+because the blunder fixture carried the same key in both columns; it now
+writes the type the other way round (`KRvKRP`), as an unnormalised key can.
 
 Covers D12's `material_label`, and D8's removal of `solution` and
 `solution_san` from `buildEndgamePayload`. There is one builder, so
