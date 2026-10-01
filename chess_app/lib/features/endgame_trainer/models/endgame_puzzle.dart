@@ -37,7 +37,6 @@ class EndgamePuzzle {
   /// Advisory: the opponent is not forced, so this is a demonstration line and
   /// not a solution the user must reproduce.
   final List<String> solution;
-  final List<String> solutionSan;
 
   final int piecesOnBoard;
   final int pawnsOnBoard;
@@ -70,7 +69,6 @@ class EndgamePuzzle {
     required this.mode,
     required this.winningMoves,
     this.solution = const [],
-    this.solutionSan = const [],
     this.piecesOnBoard = 0,
     this.pawnsOnBoard = 0,
     this.source = 'engine',
@@ -126,7 +124,6 @@ class EndgamePuzzle {
           : EndgameMode.win,
       winningMoves: stringList('winning_moves'),
       solution: stringList('solution'),
-      solutionSan: stringList('solution_san'),
       piecesOnBoard: (json['piece_count'] as num?)?.toInt() ?? 0,
       pawnsOnBoard: (json['pawn_count'] as num?)?.toInt() ?? 0,
       source: json['source']?.toString() ?? 'engine',
@@ -182,17 +179,11 @@ class EndgameVerdict {
   /// answers, so the attempt stays open and the board goes back.
   final bool alreadyFound;
 
-  /// Shown only after a failure. Plural on purpose: there is rarely exactly one
-  /// right answer, and naming a single "the" move would misrepresent the
-  /// position.
-  final List<String> accepted;
-
   const EndgameVerdict({
     required this.correct,
     this.opponentReply,
     this.finished = false,
     this.alreadyFound = false,
-    this.accepted = const [],
   });
 }
 
@@ -287,10 +278,7 @@ class EndgameSolveSession {
         _firstWrongSan = san.trim();
       }
       _status = EndgameSolveStatus.failed;
-      return EndgameVerdict(
-        correct: false,
-        accepted: List.unmodifiable(puzzle.winningMoves),
-      );
+      return const EndgameVerdict(correct: false);
     }
 
     _status = EndgameSolveStatus.solved;

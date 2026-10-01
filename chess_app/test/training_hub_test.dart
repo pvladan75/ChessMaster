@@ -142,7 +142,9 @@ void main() {
 
     final endgameCard = find
         .ancestor(
-          of: find.text('Endgames from master games'),
+          // The card's title since 1.10.2026 (docs/PLAN-TRENER-ZAVRSNICA.md,
+          // D10); it was „Endgames from master games".
+          of: find.text('Endgames from real games'),
           matching: find.byType(Card),
         )
         .first;

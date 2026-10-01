@@ -67,8 +67,11 @@ class DrillStep {
 /// It is not a claim that the position is dead - it is a claim that the reader
 /// can hold it, which is what the drill was teaching.
 ///
-/// Eight is four moves each. Long enough that a defence about to collapse
-/// collapses inside it, short enough not to be the shuffling it replaces.
+/// Eight of the reader's own moves — the opponent's replies are not counted,
+/// so a claim runs sixteen half-moves. Long enough that a defence about to
+/// collapse collapses inside it, short enough not to be the shuffling it
+/// replaces. (Until 1.10.2026 this said „four moves each", which the code
+/// never counted; docs/PLAN-TRENER-ZAVRSNICA.md, D13.)
 const holdOutMoves = 8;
 
 /// What the drill says while a claimed draw is being held out.

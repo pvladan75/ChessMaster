@@ -389,7 +389,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       if (ok) _kept.add(blunder.ply);
       _feedbackIsGood = ok;
       _feedback = ok
-          ? 'Saved to "My positions", tagged "Unclear".'
+          ? EndgameApiService.keptMessage
           : 'Currently unable to save position.';
     });
   }

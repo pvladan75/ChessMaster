@@ -280,8 +280,9 @@ class CategorySelectionHubWidget extends StatelessWidget {
     return _CategoryCard(
       accentColor: colors.warning,
       icon: Icons.flag_outlined,
-      title: 'Endgames from master games',
-      description: 'Positions taken from grandmaster games. For endgames '
+      title: 'Endgames from real games',
+      description: 'Positions from real games, played at every level from '
+          'club players to grandmasters. For endgames '
           'with few pieces the outcome is exact, not evaluated — any '
           'move that preserves the result is accepted, not just one. Before '
           'starting, choose the endgame type and difficulty level.',

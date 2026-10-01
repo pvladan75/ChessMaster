@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/features/lessons/services/lesson_api_service.dart';
+import 'package:chess_app/features/library/widgets/library_list.dart'
+    show LibraryChip;
 import 'package:chess_app/services/app_logger.dart';
 import '../models/blunder_game.dart';
 import '../models/endgame_catalog.dart';
@@ -87,19 +89,14 @@ class EndgameApiService {
         if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
       };
 
-  /// Fetches one position.
+  /// Fetches one position, from what the picker chose.
   ///
-  /// [maxPieces] and [minPawns] look alike and are not interchangeable. A
-  /// play-it-out drill sets [maxPieces] to 5 because that is how far the
-  /// tablebases reach, so every move can be judged exactly; a pawn-ending
-  /// lesson sets [minPawns] because there the structure is the subject and
-  /// few pieces would be the wrong thing to ask for.
+  /// `type`, `difficulty`, `maxPieces` and `minPawns` were parameters here
+  /// until 1.10.2026, fed only by screen fields the router never passed
+  /// (docs/PLAN-TRENER-ZAVRSNICA.md, phase 1). The server still reads them;
+  /// they are listed for its next deletion batch.
   Future<EndgameFetchResult> fetchNext({
-    String? type,
     EndgameMode? mode,
-    String? difficulty,
-    int? maxPieces,
-    int? minPawns,
     String? excludeId,
     String? material,
     String? band,
@@ -108,12 +105,7 @@ class EndgameApiService {
   }) async {
     final uri = Uri.parse('$backendUrl/api/puzzles/endgame/next').replace(
       queryParameters: {
-        if (type != null && type.isNotEmpty) 'type': type,
         if (mode != null) 'mode': mode.name,
-        if (difficulty != null && difficulty.isNotEmpty)
-          'difficulty': difficulty,
-        if (maxPieces != null) 'maxPieces': '$maxPieces',
-        if (minPawns != null) 'minPawns': '$minPawns',
         if (excludeId != null && excludeId.isNotEmpty) 'excludeId': excludeId,
         // Absent means "any", so a full selection sends nothing rather than a
         // list of every key there is.
@@ -296,14 +288,24 @@ class EndgameApiService {
   ///
   /// One tag rather than a choice of several: the point is that the click is
   /// quick, and a menu at that moment is a question nobody asked. It is what
-  /// makes the list findable afterwards - "Moje pozicije" filtered to this is
-  /// everything that was left unexplained, rather than mixed in with the rest.
+  /// makes the list findable afterwards - the Library's Positions filtered to
+  /// this is everything that was left unexplained, rather than mixed in with
+  /// the rest.
   static const unclearTag = 'Unclear';
+
+  /// What the trainer and the game walk say once a position is kept, in one
+  /// place so the two cannot drift. It names the Library's own chip through
+  /// its label, so a renamed chip changes the sentence with it — „My
+  /// positions" named a screen that no longer existed
+  /// (docs/PLAN-TRENER-ZAVRSNICA.md, D11).
+  static final keptMessage =
+      'Saved to the Library under ${LibraryChip.positions.label}, '
+      'tagged "$unclearTag".';
 
   /// Keeps a position in the trainer's own library, to be looked at later.
   ///
   /// It goes to the shelf that already exists rather than to a table of its
-  /// own: a kept position is an ordinary saved position, so "Moje pozicije"
+  /// own: a kept position is an ordinary saved position, so the Library
   /// lists it, Analysis Studio opens it, and a lesson or a homework can take it
   /// without any of that being built for this.
   Future<bool> keepForLater({

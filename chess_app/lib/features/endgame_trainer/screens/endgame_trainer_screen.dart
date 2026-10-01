@@ -46,14 +46,10 @@ class EndgameTrainerScreen extends StatefulWidget {
   const EndgameTrainerScreen({
     super.key,
     required this.session,
-    this.type,
     this.mode,
-    this.maxPieces,
-    this.minPawns,
     this.material,
     this.band,
     this.oppositeOnly = false,
-    this.fen,
     this.api,
     this.attemptApi,
     this.retry = false,
@@ -61,15 +57,9 @@ class EndgameTrainerScreen extends StatefulWidget {
 
   final UserSession session;
 
-  /// Restricts to one endgame type, for a themed lesson.
-  final String? type;
-
   /// Converting a win and holding a draw are different skills; a lesson usually
   /// wants one of them, not a mixture.
   final EndgameMode? mode;
-
-  final int? maxPieces;
-  final int? minPawns;
 
   /// What the picker chose: a comma-separated list of material keys, a rating
   /// band, and whether to keep only opposite-bishop positions. All null means
@@ -77,10 +67,6 @@ class EndgameTrainerScreen extends StatefulWidget {
   final String? material;
   final String? band;
   final bool oppositeOnly;
-
-  /// Optional exact starting position. When provided, the screen skips fetching
-  /// a puzzle and starts with this position instead.
-  final String? fen;
 
   /// Injected in tests. A widget test has no server, and the layout is exactly
   /// what needs testing here: a release build paints no overflow warning, so a
@@ -241,12 +227,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   Future<void> _loadNext() async {
     // Leaving a puzzle that never reached a verdict is a skip — a real
-    // position, so worth recording, unlike the synthetic 'custom' fen used to
-    // explore or replay one position outside the drill.
+    // position, so worth recording.
     final leaving = _solve;
-    if (leaving != null &&
-        !_countedThisPuzzle &&
-        leaving.puzzle.id != 'custom') {
+    if (leaving != null && !_countedThisPuzzle) {
       unawaited(_attemptApi.record(
         source: PuzzleSource.endgame,
         puzzleId: leaving.puzzle.id,
@@ -264,17 +247,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     EndgamePuzzle? puzzle;
 
-    if (widget.fen != null) {
-      puzzle = EndgamePuzzle(
-        id: 'custom',
-        fen: widget.fen!,
-        type: widget.type ?? '',
-        mode: widget.mode ?? EndgameMode.win,
-        winningMoves: const [],
-        source: 'syzygy',
-        piecesOnBoard: 7, // Allow play out
-      );
-    } else if (widget.retry) {
+    if (widget.retry) {
       final result = await _fetchNextRetryPuzzle();
       if (result == null) {
         // The queue was asked for and is empty — a real answer, not a fetch
@@ -285,10 +258,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       puzzle = result;
     } else {
       final result = await _api.fetchNext(
-        type: widget.type,
         mode: widget.mode,
-        maxPieces: widget.maxPieces,
-        minPawns: widget.minPawns,
         material: widget.material,
         band: widget.band,
         oppositeOnly: widget.oppositeOnly,
@@ -339,10 +309,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _keeping = false;
     });
     _boardController.loadFen(puzzle.fen);
-
-    if (widget.fen != null) {
-      _startDrill();
-    }
   }
 
   String? _sanFor(String fen, String from, String to, String promotion) {
@@ -442,15 +408,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _countedThisPuzzle = true;
       _attempted++;
       if (solve.countsAsSolved) _solved++;
-      if (solve.puzzle.id != 'custom') {
-        // Fired, not awaited — the board has already moved on to the reply.
-        unawaited(_attemptApi.record(
-          source: PuzzleSource.endgame,
-          puzzleId: solve.puzzle.id,
-          solved: solve.countsAsSolved,
-          hinted: solve.usedHint || _readouts > 0,
-        ));
-      }
+      // Fired, not awaited — the board has already moved on to the reply.
+      unawaited(_attemptApi.record(
+        source: PuzzleSource.endgame,
+        puzzleId: solve.puzzle.id,
+        solved: solve.countsAsSolved,
+        hinted: solve.usedHint || _readouts > 0,
+      ));
     }
 
     _found.add(uci);
@@ -899,7 +863,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _kept = ok;
       _feedbackIsGood = ok;
       _feedback = ok
-          ? 'Saved in "My positions", tagged "Unclear".'
+          ? EndgameApiService.keptMessage
           : 'Could not save position right now.';
     });
   }
@@ -1044,12 +1008,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
         toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
-        title: Text(
-          (widget.type == null
-                  ? 'Endgames'
-                  : (kEndgameTypeNames[widget.type] ?? 'Endgames')) +
-              (widget.retry ? ' — retry' : ''),
-        ),
+        title: Text('Endgames${widget.retry ? ' — retry' : ''}'),
         actions: [
           const BoardViewMenu(),
           BoardFlipButton(

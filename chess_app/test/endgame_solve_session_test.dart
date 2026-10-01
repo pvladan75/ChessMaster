@@ -127,7 +127,9 @@ void main() {
       final verdict = session.submit('a1a2', san: 'Ra2');
 
       expect(verdict.correct, isFalse);
-      expect(verdict.accepted, ['a1f1', 'a1e1']);
+      // `verdict.accepted` was asserted here until 1.10.2026; no screen read
+      // it, and it went with docs/PLAN-TRENER-ZAVRSNICA.md phase 1. The
+      // answers are the puzzle's own `winningMoves`.
       expect(session.status, EndgameSolveStatus.failed);
       expect(session.firstWrongSan, 'Ra2');
     });

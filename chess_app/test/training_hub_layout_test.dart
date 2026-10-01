@@ -69,7 +69,9 @@ const _phases = {
     'My exercises',
   ],
   _endgame: [
-    'Endgames from master games',
+    // Renamed on 1.10.2026 (docs/PLAN-TRENER-ZAVRSNICA.md, D10): the
+    // positions come from games at every level, not only from masters.
+    'Endgames from real games',
     'Practice basic checkmates',
     'Find the winning path',
   ],

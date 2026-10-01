@@ -19,11 +19,7 @@ class _FakeEndgameApi extends EndgameApiService {
 
   @override
   Future<EndgameFetchResult> fetchNext({
-    String? type,
     EndgameMode? mode,
-    String? difficulty,
-    int? maxPieces,
-    int? minPawns,
     String? excludeId,
     String? material,
     String? band,

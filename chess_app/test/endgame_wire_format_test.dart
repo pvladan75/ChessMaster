@@ -28,12 +28,14 @@ void main() {
     return (EndgameApiService(authToken: 'tok', client: client), sent);
   }
 
+  // Rewritten 1.10.2026 (docs/PLAN-TRENER-ZAVRSNICA.md, phase 1): this case
+  // sent `maxPieces: 5`, a parameter fed only by a screen field the router
+  // never passed, and deleted with it. The filters are the picker's.
   test('the next position asks the route the server serves, with its filters',
       () async {
     final (api, sent) = service();
     await api.fetchNext(
       mode: EndgameMode.win,
-      maxPieces: 5,
       material: 'KRvK',
       oppositeOnly: true,
     );
@@ -42,7 +44,6 @@ void main() {
     expect(request.url.path, '/api/puzzles/endgame/next');
     expect(request.url.queryParameters, {
       'mode': 'win',
-      'maxPieces': '5',
       'material': 'KRvK',
       'oppositeBishops': 'true',
     });
