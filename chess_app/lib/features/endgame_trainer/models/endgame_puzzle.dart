@@ -33,11 +33,6 @@ class EndgamePuzzle {
   /// both draw, telling a child the second one is wrong is simply false.
   final List<String> winningMoves;
 
-  /// Best play from here, for showing the continuation after a correct move.
-  /// Advisory: the opponent is not forced, so this is a demonstration line and
-  /// not a solution the user must reproduce.
-  final List<String> solution;
-
   final int piecesOnBoard;
   final int pawnsOnBoard;
 
@@ -56,6 +51,12 @@ class EndgamePuzzle {
   /// asking for "rook and pawn against rook" actually means.
   final String? material;
 
+  /// The picker's own words for [material] — „rook and pawn versus rook" —
+  /// sent by the server (`labelOf`), so the chip and the picker name an ending
+  /// the same way (docs/PLAN-TRENER-ZAVRSNICA.md, D12). Null where there is
+  /// no [material], which is every mined row; those keep [type]'s names.
+  final String? materialLabel;
+
   /// When the position comes from a real mistake: how strong the player who
   /// made it was, and what they played instead. Neither is a solution; together
   /// they are what turns a diagram into something that happened to somebody.
@@ -68,7 +69,6 @@ class EndgamePuzzle {
     required this.type,
     required this.mode,
     required this.winningMoves,
-    this.solution = const [],
     this.piecesOnBoard = 0,
     this.pawnsOnBoard = 0,
     this.source = 'engine',
@@ -77,6 +77,7 @@ class EndgamePuzzle {
     this.dtz,
     this.game,
     this.material,
+    this.materialLabel,
     this.blunderElo,
     this.playedMove,
   });
@@ -123,7 +124,6 @@ class EndgamePuzzle {
           ? EndgameMode.draw
           : EndgameMode.win,
       winningMoves: stringList('winning_moves'),
-      solution: stringList('solution'),
       piecesOnBoard: (json['piece_count'] as num?)?.toInt() ?? 0,
       pawnsOnBoard: (json['pawn_count'] as num?)?.toInt() ?? 0,
       source: json['source']?.toString() ?? 'engine',
@@ -131,6 +131,7 @@ class EndgamePuzzle {
       difficultyScore: (json['difficulty_score'] as num?)?.toInt(),
       dtz: (json['dtz'] as num?)?.toInt(),
       material: json['material']?.toString(),
+      materialLabel: json['material_label']?.toString(),
       blunderElo: (json['blunder_elo'] as num?)?.toInt(),
       playedMove: json['played_move']?.toString(),
       game: gameJson is Map<String, dynamic>
@@ -163,14 +164,18 @@ class EndgameGame {
   }
 }
 
-enum EndgameSolveStatus { solving, solved, failed }
+/// [revealed] is the answer shown by `Show solution`: the question is over,
+/// as after a solve, and it never counts as solved
+/// (docs/PLAN-TRENER-ZAVRSNICA.md, D3).
+enum EndgameSolveStatus { solving, solved, failed, revealed }
 
 /// What came back from submitting a move.
 class EndgameVerdict {
   final bool correct;
 
-  /// Best reply from the demonstration line, when there is one.
-  final String? opponentReply;
+  // `opponentReply`, the stored line's second move, went on 1.10.2026: the
+  // reply after a correct answer comes from the server's `/endgame/play`, the
+  // drill's own rule (docs/PLAN-TRENER-ZAVRSNICA.md, D8).
 
   final bool finished;
 
@@ -181,7 +186,6 @@ class EndgameVerdict {
 
   const EndgameVerdict({
     required this.correct,
-    this.opponentReply,
     this.finished = false,
     this.alreadyFound = false,
   });
@@ -283,19 +287,16 @@ class EndgameSolveSession {
 
     _status = EndgameSolveStatus.solved;
     _foundMove = uci;
+    return const EndgameVerdict(correct: true, finished: true);
+  }
 
-    // The demonstration line starts with the engine's own choice. If the user
-    // played a different but equally good move, the rest of that line no longer
-    // applies to the position on the board, so no reply is offered.
-    final line = puzzle.solution;
-    final followsLine =
-        line.isNotEmpty && sameMove(uci, line.first) && line.length > 1;
-
-    return EndgameVerdict(
-      correct: true,
-      finished: true,
-      opponentReply: followsLine ? line[1] : null,
-    );
+  /// `Show solution`: ends the question with the answer shown. Only from
+  /// [EndgameSolveStatus.solving] — a solved attempt has nothing to show and
+  /// a failed one goes back to solving first.
+  void reveal() {
+    if (_status == EndgameSolveStatus.solving) {
+      _status = EndgameSolveStatus.revealed;
+    }
   }
 
   void retryAfterMistake() {

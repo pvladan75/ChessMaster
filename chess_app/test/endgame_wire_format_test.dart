@@ -102,4 +102,51 @@ void main() {
     expect(request.url.path, '/api/puzzles/endgame/play');
     expect(jsonDecode(request.body), {'fen': fen, 'move': 'Ra1'});
   });
+
+  // docs/PLAN-TRENER-ZAVRSNICA.md, phases 2 and 4: the server's names for the
+  // fields the trainer reads off a position and off a judged move. Shaped as
+  // `buildEndgamePayload` and `judgeMove` write them.
+  test("a position carries the picker's name for its ending", () {
+    final withLabel = EndgamePuzzle.fromJson({
+      'puzzle_id': 'p',
+      'fen': fen,
+      'mode': 'win',
+      'winning_moves': ['e1e2'],
+      'material': 'KRvK',
+      'material_label': 'rook versus bare king',
+    });
+    expect(withLabel.materialLabel, 'rook versus bare king');
+    final mined = EndgamePuzzle.fromJson({
+      'puzzle_id': 'm',
+      'fen': fen,
+      'mode': 'win',
+      'winning_moves': ['e1e2'],
+      'material': null,
+      'material_label': null,
+    });
+    expect(mined.materialLabel, isNull);
+  });
+
+  test('a judged move carries the move and the reply as UCI', () {
+    final step = DrillStep.fromJson({
+      'playedSan': 'Kd2',
+      'playedUci': 'e1d2',
+      'goal': 'win',
+      'outcome': 'win',
+      'held': true,
+      'reply': {'uci': 'b2b1n', 'san': 'b1=N+'},
+      'fen': '8/4P3/8/8/8/8/3K4/1n5k w - - 0 2',
+    });
+    expect(step.playedUci, 'e1d2');
+    expect(step.replyUci, 'b2b1n');
+    expect(step.replySan, 'b1=N+');
+    final lost = DrillStep.fromJson({
+      'playedSan': 'Ke2',
+      'playedUci': 'e1e2',
+      'held': false,
+      'reply': null,
+      'fen': fen,
+    });
+    expect(lost.replyUci, isNull);
+  });
 }

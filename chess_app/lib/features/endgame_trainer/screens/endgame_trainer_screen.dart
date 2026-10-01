@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
+import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/speech_service.dart';
@@ -146,8 +147,24 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   int _attempted = 0;
 
   /// Accepted moves the user has produced for the current position, across
-  /// replays of it. Kept so a second pass can ask for the ones still missing.
+  /// replays of it, in the order found. Kept so a second pass can ask for the
+  /// ones still missing.
   final Set<String> _found = {};
+
+  /// The opponent's reply to each found move, as the server played it, once
+  /// it has come (docs/PLAN-TRENER-ZAVRSNICA.md, D8). A found move with no
+  /// entry, or a null one, got no reply: an engine position, a server that
+  /// did not answer, or one that disagreed with the stored answer.
+  final Map<String, String?> _replies = {};
+
+  /// Bumped whenever the board is put somewhere new — the next position,
+  /// `Find the rest`, a drill — so a reply that arrives after it is dropped
+  /// rather than drawn over a board that has moved on.
+  int _boardSerial = 0;
+
+  /// Bumped with every new position, so a late reply is not filed under the
+  /// next position's moves.
+  int _puzzleSerial = 0;
 
   /// True once the user has asked to see the remaining answers. Revealing is a
   /// choice, not what happens automatically on a solve: a position with three
@@ -238,6 +255,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       ));
     }
 
+    _boardSerial++;
+    _puzzleSerial++;
     setState(() {
       _loading = true;
       _error = null;
@@ -291,6 +310,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _loading = false;
       _boardLocked = false;
       _found.clear();
+      _replies.clear();
       _revealed = false;
       _countedThisPuzzle = false;
       _drilling = false;
@@ -384,24 +404,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       // record either way, so this costs nothing that was being measured.
       solve.retryAfterMistake();
       setState(() {
-        _feedback = solve.puzzle.mode == EndgameMode.draw
-            ? 'That move loses the draw. Try another.'
-            : 'That move drops the win. Try another.';
+        _feedback = _wrongMoveText(solve.puzzle);
         _feedbackIsGood = false;
       });
       _boardController.loadFen(game.fen);
       return;
     }
 
+    final fenBefore = game.fen;
     game.move({'from': from, 'to': to, 'promotion': piece});
-    final reply = verdict.opponentReply;
-    if (reply != null && reply.length >= 4) {
-      game.move({
-        'from': reply.substring(0, 2),
-        'to': reply.substring(2, 4),
-        'promotion': 'q',
-      });
-    }
     _boardController.loadFen(game.fen);
 
     if (!_countedThisPuzzle) {
@@ -424,6 +435,108 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _feedbackIsGood = true;
       _feedback = _successText(solve);
     });
+
+    // The verdict is said already; the reply follows when the server sends it.
+    // Every found move asks, not only the first, so each has its own reply in
+    // the tree `Open in Analysis` builds.
+    if (solve.puzzle.canBePlayedOut) unawaited(_askReply(fenBefore, uci));
+  }
+
+  /// The opponent's reply to a correct answer, from the server — the drill's
+  /// own rule, `bestReply` in Lichess's order (docs/PLAN-TRENER-ZAVRSNICA.md,
+  /// D8). Until 1.10.2026 it was the stored line's second move, which the
+  /// miner had chosen by DTZ, and which only the line's own first move had.
+  ///
+  /// Nothing waits on it: the verdict was given from the stored answers, so a
+  /// server that does not answer costs only the reply.
+  Future<void> _askReply(String fen, String uci) async {
+    final board = _boardSerial;
+    final puzzle = _puzzleSerial;
+    final puzzleId = _solve?.puzzle.id;
+    final result = await _api.judgeDrillMove(fen: fen, move: uci);
+    if (!mounted || puzzle != _puzzleSerial) return;
+    final step = result.step;
+    if (result.outcome != DrillJudgeOutcome.ok || step == null) return;
+    if (!step.held) {
+      // The same tables wrote `winning_moves`, so this is a fault in the
+      // data, worth a line in the log and not a sentence to the reader: the
+      // verdict already given stands.
+      AppLogger.log('[Endgames] $puzzleId: the server judges $uci as not '
+          'holding, the stored answers say it holds.');
+      return;
+    }
+    _replies[uci] = step.replyUci;
+    if (board != _boardSerial) return;
+    setState(() => _game = chess.Chess.fromFEN(step.fen));
+    _boardController.loadFen(step.fen);
+  }
+
+  /// `Show solution`: the question ends, with every holding move named
+  /// (docs/PLAN-TRENER-ZAVRSNICA.md, D3). Recorded once as not solved, so the
+  /// position comes back under `Retry failed`.
+  void _showSolution() {
+    final solve = _solve;
+    if (solve == null || solve.isComplete || _drilling) return;
+    SpeechService.instance.stop();
+    final puzzle = solve.puzzle;
+    if (!_countedThisPuzzle) {
+      _countedThisPuzzle = true;
+      _attempted++;
+      unawaited(_attemptApi.record(
+        source: PuzzleSource.endgame,
+        puzzleId: puzzle.id,
+        solved: false,
+        hinted: solve.usedHint || _readouts > 0,
+      ));
+    }
+    solve.reveal();
+    _boardSerial++;
+    setState(() {
+      _game = chess.Chess.fromFEN(puzzle.fen);
+      _hintSquare = null;
+      _feedbackIsGood = false;
+      _feedback = _answerText(puzzle);
+    });
+    _boardController.loadFen(puzzle.fen);
+  }
+
+  /// The shown answer, in the trainer's own register. Sorted, as the note of
+  /// `Save for later` is, not in the server's order.
+  String _answerText(EndgamePuzzle puzzle) {
+    final moves = _allHoldingSan(puzzle);
+    final draw = puzzle.mode == EndgameMode.draw;
+    if (moves.length == 1) {
+      return draw
+          ? 'The only move that holds the draw: ${moves.single}.'
+          : 'The only move that keeps the win: ${moves.single}.';
+    }
+    return draw
+        ? 'These moves hold the draw: ${moves.join(', ')}.'
+        : 'These moves keep the win: ${moves.join(', ')}.';
+  }
+
+  /// A wrong answer, said as firmly as its source allows: a tablebase knows,
+  /// an engine estimates (docs/PLAN-TRENER-ZAVRSNICA.md, D9).
+  String _wrongMoveText(EndgamePuzzle puzzle) {
+    final draw = puzzle.mode == EndgameMode.draw;
+    if (!puzzle.isExact) {
+      return draw
+          ? 'The engine judges that this move loses the draw. Try another.'
+          : 'The engine judges that this move drops the win. Try another.';
+    }
+    return draw
+        ? 'That move loses the draw. Try another.'
+        : 'That move drops the win. Try another.';
+  }
+
+  /// What the ending is called: the picker's words when the server sent them,
+  /// with a capital letter, else the mined category's name (D12).
+  String _endingName(EndgamePuzzle puzzle) {
+    final label = puzzle.materialLabel;
+    if (label != null && label.isNotEmpty) {
+      return label[0].toUpperCase() + label.substring(1);
+    }
+    return kEndgameTypeNames[puzzle.type] ?? puzzle.type;
   }
 
   /// Puts the starting position back and plays it out instead of solving it.
@@ -480,6 +593,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   void _beginDrill(String fen,
       {required bool punishing, required String intro}) {
+    _boardSerial++;
     setState(() {
       _drilling = true;
       _punishing = punishing;
@@ -528,6 +642,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     // not to "find another one".
     final unfinished = _solve?.status == EndgameSolveStatus.solved &&
         _missing(puzzle).isNotEmpty;
+    _boardSerial++;
     setState(() {
       _drilling = false;
       _punishing = false;
@@ -854,7 +969,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     final ok = await _api.keepForLater(
       fen: puzzle.fen,
-      title: '${kEndgameTypeNames[puzzle.type] ?? puzzle.type} — unclear',
+      title: '${_endingName(puzzle)} — unclear',
       description: [task, story, held, elo, game].whereType<String>().join(' '),
     );
     if (!mounted) return;
@@ -922,6 +1037,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _huntForTheRest() {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
+    _boardSerial++;
     setState(() {
       _solve = EndgameSolveSession(puzzle, alreadyFound: Set.of(_found));
       _game = chess.Chess.fromFEN(puzzle.fen);
@@ -1148,6 +1264,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     // is an instruction to play on a board that will not answer. Coming back
     // from the drill lands exactly there, and it reads as a frozen board.
     final solve = _solve;
+    if (solve != null && solve.status == EndgameSolveStatus.revealed) {
+      return puzzle.mode == EndgameMode.draw
+          ? 'Answer shown — hold the draw'
+          : 'Answer shown — keep the win';
+    }
     if (solve != null && solve.isComplete) {
       return puzzle.mode == EndgameMode.draw
           ? 'Solved — draw held'
@@ -1168,6 +1289,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// so it is only worth saying while there is a single question standing.
   String? _instructionText(EndgameSolveSession solve) {
     if (_drilling) return null;
+    if (solve.status == EndgameSolveStatus.revealed) {
+      return solve.puzzle.canBePlayedOut
+          ? 'Board is locked while the answer is shown. "Play to the end" '
+              'continues this position, and "Next" brings a new one.'
+          : 'Board is locked while the answer is shown. "Next" brings a new '
+              'position.';
+    }
     // Solved means the board is closed, and saying nothing about that is how a
     // deliberate lock reads as a broken one. Reported three times now, in three
     // places; each time the board was right and silent. So it names the way
@@ -1200,10 +1328,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   }
 
   List<String> _chips(EndgamePuzzle puzzle) => [
-        kEndgameTypeNames[puzzle.type] ?? puzzle.type,
+        _endingName(puzzle),
         'Difficulty: ${_difficultyLabel(puzzle)}',
         if (puzzle.blunderElo != null) 'Blunder by: ${puzzle.blunderElo}',
-        if (puzzle.isExact) 'Exact from tablebases',
+        // Said either way: an engine's verdict is an estimate, and the screen
+        // used to state it as firmly as a tablebase's (D9).
+        puzzle.isExact ? 'Exact from tablebases' : 'Engine estimate',
         if (_drilling && _drillMoves > 0) 'Played: $_drillMoves',
         if (_drilling && _drillMistakes > 0) 'Mistakes: $_drillMistakes',
         if (_exploring) 'Exploring',
@@ -1301,6 +1431,14 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
             icon: const Icon(Icons.lightbulb_outline),
             label: const Text('Hint'),
           ),
+        // While the question is open, and never in a drill, where
+        // `Tablebase findings` is the answer. No key, as in tactics (D3).
+        if (!solve.isComplete)
+          TextButton.icon(
+            onPressed: _showSolution,
+            icon: const Icon(Icons.visibility_outlined),
+            label: const Text('Show solution'),
+          ),
         // Offered only when there is something left to find, and only as a
         // choice: the position is solved either way.
         if (solve.status == EndgameSolveStatus.solved &&
@@ -1348,7 +1486,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           onPressed: _loadNext,
           icon: const Icon(Icons.arrow_forward),
           label: Text(
-            solve.status == EndgameSolveStatus.solved ? 'Next' : 'Skip',
+            solve.status == EndgameSolveStatus.solved ||
+                    solve.status == EndgameSolveStatus.revealed
+                ? 'Next'
+                : 'Skip',
           ),
         ),
       ],

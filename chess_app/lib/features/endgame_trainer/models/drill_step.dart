@@ -15,6 +15,8 @@ class DrillStep {
     required this.fen,
     this.closer,
     this.replySan,
+    this.playedUci,
+    this.replyUci,
     this.finished,
   });
 
@@ -39,6 +41,12 @@ class DrillStep {
 
   final String? replySan;
 
+  /// The move judged and the reply, as the server played them — kept for the
+  /// tree `Open in Analysis` builds, which replays UCI so an underpromotion
+  /// stays the piece it was (docs/PLAN-TRENER-ZAVRSNICA.md, phases 4–5).
+  final String? playedUci;
+  final String? replyUci;
+
   /// 'mate', 'stalemate', 'insufficient', 'repetition', 'fifty_moves', or null
   /// while it runs. 'draw_rule' is the older name for the last two together and
   /// is still accepted, so an old server does not go unread.
@@ -55,6 +63,8 @@ class DrillStep {
         fen: json['fen']?.toString() ?? '',
         closer: json['closer'] is bool ? json['closer'] as bool : null,
         replySan: (json['reply'] as Map<String, dynamic>?)?['san']?.toString(),
+        playedUci: json['playedUci']?.toString(),
+        replyUci: (json['reply'] as Map<String, dynamic>?)?['uci']?.toString(),
         finished: json['finished']?.toString(),
       );
 }

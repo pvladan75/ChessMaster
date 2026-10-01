@@ -600,6 +600,23 @@ draft.
 
 ### Phase 4 — the answer: `Show solution`, the reply and the engine's estimate [implementer; gate by the lead]
 
+**Built by the lead, 1.10.2026.** `T/endgame_answer_test.dart`, 18 cases
+over the real service and the real attempt log, each on a `MockClient`, with
+`/play` answering through a queue the case releases; two pure cases of the
+session's `revealed` in `endgame_solve_session_test` (the two `opponentReply`
+cases rewritten openly into one), and two wire cases (`material_label`,
+`playedUci` / `reply.uci`). On the old code 14 of the 18 are red; the four
+green there are absences and a fallback that were true before (`Show
+solution` not after a solve or in a drill, no estimate on an exact position,
+the mined name without a label) — each is held by its mutation instead. All
+nine mutations of the table red on their own case. Two things the gate's
+first draft got wrong, both the lead's: `find.textContaining('Find the rest')`
+also matched the instruction under the board, so the button is found by its
+whole label; and a fixture parameter nothing passed. The screen's reply is
+guarded twice — a board serial (Find the rest, a drill, Next) and a puzzle
+serial (Next) — so the token mutation turns only „after Find the rest" red;
+„after Next" is held by the second guard as well.
+
 Covers D3, D8 (the app side), D9 and *(Fable, 1.10.2026)* the app half of
 D12. `EndgameSolveSession` gets a fourth status, `revealed`: complete, never
 `countsAsSolved`, and `submit` is refused in it.

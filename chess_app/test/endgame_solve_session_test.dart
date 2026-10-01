@@ -109,16 +109,36 @@ void main() {
       }
     });
 
-    test('offers the demonstration reply only when the line still applies', () {
-      // The engine's own move: the recorded line continues from here.
-      final onLine = EndgameSolveSession(twoWaysToDraw()).submit('a1f1');
-      expect(onLine.opponentReply, 'g2g3');
+    // Until 1.10.2026 two cases here held the stored line's reply — the line's
+    // second move after its own first, none after another holding move.
+    // Superseded by docs/PLAN-TRENER-ZAVRSNICA.md D8: the reply comes from the
+    // server for every found move, so the session gives none; what is left to
+    // hold is that either holding move is a plain correct verdict.
+    test('either holding move is a correct verdict, with no reply in it', () {
+      for (final move in ['a1f1', 'a1e1']) {
+        final verdict = EndgameSolveSession(twoWaysToDraw()).submit(move);
+        expect(verdict.correct, isTrue, reason: move);
+        expect(verdict.finished, isTrue, reason: move);
+      }
+    });
 
-      // Equally good, but the recorded line no longer describes this board, so
-      // replying from it would show a move that does not follow.
-      final offLine = EndgameSolveSession(twoWaysToDraw()).submit('a1e1');
-      expect(offLine.correct, isTrue);
-      expect(offLine.opponentReply, isNull);
+    test('Show solution: revealed, complete, never counted, and closed', () {
+      final session = EndgameSolveSession(twoWaysToDraw());
+      session.reveal();
+      expect(session.status, EndgameSolveStatus.revealed);
+      expect(session.isComplete, isTrue);
+      expect(session.countsAsSolved, isFalse);
+
+      final after = session.submit('a1f1');
+      expect(after.correct, isFalse, reason: 'submit is refused once shown');
+      expect(session.status, EndgameSolveStatus.revealed);
+    });
+
+    test('a solved attempt is not turned into a shown one', () {
+      final session = EndgameSolveSession(twoWaysToDraw())..submit('a1f1');
+      session.reveal();
+      expect(session.status, EndgameSolveStatus.solved);
+      expect(session.countsAsSolved, isTrue);
     });
 
     test('a move that throws the result away fails, and names every answer',
