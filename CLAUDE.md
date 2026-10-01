@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5426 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5446 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 2049 without TEST_DATABASE_URL, 2213 with it (both measured 1.10.2026)
+cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1276,6 +1276,11 @@ Then its phase 6, the screen (→ **5421**): `My puzzles`, the state of each puz
 in words, filters, a pane or a sheet, every Practise card's progress line a
 door. **A `DropdownButton` keeps every item's text in its tree** — read its
 `value`, not a text inside it.
+Then its phase 7 (→ **5446**; backend → **2050 / 2214**): „Try again" on one
+puzzle through `AppRoutes.retryPath`, the hub's own map, and „Open in Analysis"
+for every row with a board. **A guess in the words is a fact missing from the
+wire** — „solved on the first answer, not first try" was a hint or a skip, and
+the server now says which (`solvedWithHint`).
 Then a drill is not a motif (backend → **2042 / 2206**, both measured; the app
 untouched): `/submit` had stored ['mate_puzzle'] or ['winning_position'] as a
 row's themes, and the report printed them as motifs. On the owner's choice a

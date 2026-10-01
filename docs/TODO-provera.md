@@ -4676,6 +4676,27 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Ista pozicija koju je trening pokazao kad je trebalo da vučeš.
    Potrebno: Windows; server; nalog koji je radio taktiku.
 
+13. [ ] **`Try again` u listi otvara baš tu zagonetku u njenom treningu, a lista posle toga kaže novo stanje.** [264.5]
+   O čemu se radi: Iz okna (ili lista odozdo na telefonu) `Try again` otvara trening te vrste na jednoj jedinoj zagonetci — taktiku, mat, dobijenu poziciju ili završnicu. Sopstveni zadatak „nađi potez" otvara se na istom rešavaču kao `Solve` u Biblioteci. Kad se vratiš, lista je ponovo pročitana. Greška iz partije i osnovni mat nemaju `Try again`, ni sopstveni zadatak koji se igra protiv motora.
+   Gde: `Practise` → linija napretka → `My puzzles` → izaberi red → `Try again`.
+   Uradi: Ponovi jednu promašenu taktiku i jednu završnicu, reši ih i vrati se nazad; pa izaberi grešku iz partije.
+   Treba da vidiš: Trening je otvoren na toj poziciji (ne na nekoj drugoj iz reda za ponavljanje); po povratku red kaže „Solved on try 2"; kod greške iz partije nema `Try again`, ali ima `Open in Analysis`.
+   Potrebno: Windows i telefon; server (restartovan posle izmene — nodemon to radi sam); nalog sa promašenim zagonetkama.
+
+14. [ ] **`Open in Analysis` otvara poziciju zagonetke u Analizi — bilo koje, i nerešene.** [264.6]
+   O čemu se radi: Na tvoju odluku (D3) svaka zagonetka sa tablom se otvara u Analizi, kakvo god joj je stanje i ko god da si. Gledanje ništa ne upisuje: zagonetka pogledana pa rešena računa se kao rešena, nikad kao „rešena iz prvog pokušaja", pa se procenat u izveštaju ne može podići gledanjem. Tvoja sačuvana analiza na tabu Analyse ostaje netaknuta.
+   Gde: `Practise` → linija napretka → `My puzzles` → izaberi red → `Open in Analysis`.
+   Uradi: Otvori jednu promašenu i jednu rešenu; vrati se; pa otvori tab `Analyse`.
+   Treba da vidiš: Analiza je na poziciji te zagonetke (kod taktike: posle protivnikovog poteza); na telefonu list odozdo se zatvori pre Analize i ne stoji ispod nje; tab `Analyse` ima tvoju analizu od ranije.
+   Potrebno: Windows i telefon; server.
+
+15. [ ] **Rešena posle preskoka kaže „Solved after a skip", a ne „with a hint".** [264.7]
+   O čemu se radi: Zagonetka preskočena pa rešena na prvom odgovoru do 1.10.2026 bi u listi pisala „Solved with a hint" — pogrešno. Server sada kaže da li je odgovor koji ju je rešio imao pomoć.
+   Gde: `Practise` → npr. `Find the winning path` → preskoči poziciju (`Next Position` bez odgovora) → linija napretka → `My puzzles` → red te pozicije → `Try again` → reši je.
+   Uradi: Vrati se u listu.
+   Treba da vidiš: Red kaže „Solved after a skip". Zagonetka rešena uz pomoć (`Hint`) kaže „Solved with a hint".
+   Potrebno: Windows; server.
+
 ### Practise — Practise — ostalo
 
 1. [ ] **Isti panel stabla radi i u Analizi.** [70.9]

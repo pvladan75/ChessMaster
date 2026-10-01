@@ -10154,3 +10154,31 @@ every run exited 1 and the control exited 0: the parser's pattern had lost its
 backslashes on the way into a string. The exit codes disagreed with the list,
 and the tool was proved on the one mutation known to fail before the list was
 read again. Read a mutation round's exit codes beside its list.
+
+## 1.10.2026 — the puzzle list, phase 7: „Try again" and „Open in Analysis"
+
+The last phase of `PLAN-NAPREDAK-VEZBI.md` §7 to build. App 5426 → **5446**,
+backend 2049 → **2050** / 2213 → **2214**, all measured and predicted.
+
+**A guess in the words is a fact missing from the wire.** „Solved, not a
+first-try solve, on the first answer" was worded „Solved with a hint" — the
+only reading the phase-6 fixture had. Writing a realistic answer to a retry
+for a puzzle that had been *skipped* first made the same three facts mean
+something else. The server now sends `solvedWithHint`; the words stop
+guessing.
+
+**A finder cannot see what an opaque page covers.** „The sheet is not left
+open" stayed green with the sheet left open under Analysis, because a page
+on top hides the route below from every finder. The check now comes back
+from Analysis and looks.
+
+**On a lazily built list, `ensureVisible` can stop a few pixels short.** The
+list's length is an estimate until every row is laid out; with rows of
+uneven height a tap meant for the last row landed at y = 796 in a 792 px
+window and hit nothing. Measured first — the list itself ended exactly at
+the edge, so no layout fault — then the gate drags until the row's middle
+can be hit.
+
+**Two doors to one drill read one map.** The hub's „Retry failed" and the
+list's „Try again" both ask `AppRoutes.retryPath` which drill retries a
+source; a mutation of either door's use of it goes red.
