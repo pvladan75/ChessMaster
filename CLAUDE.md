@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5318 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5326 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1979 without TEST_DATABASE_URL (measured 30.9.2026), 2142 with it (derived)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1228,6 +1228,15 @@ not called `err`. And an error that now reached the log carried what
 nodemailer's `rejected`, a failing row in Postgres's `detail` — so the logger's
 `err` serializer masks addresses and leaves such a row out. **When a fix lets a
 value reach an output it never reached, read what the value carries.**
+Then three findings of the 25.9 triage (→ **5326**, a full run; analyze the
+same 22): `Save tutorial` is greyed when the draft is the saved version and
+while a save is out (`canSave`), the endgame shortcuts name the buttons they
+press, and three manual pages were corrected. Writing the gate found a double
+tap on a new tutorial's Save making **two tutorials** — the third time this
+shape: **a button that creates something is locked while its request is out,
+and the lock is in the method, not the button.** And `rememberSaved` never
+announced that the saved version was known, because nothing had read it
+before `canSave` did.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

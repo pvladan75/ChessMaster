@@ -67,7 +67,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
           key: const Key('phone-save'),
           icon: const Icon(Icons.save_outlined),
           tooltip: 'Save tutorial',
-          onPressed: _saveTutorial,
+          onPressed: _c.canSave ? _saveTutorial : null,
         ),
         PopupMenuButton<String>(
           key: const Key('phone-more'),

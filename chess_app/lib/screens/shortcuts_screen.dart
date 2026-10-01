@@ -76,11 +76,15 @@ final kShortcutGroups = <ShortcutGroup>[
     'On the endgames screen. Each letter presses the button currently '
         'on screen, and does nothing when that button is not present.',
     [
-      AppShortcut(['N'], 'Next position.'),
-      AppShortcut(['R'], 'Restart, same as the restart button.'),
+      // Each line starts with the label of the button it presses, as the
+      // endgames screen writes it — `shortcuts_screen_test` holds it to that.
+      AppShortcut(['N'], 'Next, or Skip before the position is solved.'),
+      AppShortcut(['R'], 'Start over, while playing out the position.'),
       AppShortcut(['H'], 'Hint.'),
-      AppShortcut(['T'], 'Tablebase lookup, while playing out the position.'),
-      AppShortcut(['U'], 'Undo move, after an error while playing out.'),
+      AppShortcut([
+        'T'
+      ], 'Tablebase findings, or Hide findings, while playing out the position.'),
+      AppShortcut(['U'], 'Take back, after a wrong move while playing out.'),
     ],
   ),
   ShortcutGroup(

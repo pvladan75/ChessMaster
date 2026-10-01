@@ -9,6 +9,7 @@
 // file says the controller does it without a frame, which is what the seam
 // was for and what the phone layout (6b) will stand on.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -32,14 +33,16 @@ TutorialDraftController _blank({String title = ''}) => TutorialDraftController(
     );
 
 /// A server that accepts every save and hands back ids, remembering what
-/// it was sent.
-({LessonApiService api, List<Map<String, dynamic>> sent}) _server() {
+/// it was sent. With [hold], every answer waits for it.
+({LessonApiService api, List<Map<String, dynamic>> sent}) _server(
+    {Future<void>? hold}) {
   final sent = <Map<String, dynamic>>[];
   final api = LessonApiService(
     authToken: 'tok',
     client: MockClient((req) async {
       final body = Map<String, dynamic>.from(jsonDecode(req.body) as Map);
       sent.add(body);
+      await hold;
       final steps = body['positionList'] as List;
       return http.Response(
         jsonEncode({
@@ -177,6 +180,42 @@ void main() {
     expect(server.sent, hasLength(2));
     expect(server.sent.last['positionList'].single['id'], 'step0');
     expect(c.hasUnsavedChanges, isFalse);
+  });
+
+  // [151.6]: „Save tutorial" is drawn by `canSave`.
+  test('there is something to save until the draft is the saved version',
+      () async {
+    final c = _blank(title: 'Greyed');
+    expect(c.canSave, isTrue, reason: 'never saved: the server has nothing');
+
+    c.playMove('e2', 'e4', '');
+    expect(await c.save(_server().api), isNull);
+    expect(c.canSave, isFalse, reason: 'what is here is what was sent');
+
+    c.setTitle('Greyed again');
+    expect(c.canSave, isTrue);
+    c.undo();
+    expect(c.canSave, isFalse, reason: 'back to what was sent');
+  });
+
+  test('a save asked for while one is out sends nothing', () async {
+    // Asked of the controller, not the button: the greyed button only says
+    // what this lock does.
+    final c = _blank(title: 'Twice');
+    c.playMove('e2', 'e4', '');
+    final release = Completer<void>();
+    final server = _server(hold: release.future);
+
+    final first = c.save(server.api);
+    expect(c.canSave, isFalse, reason: 'a save is on its way');
+    final second = c.save(server.api);
+    release.complete();
+    final answers = await Future.wait([first, second]);
+
+    expect(server.sent, hasLength(1), reason: 'one tutorial, not two');
+    expect(answers.first, isNull);
+    expect(answers.last, isNotNull,
+        reason: 'refused, and not reported as saved');
   });
 
   test('the one refusal left is a missing title', () {

@@ -9792,3 +9792,62 @@ Backend 1967 → 1979 (+7 in the new file, +4 in `personal_data_exposure.test.js
 the other four support files), with and without `.env`, and the same names
 passing as before plus the twelve; 2130 → 2142 with a database (derived — none
 of the new tests touch one).
+
+## 1.10.2026 — three findings of the triage: `Save tutorial` greyed when there is nothing to save, the endgame shortcuts, the manual
+
+**What was asked.** The three findings the triage of 25.9.2026 left as work
+rather than checks: `Save tutorial` never greyed ([151.6], the owner's report
+of 11.9.2026), the shortcut screen naming endgame buttons that do not exist,
+and manual pages describing doors on the wrong screens.
+
+**The button.** `canSave` on `TutorialDraftController`, drawn by both
+layouts: not while a save is out, and otherwise only when the saved version is
+not known or the draft differs from it — the rule `Discard changes` already
+stood on, so the two cannot disagree. Writing its tests first found a bug on
+master that the report did not name: nothing stopped a second tap while the
+first save was out, and the first save of a new tutorial has no lesson id yet,
+so a double tap was **two POSTs, two tutorials** (red on the old code as
+`['POST', 'POST']`). The third time this shape has turned up — the double
+„Start" of 22.9, the double „Record" in Preparation — so: **a button that
+creates something is locked for as long as its request is out, and the lock
+is in the method, not in the button.** A greyed button only shows the lock;
+the mutation that removed the lock from `save()` and left the button greyed
+was caught only by a controller case that calls `save` twice without a frame.
+
+**A fact nobody read was never announced.** The first run of the new cases was
+still red: the studio draws its bar before the saved version arrives, and
+`rememberSaved` notified listeners only when „differs" changed. Nothing had
+ever read „the saved version is known", so nothing had needed to hear it;
+`canSave` was its first reader (rule 14). **When a new getter combines a flag
+with state nobody used to watch, ask whether that state is announced when it
+changes.**
+
+**Six old cases saved with nothing to send.** They used a save as an
+instrument — to read what the draft held right after „Open the saved version",
+a discard or an undo — which is exactly the moment the button is now greyed.
+Each was rewritten openly, with a sentence above it: a title changed first
+(it touches no part and no id, which is what they read), or the greyed button
+itself where the save had only read that the draft was the saved version. The
+shared `save` helper now asserts the button is enabled and that one request
+went out, so a case that taps a greyed button fails saying so instead of
+reading the previous request.
+
+**The shortcuts.** Each endgame line now starts with the label of the button
+its key presses, and a case reads the first name in each line and looks for
+it among the endgame screen's string literals (`literalsIn`, the lexer).
+Red on the old list at its first wrong line („Next position"), and on R and T
+put back one at a time.
+
+**The manual.** Two of the triage's five claims had been fixed since
+(`Promote to Main Line`, and „Blunder detection" now reads as the heading it
+is in `Review entire game`); the rest were rewritten from the screens'
+sources, not from the triage's words — and the scanner's steps turned out
+staler than the triage said: a scan has no `Stop`, but `Suggest sides with the
+engine` has one. `manual_labels_test` still proves only that a quoted label
+exists somewhere in `lib/`, which is how every one of these survived; that
+limit is written into [260.2] rather than fixed here.
+
+**Mutation.** Eight for the button (the three halves of `canSave`, the lock,
+both notifications, both buttons), all red on the case meant for them; two did
+not apply at first because the file is CRLF, and the helper refused rather
+than run an unmutated suite. App 5318 → 5326 (+5, +2, +1).

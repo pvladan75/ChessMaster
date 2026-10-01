@@ -992,7 +992,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             onPressed: _exportPgn,
           ),
           FilledButton(
-            onPressed: _saveTutorial,
+            onPressed: _c.canSave ? _saveTutorial : null,
             child: const Text('Save tutorial'),
           ),
           const SizedBox(width: AppSpacing.sm),

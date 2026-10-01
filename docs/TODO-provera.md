@@ -8801,19 +8801,22 @@ odlazi na kraj spiska u alatu.
    odgovara očekivanju, to je zasebna odluka o ponašanju, ne kvar ove provere.
    Potrebno: Windows i telefon; sačuvan tutorijal sa bar dva dela.
 
-52. [ ] **`Discard changes` vraća potez; `Save tutorial` treba da bude sivo
-   posle čuvanja.** [151.6]
-   O čemu se radi: Poznat problem, nije popravljen: Dugme `Save tutorial` nema
-   uslov onPressed — nikad nije sivo/onemogućeno, ni kad nema izmena za
-   čuvanje. Prijavljeno 11.9.2026: `Save tutorial` dugme nikad ne postane sivo,
-   ni odmah posle čuvanja kad nema šta drugo da se sačuva. Potvrđeno u kodu
-   (25.9.2026) — dugme je uvek klikabilno.
+52. [ ] **`Save tutorial` je sivo kad nema šta da se sačuva, a `Discard
+   changes` vraća potez.** [151.6]
+   O čemu se radi: Prijavljeno 11.9.2026: `Save tutorial` nikad nije bilo
+   sivo, ni odmah posle čuvanja. Popravljeno 1.10.2026: dugme je sivo kad je
+   ono na ekranu isto što je sačuvano — po istom pravilu po kom je `Discard
+   changes` sivo — i dok čuvanje traje, jer je dupli klik na novom tutorijalu
+   pravio dva tutorijala. Tutorijal koji još nije sačuvan, ili čiju sačuvanu
+   verziju server nije dao, uvek može da se sačuva.
    Gde: `Teach` → `Tutorials` → `Saved tutorials` → (tutorijal) → studio.
-   Uradi: Odigraj potez na tabli, pritisni `Discard changes`, proveri da potez
-   nestane i da ga Ctrl+Z vrati; zatim pritisni `Save tutorial`.
-   Treba da vidiš: Potez nestaje posle `Discard changes` i Ctrl+Z ga vraća — to
-   radi. Ali `Save tutorial` ostaje klikabilno (nije sivo) i posle čuvanja,
-   suprotno onome što se očekuje da se vidi.
+   Uradi: Otvori tutorijal i ne diraj ništa; odigraj potez; pritisni `Save
+   tutorial`; odigraj još jedan potez, pa `Discard changes`, pa Ctrl+Z. Na
+   telefonu isto, sa ikonom za čuvanje gore desno.
+   Treba da vidiš: `Save tutorial` sivo čim server odgovori (trenutak posle
+   otvaranja); aktivno posle poteza; opet sivo posle čuvanja; aktivno posle
+   drugog poteza. `Discard changes` skida taj potez i dugme je opet sivo;
+   Ctrl+Z vraća potez i dugme je opet aktivno.
    Potrebno: Windows i telefon; sačuvan tutorijal.
 
 53. [ ] **Izmena rečenice odmah pokazuje traku o zastarelom snimku.** [140.1]
@@ -10437,6 +10440,22 @@ odlazi na kraj spiska u alatu.
     ispod u najmanjem, jedna ispod druge na telefonu; brojevi isti kao pre.
     Potrebno: Windows i telefon; prijavljen nalog; server.
 
+15. [ ] **Prečice za završnice imenuju dugmad koja postoje.** [260.1]
+    O čemu se radi: Nalaz iz trijaže 25.9.2026, popravljen 1.10.2026: grupa
+    `Endgame trainer` je pisala „Restart", „Tablebase lookup" i „Undo move", a
+    dugmad se zovu `Start over`, `Tablebase findings` i `Take back`. Sada svaki
+    red počinje imenom dugmeta koje taster pritiska, a test drži to ime uz
+    ekran završnica.
+    Gde: F1, ili `Settings` → `HELP` → `Keyboard shortcuts` → grupa `Endgame
+    trainer`; pa `Practise` → `Endgames from master games` → `Win` → (štikliraj
+    jednu vrstu) → pozicija.
+    Uradi: Pročitaj pet redova grupe. U poziciji pritisni `Play to the end`,
+    pa probaj R i T, a U posle pogrešnog poteza.
+    Treba da vidiš: N — `Next` (ili `Skip`), R — `Start over`, H — `Hint`, T —
+    `Tablebase findings` (ili `Hide findings`), U — `Take back`; svaki taster
+    pritiska baš to dugme, i to dugme je na ekranu.
+    Potrebno: Windows (tastatura).
+
 ### Podešavanja i izgled — Cela aplikacija
 
 1. [ ] **Reč „studio” se sreće samo u imenu „Tutorial studio”** [131.5]
@@ -10577,6 +10596,26 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Tekst uputstva opisuje tačno ono ponašanje koje si upravo
    video (izbor jezika, prekriženi zvučnik, izvoz videa).
    Potrebno: Windows i telefon.
+
+8. [ ] **Priručnik: Practise, Analysis i skeniranje navode dugmad sa pravih
+   ekrana.** [260.2]
+   O čemu se radi: Nalaz iz trijaže 25.9.2026, ispravljen 1.10.2026.
+   `practice.html`: `My games` nudi `View opening leaks`, `Profile and habits`
+   i `Repertoire from games` (ne „Game mistakes"); `Judge moves` je u
+   `Opening leaks`; `My mistakes` se rešava potezom ili sa `Show answer`, pa
+   ocenom `Again`, `Hard`, `Good` ili `Easy`; `Include online games`, `Punish`
+   i `Game blunders` su kod završnica. `analysis.html`: motor koji ćuti pali
+   se sa `Show evaluation`, a panel se vraća iz `Board view` → `Panels`, ne iz
+   Settings. `preparation.html`: skeniranje nema `Stop`; `Stop` zaustavlja
+   `Suggest sides with the engine`. Test proverava samo da citiran natpis
+   postoji negde u kodu, ne i na ekranu koji stranica imenuje — zato čitanje.
+   Gde: site/mislisha/manual/practice.html, analysis.html (odeljak „What can
+   go wrong") i preparation.html (odeljak o skeniranju knjige), otvoreno
+   lokalno u pregledaču.
+   Uradi: Pročitaj te odeljke, pa ih uporedi sa ekranima koje opisuju.
+   Treba da vidiš: Svaki natpis koji stranica navodi je na ekranu koji
+   stranica imenuje i radi ono što piše.
+   Potrebno: Windows; za skeniranje jedna PDF knjiga.
 
 ### Server i alati — Govor i renderovanje
 

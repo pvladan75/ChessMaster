@@ -119,9 +119,10 @@ void main() {
     return draft;
   }
 
-  Future<void> open(WidgetTester tester, _Backend backend,
-      Map<String, dynamic> listRow) async {
-    tester.view.physicalSize = const Size(1600, 1200);
+  Future<void> open(
+      WidgetTester tester, _Backend backend, Map<String, dynamic> listRow,
+      {Size size = const Size(1600, 1200)}) async {
+    tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     addTearDown(() async {
@@ -138,11 +139,42 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// A tutorial the server has never seen.
+  Future<void> openBlank(WidgetTester tester, _Backend backend) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 100));
+    });
+    await tester.pumpWidget(MaterialApp(
+      home: TutorialStudioScreen(
+        session: session,
+        entry: const TutorialEntry.blank('Opozicija'),
+        lessonApi: backend.api,
+      ),
+    ));
+    await tester.pumpAndSettle();
+  }
+
   final discard = find.byKey(const Key('discard-changes'));
   final undo = find.byKey(const Key('tutorial-undo'));
+  final saveButton = find.widgetWithText(FilledButton, 'Save tutorial');
 
   bool enabled(WidgetTester tester, Finder button) =>
       tester.widget<IconButton>(button).onPressed != null;
+
+  bool saveEnabled(WidgetTester tester) =>
+      tester.widget<FilledButton>(saveButton).onPressed != null;
+
+  /// A change that touches no part: the title. For a case that has to save
+  /// right after the draft became the saved version again, when „Save
+  /// tutorial" has nothing to send and is greyed.
+  Future<void> retitle(WidgetTester tester, String title) async {
+    await tester.enterText(find.byKey(const Key('tutorial-title')), title);
+    await tester.pumpAndSettle();
+  }
 
   Future<void> tap(WidgetTester tester, Finder finder) async {
     await tester.tap(finder);
@@ -158,7 +190,12 @@ void main() {
 
   Future<Map<String, dynamic>> save(
       WidgetTester tester, _Backend backend) async {
-    await tap(tester, find.text('Save tutorial'));
+    // A greyed button taps silently, and `saves.last` would then throw on an
+    // empty list or read the previous save. Said here instead.
+    expect(saveEnabled(tester), isTrue, reason: 'nothing to save');
+    final before = backend.saves.length;
+    await tap(tester, saveButton);
+    expect(backend.saves, hasLength(before + 1));
     return backend.saves.last;
   }
 
@@ -180,6 +217,10 @@ void main() {
     expect(find.text(_question), findsOneWidget);
     await tap(tester, find.text('Open the saved version'));
 
+    // Until [151.6] this saved straight away. The saved version on screen has
+    // nothing to send now, so a title that touches no part is changed first.
+    expect(saveEnabled(tester), isFalse);
+    await retitle(tester, 'Opozicija 2');
     expect(idsOf(await save(tester, backend)), ['aaa', 'bbb'],
         reason: 'the saved version is what goes out, ids and all');
   });
@@ -295,6 +336,11 @@ void main() {
     expect(find.text(_question), findsNothing,
         reason: 'nothing of the trainer\'s was on screen to ask about');
     expect(enabled(tester, undo), isFalse);
+    // Until [151.6] this saved straight away; the server's version on screen
+    // has nothing to send now. A move in the first part leaves the title and
+    // the ids this case reads.
+    expect(saveEnabled(tester), isFalse);
+    await play(tester, 'e2', 'e4');
     final body = await save(tester, backend);
     expect(body['title'], 'Opozicija, revised');
     expect(idsOf(body), ['aaa', 'bbb']);
@@ -312,7 +358,10 @@ void main() {
 
     await tap(tester, discard);
     expect(enabled(tester, discard), isFalse);
-    expect(pgnOf(await save(tester, backend), 0), isNot(contains('e4')));
+    // Until [151.6] a save here sent the part without e4. The saved version
+    // has nothing to send now, which is the same fact read off the button.
+    expect(saveEnabled(tester), isFalse,
+        reason: 'the saved version is back: nothing to send');
 
     await tap(tester, undo);
     expect(enabled(tester, discard), isTrue,
@@ -325,26 +374,15 @@ void main() {
     // What the first save sent had no lesson id and no step ids yet. Put back
     // as it was, the next save would make a second tutorial.
     final backend = _Backend();
-    tester.view.physicalSize = const Size(1600, 1200);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(tester.view.reset);
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump(const Duration(milliseconds: 100));
-    });
-    await tester.pumpWidget(MaterialApp(
-      home: TutorialStudioScreen(
-        session: session,
-        entry: const TutorialEntry.blank('Opozicija'),
-        lessonApi: backend.api,
-      ),
-    ));
-    await tester.pumpAndSettle();
+    await openBlank(tester, backend);
 
     await play(tester, 'e2', 'e4');
     await save(tester, backend);
     await play(tester, 'e7', 'e5');
     await tap(tester, discard);
+    // Until [151.6] this saved straight after the discard, which has nothing
+    // to send now; a title touches no part and no id.
+    await retitle(tester, 'Opozicija 2');
     final body = await save(tester, backend);
 
     expect(backend.methods, ['POST', 'PUT'],
@@ -364,6 +402,9 @@ void main() {
     await play(tester, 'e2', 'e4');
     await tap(tester, undo);
 
+    // Until [151.6] this saved straight after the undo, which is back to the
+    // saved version and has nothing to send now; the title is not the language.
+    await retitle(tester, 'Opozicija 2');
     expect((await save(tester, backend))['language'], 'de');
   });
 
@@ -380,6 +421,9 @@ void main() {
     await play(tester, 'e7', 'e5');
     await tap(tester, discard);
 
+    // Until [151.6] this saved straight after the discard, which has nothing
+    // to send now; a title touches no part.
+    await retitle(tester, 'Opozicija 2');
     final pgn = pgnOf(await save(tester, backend), 0);
     expect(pgn, contains('e4'));
     expect(pgn, isNot(contains('e5')));
@@ -403,6 +447,81 @@ void main() {
 
     expect(enabled(tester, discard), isTrue,
         reason: 'the new title never reached the server');
+  });
+
+  // „Save tutorial" is greyed when pressing it would send nothing new — the
+  // owner's report of 11.9.2026, [151.6] in docs/TODO-provera.md: it never
+  // was, not even right after a save. „Nothing new" is the rule „Discard
+  // changes" already stands on, so the two cannot disagree about whether the
+  // draft is the saved version.
+  group('Save tutorial is greyed', () {
+    testWidgets('while what is on screen is the saved version', (tester) async {
+      final row = saved();
+      final backend = _Backend()..row = row;
+      await open(tester, backend, row);
+      expect(saveEnabled(tester), isFalse, reason: 'opened as it was saved');
+
+      await play(tester, 'e2', 'e4');
+      expect(saveEnabled(tester), isTrue);
+
+      await save(tester, backend);
+      expect(saveEnabled(tester), isFalse,
+          reason: 'the owner\'s report: still pressable right after a save');
+
+      await play(tester, 'e7', 'e5');
+      expect(saveEnabled(tester), isTrue);
+      await tap(tester, discard);
+      expect(saveEnabled(tester), isFalse,
+          reason: 'discarding is back to the save');
+    });
+
+    testWidgets('never for a tutorial the server has not got', (tester) async {
+      await openBlank(tester, _Backend());
+      expect(saveEnabled(tester), isTrue,
+          reason: 'there is no saved version for it to be');
+    });
+
+    testWidgets('never when the saved version could not be read',
+        (tester) async {
+      final row = saved();
+      await open(tester, _Backend(), row); // the fetch fails
+      expect(saveEnabled(tester), isTrue,
+          reason: 'a version nobody could read is not one the draft is known '
+              'to equal');
+    });
+
+    testWidgets(
+        'while a save is on its way, so a second tap is not a second '
+        'tutorial', (tester) async {
+      // The first save of a new tutorial has no lesson id to edit, so a tap
+      // before its answer arrives was a second POST: two tutorials.
+      final backend = _Backend()..holdSave = Completer<void>();
+      await openBlank(tester, backend);
+      await play(tester, 'e2', 'e4');
+
+      await tester.tap(saveButton);
+      await tester.pump();
+      final pressableWhileOut = saveEnabled(tester);
+      await tester.tap(saveButton);
+      await tester.pump();
+      backend.holdSave!.complete();
+      await tester.pumpAndSettle();
+
+      expect(backend.methods, ['POST'], reason: 'one tutorial, not two');
+      expect(pressableWhileOut, isFalse, reason: 'a save is on its way');
+      expect(saveEnabled(tester), isFalse, reason: 'and nothing left to save');
+    });
+
+    testWidgets('on the phone too', (tester) async {
+      final row = saved();
+      final backend = _Backend()..row = row;
+      await open(tester, backend, row, size: const Size(360, 640));
+      final phoneSave = find.byKey(const Key('phone-save'));
+      expect(enabled(tester, phoneSave), isFalse);
+
+      await play(tester, 'e2', 'e4');
+      expect(enabled(tester, phoneSave), isTrue);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
   });
 
   group('fetchTutorial', () {

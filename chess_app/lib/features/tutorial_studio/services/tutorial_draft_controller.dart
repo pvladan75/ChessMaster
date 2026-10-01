@@ -150,6 +150,21 @@ class TutorialDraftController extends ChangeNotifier {
 
   bool get savedVersionKnown => _savedSnapshot != null;
 
+  bool _saving = false;
+  bool _disposed = false;
+
+  /// Whether „Save tutorial" has anything to do, which both layouts draw it
+  /// by — the owner's report of 11.9.2026 ([151.6]) that it was never greyed,
+  /// not even right after a save.
+  ///
+  /// Nothing to do is the draft known to be the saved version, by the same
+  /// rule „Discard changes" is offered by, so the two cannot disagree. A draft
+  /// whose saved version is not known — never saved, or a server that did not
+  /// answer — can always be sent. And not while a save is on its way: the
+  /// first save of a new tutorial has no lesson id yet, so a second one sent
+  /// before its answer made a second tutorial.
+  bool get canSave => !_saving && (!savedVersionKnown || _hasUnsavedChanges);
+
   // ── the draft as a whole ─────────────────────────────────────────────────
 
   /// Makes [draft] the one being written, and the place undo stops.
@@ -176,9 +191,12 @@ class TutorialDraftController extends ChangeNotifier {
     }
     _savedSnapshot = jsonEncode(saved.toJson());
     _savedSignature = saved.contentSignature();
-    final differs = _differsFromSaved();
-    _setUnsaved(differs);
-    return differs;
+    _hasUnsavedChanges = _differsFromSaved();
+    // Told even when nothing differs: that the saved version is known at all
+    // is news to [canSave], and a button drawn before the answer arrived
+    // would otherwise stay pressable.
+    notifyListeners();
+    return _hasUnsavedChanges;
   }
 
   /// „Discard changes": the saved version, put back as a change of its own —
@@ -633,22 +651,37 @@ class TutorialDraftController extends ChangeNotifier {
   /// arrived after them. Its ids are handed back by [_giveBackIds] if it is
   /// ever restored.
   Future<String?> save(LessonApiService api) async {
+    // The lock itself; a greyed button only says so ([canSave]).
+    if (_saving) return 'The tutorial is still being saved.';
     final refusal = validate();
     if (refusal != null) return refusal;
 
     _draft.title = _draft.title.trim();
     final sentSnapshot = jsonEncode(_draft.toJson());
     final sentSignature = _draft.contentSignature();
-    final error = await commitDraft(_draft, api);
-    if (error != null) return error;
-
-    _savedSnapshot = sentSnapshot;
-    _savedSignature = sentSignature;
-    // The draft now knows its lesson id and every step id, so the next save
-    // edits this tutorial instead of making a second one.
-    persist();
+    _saving = true;
     notifyListeners();
-    return null;
+    try {
+      final error = await commitDraft(_draft, api);
+      if (error != null) return error;
+
+      _savedSnapshot = sentSnapshot;
+      _savedSignature = sentSignature;
+      // The draft now knows its lesson id and every step id, so the next save
+      // edits this tutorial instead of making a second one.
+      persist();
+      return null;
+    } finally {
+      _saving = false;
+      // The studio may have closed while the request was out.
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 
   /// The parts, quoted, by the names the list of parts shows — so the trainer
@@ -764,10 +797,4 @@ class TutorialDraftController extends ChangeNotifier {
   bool _differsFromSaved([String? signature]) =>
       _savedSignature != null &&
       (signature ?? _draft.contentSignature()) != _savedSignature;
-
-  void _setUnsaved(bool value) {
-    if (_hasUnsavedChanges == value) return;
-    _hasUnsavedChanges = value;
-    notifyListeners();
-  }
 }

@@ -115,7 +115,7 @@ void main() {
     await open(tester, const Size(1536, 792), const ShortcutsScreen());
     for (final what in [
       'Closes whatever is open over current work.',
-      'Tablebase lookup, while playing out the position.',
+      'Tablebase findings, or Hide findings, while playing out the position.',
     ]) {
       final text = tester.getRect(find.text(what));
       final card = tester.getRect(

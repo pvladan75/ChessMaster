@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/screens/shortcuts_screen.dart';
 
+import 'support/dart_source.dart';
+
 /// The page that makes every other shortcut findable.
 ///
 /// Two things are worth holding here. That the list draws on the narrowest
@@ -130,5 +132,28 @@ void main() {
         reason: 'ovi tasteri su vezani u kodu, a nisu na spisku prečica: '
             '${missing.join(', ')}');
     expect(listed, contains('Ctrl'));
+  });
+
+  test('the endgame letters name the buttons they press', () {
+    // Found by the triage of 25.9.2026: the page said „Restart" and
+    // „Tablebase lookup" where the buttons say `Start over` and `Tablebase
+    // findings`, and „Undo move" for `Take back`. The group's own sentence
+    // says each letter presses the button on screen, so each line starts with
+    // that button's label, and the label has to be one the endgames screen
+    // writes. Only the first name in a line is read; „Skip" and „Hide
+    // findings" are prose.
+    final labels = literalsIn(File(
+                'lib/features/endgame_trainer/screens/endgame_trainer_screen.dart')
+            .readAsStringSync())
+        .toSet();
+    final group =
+        kShortcutGroups.singleWhere((g) => g.title == 'Endgame trainer');
+    expect(group.shortcuts, hasLength(5));
+    for (final shortcut in group.shortcuts) {
+      final named = shortcut.what.split(RegExp(r'[,.]')).first.trim();
+      expect(labels, contains(named),
+          reason: '${shortcut.keys.join('+')} names „$named", which the '
+              'endgames screen does not draw');
+    }
   });
 }
