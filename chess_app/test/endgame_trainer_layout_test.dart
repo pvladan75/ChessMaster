@@ -329,12 +329,14 @@ void main() {
     expect(find.text('Rf1+'), findsNothing);
   });
 
-  testWidgets('a move from the finding is played, and the board stays open',
-      (tester) async {
-    // Asked for after a losing move: rather than take it back and learn
-    // nothing, play the refutation from the list and answer it on the board.
-    // So the tap plays the move, the drill steps aside, and nothing is judged
-    // or counted while it lasts.
+  // Superseded 1.10.2026 (docs/PLAN-TRENER-ZAVRSNICA.md, D4). This case held
+  // „a move from the finding is played, and the board stays open": a tap on
+  // a row stepped out of the drill into Exploring, both sides free, with
+  // `Back to position`. Exploring is deleted — `Open in Analysis` does that
+  // job with the engine, the tables and a move list — and the findings are a
+  // list to read. So the rule is checked where its effect would be drawn:
+  // with the findings open beside the board, a tap on a row changes nothing.
+  testWidgets('a move in the finding is read, not played', (tester) async {
     tester.view.physicalSize = const Size(1400, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -355,38 +357,25 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tablebase findings'));
     await tester.pumpAndSettle();
+    expect(find.text('Hide findings'), findsOneWidget,
+        reason: 'the findings are open beside the board');
 
     final board = find.byType(ChessBoardWithOverlay);
     final before =
         tester.widget<ChessBoardWithOverlay>(board).controller.game.fen;
+    final allowed = tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove;
 
     // Rf1+ is one of the moves the fake finding offers.
     await tester.tap(find.text('Rf1+'));
     await tester.pumpAndSettle();
 
-    expect(
-      tester.widget<ChessBoardWithOverlay>(board).controller.game.fen,
-      isNot(before),
-      reason: 'potez iz nalaza mora da se odigra na tabli',
-    );
-    expect(find.text('Exploring'), findsOneWidget);
-    expect(find.text('Back to position'), findsOneWidget);
-    expect(
-      tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove,
-      isTrue,
-      reason: 'tabla ostaje slobodna da se odgovori',
-    );
-    // Nothing was judged, so nothing is counted against the reader.
-    expect(find.textContaining('Mistakes:'), findsNothing);
-
-    await tester.tap(find.text('Back to position'));
-    await tester.pumpAndSettle();
-    expect(
-      tester.widget<ChessBoardWithOverlay>(board).controller.game.fen,
-      before,
-      reason: 'povratak vraca tacno onu poziciju odakle se krenulo',
-    );
+    expect(tester.widget<ChessBoardWithOverlay>(board).controller.game.fen,
+        before);
     expect(find.text('Exploring'), findsNothing);
+    expect(find.text('Back to position'), findsNothing);
+    expect(
+        tester.widget<ChessBoardWithOverlay>(board).isAllowedToMove, allowed);
+    expect(find.textContaining('Tap a move to play it'), findsNothing);
   });
 
   testWidgets('on a phone the finding is still a window', (tester) async {

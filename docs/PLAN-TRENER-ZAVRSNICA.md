@@ -811,6 +811,13 @@ Covers D1, D2, D5, D6 and D14.
 
 ### Phase 6 — Exploring goes [implementer]
 
+**Built by the lead, 1.10.2026.** The case rewritten openly in
+`endgame_trainer_layout_test.dart`, red on the code before the deletion (the
+tap played `Rf1+`), green after; the other thirteen cases of the file
+unchanged and green. A grep of `lib/`, `test/` and `site/` for `Exploring`,
+`Back to position`, „Tap a move to play" and `_playFromReadout` finds only the
+supersession note and the rewritten case.
+
 Covers D4.
 
 **Gate:** the case „a move from the finding is played, and the board stays
