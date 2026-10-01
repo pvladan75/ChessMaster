@@ -121,4 +121,21 @@ void main() {
     expect(_hosts(net.seen), ['tablebase.lichess.ovh']);
     expect(result, isNotNull);
   });
+
+  // 1.10.2026: Analysis's panel is a person reading the list, and asks for
+  // the distance to mate (`mate=1`), which the server then gets from Lichess
+  // even for five men. The review's walk does not, and keeps our own tables.
+  test('Analysis asks for the distance to mate; a plain lookup does not',
+      () async {
+    final net = _net((_) async => http.Response(jsonEncode(_answer), 200));
+    final tb = _service(net.client);
+    await tb.lookup(_fen);
+    await tb.lookup(_fen, mateDistance: true);
+    expect(_hosts(net.seen), ['server', 'server'],
+        reason: 'a plain answer cached does not answer the mate question');
+    expect(net.seen[0].url.queryParameters.containsKey('mate'), isFalse);
+    expect(net.seen[1].url.queryParameters['mate'], '1');
+    await tb.lookup(_fen, mateDistance: true);
+    expect(net.seen.length, 2, reason: 'and its own answer is cached');
+  });
 }

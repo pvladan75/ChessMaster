@@ -78,7 +78,12 @@ by the longest road to mate, ask for a
 the point is a draw rather than a win, <span class="ui">Conclude draw</span>.
 <span class="ui">Show solution</span> names every move that holds and counts
 the position as not solved, so it comes back under
-<span class="ui">Retry failed</span>. After a correct move the opponent
+<span class="ui">Retry failed</span>.
+<span class="ui">Tablebase findings</span> lists every legal move, the best
+first for whichever side is to move, with how many moves it takes to mate or to
+be mated; with seven pieces the tablebase often does not know that distance,
+and the list says so and shows the distance to the next capture or pawn move
+instead. After a correct move the opponent
 answers with the toughest defence the tablebase knows. A position with eight
 or more pieces has no tablebase: it carries <span class="ui">Engine estimate</span>,
 and a wrong move is said to be the engine's judgement rather than a fact.

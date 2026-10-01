@@ -68,4 +68,60 @@ void main() {
     expect(find.byType(SyzygyPanelWidget), findsOneWidget);
     expect(find.text('Syzygy Tablebase'), findsNothing);
   });
+
+  Future<void> pumpPanel(WidgetTester tester, SyzygyResult? result) =>
+      tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SyzygyPanelWidget(
+                isEligible: true, isLoading: false, result: result),
+          ),
+        ),
+      );
+
+  Color chipColour(WidgetTester tester, String text) =>
+      tester.widget<Text>(find.text(text)).style!.color!;
+
+  // 1.10.2026: the chips were coloured by the category as the tablebase gives
+  // it — the opponent's, after the move — so the winning Qg4+ was drawn as a
+  // loss; and every chip said DTZ, which is not the distance to mate.
+  testWidgets('each move is coloured and counted from the side that moves',
+      (tester) async {
+    await pumpPanel(
+        tester,
+        SyzygyResult.fromJson('7r/8/4k3/8/3K4/8/8/3Q4 w - - 0 1',
+            jsonDecode(_kqVsKrJson) as Map<String, dynamic>));
+
+    expect(find.text('Win · mate in 21'), findsOneWidget);
+    expect(find.text('Qg4+ (mate in 21)'), findsOneWidget);
+    expect(find.text('Qa4 (mated in 13)'), findsOneWidget);
+    expect(find.text('Qd2'), findsOneWidget, reason: 'a draw has no count');
+    expect(chipColour(tester, 'Qg4+ (mate in 21)'), Colors.greenAccent);
+    expect(chipColour(tester, 'Qa4 (mated in 13)'), Colors.redAccent);
+    expect(chipColour(tester, 'Qd2'), Colors.amberAccent);
+    expect(find.textContaining('DTZ'), findsNothing);
+  });
+
+  testWidgets('where the distance to mate is unknown, DTZ is shown and said',
+      (tester) async {
+    final json = jsonDecode(_kqVsKrJson) as Map<String, dynamic>;
+    for (final m in json['moves'] as List) {
+      (m as Map<String, dynamic>)['dtm'] = null;
+    }
+    json['dtm'] = null;
+    await pumpPanel(tester,
+        SyzygyResult.fromJson('7r/8/4k3/8/3K4/8/8/3Q4 w - - 0 1', json));
+
+    expect(find.text('Win · DTZ 29'), findsOneWidget);
+    expect(find.text('Qg4+ (DTZ 28)'), findsOneWidget);
+    expect(find.textContaining('Distance to mate unknown'), findsOneWidget);
+  });
+
+  testWidgets('no answer is the tablebase not answering, not no tablebase',
+      (tester) async {
+    await pumpPanel(tester, null);
+    expect(find.text('The tablebase did not answer. Try again in a minute.'),
+        findsOneWidget);
+    expect(find.textContaining('No tablebase'), findsNothing);
+  });
 }

@@ -43,6 +43,8 @@ function createPacer({
   // moment anything hands this a clock of its own.
   let lastSentAt = now() - minGapMs;
   let blockedUntil = 0;
+  // Requests in the queue that have not been sent yet.
+  let waiting = 0;
 
   return {
     /// Milliseconds left of a Lichess block, or 0. The caller throws its own
@@ -56,10 +58,19 @@ function createPacer({
     },
 
     /// Sends one request, no sooner than `minGapMs` after the previous one.
+    /// How many requests are queued and not yet sent, so a caller with a
+    /// cheaper answer of its own can decide not to join the line.
+    waiting: () => waiting,
+
     spaced(send) {
+      waiting += 1;
       const run = queue.then(async () => {
-        const wait = minGapMs - (now() - lastSentAt);
-        if (wait > 0) await sleep(wait);
+        try {
+          const wait = minGapMs - (now() - lastSentAt);
+          if (wait > 0) await sleep(wait);
+        } finally {
+          waiting -= 1;
+        }
         lastSentAt = now();
         return send();
       });

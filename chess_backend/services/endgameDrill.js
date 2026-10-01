@@ -348,15 +348,16 @@ function deadDrawnMaterial(fen) {
  * legal move with what it leaves behind. Asked for by hand and never
  * volunteered - a drill that answers itself is a demonstration.
  *
- * Two things about the numbers, which the sort makes visible without a
- * paragraph of explanation:
- *
- *   - DTZ is the distance to the next capture or pawn move, not to mate. It is
- *     what the fifty-move rule is counted against, which is why the tables
- *     store it, and why a small one does not mean mate is near.
- *   - A move that holds is not a move that progresses. Shuffling the king keeps
- *     a win and arrives nowhere, so among the moves that hold, the ones that
- *     zero the counter come first.
+ * **The moves are in the source's order, best first for the side to move**,
+ * whichever side that is: lila-tablebase's sort key, the one `bestReply`
+ * plays by — the result, a mate, the distance to mate, a conversion, a
+ * zeroing move, then DTZ. Until 1.10.2026 this sorted them again by zeroing
+ * and the smallest DTZ, which put two captures with DTZ 30 above the fastest
+ * mate, and asked our own tables first, which know no distance to mate at
+ * all. It is asked by hand, one request, so it asks Lichess for the distance
+ * to mate as the drill's reply does; `dtm` is null on a move where no source
+ * knew it (our own tables when Lichess did not answer, most of seven men),
+ * and the app says so rather than reading DTZ as a distance to mate.
  */
 async function readout({ fen, goal = 'win', tablebase }) {
   try {
@@ -370,12 +371,14 @@ async function readout({ fen, goal = 'win', tablebase }) {
   }
   if (!(goal in RANK)) throw new DrillError(`Unknown goal: ${goal}.`);
 
-  const probed = await tablebase.probe(fen);
+  const probed = await tablebase.probe(fen, { mateDistance: true });
   const outcome = drillOutcome(probed.category);
 
   const moves = probed.moves.map((m) => {
     // Categories on a move are read from the far side of it, as everywhere
-    // else here, so they are turned round to the mover's own view.
+    // else here, so they are turned round to the mover's own view. `dtm`
+    // stays as the source gave it, the opponent's after the move, so the app
+    // reads it with the same function as Analysis's list.
     const after = flip(drillOutcome(m.category));
     return {
       san: m.san,
@@ -383,17 +386,10 @@ async function readout({ fen, goal = 'win', tablebase }) {
       outcome: after,
       holds: RANK[after] >= RANK[goal],
       dtz: m.dtz === null || m.dtz === undefined ? null : m.dtz,
+      dtm: m.dtm === null || m.dtm === undefined ? null : m.dtm,
       zeroing: Boolean(m.zeroing),
+      checkmate: Boolean(m.checkmate),
     };
-  });
-
-  moves.sort((a, b) => {
-    if (a.holds !== b.holds) return a.holds ? -1 : 1;
-    if (a.zeroing !== b.zeroing) return a.zeroing ? -1 : 1;
-    const da = a.dtz === null ? Infinity : Math.abs(a.dtz);
-    const db = b.dtz === null ? Infinity : Math.abs(b.dtz);
-    if (da !== db) return da - db;
-    return String(a.san).localeCompare(String(b.san));
   });
 
   const pawnless = !/[pP]/.test(String(fen).split(' ')[0]);
@@ -424,6 +420,7 @@ async function readout({ fen, goal = 'win', tablebase }) {
     goal,
     outcome,
     dtz: probed.dtz,
+    dtm: probed.dtm ?? null,
     holding: moves.filter((m) => m.holds).length,
     total: moves.length,
     pawnless,

@@ -69,8 +69,14 @@ function createTablebaseHandler({ tablebase = defaultTablebase } = {}) {
     if (pieceCount(fen) > 7) {
       return res.status(400).json({ error: 'A tablebase answers for seven men or fewer.' });
     }
+    // `mate=1` is a person reading the list (Analysis's panel): Lichess is
+    // asked first even for five men, because only it knows the distance to
+    // mate. Everything that walks positions in bulk — the review, the
+    // exercise check — leaves it out and keeps our own tables first, where
+    // the result is all it reads and Lichess's rate limit is not spent.
+    const mateDistance = req.query.mate === '1';
     try {
-      return res.json(explorerShape(await tablebase.probe(fen)));
+      return res.json(explorerShape(await tablebase.probe(fen, { mateDistance })));
     } catch (err) {
       if (err instanceof TablebaseUnavailable) {
         return res.status(503).json({ error: err.message, reason: err.reason });

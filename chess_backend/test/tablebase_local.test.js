@@ -222,6 +222,77 @@ test('two replies asked at once share one request, and its fallback', async () =
   assert.deepEqual(s.where(), ['lichess', 'local']);
 });
 
+test('a full Lichess line is not joined for the distance to mate: our own tables answer at once', async () => {
+  // Stepping through an ending in Analysis asks a position a move. Behind a
+  // line, the app's ten-second wait for the server would run out, and the
+  // device would ask Lichess itself — the same request twice.
+  const { MATE_QUEUE_LIMIT } = require('../services/tablebaseService');
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const urls = [];
+  const fetchImpl = async (url) => {
+    urls.push(url);
+    if (url.startsWith(LOCAL)) return { ok: true, status: 200, json: async () => ANSWER };
+    await gate;
+    return { ok: true, status: 200, json: async () => ANSWER };
+  };
+  const where = () => urls.map((u) => (u.startsWith(LOCAL) ? 'local' : 'lichess'));
+  const tb = createTablebase({ fetchImpl, localUrl: LOCAL, ...clock() });
+  // One sent and held, then MATE_QUEUE_LIMIT more waiting behind it — six men
+  // each, distinct, so none shares another's request.
+  const sixes = [
+    SIX,
+    SIX_B,
+    '8/5Rp1/6k1/6r1/7P/4K3/8/8 w - - 1 62',
+    '8/5Rp1/6k1/6r1/7P/6K1/8/8 w - - 1 62',
+    '8/5Rp1/6k1/6r1/7P/8/5K2/8 w - - 1 62',
+  ].slice(0, MATE_QUEUE_LIMIT + 1);
+  assert.equal(new Set(sixes).size, MATE_QUEUE_LIMIT + 1);
+  const held = sixes.map((fen) => tb.probe(fen).catch(() => null));
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(where(), ['lichess'], 'one is out, the rest wait');
+
+  // A deadline, so joining the line fails here instead of hanging the file.
+  let timer;
+  const deadline = new Promise((resolve) => {
+    timer = setTimeout(() => resolve('joined the line'), 1000);
+  });
+  try {
+    const probed = await Promise.race([tb.probe(FIVE, { mateDistance: true }), deadline]);
+    assert.notEqual(probed, 'joined the line');
+    assert.equal(probed.source, 'local');
+    assert.deepEqual(where(), ['lichess', 'local']);
+  } finally {
+    clearTimeout(timer);
+    release();
+    await Promise.all(held);
+  }
+});
+
+test('a short Lichess line is still joined for the distance to mate', async () => {
+  const { MATE_QUEUE_LIMIT } = require('../services/tablebaseService');
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const urls = [];
+  const fetchImpl = async (url) => {
+    urls.push(url);
+    if (!url.startsWith(LOCAL)) await gate;
+    return { ok: true, status: 200, json: async () => ANSWER };
+  };
+  const tb = createTablebase({ fetchImpl, localUrl: LOCAL, ...clock() });
+  // One out and MATE_QUEUE_LIMIT - 1 waiting: one short of the limit.
+  const fens = [SIX, SIX_B, '8/5Rp1/6k1/6r1/7P/4K3/8/8 w - - 1 62']
+    .slice(0, MATE_QUEUE_LIMIT);
+  const held = fens.map((fen) => tb.probe(fen).catch(() => null));
+  await new Promise((resolve) => setImmediate(resolve));
+  const asked = tb.probe(FIVE, { mateDistance: true });
+  release();
+  const probed = await asked;
+  await Promise.all(held);
+  assert.equal(probed.source, 'lichess');
+  assert.ok(!urls.some((u) => u.startsWith(LOCAL)), 'our own tables were not asked');
+});
+
 // ---- GET /api/tablebase ------------------------------------------------------
 
 const router = require('../routes/tablebase');
@@ -275,6 +346,18 @@ test('the route keeps Lichess\'s order and its distance to mate', async () => {
   assert.deepEqual(body.moves.map((m) => m.uci), afterKf3.answer.moves.map((m) => m.uci));
   assert.deepEqual(body.moves.map((m) => m.dtm), afterKf3.answer.moves.map((m) => m.dtm));
   assert.equal(body.dtm, afterKf3.answer.dtm);
+});
+
+test('mate=1 asks Lichess for five men, for the distance to mate', async () => {
+  // Analysis's panel, a person reading the list. Without it the review's walk
+  // keeps our own tables first (the case above), and Lichess is not spent.
+  const s = server(() => ANSWER);
+  const tb = createTablebase({ fetchImpl: s.fetchImpl, localUrl: LOCAL, ...clock() });
+  const { status } = await call(createTablebaseHandler({ tablebase: tb }), {
+    fen: FIVE.replace(/ /g, '_'), mate: '1',
+  });
+  assert.equal(status, 200);
+  assert.deepEqual(s.where(), ['lichess']);
 });
 
 test('the route refuses what no tablebase answers, and asks nothing', async () => {

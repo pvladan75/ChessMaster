@@ -87,6 +87,12 @@ const { createPacer, RATE_LIMIT_COOLDOWN_MS } = require('./lichessPacing');
 /// so every run after the first is nearly free.
 const TABLEBASE_GAP_MS = 1000;
 
+/// How many Lichess requests may already be waiting before a question about
+/// the distance to mate stops joining them and takes our own tables' answer.
+/// Three is about three seconds at TABLEBASE_GAP_MS: well inside the app's
+/// ten-second wait for the server, and short enough for the drill's reply.
+const MATE_QUEUE_LIMIT = 3;
+
 class TablebaseUnavailable extends Error {
   /// `retryable` is the half of this class that matters most.
   ///
@@ -393,6 +399,15 @@ function createTablebase({
   function probeWithMate(fen) {
     const cached = cache.get(fen);
     if (cached && cached.source === 'lichess') return cached;
+    // A line already waiting for Lichess is seconds of waiting for a person
+    // who is reading the list, and the app gives up on the server after ten
+    // and then asks Lichess itself — the same request twice. Our own tables
+    // answer at once, exact in the result, coarser only in the order.
+    if (localFirst(fen) && pacer.waiting() >= MATE_QUEUE_LIMIT) {
+      log.warn(`[TABLEBASE] Lichess red je pun (${pacer.waiting()}); `
+        + `udaljenost do mata se ne čeka, odgovor bira naša tabela: ${fen}`);
+      return probe(fen);
+    }
     const key = `${fen}|dtm`;
     if (inFlight.has(key)) return inFlight.get(key);
     const lichess = loadLichess(fen).then((data) => ({ data, source: 'lichess' }));
@@ -477,6 +492,7 @@ module.exports = {
   pieceCount,
   LOCAL_MAX_MEN,
   TABLEBASE_GAP_MS,
+  MATE_QUEUE_LIMIT,
   bestReply,
   wdlOf,
   TablebaseUnavailable,

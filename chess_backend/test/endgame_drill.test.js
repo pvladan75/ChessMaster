@@ -270,24 +270,54 @@ const RR_PROBE = {
   ],
 };
 
-test('the readout names every move, holders first and progress before them',
-  async () => {
-    const tb = fakeTablebase({ [RR]: RR_PROBE });
-    const r = await readout({ fen: RR, goal: 'draw', tablebase: tb });
+// Until 1.10.2026 the readout sorted the moves itself, zeroing first and then
+// by the smallest DTZ, and this case held that order (Rxd8+, Kf1, Ra1, Rd5,
+// Rd4). It now keeps the source's, which is best first by the distance to
+// mate; the cases after it hold that on real answers.
+test('the readout names every move, with what it leaves behind', async () => {
+  const tb = fakeTablebase({ [RR]: RR_PROBE });
+  const r = await readout({ fen: RR, goal: 'draw', tablebase: tb });
 
-    assert.equal(r.outcome, 'draw');
-    assert.equal(r.total, 5);
-    assert.equal(r.holding, 3);
-    // The capture zeroes the counter, so it comes first among the three that
-    // hold; the two that drop the rook come last whatever their distance.
-    // Equal distance and neither zeroing, so the tie falls to the notation.
-    assert.deepEqual(r.moves.map((m) => m.san),
-      ['Rxd8+', 'Kf1', 'Ra1', 'Rd5', 'Rd4']);
-    assert.deepEqual(r.moves.map((m) => m.holds),
-      [true, true, true, false, false]);
-    assert.equal(r.moves[0].zeroing, true);
-    assert.equal(r.moves[3].outcome, 'loss');
+  assert.equal(r.outcome, 'draw');
+  assert.equal(r.total, 5);
+  assert.equal(r.holding, 3);
+  assert.deepEqual(r.moves.map((m) => m.holds),
+    [true, true, true, false, false]);
+  assert.equal(r.moves[0].zeroing, true);
+  assert.equal(r.moves[3].outcome, 'loss');
+});
+
+// Reported 1.10.2026 from the trainer's panel: two captures with DTZ 30 stood
+// above the fastest mate, and the reader could not tell which move was best.
+for (const [i, side] of [[4, 'the winner'], [1, 'the loser']]) {
+  test(`the readout keeps the source's order, best first for ${side}`, async () => {
+    const c = BEST[i];
+    const tb = fakeTablebase({ [c.fen]: c.answer });
+    const r = await readout({ fen: c.fen, goal: 'win', tablebase: tb });
+    assert.deepEqual(r.moves.map((m) => m.uci), c.answer.moves.map((m) => m.uci));
+    assert.equal(r.moves[0].uci, c.best);
+    // A zeroing move that is not the fastest mate is not lifted over it.
+    if (i === 4) assert.equal(r.moves.findIndex((m) => m.zeroing), 15);
   });
+}
+
+test('the readout asks for the distance to mate and hands it on as given', async () => {
+  const c = BEST[0];
+  const tb = fakeTablebase({ [c.fen]: c.answer });
+  const r = await readout({ fen: c.fen, goal: 'win', tablebase: tb });
+  assert.deepEqual(tb.askedWithMate, [c.fen]);
+  assert.equal(r.dtm, c.answer.dtm);
+  assert.deepEqual(r.moves.map((m) => m.dtm), c.answer.moves.map((m) => m.dtm));
+});
+
+test('a mate is marked, and a distance no source knew is null, not zero', async () => {
+  const mateInOne = BEST.find((c) => c.answer.moves.some((m) => m.checkmate));
+  const tb = fakeTablebase({ [mateInOne.fen]: mateInOne.answer });
+  const r = await readout({ fen: mateInOne.fen, goal: 'win', tablebase: tb });
+  assert.equal(r.moves[0].checkmate, true);
+  assert.equal(r.moves[0].dtm, null);
+  assert.equal(r.moves[1].checkmate, false);
+});
 
 test('a pawnless draw whose only losses give a piece away is finished',
   async () => {

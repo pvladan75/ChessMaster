@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/mate_distance.dart';
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -1573,8 +1574,7 @@ class _ReadoutPanel extends StatelessWidget {
             )
           else ...[
             Text(
-              '${outcomeWord(data.outcome)}'
-              '${data.dtz == null ? '' : ', DTZ ${data.dtz}'} · '
+              '${outcomeWord(data.outcome)}${_distanceSuffix(data)} · '
               'holds ${data.holding} of ${data.total}',
               style: theme.textTheme.bodySmall,
             ),
@@ -1594,8 +1594,7 @@ class _ReadoutPanel extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'DTZ: half-moves to next capture or pawn move, not to mate. '
-              'Asterisk = move zeroes that counter.',
+              _readoutNote(data),
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             ),
@@ -1604,6 +1603,25 @@ class _ReadoutPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// „, mate in 28" after the position's verdict, or its DTZ where the distance
+/// to mate is not known.
+String _distanceSuffix(TablebaseReadout data) {
+  final mate = mateLabel(data.mateIn);
+  if (mate != null) return ', $mate';
+  return data.dtz == null ? '' : ', DTZ ${data.dtz}';
+}
+
+/// What the list's order and numbers mean. DTZ is explained only where it is
+/// shown, and where it is shown the reader is told it is not a distance to
+/// mate — the confusion this panel was reported for on 1.10.2026.
+String _readoutNote(TablebaseReadout data) {
+  const order = 'Best move first, for the side to move. '
+      'Asterisk = capture or pawn move.';
+  if (!data.mateDistanceMissing) return order;
+  return '$order Where the distance to mate is unknown, DTZ is shown: '
+      'half-moves to the next capture or pawn move, not to mate.';
 }
 
 /// The tables' finding for one position, as a list a person can read.
@@ -1638,7 +1656,7 @@ class _ReadoutDialog extends StatelessWidget {
           children: [
             Text(
               'Position: ${outcomeWord(readout.outcome)}'
-              '${readout.dtz == null ? '' : ', DTZ ${readout.dtz}'}. '
+              '${_distanceSuffix(readout)}. '
               '${readout.holding} of ${readout.total} moves hold.',
               style: theme.textTheme.bodyMedium,
             ),
@@ -1654,10 +1672,7 @@ class _ReadoutDialog extends StatelessWidget {
             ],
             const Divider(height: 24),
             Text(
-              'DTZ is the number of half-moves to the next capture or pawn move, '
-              'not to mate — it counts towards the fifty-move rule. An asterisk '
-              'means the move zeroes that counter, which in a won position is '
-              'progress by definition.',
+              _readoutNote(readout),
               style: theme.textTheme.bodySmall
                   ?.copyWith(color: context.colors.textMuted),
             ),
@@ -1716,7 +1731,14 @@ class _MoveRow extends StatelessWidget {
           Flexible(
             flex: 2,
             child: Text(
-              move.dtz == null ? '—' : 'DTZ ${move.dtz}',
+              // A draw has no distance to anything worth reading: its DTZ
+              // is always 0, and a number beside it reads as a count.
+              mateLabel(move.mateIn) ??
+                  (move.outcome == 'draw'
+                      ? ''
+                      : move.dtz == null
+                          ? '—'
+                          : 'DTZ ${move.dtz}'),
               textAlign: TextAlign.right,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall

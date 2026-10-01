@@ -862,7 +862,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
       _syzygyResult = null;
     });
 
-    final result = await _syzygyService.lookup(fen);
+    final result = await _syzygyService.lookup(fen, mateDistance: true);
     if (!mounted || reqId != _syzygyRequestId) return;
 
     setState(() {

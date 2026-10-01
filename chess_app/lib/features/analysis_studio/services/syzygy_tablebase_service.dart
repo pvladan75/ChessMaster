@@ -211,13 +211,20 @@ class SyzygyTablebaseService {
     return until != null && _now().isBefore(until);
   }
 
-  Future<SyzygyResult?> lookup(String fen) async {
-    if (_cache.containsKey(fen)) return _cache[fen];
+  /// [mateDistance] is a person reading the list (Analysis's panel): the
+  /// server then asks Lichess first even for five men, because only Lichess
+  /// knows the distance to mate (`GET /api/tablebase?mate=1`). Every caller
+  /// that walks positions — the review, the exercise check, the study — leaves
+  /// it out, and the server keeps our own tables first for them. Lichess asked
+  /// directly always carries it, so only the server's answer is cached apart.
+  Future<SyzygyResult?> lookup(String fen, {bool mateDistance = false}) async {
+    final key = mateDistance ? '$fen|dtm' : fen;
+    if (_cache.containsKey(key)) return _cache[key];
 
-    final fromServer = await _askServer(fen);
+    final fromServer = await _askServer(fen, mateDistance: mateDistance);
     if (fromServer != null) {
       final (:reached, :result) = fromServer;
-      if (result != null) _cache[fen] = result;
+      if (result != null) _cache[key] = result;
       if (reached) return result;
     }
     return _askLichess(fen);
@@ -232,12 +239,14 @@ class SyzygyTablebaseService {
 
   /// The server's answer: null when it was never asked (no sign-in), else
   /// whether it was reached and what it said.
-  Future<({bool reached, SyzygyResult? result})?> _askServer(String fen) async {
+  Future<({bool reached, SyzygyResult? result})?> _askServer(String fen,
+      {required bool mateDistance}) async {
     final token = _token();
     if (token.isEmpty) return null;
     try {
       final uri = Uri.parse(
-          '$_serverUrl/api/tablebase?fen=${Uri.encodeQueryComponent(fen)}');
+          '$_serverUrl/api/tablebase?fen=${Uri.encodeQueryComponent(fen)}'
+          '${mateDistance ? '&mate=1' : ''}');
       final res = await _get(uri, headers: {'Authorization': 'Bearer $token'})
           .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) {

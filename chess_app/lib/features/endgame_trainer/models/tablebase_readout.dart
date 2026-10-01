@@ -6,6 +6,8 @@
 /// rather than be told which to play.
 library;
 
+import 'package:chess_app/core/services/mate_distance.dart';
+
 class ReadoutMove {
   const ReadoutMove({
     required this.san,
@@ -14,6 +16,8 @@ class ReadoutMove {
     required this.holds,
     required this.zeroing,
     this.dtz,
+    this.dtm,
+    this.checkmate = false,
   });
 
   final String san;
@@ -34,6 +38,17 @@ class ReadoutMove {
   /// give none.
   final int? dtz;
 
+  /// The tablebase's distance to mate, as it gave it — the opponent's after
+  /// this move, in plies (`mateInAfterMove` reads it). Null where no source
+  /// knew it: our own tables never do, and seven men mostly do not.
+  final int? dtm;
+
+  /// Whether the move mates, which carries no [dtm] of its own.
+  final bool checkmate;
+
+  /// „mate in 21" / „mated in 20" for the player making the move, or null.
+  int? get mateIn => mateInAfterMove(dtm, checkmate: checkmate);
+
   factory ReadoutMove.fromJson(Map<String, dynamic> json) => ReadoutMove(
         san: json['san']?.toString() ?? '',
         uci: json['uci']?.toString() ?? '',
@@ -41,6 +56,8 @@ class ReadoutMove {
         holds: json['holds'] == true,
         zeroing: json['zeroing'] == true,
         dtz: json['dtz'] is num ? (json['dtz'] as num).toInt() : null,
+        dtm: json['dtm'] is num ? (json['dtm'] as num).toInt() : null,
+        checkmate: json['checkmate'] == true,
       );
 }
 
@@ -54,6 +71,7 @@ class TablebaseReadout {
     required this.deadDraw,
     required this.moves,
     this.dtz,
+    this.dtm,
   });
 
   final String goal;
@@ -71,7 +89,22 @@ class TablebaseReadout {
   final bool deadDraw;
 
   final int? dtz;
+
+  /// The position's own distance to mate, as the tablebase gave it.
+  final int? dtm;
+
+  /// The moves in the server's order, which is the tablebase's: best first
+  /// for the side to move, whichever side that is. Never sorted again here.
   final List<ReadoutMove> moves;
+
+  /// „mate in 28" / „mated in 27" for the side to move, or null.
+  int? get mateIn => mateInFromPosition(dtm);
+
+  /// True when a move that wins or loses came without a distance to mate —
+  /// Lichess did not answer, or seven men — so that move is placed by DTZ
+  /// and the screen must not let DTZ pass for a distance to mate.
+  bool get mateDistanceMissing =>
+      moves.any((m) => m.outcome != 'draw' && m.mateIn == null);
 
   factory TablebaseReadout.fromJson(Map<String, dynamic> json) =>
       TablebaseReadout(
@@ -82,6 +115,7 @@ class TablebaseReadout {
         pawnless: json['pawnless'] == true,
         deadDraw: json['deadDraw'] == true,
         dtz: json['dtz'] is num ? (json['dtz'] as num).toInt() : null,
+        dtm: json['dtm'] is num ? (json['dtm'] as num).toInt() : null,
         moves: ((json['moves'] as List?) ?? const [])
             .whereType<Map<String, dynamic>>()
             .map(ReadoutMove.fromJson)

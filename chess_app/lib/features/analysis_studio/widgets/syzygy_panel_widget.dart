@@ -1,3 +1,4 @@
+import 'package:chess_app/core/services/mate_distance.dart';
 import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
@@ -36,8 +37,38 @@ String? _dtzLabel(int? dtz) {
   return 'DTZ ${dtz.abs()}';
 }
 
+/// A move's category is the tablebase's for the side to move *after* it, so
+/// the mover's own result is its mirror. Until 1.10.2026 the chips were
+/// coloured by it unturned, and the best move of a won position was drawn as
+/// a loss.
+SyzygyCategory _forMover(SyzygyCategory category) {
+  switch (category) {
+    case SyzygyCategory.win:
+      return SyzygyCategory.loss;
+    case SyzygyCategory.maybeWin:
+      return SyzygyCategory.maybeLoss;
+    case SyzygyCategory.cursedWin:
+      return SyzygyCategory.blessedLoss;
+    case SyzygyCategory.draw:
+      return SyzygyCategory.draw;
+    case SyzygyCategory.blessedLoss:
+      return SyzygyCategory.cursedWin;
+    case SyzygyCategory.maybeLoss:
+      return SyzygyCategory.maybeWin;
+    case SyzygyCategory.loss:
+      return SyzygyCategory.win;
+    case SyzygyCategory.unknown:
+      return SyzygyCategory.unknown;
+  }
+}
+
+bool _decisive(SyzygyCategory c) =>
+    c != SyzygyCategory.draw && c != SyzygyCategory.unknown;
+
 /// Shows the tablebase verdict for the current position and, once loaded, the
-/// list of moves ranked from the mover's perspective (best first).
+/// moves in the order the tablebase gave them — best first for the side to
+/// move, by the distance to mate where it is known — each with „mate in N" /
+/// „mated in N", or its DTZ where no source knew the distance to mate.
 class SyzygyPanelWidget extends StatelessWidget {
   final bool isEligible;
   final bool isLoading;
@@ -93,7 +124,10 @@ class SyzygyPanelWidget extends StatelessWidget {
           if (!isLoading && result == null) ...[
             const SizedBox(height: 6),
             Text(
-              'No tablebase for this position.',
+              // The panel is drawn only for a position the tablebase covers,
+              // so no answer is the tablebase not answering — a Lichess block
+              // after a 429, or no network — never „no tablebase".
+              'The tablebase did not answer. Try again in a minute.',
               style: AppText.caption.copyWith(color: colors.textSecondary),
             ),
           ],
@@ -106,6 +140,16 @@ class SyzygyPanelWidget extends StatelessWidget {
                   .map((move) => _buildMoveChip(context, move))
                   .toList(),
             ),
+            if (result!.moves.any((m) =>
+                _decisive(m.category) &&
+                mateInAfterMove(m.dtm, checkmate: m.checkmate) == null)) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Distance to mate unknown for some moves: they show DTZ, '
+                'half-moves to the next capture or pawn move.',
+                style: AppText.caption.copyWith(color: colors.textSecondary),
+              ),
+            ],
           ],
         ],
       ),
@@ -114,7 +158,8 @@ class SyzygyPanelWidget extends StatelessWidget {
 
   Widget _buildVerdictChip(SyzygyResult result) {
     final style = _styleFor(result.category);
-    final dtz = _dtzLabel(result.dtz);
+    final dtz =
+        mateLabel(mateInFromPosition(result.dtm)) ?? _dtzLabel(result.dtz);
     return Container(
       padding:
           const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 3),
@@ -132,8 +177,10 @@ class SyzygyPanelWidget extends StatelessWidget {
   }
 
   Widget _buildMoveChip(BuildContext context, SyzygyMove move) {
-    final style = _styleFor(move.category);
-    final dtz = _dtzLabel(move.dtz);
+    final style = _styleFor(_forMover(move.category));
+    final dtz =
+        mateLabel(mateInAfterMove(move.dtm, checkmate: move.checkmate)) ??
+            (_decisive(move.category) ? _dtzLabel(move.dtz) : null);
     return InkWell(
       onTap: onMoveSelected != null ? () => onMoveSelected!(move.uci) : null,
       borderRadius: AppRadii.roundedSm,
