@@ -7,8 +7,10 @@ The owner's answers, the same day („Slažem se sa tvojim preporukama, komituj"
 - D7 is accepted for every pushed door.
 - The work this plan stands on is committed (`4f9ef2ea`).
 
-**Before phase 0, Fable reviews this plan.** The owner forwards it himself, and
-phase 0 starts on his word after the review.
+**Fable reviewed this plan on 1.10.2026**, against the code it names. Every
+change from that review is marked *(Fable, 1.10.2026)* where it stands and
+listed once in §9, with what was checked and found to hold. Phase 0 starts on
+the owner's word.
 
 Every brief handed to a worker carries this sentence, in its method section:
 *If you believe a test in the gate is wrong, stop and say so in the report — do
@@ -117,13 +119,27 @@ become a tutorial, and a tutorial speaks its comments."
   tab instead of the tab's own work.
 - Doors that push Analysis today: the Library's saved analysis, Preparation's
   copy, the opening report, and the games from the archive and from homework.
+- *(Fable, 1.10.2026)* The Analyse tab itself (`APP/widgets/home/analyse_tab.dart`)
+  builds the screen with no `initial…`, so D7 leaves the tab exactly as it is.
+  The router's `/analysis?fen=` (`AppRoutes.analysisWithFen`) is a sixth door
+  that would hand the screen `initialFen` — and nothing calls it; it is dead
+  (§7).
 
 **The trainer keeps its selection in itself.**
 - The picker replaces itself with
   `/endgames?mode=…&material=…&band=…&oppositeBishops=…`.
-- The screen holds those values as its own fields and sends them, with
-  `includeOnline`, on every `fetchNext`.
+- The screen holds those values as its own fields and sends them on every
+  `fetchNext`; `includeOnline` it reads from `AppSettingsService` at each
+  request *(Fable, 1.10.2026 — it is not a field of the screen)*.
 - A retry run holds its queue in the screen (`_retryQueue`, `_retryIndex`).
+- *(Fable, 1.10.2026)* The drill keeps **no** move history: `_game` is rebuilt
+  from the server's `fen` after every judged move, and `Take back` restores
+  `_drillRetryFen`, the one position before the losing move. Phase 5's list of
+  the drill's moves is new state, not a reading of something the screen has.
+- *(Fable, 1.10.2026)* The keys go through `ActionKeyShortcuts`
+  (`APP/widgets/action_key_shortcuts.dart`): a `Shortcuts` over a `Focus`, not
+  a global handler. A route pushed on top takes the primary focus with it, and
+  popping gives it back, which is what phase 5's case 4 proves from both sides.
 - Nothing of this is stored anywhere else, so the way back depends only on the
   screen not being rebuilt.
 
@@ -134,6 +150,10 @@ become a tutorial, and a tutorial speaks its comments."
   Positions.
 - Positions from real mistakes store their Syzygy key as their type. Their chip
   reads „KRPvKR", while the picker says „rook and pawn versus rook".
+  *(Fable, 1.10.2026)* `kEndgameTypeNames` has **three** readers, not one: the
+  chip (`_chips`), the title of a position kept by `Save for later`
+  (`'… — unclear'`), and the bar's title through `widget.type`, which phase 1
+  deletes.
 - `holdOutMoves` (`EG/models/drill_step.dart`) is commented „four moves each",
   but counts eight of the reader's moves.
 
@@ -166,7 +186,7 @@ The tree it opens, moves only:
 
 ```
 the puzzle position          ← Analysis stands here when opened from solving
-├── Kd3      the reader's move (in the order found) ── Kb6  the server's reply, if one was played
+├── Kd3      the reader's moves (in the order found) ── Kb6  each with the reply it was given, if one came (D8)
 ├── e4       every other move that holds, in the server's order
 └── Rd1      the move played in the game, when the position comes from one
      └── …   the Punish line, when one was played
@@ -177,6 +197,16 @@ When Analysis is opened from the drill:
 - Analysis stands where the drill stopped;
 - the board faces the reader's side, not the side to move.
 
+*(Fable, 1.10.2026)* Two readings of that picture, so the builder is not written
+from the wrong one:
+- The game's move is a branch of its own only for a position from a real
+  mistake: `played_move` is written by `import_endgames.js` alone, the miner
+  never writes it, so a master-game position has `game` and no `played_move`.
+  Where one exists it changed the result, which is why D6 can say the Syzygy
+  panel shows it losing.
+- „The reader's moves" means every move found, `Find the rest` included — each
+  is a solve, and under D8 each asks the server for its reply (D8).
+
 ## 4. Decisions
 
 Who decided what:
@@ -186,6 +216,9 @@ Who decided what:
 - **D7** was the lead's recommendation. It changes four doors outside this
   module, so it was put to the owner, who accepted it on 1.10.2026 („Slažem se
   sa tvojim preporukama").
+- **Fable, 1.10.2026**: D15, recommended in the review and **accepted by the
+  owner the same day** („D15: dodaj i take back potez"); and the amendments to
+  D8, marked there.
 
 **D1. `Open in Analysis` opens the existing Analysis, pushed.** There is no
 engine inside the trainer. Analysis already has the Syzygy panel, the engine,
@@ -202,10 +235,22 @@ the engine is one tap away.
 - every holding move is named;
 - the board locks;
 - the same doors as after a solve are offered: `Open in Analysis`, `Play to the
-  end`, `Punish`, `Save for later`, `Next`.
+  end`, `Punish`, `Save for later`, `Next`. Not `Find the rest` and not `Show`
+  — there is nothing left to find.
 
 It gets no key. The trainer's five keys stay as they are, and tactics has no key
 for it either.
+
+*(Fable, 1.10.2026)* Two things the gate needs that were not written down:
+- It is offered **while solving only** — not in a drill, where
+  `Tablebase findings` is the answer.
+- The sentence, so the gate has a literal. In the trainer's own register
+  („Correct — win kept." / „Correct — draw held."):
+  „These moves keep the win: Rf1+, Ra8, e8=N." / „These moves hold the draw:
+  …", and with one move „The only move that keeps the win: Rf1+." / „… holds
+  the draw: …". The list is `_allHoldingSan`, which already exists for the
+  `Save for later` note; it sorts, so the order is alphabetical, not the
+  server's.
 
 **D4. Exploring inside the drill is deleted.**
 - `Tablebase findings` stays, as a list to read. Its rows no longer play
@@ -242,6 +287,14 @@ restoring.
   replaces what the user had there.
 - *Not taken:* changing only the new door, and leaving the other four as they
   are.
+- *(Fable, 1.10.2026)* Checked: the condition in `initState` is
+  `initialFen == null && game == null && tree == null`; the two writers are
+  `_saveDraft` (thirteen call sites) and the `flush` in `dispose`. So the shape
+  is **one getter, three readers** — restore, `_saveDraft`, the flush — never
+  the condition written a second time (rule 12). The Library and Preparation
+  doors pass `initialTree`, the three in `open_game_in_analysis.dart` pass
+  `initialGame` or `initialTree`; `analysis_bar_test` pumps the screen with
+  `initialFen` and asserts nothing about the draft, so it stays green.
 
 **D8. The opponent's reply after a correct answer comes from the server.**
 - For a tablebase position with seven pieces or fewer, the screen sends its
@@ -256,8 +309,35 @@ restoring.
   `Play to the end`) is dropped.
 - A server that does not answer costs only the reply; the verdict was already
   given.
-- Cost: one tablebase request per solved position. At five pieces or fewer it
-  goes to Lichess (`mateDistance`) and is counted in `Usage this month`.
+
+*(Fable, 1.10.2026)* Amended after reading `judgeMove` and `tablebaseService`:
+- **The condition is `puzzle.canBePlayedOut`** — `isExact && pieces <= 7`, the
+  getter the drill already uses. `judgeMove` throws `DrillError` above seven
+  pieces, so the rule has to be the same one on both ends, and it already has a
+  home.
+- **Every found move asks**, not only the first: a move found after `Find the
+  rest` is a solve like the first, so it is sent the same way and its reply
+  lands under it in the tree (§3). One request per found move.
+- **The board takes the server's `fen`**, as the drill does (`_game =
+  fromFEN(step.fen)`), and keeps `reply.uci` for the tree. The screen replays
+  no UCI, so the `'promotion': 'q'` of today has no successor to mutate; where
+  the promotion suffix matters is the tree builder (phase 5), which replays the
+  UCI.
+- **Meanwhile nothing locks.** The verdict sentence is shown at once, the board
+  shows the reader's move, and the reply lands when it comes — no „Checking
+  tablebases…", because there is nothing to check. Today's reply is instant;
+  this one is a round trip to Lichess.
+- **A server that says `held: false`** (it judges the move itself, from the
+  same tables that wrote `winning_moves`) returns no reply. The screen's verdict
+  stands, no reply is played, and the disagreement goes to the log through
+  `AppLogger` with the puzzle id, because it is a data fault worth a line and
+  not a sentence to the reader.
+- **Cost is two probes, not one.** `judgeMove` probes the position before the
+  move and the position after it with `mateDistance: true`. At five pieces or
+  fewer the first is local (`LOCAL_MAX_MEN = 5`) and the second goes to Lichess;
+  at six and seven both go to Lichess. All of them pass `tracked`, so they are
+  counted in `Usage this month`. `/play` sits behind `drillLimiter`, sixty a
+  minute, which one request per found move does not reach.
 
 **D9. An engine position says so.**
 - A chip `Engine estimate` stands where `Exact from tablebases` would.
@@ -269,9 +349,13 @@ restoring.
 - The card gets that title and a new first sentence: „Positions from real games,
   played at every level from club players to grandmasters."
 - The route's comment changes with it.
-- The manual (`site/mislisha/manual/practice.html`, `repertoire.html`) and the
-  landing page (`site/mislisha.html`) change in the same phase, because
-  `manual_labels_test` holds the manual to the app's labels.
+- The manual (`site/mislisha/manual/practice.html`) and the landing page
+  (`site/mislisha.html`) change in the same phase, because `manual_labels_test`
+  holds the manual to the app's labels. *(Fable, 1.10.2026)* **Not**
+  `repertoire.html` and not `analysis.html`: both say „master games" about the
+  opening book, which is what the book is made of, and neither mentions
+  endgames. The same words stand in `mistake_rule.dart` and
+  `game_review_judge.dart` for the same reason, and stay.
 - TODO-provera items that quote the old title in their path keep it. The QA tool
   matches items by text, and an answered item is never reworded.
 
@@ -285,6 +369,12 @@ blunders`. [0j.b262] keeps the old sentence; a new item checks the new one.
 - The chip shows it with its first letter capitalised.
 - `kEndgameTypeNames` goes if phase 0 finds no servable row without `material`.
   If it finds some, the map stays only as their fallback.
+- *(Fable, 1.10.2026)* `labelOf(null)` answers `''`, not null (it falls back to
+  `String(key || '')`), so the payload guards: `material == null ? null :
+  labelOf(material)`. And the label has to reach **all three** readers of the
+  map (§2) — the chip and the `Save for later` title read `materialLabel`; the
+  bar's reader goes with `widget.type` in phase 1. The app half of D12 belongs
+  to phase 4.
 
 **D13. „Hold the draw for 8 more moves" stays as it is**: eight of the reader's
 moves. That is what the screen says and what the code counts. Only the comment
@@ -299,6 +389,23 @@ nothing here and can say four.)
   it from its own board, so a board the reader flipped stays flipped.
 - Without the parameter, Analysis behaves as today, so the opening report is
   unchanged.
+- *(Fable, 1.10.2026)* The test seam changes shape with it:
+  `debugOpenTreeInAnalysis` is typed `(context, root, standOn)`, and a Dart
+  function of three parameters is not assignable where a fourth is declared,
+  so the lambda in `T/features/archive/opening_leak_report_screen_test.dart`
+  (line 635 on 1.10.2026) is touched — a compile change, no assertion moves.
+  Named here so it is not the ninth file.
+
+**D15. A move taken back in the drill stays in the tree, as a side branch.**
+*(Fable's recommendation, 1.10.2026; the owner accepted it the same day.)* The
+plan as first written dropped it („`Take back` drops the move it takes back").
+But `Take back` exists only after a losing move, and the losing move is the one
+thing in the drill the reader has a reason to examine with the engine and
+Syzygy — it is what the owner asked for. A tree is the structure that holds
+both: the taken-back move is a branch of the position it was played from, and
+the move played instead continues the line. The builder gains nothing but a
+list of (from-FEN, move) pairs instead of a line. `Start over` still clears
+everything: it is the reader asking for a clean board, not a take-back.
 
 ## 5. What goes, and what stays
 
@@ -339,20 +446,24 @@ Order:
 - The app ignoring a field the server still sends is harmless, and so is the
   server dropping a field the old app no longer needs.
 
-### Phase 0 — the baseline and three counts [lead]
+### Phase 0 — the baseline and four counts [lead]
 
 - **A committed tree — done.** The work of 1.10.2026 (the three triage
   findings) touches two of the files this plan does
   (`site/mislisha/manual/practice.html` and `docs/`). It was committed on the
   owner's word as `4f9ef2ea`.
-- **Fable's review comes first.** The owner forwards the plan himself, and this
-  phase starts on his word after the review.
+- **Fable's review is in** (§9, 1.10.2026), and D15 is accepted. This phase
+  starts on the owner's word.
 - Measure the three suite counts in a worktree, with nothing else running.
 - Count, read-only, on the database the server uses (psql, or a script that does
   not call `initDB`):
   - servable rows (`cardinality(winning_moves) > 0`), by `source`;
   - those with `material IS NULL`, by `source` — this decides D12;
-  - those with `played_move`.
+  - those with `played_move`;
+  - *(Fable, 1.10.2026)* the distinct `material` values that `labelOf` cannot
+    parse (it then answers the raw key, and the chip would show „KRPPPvKRPP"
+    as it shows „KRPvKR" today). A read-only node script over `SELECT DISTINCT
+    material` through `endgameCatalog.labelOf`, never through `server.js`.
 
   The first count sizes D9.
 - **Gate:** the numbers, written here.
@@ -375,7 +486,15 @@ Covers D10, D11, D13 and the deletions of §5 that need nothing else:
   later` — two cases, each red on master.
 - `manual_labels_test` is green with the manual changed.
 - A grep in the report finds, under `APP`: no `'custom'`, no `widget.fen`, no `My
-  positions`, and no „master games" outside history comments.
+  positions`; and no „master games" under `EG/` and in
+  `APP/widgets/ai_studio/category_selection_hub.dart`, nor in
+  `site/mislisha/manual/practice.html` and `site/mislisha.html`. *(Fable,
+  1.10.2026: scoped — the words are right where they mean the opening book,
+  D10.)*
+- *(Fable, 1.10.2026)* The sentence of D11 names the Library's own chip:
+  `positions('Positions', …)` in `APP/features/library/widgets/library_list.dart`.
+  The new cases assert the sentence through that enum's label, so a renamed
+  chip turns the case red instead of leaving a sentence that points nowhere.
 
 ### Phase 2 — the server [lead]
 
@@ -391,10 +510,15 @@ The work is done in a worktree, because the owner's nodemon restarts on every
   row and for a blunder row, and null where `material` is null.
 - It carries no `solution` and no `solution_san`.
 - The `/by-id?source=endgame` case in `BE/test/puzzle_progress_routes.test.js`
-  still holds the shared shape.
+  still holds the shared shape. *(Fable, 1.10.2026)* Its fixture row carries
+  `solution` and `solution_san` (line 237), so its expectation loses the two
+  keys and gains `material_label` — rewritten openly, the fixture row kept as
+  it is because the table keeps the columns.
 - Mutations, each red:
   - the label taken from `endgame_type` instead of `material`;
-  - the field dropped from one route only.
+  - the field dropped from one route only;
+  - *(Fable, 1.10.2026)* the null guard removed — `labelOf(null)` is `''`, and
+    the app would draw an empty chip.
 
 ### Phase 3 — the draft belongs to the Analyse tab [implementer]
 
@@ -419,26 +543,48 @@ draft.
 - Mutations, each red on its own case:
   - the guard taken off `_saveDraft`;
   - the guard taken off the `dispose` flush.
+- *(Fable, 1.10.2026)* The guard is one getter read in three places (D7); the
+  two mutations above are each one reader of it turned off, not the getter
+  itself — the getter removed would turn both cases red and say nothing about
+  which reader was missing.
 
 ### Phase 4 — the answer: `Show solution`, the reply and the engine's estimate [implementer; gate by the lead]
 
-Covers D3, D8 (the app side) and D9. `EndgameSolveSession` gets a fourth status,
-`revealed`: complete, never `countsAsSolved`, and `submit` is refused in it.
+Covers D3, D8 (the app side), D9 and *(Fable, 1.10.2026)* the app half of
+D12. `EndgameSolveSession` gets a fourth status, `revealed`: complete, never
+`countsAsSolved`, and `submit` is refused in it.
+
+*(Fable, 1.10.2026)* Read before briefing: the attempt is recorded at the
+**first correct move** (`_countedThisPuzzle`), with `hinted: usedHint ||
+_readouts > 0`, and `_loadNext` records a skip only while `_countedThisPuzzle`
+is false — so `Show solution` sets that flag and the rest of case 3 follows
+from code that exists. The button rows are `Wrap`s, so a sixth button
+overflows nothing; the gate still looks at 360 × 640, because a `Wrap` that
+wraps pushes the board.
 
 **Gate** (new `T/endgame_answer_test.dart`, over a fake `http.Client` (rule 7)
 and the attempt log's fake client):
-1. `Show solution` is on the screen while solving, and absent after a solve and
-   after a shown answer. The rest of that button row is present, so the absence
-   is checked where the button would be.
-2. It names every holding move in SAN. The fixture has three, one of them an
-   underpromotion. The board refuses a drag afterwards.
+1. `Show solution` is on the screen while solving, and absent after a solve,
+   after a shown answer and *(Fable)* while a drill runs. The rest of that
+   button row is present, so the absence is checked where the button would be.
+2. It names every holding move in SAN, in the sentence D3 gives. The fixture
+   has three, one of them an underpromotion. The board refuses a drag
+   afterwards. *(Fable)* A second fixture with one move gets the „only move"
+   sentence.
 3. It records one attempt, `solved: false`.
    - `Next` afterwards records nothing more, not also a skip.
    - After a hint, the record is `hinted: true`.
    - After a wrong move there is still only one record.
-4. Exact position: a correct answer sends `POST /api/puzzles/endgame/play` with
-   the puzzle's FEN and the move. The board then shows the reply that came back,
-   and a reply that underpromotes lands as that piece.
+4. Exact position (`canBePlayedOut`): a correct answer sends `POST
+   /api/puzzles/endgame/play` with the puzzle's FEN and the move. *(Fable,
+   1.10.2026, rewritten with D8)*: the verdict sentence is on the screen
+   **before** the reply arrives and the board shows the reader's move; when the
+   reply arrives the board shows the server's `fen` — the fixture's reply
+   underpromotes, so the FEN on the board has the knight. After `Find the
+   rest`, a second correct move sends a second request with the same FEN and
+   that move.
+   - 4b. The server answers `held: false` with no reply: the sentence stays,
+     the board stays on the reader's move, and no second verdict is shown.
 5. Engine position:
    - a correct answer sends no request;
    - the chip `Engine estimate` is shown, and `Exact from tablebases` is not;
@@ -448,9 +594,14 @@ and the attempt log's fake client):
    the win. Try another."
 7. The fake holds a reply back until after `Find the rest`, and once more until
    after `Next`. Neither reply reaches the board.
-8. A 503 from `/play`: no reply, and the verdict sentence stays.
+8. A 503 from `/play`: no reply, and the verdict sentence stays — not the
+   drill's „Tablebase is currently unavailable…" either.
 9. `EndgameSolveSession`, pure: `reveal()` leads to `revealed`, complete and not
    counted, and `submit` is refused after it.
+10. *(Fable, 1.10.2026 — D12's app half)* With `material_label` in the
+    payload the chip reads „Rook and pawn versus rook" and the `Save for
+    later` title „Rook and pawn versus rook — unclear"; with the field null
+    both fall back as D12 says. The wire test's fixture carries the field.
 
 Also:
 - Rewritten openly: the two `opponentReply` cases in
@@ -460,11 +611,18 @@ Also:
   | Mutation | Case |
   |---|---|
   | the token check on the late reply removed | 7 |
-  | the promotion forced to `q` | 4 |
+  | the board left on the reader's move when the server's `fen` arrives | 4 |
+  | the screen taking its verdict from the server's `held` | 4b |
+  | the request sent once per position instead of once per found move | 4 |
   | `Show solution` drawn after a solve | 1 |
   | `solved: true` recorded | 3 |
   | the request sent for an engine position | 5 |
   | the chip drawn for an exact position | 6 |
+  | the chip reading `type` instead of `materialLabel` | 10 |
+
+  *(Fable, 1.10.2026)* „The promotion forced to `q`" left this table with D8's
+  amendment: the screen replays nothing. It stands in phase 5's table instead,
+  against the builder.
 
 ### Phase 5 — `Open in Analysis`, and the way back [implementer; gate by the lead]
 
@@ -473,8 +631,18 @@ Covers D1, D2, D5, D6 and D14.
   `opening_position_tree.dart`: a child that plays the same move is reused,
   never doubled.
 - The trainer keeps the drill's moves as it goes. `DrillStep` reads `playedUci`
-  and `reply.uci`, which the server already sends. `Take back` drops the move it
-  takes back, and `Start over` clears them.
+  and `reply.uci`, which the server already sends *(Fable, 1.10.2026: checked
+  in `judgeMove` — both are in the result; `DrillStep` reads neither today, so
+  the model gains two fields and `drill_step` gets a case for them)*. `Take
+  back` keeps the taken-back move in the list as a dead end (D15); `Start
+  over` clears the list.
+- *(Fable, 1.10.2026)* The list is **new state** (§2: the drill keeps no
+  history). It is a list of (FEN before, UCI played, UCI replied or null), so
+  the builder replays each pair on the board it names and never looks a node
+  up by FEN — the server's `fen` is chess.js's and the tree's FENs are the
+  app's, and across that boundary two strings are one board only by
+  placement, side and castling (`CLAUDE.md`, 30.9.2026). The node Analysis
+  stands on is the last node the replay produced.
 - `openTreeInAnalysis` gains `blackOrientation`, and `AnalysisStudioScreen` an
   `initialBlackOrientation` for a tree.
 
@@ -482,14 +650,27 @@ Covers D1, D2, D5, D6 and D14.
 - The root is the puzzle's FEN.
 - The children are the reader's moves in the order found, then the other holding
   moves in the server's order, then the game's move.
-- The reply sits under the first move found.
+- *(Fable, 1.10.2026)* Each found move carries the reply it was given, and a
+  found move whose reply never came (503, or the server said `held: false`)
+  is a leaf. The fixture has two found moves, the first with a reply and the
+  second without.
+- *(Fable, 1.10.2026)* A game's move that is also a holding move is one node,
+  not two — the „reused, never doubled" rule, with a case of its own; and a
+  position with `game` and no `played_move` (a master-game row) adds no
+  branch.
 - The drill line:
   - a drill whose first move holds continues under that branch;
   - one whose first move loses adds a last branch;
   - a Punish line hangs under the game's move.
 - The tree stands on the root when opened from solving, and on the last move
   when opened from the drill.
-- After `Take back` the line is one move shorter.
+- `Take back` (D15): the taken-back move is a side branch of the position it
+  was played from — a leaf, since the server sends no reply to a losing move —
+  and the move played instead continues the line. The fixture takes back twice
+  from the same position, so the case can tell „kept" from „kept the last one".
+  `Start over` leaves no branch.
+- *(Fable, 1.10.2026)* A reply that underpromotes is replayed as that piece:
+  the node after `e7e8n` has a knight on e8.
 - **No node carries a comment, a NAG, an arrow or a square.**
 - Every node's FEN is its parent's after its move.
 
@@ -516,12 +697,22 @@ Covers D1, D2, D5, D6 and D14.
 3. In a retry run, `Next` after Back asks for the queue's next id, not its first
    again.
 4. While the stand-in is on top, N does nothing below it (no request). After
-   Back, N loads the next position (one request).
+   Back, N loads the next position (one request). *(Fable, 1.10.2026)* The
+   first half holds because `ActionKeyShortcuts` is a `Focus`, not a global
+   handler (§2); the second because a popped route hands the focus back to the
+   scope below. If the second half is red, the cure is the trainer asking for
+   its focus when the pushed route's future completes — not a handler that
+   listens through the route above.
 5. A drill that was over is still over after Back: its sentence and `Take back`
    are there.
 6. Once with the real `AnalysisStudioScreen`, pumped as `T/analysis_bar_test.dart`
    pumps it: its bar has a back arrow, and pressing it returns to the trainer as
-   in case 1.
+   in case 1. *(Fable, 1.10.2026)* And once at **360 × 640**, pushed: the bar
+   has never been measured with a back arrow in it — `analysis_bar_test` pumps
+   the screen as `home`, where there is none — and the opening report has been
+   pushing it since 30.9.2026, so a bar that overflows there is dormant on
+   master (rule 14). The case asserts no `RenderFlex` overflow and the bar's
+   targets on the screen.
 
 **Mutations**, each red:
 
@@ -531,6 +722,9 @@ Covers D1, D2, D5, D6 and D14.
 | the reply hung under the root | the tree |
 | a comment written on the game's move | the tree |
 | standing on the root when opened from the drill | the tree |
+| *(Fable)* the reply's promotion suffix dropped — `e7e8n` replayed as a queen | the tree |
+| *(Fable)* the game's move added as a second child when it also holds | the tree |
+| *(Fable, D15)* the taken-back move dropped from the list — `Take back` written as `removeLast` | the tree |
 | the trainer rebuilt on return — the stand-in opened with `pushReplacement` | the way back, cases 1–3 |
 | the orientation not passed | the door |
 
@@ -573,6 +767,13 @@ green.
   counts them. That is a question of its own.
 - Re-mining, and the DTZ order of the stored lines. No screen reads those lines
   after phase 4.
+- *(Fable, 1.10.2026)* The router's `/analysis?fen=` door —
+  `AppRoutes.analysisWithFen` and the `fen` query the route reads — which
+  nothing in `lib/` calls. Listed for the next deletion batch, not deleted
+  here: it is outside the module, and the owner batches deletions.
+- *(Fable, 1.10.2026)* `Open in Analysis` from `Game blunders` is above; so is
+  a reply after a correct answer in the game walk, which has its own screen and
+  was not asked about.
 
 ## 8. The live pass
 
@@ -592,3 +793,56 @@ partija, in the five-line form, from [261.1]:
 | [261.9] | The card's new title and first sentence; the manual. |
 | [261.10] | `Save for later` names the Library, in the trainer and in `Game blunders`. |
 | [261.11] | A position from a real mistake names its ending in words on the chip. |
+| [261.12] | *(Fable)* After `Find the rest`, the second move found also gets its reply, and in Analysis each found move has its reply under it. |
+| [261.13] | *(Fable)* On the phone: Analysis opened from the trainer, at the narrowest width — the bar's back arrow and its words all there, nothing cut. |
+| [261.14] | *(Fable, D15)* A move taken back in the drill is a side branch in Analysis, and the Syzygy panel shows why it lost. |
+
+## 9. Fable's review, 1.10.2026
+
+Read against the code on 1.10.2026, not run. What was checked and holds, so
+nobody checks it twice:
+- The screen's four unused parameters, the `'custom'` branch, `accepted`,
+  `solutionSan`, `import_endgame_puzzles.js` — all as §2 says; no test passes
+  the parameters, and `endgame_wire_format_test` sends `maxPieces: 5` at line
+  36.
+- `openTreeInAnalysis` pushes with `Navigator.of(context).push`; the only
+  `context.*` navigation in `AN/` is `context.push(AppRoutes.preferences)`;
+  the `AppBar` sets no `leading`; `_loadTree` orients to the side to move at
+  the stand-on node.
+- `/endgames` is a top-level `GoRoute` (there is no shell route in the
+  router — the tabs are widgets of `HomeScreen`), so a route pushed from the
+  trainer sits on the root navigator and the system Back pops it.
+- Phase 3's seven files are exactly the grep's answer.
+- `judgeMove` sends `playedUci` and `reply.uci`; `buildEndgamePayload` is one
+  builder and `/by-id` goes through it; `labelOf` is exported.
+- `[260.2]` is the last live item, so `[261.1]` is free; `[0l.b240]`,
+  `[0l.b242]` and `[0j.b262]` exist.
+
+What the review changed, each marked where it stands:
+1. **D8's cost** was one request; it is two probes, at least one to Lichess,
+   and one request per found move, not per position. The condition is
+   `canBePlayedOut`; the board takes the server's `fen`; a `held: false` is
+   logged, never shown.
+2. **D10** listed `repertoire.html`, which says „master games" about the
+   opening book and must not change; the phase 1 grep gate was scoped the same
+   way, because `mistake_rule.dart` would have failed it for the same right
+   reason.
+3. **D12's app half** had no phase; it is in phase 4, with the map's three
+   readers named and the `labelOf(null) == ''` guard.
+4. **D14's seam** changes a typedef, which touches the opening report's test
+   — the ninth file, named in advance.
+5. **D15**: the taken-back drill move stays in the tree as a side branch.
+   Recommended in the review; the owner accepted it the same day.
+6. **Phase 5** was written as if the drill had a move list; it has none, so
+   the list is named as new state, and the builder replays pairs rather than
+   matching FENs across the chess.js boundary.
+7. **Gates added**: the shown answer's literal sentence; `Show solution`
+   absent in a drill; a second found move's request; the server's `fen` on
+   the board; `held: false`; the reply's promotion in the tree; a game's move
+   that also holds; the pushed bar at 360 wide; D7 as one getter with three
+   readers; the null guard on the label.
+8. **Phase 0** counts one more thing: `material` keys `labelOf` cannot parse.
+9. **§7**: the dead `/analysis?fen=` door, for the deletion batch.
+
+Nothing in this review waits on the owner: D15 was put to him and accepted on
+1.10.2026. Phase 0 starts on his word.

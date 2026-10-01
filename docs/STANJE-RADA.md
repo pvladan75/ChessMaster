@@ -65,7 +65,7 @@ predlozima") i dodao: iz Analize da se vrati na istu zagonetku, sa istim izborom
 završnica.
 
 Plan: [`PLAN-TRENER-ZAVRSNICA.md`](PLAN-TRENER-ZAVRSNICA.md), faze 0–8, odluke
-D1–D14:
+D1–D15 (D15 je Fable-ova preporuka, vlasnik je prihvatio 1.10.2026):
 - `Show solution` dok se rešava;
 - `Open in Analysis` kad ekran više ništa ne pita: postojeća Analiza, gurnuta
   preko trenera, sa motorom ugašenim;
@@ -84,8 +84,19 @@ D1–D14:
 komituj"): D7 važi za sve ulaze koji otvaraju Analizu preko drugog ekrana, a rad
 od 1.10 (odmah ispod) je komitovan kao `4f9ef2ea`.
 
-**Sledeće:** Fable pregleda plan — vlasnik ga sam prosleđuje, sesija ne pokreće
-pregled. Faza 0 kreće tek na vlasnikovu reč posle pregleda.
+**Fable je pregledao plan 1.10.2026** i izmene su u samom planu, označene
+*(Fable, 1.10.2026)* gde stoje i pobrojane u §9: D8 košta dva upita tablica po
+nađenom potezu (ne jedan po poziciji), uslov je `canBePlayedOut`, tabla uzima
+serverov `fen`; D10 ne dira `repertoire.html` (tamo „master games" znači knjigu
+otvaranja); aplikaciona polovina D12 dobila je fazu (4) i tri čitaoca mape; D14
+menja potpis test-šava, pa dira test izveštaja o otvaranjima; faza 5 je bila
+pisana kao da drill čuva listu poteza, a ne čuva — lista je novo stanje; novi
+slučajevi u gate-ovima (§9, tačka 7) i mrtva vrata `/analysis?fen=` za sledeću
+turu brisanja (§7). **D15** — potez vraćen u drillu ostaje u stablu kao
+sporedna grana — Fable je preporučio, vlasnik prihvatio istog dana („D15: dodaj
+i take back potez, komituj"). Pregled je komitovan sa planom.
+
+**Sledeće:** faza 0 na vlasnikovu reč.
 
 Nova provera uživo počinje od [261.1] (§8 plana).
 
