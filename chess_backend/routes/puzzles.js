@@ -13,6 +13,7 @@ const endgameDrill = require('../services/endgameDrill');
 const { tablebase, TablebaseUnavailable } = require('../services/tablebaseService');
 const assignmentService = require('../services/assignmentService');
 const puzzleProgress = require('../services/puzzleProgress');
+const puzzleList = require('../services/puzzleList');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -743,6 +744,23 @@ router.get('/puzzles/retry', authenticateToken, async (req, res) => {
   } catch (err) {
     logger.error({ err }, 'Error reading puzzle retry queue:');
     res.status(500).json({ error: 'Error reading retry queue.' });
+  }
+});
+
+// GET /api/puzzles/list?source=&state=&before=&limit= - which puzzles the
+// signed-in account has met, one row each, newest first, with the board each
+// asked about (docs/PLAN-NAPREDAK-VEZBI.md §7). The account is the session's:
+// nothing in the query names whose list it is, and no account reads another's.
+router.get('/puzzles/list', authenticateToken, async (req, res) => {
+  const { source, state, before, limit } = req.query;
+  try {
+    res.json(await puzzleList.puzzleListOf(pool, req.user.id, { source, state, before, limit }));
+  } catch (err) {
+    if (err instanceof puzzleList.ListError) {
+      return res.status(400).json({ error: err.message });
+    }
+    logger.error({ err }, 'Error reading the puzzle list:');
+    res.status(500).json({ error: 'Error reading the puzzle list.' });
   }
 });
 

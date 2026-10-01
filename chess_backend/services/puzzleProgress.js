@@ -16,7 +16,7 @@ const SOURCES = Object.freeze([
   'mate_puzzle',      // puzzles.puzzle_id
   'winning_position', // puzzles.puzzle_id
   'endgame',          // endgame_puzzles.puzzle_id
-  'blunder_game',     // `${blunder_games.id}:${ply}`
+  'blunder_game',     // `${blunder_games.game_id}:${ply}` — the text column the walk records
   'basic_mate',       // `basic:${preset}:${fen_key}` — the first four FEN fields
   'own',              // custom_puzzles.puzzle_id — one's own exercise, solved alone
 ]);
@@ -58,27 +58,29 @@ function normalise(row) {
   };
 }
 
-/// Every puzzle in the rows once, with its first row and its latest: **the
-/// one place where "a puzzle counts once" is decided.** The cards' fold below
-/// and the trainer's report (`summariseAttempts` in assignmentService.js)
-/// both read it, so a student cannot have one number on the Practise tab and
-/// another in the report sent to a parent. Rows may arrive in any order:
+/// Every puzzle in the rows once, with its first row, its latest, and all of
+/// them oldest first (`rows`, which the puzzle list counts tries from): **the
+/// one place where "a puzzle counts once" is decided.** The cards' fold below,
+/// the trainer's report (`summariseAttempts` in assignmentService.js) and the
+/// list (`puzzleList.js`) all read it, so a player cannot have one number on
+/// the Practise tab and another anywhere else. Rows may arrive in any order:
 /// "latest row wins" is the whole rule and must not depend on a caller's
-/// ORDER BY.
+/// ORDER BY. The sort is stable, so of rows that share a moment the first to
+/// arrive stays first and the last to arrive is the latest.
 function puzzlesOf(rows = []) {
   const byPuzzle = new Map();
   for (const raw of rows) {
     if (!isKnownSource(raw.source)) continue;
     const row = normalise(raw);
     const key = `${row.source}\u0000${row.puzzleId}`;
-    const entry = byPuzzle.get(key);
-    if (!entry) byPuzzle.set(key, { first: row, latest: row });
-    else {
-      if (row.at < entry.first.at) entry.first = row;
-      if (row.at >= entry.latest.at) entry.latest = row;
-    }
+    const list = byPuzzle.get(key);
+    if (list) list.push(row);
+    else byPuzzle.set(key, [row]);
   }
-  return [...byPuzzle.values()];
+  return [...byPuzzle.values()].map((list) => {
+    list.sort((a, b) => a.at - b.at);
+    return { first: list[0], latest: list[list.length - 1], rows: list };
+  });
 }
 
 /// Where a puzzle stands now, read from its latest row. A skip is a third
