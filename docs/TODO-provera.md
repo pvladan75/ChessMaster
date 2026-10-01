@@ -4648,6 +4648,34 @@ odlazi na kraj spiska u alatu.
    vrati.
    Potrebno: Windows i telefon.
 
+9. [ ] **Linija napretka na kartici otvara listu zagonetki tog izvora.** [264.1]
+   O čemu se radi: Do 1.10.2026 kartice u Practise su pokazivale samo brojeve. Sada je linija napretka („Solved … · … to retry ›") vrata ka listi *koje* su to zagonetke, otvorenoj na izvoru te kartice (`PLAN-NAPREDAK-VEZBI.md` §7). Ista za svaki nalog — i za nalog bez trenera i bez učenika.
+   Gde: `Practise` → kartica `Puzzles: Mate in 1, 2 or 3 moves` → linija napretka; pa `Endgames from real games` → linija `Game blunders: …`.
+   Uradi: Klikni na liniju napretka (ima strelicu ›), vrati se, pa klikni liniju `Game blunders: …`.
+   Treba da vidiš: Otvara se `My puzzles`, a meni iznad liste stoji na izvoru te kartice (`Mate puzzles`, pa `Game blunders`); u listi su samo te zagonetke.
+   Potrebno: Windows i telefon; server (restartovan posle izmene — nodemon to radi sam); nalog koji je već rešavao zagonetke.
+
+10. [ ] **Svaki red liste kaže rečima šta je zagonetka i gde stoji.** [264.2]
+   O čemu se radi: Red: mala tabla, šta je to („Mate in 2", „Tactics · fork", „Rook and pawn versus rook · Hold a draw", „Game blunder · move 34"), stanje rečima („Solved first try", „Solved on try 3", „Solved with a hint", „Failed · 2 tries", „Skipped") i datum poslednjeg pokušaja. Zagonetka koje više nema (npr. obrisan sopstveni zadatak) ostaje u listi bez table, kao „… · no longer available". Stanje se čita iz reči, ne iz boje.
+   Gde: `Practise` → linija napretka bilo koje kartice → `My puzzles` → u meniju izaberi `All puzzles`.
+   Uradi: Pročitaj nekoliko redova; čipovima `Failed`, `Skipped`, `Solved` i menijem izvora suzi listu; na dnu duge liste klikni `Show more`.
+   Treba da vidiš: Najnovije prve; čip i meni se slažu (npr. `Failed` + `Endgames` = samo promašene završnice); `Show more` dodaje sledeće, bez ponavljanja. Na telefonu su čipovi u jednom redu koji se pomera u stranu.
+   Potrebno: Windows i telefon; server; nalog sa zagonetkama iz više izvora.
+
+11. [ ] **Na širokom prozoru izabrana zagonetka stoji pored liste, na telefonu izlazi odozdo.** [264.3]
+   O čemu se radi: Na prozoru širem od 840 dp desno od liste je okno sa tablom izabrane zagonetke, rečima i datumima; na telefonu dodir na red otvara isto to kao list odozdo.
+   Gde: `Practise` → linija napretka → `My puzzles`.
+   Uradi: Na Windowsu klikni red; na telefonu dodirni red.
+   Treba da vidiš: Tabla je okrenuta na stranu koja je bila na potezu (piše „White to move" ili „Black to move"); kod greške iz partije su ispod i imena igrača; ništa nije odsečeno.
+   Potrebno: Windows i telefon; server.
+
+12. [ ] **Taktika se crta posle protivnikovog poteza — pozicija koju si rešavao.** [264.4]
+   O čemu se radi: Lichess zagonetka u bazi čuva poziciju pre protivnikovog poteza, a trening prvo odigra taj potez. Lista crta poziciju posle njega, a uz „Tactics" piše samo motiv (npr. „hanging piece"), ne oznake kao „crushing" ili „long".
+   Gde: `Practise` → `Tactics tailored to you` → linija napretka → `My puzzles` → red „Tactics · …".
+   Uradi: Uporedi tablu sa onom iz treninga (ili ponovo otvori tu zagonetku u treningu).
+   Treba da vidiš: Ista pozicija koju je trening pokazao kad je trebalo da vučeš.
+   Potrebno: Windows; server; nalog koji je radio taktiku.
+
 ### Practise — Practise — ostalo
 
 1. [ ] **Isti panel stabla radi i u Analizi.** [70.9]

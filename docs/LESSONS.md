@@ -10088,3 +10088,31 @@ drops it — and the check was deleted. One survived: a mate row keeping its
 stored tags beside the depth, which no row stored today can tell apart. The
 case's title already claimed „whatever the row stored", so a row now makes it
 true; a motif stored on a mate row would otherwise count one puzzle twice.
+
+## 1.10.2026 — the puzzle list, phase 6: the screen
+
+`My puzzles` (`lib/features/puzzle_history/`): which puzzles an account met,
+the state of each in words, filters, a pane or a sheet, and every Practise
+card's progress line a door to it. App 5400 → **5421** (predicted, measured
+with nothing else running); backend unchanged in count, 2042 / 2206.
+
+**A `DropdownButton` keeps every item's text in its tree**, to size itself to
+the widest. A finder for „Endgames" inside the menu therefore finds it
+whichever source is chosen — a check that cannot fail. Read the menu's
+`value`.
+
+**A guard against a late answer is invisible to a fake that answers at
+once.** The mutation that removed it survived; the case that holds it now
+answers the first question last, with a `Completer`, the way two quick taps
+meet a slow server.
+
+**Render the screen, again.** Twenty-one green cases and three lines of
+filters on a 640 dp phone, and „Solved on try 2 · 2 tries" on every solved
+row. A throwaway test drew the real screen to PNG with Roboto and the Material
+icon font loaded; text in the app's own title font draws as boxes there, which
+is the test machine's, not the screen's.
+
+**One rule for what a motif is.** The list first sent a tactic's tags raw and
+would have filtered them in the app by the label map's keys — a second rule
+beside the server's `trainableThemes`, which the report already reads. The
+other session working on the report pointed it out; the server filters now.

@@ -303,10 +303,15 @@ N positions" taught that two answers to „how many" must count one set.
   measured 21.9.2026), what it is (source and kind: „Mate in 2", „Tactics ·
   fork, pin", „Rook endgame · Hold a draw", „Game blunder · move 34"), its
   state **in words** — `Solved first try`, `Solved on try 3`, `Failed`,
-  `Skipped` — the number of tries and the last date. Words, not colour: the
+  `Skipped` — the number of tries and the last date. *(As built: a solved
+  puzzle's state already names its try, so the count is shown for the
+  others — „Solved on try 2 · 2 tries" said one thing twice. A tactic's
+  motifs come from the server, through `trainableThemes`, the rule the report
+  reads them by.)* Words, not colour: the
   owner is colour-blind, and the state must read in luminance and shape.
 - Filters above it: state chips (`All`, `Failed`, `Skipped`, `Solved`) and a
-  source menu. They compose — the state cuts the source's remainder — and the
+  source menu. *(As built: the chips are one row that scrolls sideways on a
+  phone — wrapped, they took three lines of a 640 dp screen.)* They compose — the state cuts the source's remainder — and the
   gate holds that with a fixture where each filter cuts something the other
   would not (PLAN-LISTE phase 7's lesson).
 - Wide (≥ 840): the list and a pane beside it with the selected puzzle's
@@ -346,7 +351,7 @@ where its numbers are.
 | # | Phase | Carrier | Gate |
 |---|---|---|---|
 | 5 | Server: `puzzleListOf` and `GET /api/puzzles/list`; positions joined per source; `available: false`; the `before` cursor | lead, gate and build — **done 1.10.2026.** `services/puzzleList.js`, the route after `/puzzles/retry`, `puzzlesOf` keeping each puzzle's rows. Gate: `test/puzzle_list.test.js` (26 cases, the fold property over eight seeded random logs) and `test/puzzle_list_db.test.js` (one case on a real database: every source's table, the owner scope). Seventeen mutations red on their own cases, after one survived: a fold that lost the rows' time order kept every total, because the fold's own test of that rule uses two mirror-image puzzles and asserts only totals — a per-puzzle case now holds it. A wrong column name passes every stub and fails only on the real database, which is what the second file is for. Backend 2007 → 2033 without a database, 2170 → 2197 with one (both measured) | Stub pools asserting the SQL each source is asked (one query per source, never per row); **the list's states summed equal `foldAttempts` over the same rows** (one home, a property over random logs); a deleted own exercise listed with `available: false`; a real Lichess row's board is the position after its `setup_move`, not the stored FEN; paging returns every puzzle exactly once across pages while a new attempt arrives between them; **the list is the caller's alone** — the SQL is bound to the session's id, a `userId` or `studentId` in the query changes nothing, and an `own` exercise of another account named by an id in the log comes back with no board |
-| 6 | App: `PuzzleHistoryList` and the cards' door | implementer | Widget tests at 360 × 640, 900 × 700, 1536 × 792; the door is on the card for an account with no trainer and no students; state in words on every row; filters that compose (a fixture where each cuts differently); boards square on both platforms' densities; an absence check that stands where the row would be drawn; the request carries the filters the chips show |
+| 6 | App: the list screen and the cards' door | lead, gate and build — **done 1.10.2026.** `PuzzleHistoryScreen` (`lib/features/puzzle_history/`, the words in their own file), `PuzzleAttemptApi.list`, every Practise card's progress line a door to its own source (`onOpenList`, drawn as words when not given), route `/puzzles/history?source=`. Gate `test/puzzle_history_test.dart` (21), its rows the server's own answer. Twenty-five mutations, each red on its own case: two survived first — the guard that drops an answer to a filter already changed, and the pane cleared when a filter leaves its puzzle out — and got cases; one did not compile and was rewritten. A look at the rendered screen found what the gate passed: three lines of filters on a phone and a count said twice. App 5400 → 5421, backend unchanged in count (2042 / 2206) |
 | 7 | Actions: `Try again` (retry mode with a queue of one, per retryable drill) and `Open in Analysis` (D3) | implementer | A try writes one attempt row with the right source and id (fake the client); the list moves after it; `Try again` is on no `blunder_game` or `basic_mate` row (D2); `Open in Analysis` is on every row with a board — failed, skipped and solved alike — and on none without one, and it opens the row's own board (a Lichess row after its `setup_move`); a look followed by a solved try moves `solved` and leaves `firstTry` false |
 | 8 | Live pass, items in `TODO-provera.md` under Practise | owner | ticked |
 
