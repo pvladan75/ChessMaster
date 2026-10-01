@@ -97,6 +97,14 @@ Widget appRouteErrorBuilder(BuildContext context, GoRouterState state) =>
 /// Separated so a test can build a router that opens at any one of them. The
 /// alternative is starting every navigation test on the home screen and walking
 /// to the place under test, which makes each test a test of everything between.
+/// The one puzzle a drill's retry is asked to walk — `&id=` from the puzzle
+/// list's „Try again" (`AppRoutes.retryPath`) — or null for the server's whole
+/// queue, the hub's „Retry failed".
+List<String>? _retryIdsOf(GoRouterState state) {
+  final id = state.uri.queryParameters['id'];
+  return id == null || id.isEmpty ? null : [id];
+}
+
 final List<RouteBase> appRouteTable = [
   GoRoute(
     path: AppRoutes.login,
@@ -251,6 +259,7 @@ final List<RouteBase> appRouteTable = [
         mateDepth: state.uri.queryParameters['depth'],
         basicMateLevel: state.uri.queryParameters['level'],
         retry: state.uri.queryParameters['retry'] == '1',
+        retryIds: _retryIdsOf(state),
       );
     },
   ),
@@ -273,6 +282,7 @@ final List<RouteBase> appRouteTable = [
     builder: (context, state) => TacticsTrainerScreen(
       session: SessionService.instance.current,
       retry: state.uri.queryParameters['retry'] == '1',
+      retryIds: _retryIdsOf(state),
     ),
   ),
   GoRoute(
@@ -288,6 +298,7 @@ final List<RouteBase> appRouteTable = [
         band: query['band'],
         oppositeOnly: query['oppositeBishops'] == 'true',
         retry: query['retry'] == '1',
+        retryIds: _retryIdsOf(state),
       );
     },
   ),

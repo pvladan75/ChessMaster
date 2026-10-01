@@ -18,6 +18,7 @@ const {
 } = require('./puzzleProgress');
 const { splitSolution, trainableThemes } = require('./puzzleSelectionService');
 const { labelOf } = require('./endgameCatalog');
+const { exerciseColumns, assignableProblem } = require('./exercise');
 
 /// Where a puzzle can stand — `stateOf`'s three answers.
 const STATES = Object.freeze(['solved', 'failed', 'skipped']);
@@ -238,12 +239,19 @@ async function boardsOf(pool, userId, page) {
     // The caller's own exercises only: an id in the log is not a key to
     // another account's board.
     asked.push(pool.query(
-      `SELECT puzzle_id, fen, instruction, source_title
+      `SELECT puzzle_id, instruction, source_title, ${exerciseColumns()}
          FROM custom_puzzles WHERE puzzle_id = ANY($1::varchar[]) AND owner_id = $2`,
       [own, userId]
     ).then(({ rows }) => {
       for (const row of rows) {
-        put('own', row.puzzle_id, row.fen, { instruction: row.instruction, sourceTitle: row.source_title });
+        put('own', row.puzzle_id, row.fen, {
+          instruction: row.instruction,
+          sourceTitle: row.source_title,
+          // Whether it can be tried again as one move — the rule the „Retry
+          // failed" queue serves by (exerciseSolo.queueOf). A game exercise
+          // is played, not answered, and one marked for review is not served.
+          findable: assignableProblem(row, { as: 'find' }) === null,
+        });
       }
     }));
   }
@@ -272,6 +280,10 @@ function describe(item, boards) {
     firstTry: solvedFirstTry(entry),
     tries: answers.length,
     solvedOnTry: solvedAt === -1 ? null : solvedAt + 1,
+    // Whether that solving answer had a hint. Without it „solved, not at the
+    // first attempt, on the first answer" could be a hint or a skip before
+    // the answer, and the app would have to guess which to say.
+    solvedWithHint: solvedAt !== -1 && answers[solvedAt].hinted,
     firstAt: new Date(entry.first.at).toISOString(),
     latestAt: new Date(entry.latest.at).toISOString(),
     available: board !== null,

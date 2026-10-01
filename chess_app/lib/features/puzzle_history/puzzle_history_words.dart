@@ -88,15 +88,22 @@ String puzzleKindWords(PuzzleListItem item) {
 }
 
 /// Where it stands, in words: „Solved first try", „Solved on try 3",
-/// „Solved with a hint", „Failed", „Skipped".
+/// „Solved with a hint", „Solved after a skip", „Failed", „Skipped".
 String puzzleStateWords(PuzzleListItem item) {
   switch (item.state) {
     case PuzzleState.solved:
       if (item.firstTry) return 'Solved first try';
       final on = item.solvedOnTry;
-      // The first answer solved it and still was not a first-try solve: it
-      // had a hint.
-      if (on == 1) return 'Solved with a hint';
+      if (item.solvedWithHint) {
+        return on == null || on == 1
+            ? 'Solved with a hint'
+            : 'Solved on try $on, with a hint';
+      }
+      // Solved by the first answer, yet not a first-try solve, and no hint:
+      // the first meeting was a skip. Until 1.10.2026 this said „with a
+      // hint", a guess that was wrong for every puzzle skipped and then
+      // solved.
+      if (on == 1) return 'Solved after a skip';
       return on == null ? 'Solved' : 'Solved on try $on';
     case PuzzleState.skipped:
       return 'Skipped';

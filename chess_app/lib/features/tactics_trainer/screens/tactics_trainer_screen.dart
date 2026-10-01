@@ -33,6 +33,7 @@ class TacticsTrainerScreen extends StatefulWidget {
     this.assignmentTitle,
     this.puzzleIds,
     this.retry = false,
+    this.retryIds,
     this.api,
     this.attemptApi,
   });
@@ -50,6 +51,11 @@ class TacticsTrainerScreen extends StatefulWidget {
   /// Unlike an assignment, a wrong move here may be tried again and „Skip"
   /// records a skip; it is not homework.
   final bool retry;
+
+  /// With [retry], the queue to walk instead of the server's — the puzzle
+  /// list's „Try again" hands it one id (`docs/PLAN-NAPREDAK-VEZBI.md` §7).
+  /// Null fetches the whole queue, as the hub's „Retry failed" does.
+  final List<String>? retryIds;
 
   /// Injected in tests, which have no server.
   final TacticsApiService? api;
@@ -141,7 +147,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   }
 
   Future<void> _loadRetryQueue() async {
-    final ids = await _attemptApi.retryIds(PuzzleSource.lichess);
+    final ids =
+        widget.retryIds ?? await _attemptApi.retryIds(PuzzleSource.lichess);
     if (!mounted) return;
     if (ids == null || ids.isEmpty) {
       setState(() {

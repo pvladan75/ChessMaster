@@ -46,12 +46,12 @@ final _session =
 // What GET /api/puzzles/list answered, word for word (see the header).
 const _served = r'''
 {"puzzles":[
- {"source":"own","puzzleId":"ex_gone","state":"failed","firstTry":false,"tries":1,"solvedOnTry":null,"firstAt":"2026-09-28T09:10:00.000Z","latestAt":"2026-09-28T09:10:00.000Z","available":false,"fen":null,"detail":{}},
- {"source":"basic_mate","puzzleId":"basic:easy:4k3/8/4K3/8/8/8/8/7Q w - -","state":"solved","firstTry":false,"tries":1,"solvedOnTry":1,"firstAt":"2026-09-28T09:00:00.000Z","latestAt":"2026-09-28T09:00:00.000Z","available":true,"fen":"4k3/8/4K3/8/8/8/8/7Q w - - 0 1","detail":{"preset":"easy"}},
- {"source":"blunder_game","puzzleId":"tw42:57","state":"skipped","firstTry":false,"tries":0,"solvedOnTry":null,"firstAt":"2026-09-28T08:50:00.000Z","latestAt":"2026-09-28T08:50:00.000Z","available":true,"fen":"8/5pk1/8/8/8/8/5PK1/r7 b - - 0 55","detail":{"ply":57,"side":"black","white":"Chiburdanidze, Maia","black":"Gaprindashvili, Nona"}},
- {"source":"endgame","puzzleId":"eg_1","state":"failed","firstTry":false,"tries":2,"solvedOnTry":null,"firstAt":"2026-09-28T08:40:00.000Z","latestAt":"2026-09-28T08:41:00.000Z","available":true,"fen":"8/8/4k3/8/3PK3/8/r7/7R w - - 0 1","detail":{"mode":"draw","type":"RookEndgame","material":"KRPvKR","materialLabel":"rook and pawn versus rook"}},
- {"source":"mate_puzzle","puzzleId":"m1","state":"solved","firstTry":true,"tries":1,"solvedOnTry":1,"firstAt":"2026-09-28T08:30:00.000Z","latestAt":"2026-09-28T08:30:00.000Z","available":true,"fen":"6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1","detail":{"mateDepth":1}},
- {"source":"lichess","puzzleId":"00008","state":"solved","firstTry":false,"tries":2,"solvedOnTry":2,"firstAt":"2026-09-28T08:10:00.000Z","latestAt":"2026-09-28T08:20:00.000Z","available":true,"fen":"r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25","detail":{"rating":1939,"themes":["hangingPiece"]}}
+ {"source":"own","puzzleId":"ex_gone","state":"failed","firstTry":false,"tries":1,"solvedOnTry":null,"solvedWithHint":false,"firstAt":"2026-09-28T09:10:00.000Z","latestAt":"2026-09-28T09:10:00.000Z","available":false,"fen":null,"detail":{}},
+ {"source":"basic_mate","puzzleId":"basic:easy:4k3/8/4K3/8/8/8/8/7Q w - -","state":"solved","firstTry":false,"tries":1,"solvedOnTry":1,"solvedWithHint":true,"firstAt":"2026-09-28T09:00:00.000Z","latestAt":"2026-09-28T09:00:00.000Z","available":true,"fen":"4k3/8/4K3/8/8/8/8/7Q w - - 0 1","detail":{"preset":"easy"}},
+ {"source":"blunder_game","puzzleId":"tw42:57","state":"skipped","firstTry":false,"tries":0,"solvedOnTry":null,"solvedWithHint":false,"firstAt":"2026-09-28T08:50:00.000Z","latestAt":"2026-09-28T08:50:00.000Z","available":true,"fen":"8/5pk1/8/8/8/8/5PK1/r7 b - - 0 55","detail":{"ply":57,"side":"black","white":"Chiburdanidze, Maia","black":"Gaprindashvili, Nona"}},
+ {"source":"endgame","puzzleId":"eg_1","state":"failed","firstTry":false,"tries":2,"solvedOnTry":null,"solvedWithHint":false,"firstAt":"2026-09-28T08:40:00.000Z","latestAt":"2026-09-28T08:41:00.000Z","available":true,"fen":"8/8/4k3/8/3PK3/8/r7/7R w - - 0 1","detail":{"mode":"draw","type":"RookEndgame","material":"KRPvKR","materialLabel":"rook and pawn versus rook"}},
+ {"source":"mate_puzzle","puzzleId":"m1","state":"solved","firstTry":true,"tries":1,"solvedOnTry":1,"solvedWithHint":false,"firstAt":"2026-09-28T08:30:00.000Z","latestAt":"2026-09-28T08:30:00.000Z","available":true,"fen":"6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1","detail":{"mateDepth":1}},
+ {"source":"lichess","puzzleId":"00008","state":"solved","firstTry":false,"tries":2,"solvedOnTry":2,"solvedWithHint":false,"firstAt":"2026-09-28T08:10:00.000Z","latestAt":"2026-09-28T08:20:00.000Z","available":true,"fen":"r6k/pp2r2p/4Rp1Q/3p4/8/1N1P2b1/PqP3PP/7K w - - 0 25","detail":{"rating":1939,"themes":["hangingPiece"]}}
 ],"next":null}
 ''';
 
@@ -235,6 +235,30 @@ void main() {
     expect(puzzleStateWords(by['eg_1']!), 'Failed');
     expect(puzzleStateWords(by['m1']!), 'Solved first try');
     expect(puzzleStateWords(by['00008']!), 'Solved on try 2');
+
+    // Solved, not a first-try solve, on the first answer: a hint or a skip
+    // came first, and the server says which. Until 1.10.2026 the words
+    // guessed „with a hint" for both.
+    PuzzleListItem solved({required int on, required bool hint}) =>
+        PuzzleListItem.fromJson({
+          'source': 'lichess',
+          'puzzleId': 'x',
+          'state': 'solved',
+          'firstTry': false,
+          'tries': on,
+          'solvedOnTry': on,
+          'solvedWithHint': hint,
+          'firstAt': '2026-09-28T08:00:00.000Z',
+          'latestAt': '2026-09-28T08:00:00.000Z',
+          'available': true,
+          'fen': null,
+          'detail': <String, dynamic>{},
+        });
+    expect(puzzleStateWords(solved(on: 1, hint: true)), 'Solved with a hint');
+    expect(puzzleStateWords(solved(on: 1, hint: false)), 'Solved after a skip');
+    expect(puzzleStateWords(solved(on: 3, hint: true)),
+        'Solved on try 3, with a hint');
+    expect(puzzleStateWords(solved(on: 3, hint: false)), 'Solved on try 3');
 
     expect(puzzleTriesWords(by['eg_1']!), '2 tries');
     // A row's second line. A solved puzzle's state already names its try;

@@ -287,6 +287,8 @@ test('tries count answers, not skips, and say which try solved it', async () => 
     row('lichess', 'once', 5, { solved: true }),
     row('lichess', 'never', 6),
     row('lichess', 'hint', 7, { solved: true, hinted: true }),
+    row('lichess', 'skip-then-solve', 8, { skipped: true }),
+    row('lichess', 'skip-then-solve', 9, { solved: true }),
   ];
   const page = await puzzleListOf(poolOver(log), 5);
   const by = Object.fromEntries(page.puzzles.map((p) => [p.puzzleId, p]));
@@ -304,6 +306,16 @@ test('tries count answers, not skips, and say which try solved it', async () => 
   assert.equal(by.never.state, 'failed');
   assert.equal(by.hint.firstTry, false, 'a hinted solve is not a first-try solve');
   assert.equal(by.hint.solvedOnTry, 1);
+  assert.equal(by.hint.solvedWithHint, true);
+  // The same three facts — solved, not a first-try solve, on the first
+  // answer — for a different reason: a skip came first. The app must be told
+  // which (found 1.10.2026, when a realistic answer to a retry was worded
+  // „Solved with a hint" for a puzzle no hint had touched).
+  assert.equal(by['skip-then-solve'].firstTry, false);
+  assert.equal(by['skip-then-solve'].solvedOnTry, 1);
+  assert.equal(by['skip-then-solve'].solvedWithHint, false);
+  assert.equal(by.eg.solvedWithHint, false);
+  assert.equal(by.never.solvedWithHint, false);
 });
 
 // ── boards ─────────────────────────────────────────────────────────────────
@@ -378,7 +390,7 @@ test('every source draws its own board, and says what kind of puzzle it is', asy
         { ply: 57, fen: BLUNDER_FEN, side: 'black' },
       ],
     }],
-    own: [{ puzzle_id: 'ex_1', owner_id: 5, fen: OWN_FEN, instruction: 'White mates in one.', source_title: 'My book' }],
+    own: [{ puzzle_id: 'ex_1', owner_id: 5, fen: OWN_FEN, instruction: 'White mates in one.', source_title: 'My book', task: null, solution: null, solution_san: 'Rb8#', needs_review: false }],
   }), 5);
   const by = Object.fromEntries(page.puzzles.map((p) => [p.puzzleId, p]));
 
@@ -397,8 +409,32 @@ test('every source draws its own board, and says what kind of puzzle it is', asy
   assert.equal(by['basic:easy:4k3/8/4K3/8/8/8/8/7Q w - -'].fen, '4k3/8/4K3/8/8/8/8/7Q w - - 0 1');
   assert.deepEqual(by['basic:easy:4k3/8/4K3/8/8/8/8/7Q w - -'].detail, { preset: 'easy' });
   assert.equal(by.ex_1.fen, OWN_FEN);
-  assert.deepEqual(by.ex_1.detail, { instruction: 'White mates in one.', sourceTitle: 'My book' });
+  assert.deepEqual(by.ex_1.detail, { instruction: 'White mates in one.', sourceTitle: 'My book', findable: true });
   for (const item of page.puzzles) assert.equal(item.available, true, item.puzzleId);
+});
+
+test('an own exercise says whether it can be tried again as one move', async () => {
+  // The rule the „Retry failed" queue serves by (`assignableProblem`, as
+  // `find`): a game exercise is played out, not answered with a move, and one
+  // marked for review is not served at all.
+  const log = [row('own', 'find', 1), row('own', 'game', 2), row('own', 'review', 3), row('own', 'unanswerable', 4)];
+  // Each with an answer stored (Rb8# mates), so that what differs is only
+  // what the case is about; a find exercise with no answer is not one either.
+  const base = { owner_id: 5, fen: OWN_FEN, instruction: null, source_title: null, solution: null, solution_san: 'Rb8#', needs_review: false };
+  const page = await puzzleListOf(poolOver(log, {
+    own: [
+      { ...base, puzzle_id: 'find', task: null },
+      { ...base, puzzle_id: 'game', task: { type: 'game', goal: 'win', plies: null, sideToPlay: 'w' } },
+      { ...base, puzzle_id: 'review', task: null, needs_review: true },
+      { ...base, puzzle_id: 'unanswerable', task: null, solution_san: null },
+    ],
+  }), 5);
+  const by = Object.fromEntries(page.puzzles.map((p) => [p.puzzleId, p]));
+  assert.equal(by.find.detail.findable, true);
+  assert.equal(by.game.detail.findable, false);
+  assert.equal(by.review.detail.findable, false);
+  assert.equal(by.unanswerable.detail.findable, false, 'no answer, nothing to judge it by');
+  for (const id of ['find', 'game', 'review', 'unanswerable']) assert.equal(by[id].available, true, id);
 });
 
 test('a puzzle whose row is gone stays in the list, with no board', async () => {

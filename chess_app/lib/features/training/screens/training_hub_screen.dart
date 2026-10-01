@@ -125,19 +125,11 @@ class _TrainingHubScreenState extends State<TrainingHubScreen> {
     _loadProgress();
   }
 
+  /// The drill on its whole retry queue — the map the puzzle list's „Try
+  /// again" reads too (`AppRoutes.retryPath`).
   void _onRetry(String source) {
-    switch (source) {
-      case PuzzleSource.lichess:
-        _pushAndRefresh('${AppRoutes.tactics}?retry=1');
-      case PuzzleSource.matePuzzle:
-        _pushAndRefresh(AppRoutes.drillPath('mate_puzzle', retry: true));
-      case PuzzleSource.winningPosition:
-        _pushAndRefresh(AppRoutes.drillPath('winning_position', retry: true));
-      case PuzzleSource.endgame:
-        _pushAndRefresh('${AppRoutes.endgames}?retry=1');
-      case PuzzleSource.own:
-        _pushAndRefresh('${AppRoutes.ownExercises}?retry=1');
-    }
+    final path = AppRoutes.retryPath(source);
+    if (path != null) _pushAndRefresh(path);
   }
 
   @override

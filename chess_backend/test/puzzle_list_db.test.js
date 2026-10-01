@@ -76,8 +76,8 @@ describe('the puzzle list on a real database', { skip: skip ? skip.skip : false 
       [BLUNDER_FEN, JSON.stringify([{ ply: 57, fen: BLUNDER_FEN, side: 'black' }])]
     );
     await pool.query(
-      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, instruction, origin)
-       VALUES ('ex_mine', $1, $2, 'w', 'Mine', 'manual'), ('ex_theirs', $3, $4, 'w', 'Theirs', 'manual')`,
+      `INSERT INTO custom_puzzles (puzzle_id, owner_id, fen, side_to_move, instruction, origin, solution_san)
+       VALUES ('ex_mine', $1, $2, 'w', 'Mine', 'manual', 'Rb8#'), ('ex_theirs', $3, $4, 'w', 'Theirs', 'manual', 'Ra8#')`,
       [me, OWN_FEN, them, MATE_FEN]
     );
 
@@ -113,6 +113,7 @@ describe('the puzzle list on a real database', { skip: skip ? skip.skip : false 
     assert.equal(by['tw:42:57'].detail.white, 'Chiburdanidze, Maia');
     assert.equal(by[BASIC].available, true);
     assert.equal(by.ex_mine.fen, OWN_FEN);
+    assert.equal(by.ex_mine.detail.findable, true, 'a stored find exercise can be tried again');
     assert.equal(by.ex_theirs.available, false, "another account's exercise shows no board");
 
     const theirs = await puzzleListOf(pool, them);

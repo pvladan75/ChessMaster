@@ -180,6 +180,7 @@ abstract final class AppRoutes {
     String? depth,
     String? level,
     bool retry = false,
+    String? id,
   }) {
     final query = <String>[
       'category=$category',
@@ -187,8 +188,37 @@ abstract final class AppRoutes {
       if (level != null && level.isNotEmpty)
         'level=${Uri.encodeComponent(level)}',
       if (retry) 'retry=1',
+      if (id != null) 'id=${Uri.encodeComponent(id)}',
     ].join('&');
     return '$trainingDrill?$query';
+  }
+
+  /// The drill that retries [source]'s puzzles: on its whole queue — the
+  /// hub's „Retry failed" — or, with [id], on that one puzzle — the puzzle
+  /// list's „Try again" (`docs/PLAN-NAPREDAK-VEZBI.md` §7). One home for
+  /// which drill retries what, so the two doors cannot lead apart.
+  ///
+  /// Null where there is no such route: a game blunder and a basic mate have
+  /// no retry at all (D2), and one own exercise is solved on the shared
+  /// solver, as the Library does it, not through a route.
+  static String? retryPath(String source, {String? id}) {
+    String retry(String path) => Uri(
+          path: path,
+          queryParameters: {'retry': '1', if (id != null) 'id': id},
+        ).toString();
+    switch (source) {
+      case 'lichess':
+        return retry(tactics);
+      case 'mate_puzzle':
+      case 'winning_position':
+        return drillPath(source, retry: true, id: id);
+      case 'endgame':
+        return retry(endgames);
+      case 'own':
+        return id == null ? retry(ownExercises) : null;
+      default:
+        return null;
+    }
   }
 
   /// The player's own archive: they hand over a PGN export and the importer

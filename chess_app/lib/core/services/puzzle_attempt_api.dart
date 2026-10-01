@@ -123,6 +123,7 @@ class PuzzleListItem {
     required this.firstTry,
     required this.tries,
     required this.solvedOnTry,
+    this.solvedWithHint = false,
     required this.firstAt,
     required this.latestAt,
     required this.available,
@@ -144,6 +145,11 @@ class PuzzleListItem {
 
   /// Which answer first solved it, or null if none has.
   final int? solvedOnTry;
+
+  /// Whether that solving answer had a hint. A solve on the first answer that
+  /// is not a first-try solve had either a hint or a skip before it; the
+  /// server says which, so the words do not guess.
+  final bool solvedWithHint;
 
   final DateTime firstAt;
   final DateTime latestAt;
@@ -171,6 +177,7 @@ class PuzzleListItem {
         firstTry: json['firstTry'] == true,
         tries: (json['tries'] as num?)?.toInt() ?? 0,
         solvedOnTry: (json['solvedOnTry'] as num?)?.toInt(),
+        solvedWithHint: json['solvedWithHint'] == true,
         firstAt: DateTime.parse(json['firstAt'] as String),
         latestAt: DateTime.parse(json['latestAt'] as String),
         available: json['available'] == true,

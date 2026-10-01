@@ -14,13 +14,21 @@
 // alone: the owner is colour-blind.
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
+import 'package:chess_app/features/assignments/models/assignment.dart'
+    show CustomPosition;
+import 'package:chess_app/features/assignments/screens/custom_puzzle_solver_screen.dart';
+import 'package:chess_app/features/exercises/screens/own_exercise_solve_screen.dart'
+    show ownSolveTarget, sideToMoveOf;
+import 'package:chess_app/features/exercises/services/exercise_api_service.dart';
 import 'package:chess_app/features/exercises/models/exercise_task_words.dart'
     show sideToMoveWords;
 import 'package:chess_app/features/library/widgets/library_list.dart'
     show LibraryList;
 import 'package:chess_app/models/user_session.dart';
+import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -38,6 +46,7 @@ class PuzzleHistoryScreen extends StatefulWidget {
     required this.session,
     this.initialSource,
     this.api,
+    this.exerciseApi,
   });
 
   final UserSession session;
@@ -49,6 +58,9 @@ class PuzzleHistoryScreen extends StatefulWidget {
   /// For tests: a client with a fake server behind it.
   final PuzzleAttemptApi? api;
 
+  /// For tests: what an own exercise's „Try again" answers through.
+  final ExerciseApiService? exerciseApi;
+
   @override
   State<PuzzleHistoryScreen> createState() => _PuzzleHistoryScreenState();
 }
@@ -56,6 +68,9 @@ class PuzzleHistoryScreen extends StatefulWidget {
 class _PuzzleHistoryScreenState extends State<PuzzleHistoryScreen> {
   late final PuzzleAttemptApi _api =
       widget.api ?? PuzzleAttemptApi(authToken: widget.session.token);
+
+  late final ExerciseApiService _exerciseApi =
+      widget.exerciseApi ?? ExerciseApiService(authToken: widget.session.token);
 
   late String _source = PuzzleSource.all.contains(widget.initialSource)
       ? widget.initialSource!
@@ -102,10 +117,13 @@ class _PuzzleHistoryScreenState extends State<PuzzleHistoryScreen> {
       }
       _items = page.puzzles;
       _next = page.next;
-      // A chosen puzzle the new filter left out is not on the screen any more.
+      // The chosen puzzle as it stands now — after a try, its new state — or
+      // nothing, when the new filter left it out: a pane must not describe a
+      // puzzle the list no longer shows.
       final chosen = _chosen;
-      if (chosen != null && !_items.any((i) => i.key == chosen.key)) {
-        _chosen = null;
+      if (chosen != null) {
+        final now = _items.where((i) => i.key == chosen.key);
+        _chosen = now.isEmpty ? null : now.first;
       }
     });
   }
@@ -130,6 +148,55 @@ class _PuzzleHistoryScreenState extends State<PuzzleHistoryScreen> {
     if (page == null && mounted) {
       AppFeedback.error(context, 'The next puzzles could not be loaded.');
     }
+  }
+
+  /// Whether a puzzle can be tried again from here: its board is still there,
+  /// its drill can serve it by id, and an own exercise is one answered with a
+  /// move (the server's `findable`, the „Retry failed" queue's own rule). Never
+  /// a game blunder or a basic mate (D2).
+  bool _canTryAgain(PuzzleListItem item) {
+    if (!item.available || item.fen == null) return false;
+    if (item.source == PuzzleSource.own) return item.detail['findable'] == true;
+    return AppRoutes.retryPath(item.source, id: item.puzzleId) != null;
+  }
+
+  /// The puzzle's own drill on a retry queue of one; an own exercise on the
+  /// shared solver, as the Library's „Solve" does it. The try writes an
+  /// ordinary attempt row, so the list is read again on the way back.
+  Future<void> _tryAgain(PuzzleListItem item) async {
+    final fen = item.fen;
+    if (fen == null) return;
+    if (item.source == PuzzleSource.own) {
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => CustomPuzzleSolverScreen(
+          session: widget.session,
+          target: ownSolveTarget(_exerciseApi, title: puzzleKindWords(item)),
+          positions: [
+            CustomPosition(
+              puzzleId: item.puzzleId,
+              fen: fen,
+              sideToMove: sideToMoveOf(fen),
+              instruction: item.detail['instruction'] as String?,
+            ),
+          ],
+          startIndex: 0,
+        ),
+      ));
+    } else {
+      final path = AppRoutes.retryPath(item.source, id: item.puzzleId);
+      if (path == null) return;
+      await context.push(path);
+    }
+    if (mounted) _load();
+  }
+
+  /// The puzzle's own board in Analysis, whatever its state, for every
+  /// account (D3). A look writes nothing, so it cannot count as an attempt;
+  /// a pushed Analysis neither restores nor writes the Analyse tab's draft.
+  void _openInAnalysis(PuzzleListItem item) {
+    final fen = item.fen;
+    if (!item.available || fen == null) return;
+    context.push(AppRoutes.analysisPath(fen: fen));
   }
 
   void _setState(String? state) {
@@ -162,6 +229,20 @@ class _PuzzleHistoryScreenState extends State<PuzzleHistoryScreen> {
             child: PuzzleHistoryPanel(
               item: item,
               boardSize: (width - AppSpacing.lg * 2).clamp(200.0, 360.0),
+              // The sheet closes first: what the action opens is not left
+              // under a sheet the reader has to dismiss on the way back.
+              onTryAgain: _canTryAgain(item)
+                  ? () {
+                      Navigator.of(sheetContext).pop();
+                      _tryAgain(item);
+                    }
+                  : null,
+              onOpenInAnalysis: item.available && item.fen != null
+                  ? () {
+                      Navigator.of(sheetContext).pop();
+                      _openInAnalysis(item);
+                    }
+                  : null,
             ),
           ),
         );
@@ -356,6 +437,10 @@ class _PuzzleHistoryScreenState extends State<PuzzleHistoryScreen> {
         // The pane's width less its padding, capped so a wide pane does not
         // draw a board larger than the list it sits beside.
         boardSize: (width - AppSpacing.md * 2).clamp(240.0, 360.0),
+        onTryAgain: _canTryAgain(chosen) ? () => _tryAgain(chosen) : null,
+        onOpenInAnalysis: chosen.available && chosen.fen != null
+            ? () => _openInAnalysis(chosen)
+            : null,
       ),
     );
   }
@@ -426,13 +511,23 @@ class _PuzzleRow extends StatelessWidget {
 /// table knows of it. The pane beside the list and the sheet on a phone draw
 /// this same widget, so the two cannot drift apart.
 class PuzzleHistoryPanel extends StatelessWidget {
-  const PuzzleHistoryPanel(
-      {super.key, required this.item, required this.boardSize});
+  const PuzzleHistoryPanel({
+    super.key,
+    required this.item,
+    required this.boardSize,
+    this.onTryAgain,
+    this.onOpenInAnalysis,
+  });
 
   final PuzzleListItem item;
 
   /// Told rather than measured: each caller knows the room it has.
   final double boardSize;
+
+  /// The two actions, drawn only when given: a button that leads nowhere
+  /// would be worse than no button (the caller decides which a puzzle has).
+  final VoidCallback? onTryAgain;
+  final VoidCallback? onOpenInAnalysis;
 
   @override
   Widget build(BuildContext context) {
@@ -487,6 +582,24 @@ class PuzzleHistoryPanel extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppText.body.copyWith(color: colors.textMuted),
           ),
+        if (onTryAgain != null || onOpenInAnalysis != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              if (onTryAgain != null)
+                FilledButton(
+                    onPressed: onTryAgain, child: const Text('Try again')),
+              if (onOpenInAnalysis != null)
+                OutlinedButton(
+                  onPressed: onOpenInAnalysis,
+                  child: const Text('Open in Analysis'),
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         for (final fact in facts)
           Padding(

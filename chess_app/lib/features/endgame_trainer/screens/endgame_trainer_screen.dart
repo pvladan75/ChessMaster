@@ -58,6 +58,7 @@ class EndgameTrainerScreen extends StatefulWidget {
     this.api,
     this.attemptApi,
     this.retry = false,
+    this.retryIds,
   });
 
   final UserSession session;
@@ -89,6 +90,11 @@ class EndgameTrainerScreen extends StatefulWidget {
   /// button (docs/PLAN-NAPREDAK-VEZBI.md §4). No picker: the retry list is
   /// its own filter.
   final bool retry;
+
+  /// With [retry], the queue to walk instead of the server's — the puzzle
+  /// list's „Try again" hands it one id (`docs/PLAN-NAPREDAK-VEZBI.md` §7).
+  /// Null fetches the whole queue, as the hub's „Retry failed" does.
+  final List<String>? retryIds;
 
   @override
   State<EndgameTrainerScreen> createState() => _EndgameTrainerScreenState();
@@ -229,7 +235,8 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// The retry queue is fetched once and walked in order, one id per call.
   Future<EndgamePuzzle?> _fetchNextRetryPuzzle() async {
     if (_retryQueue == null) {
-      final ids = await _attemptApi.retryIds(PuzzleSource.endgame);
+      final ids =
+          widget.retryIds ?? await _attemptApi.retryIds(PuzzleSource.endgame);
       _retryQueue = ids ?? [];
       _retryIndex = 0;
     }

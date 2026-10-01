@@ -95,6 +95,11 @@ class AiStudioScreen extends ConsumerStatefulWidget {
   /// Not meaningful for `basic_mate`, which has no by-id route.
   final bool retry;
 
+  /// With [retry], the queue to walk instead of the server's — the puzzle
+  /// list's „Try again" hands it one id (`docs/PLAN-NAPREDAK-VEZBI.md` §7).
+  /// Null fetches the whole queue, as the hub's „Retry failed" does.
+  final List<String>? retryIds;
+
   /// The task, for `initialCategory == 'engine_game'` — a homework item's
   /// „play it out" (docs/PLAN-DOMACI-ZADATAK.md §3, phase 2). The strength
   /// travels on the task, not on Settings: the student does not choose the
@@ -123,6 +128,7 @@ class AiStudioScreen extends ConsumerStatefulWidget {
     this.mateDepth,
     this.basicMateLevel,
     this.retry = false,
+    this.retryIds,
     this.engineGameTask,
     this.assignmentId,
     this.exerciseId,
@@ -1267,8 +1273,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   Future<Map<String, dynamic>?> _fetchNextRetryPuzzle() async {
     final category = _selectedCategory ?? PuzzleSource.matePuzzle;
     if (_retryQueue == null) {
-      final ids = await PuzzleAttemptApi(authToken: widget.userSession.token)
-          .retryIds(category);
+      final ids = widget.retryIds ??
+          await PuzzleAttemptApi(authToken: widget.userSession.token)
+              .retryIds(category);
       _retryQueue = ids ?? [];
       _retryIndex = 0;
     }
