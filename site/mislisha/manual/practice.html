@@ -76,6 +76,18 @@ them further with a filter — for instance
 by the longest road to mate, ask for a
 <span class="ui">Hint</span>, or <span class="ui">Start over</span>, and where
 the point is a draw rather than a win, <span class="ui">Conclude draw</span>.
+<span class="ui">Show solution</span> names every move that holds and counts
+the position as not solved, so it comes back under
+<span class="ui">Retry failed</span>. After a correct move the opponent
+answers with the toughest defence the tablebase knows. A position with eight
+or more pieces has no tablebase: it carries <span class="ui">Engine estimate</span>,
+and a wrong move is said to be the engine's judgement rather than a fact.
+Once a position is solved, its answer shown, or a drill over,
+<span class="ui">Open in Analysis</span> opens it in Analysis as a tree of
+moves — yours, the other moves that hold, the move played in the game, and the
+drill — with the Syzygy panel and the engine one tap away. Back returns to the
+same position, and <span class="ui">Next</span> keeps to the endings and level
+you chose.
 In a <span class="ui">Hold a draw</span> position that was lost in the game,
 <span class="ui">Punish</span> puts you on the other side, just after the move
 that lost it, to play the win to the end. <span class="ui">Include online games</span> adds games

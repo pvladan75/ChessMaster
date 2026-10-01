@@ -9870,3 +9870,47 @@ the blunder row carried `KRPvKR` as both its type and its material, so a label
 taken from the type survived; the type is now written the other way round, as
 an unnormalised key is.
 
+## 1.10.2026 — the endgame trainer, phases 1 and 3–7 (`docs/PLAN-TRENER-ZAVRSNICA.md`)
+
+Each full run in a second worktree (`eg-measure`, a detached checkout of the
+phase's commit) with nothing else running in it, and each predicted before it:
+phase 1 → **5328** (+2, the kept sentence in two screens); phases 3+4 →
+**5361** (+10 draft-owner cases, +1 from splitting `engine_hold_test`'s draft
+case in two, +18 answer cases, +2 net in the session test, +2 wire cases);
+phase 5 → **5383** (+12 tree, +10 door and way back); phases 6–7 change no
+count (one case rewritten in place). Analyze the same 22 throughout; backend
+1985 / 2148 from phase 2 on.
+
+**A measurement and the next phase can run at once if they do not share a
+checkout.** `flutter test` compiles each file as it reaches it, so editing the
+tree it runs in leaks into the count; running it in a detached worktree of the
+commit being measured let the next phase be written beside it.
+
+**One condition, three readers (D7).** `_ownsDraft` guards restoring, the
+debounced write and the `dispose` flush. The gate was built so each writer is
+caught alone: a move with the screen still up can be written only by the
+debounced writer, a pop with no move only by the flush. Of the seven test
+files the grep named, one relied on a pushed screen writing the draft; it was
+split, not weakened — the marks still reach the draft on the tab's own screen.
+
+**A late answer needs a guard per thing that can move on.** The reply after a
+correct answer is guarded by a board serial (Find the rest, a drill, Next) and
+a puzzle serial (Next). Removing the first turns only „after Find the rest"
+red, because „after Next" is held by both — recorded, not chased.
+
+**A stand-in pushed by the test cannot see how the product pushes.** The plan
+asked for the way back through a stand-in page; walked through the real
+Analysis, pushed by the real `openTreeInAnalysis`, `pushReplacement` turns all
+six way-back cases red, which a stand-in pushed by the test's own hook never
+could. And the pushed bar at 360 × 640, which the review feared was a dormant
+overflow (rule 14), fits.
+
+**State the screen does not keep gets a home the test can reach.** The drill
+keeps no history, so the plan's „Take back written as removeLast" could not be
+red in a pure tree test while the take-back lived in the screen. `DrillLog`
+lives beside the builder; the mutation is red in the tree test.
+
+**A finder that is unique today stops being unique when the screen grows**
+(rule 5, the lead's own gate): `find.textContaining('Find the rest')` also
+matched the instruction under the board.
+

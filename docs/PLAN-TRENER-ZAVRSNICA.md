@@ -1,7 +1,8 @@
 # The endgame trainer: the answer, Analysis and the way back
 
 Written 1.10.2026 by the lead (Opus), from the owner's request of the same day.
-Nothing is built yet.
+**Phases 0–7 built 1.10.2026**, each under its heading; phase 8, the owner's
+live pass, is left.
 
 The owner's answers, the same day („Slažem se sa tvojim preporukama, komituj"):
 - D7 is accepted for every pushed door.
@@ -832,6 +833,15 @@ The rewritten case is red on master. The other findings cases are unchanged and
 green.
 
 ### Phase 7 — the words [lead]
+
+**Done 1.10.2026.** The manual's endgame paragraph names `Show solution`,
+`Engine estimate`, `Open in Analysis` and the way back, and says nothing about
+tapping a finding (`manual_labels_test` green); [0l.b240] and [0l.b242] left
+the live list and their archive lines say why; [261.1]–[261.14] are under
+Practise — Završnice i greške iz partija, items 37–50; `STANJE-RADA.md`,
+`LESSONS.md` and `CLAUDE.md` updated. The keys are unchanged — N, R, H, T and
+U press the same buttons — and the shortcut list's own test, which reads the
+button each line names among the screen's literals, is green in the full run.
 
 - The manual (`practice.html`): `Show solution`, `Open in Analysis` and the way
   back, and `Engine estimate`; nothing about tapping a finding.

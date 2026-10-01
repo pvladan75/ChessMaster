@@ -4262,31 +4262,6 @@ odlazi na kraj spiska u alatu.
    takvoj grešci i ne opada kad se potez vrati.
    Potrebno: Windows i telefon.
 
-23. [ ] **Klik na potez iz nalaza ga odigra; čip „Exploring" i dugme „Back to
-   position"** [0l.b240]
-   O čemu se radi: Nalaz tablica se otvara dugmetom `Tablebase findings` pored
-   igranja do kraja; klik na neki od ponuđenih poteza ga odigra na tabli i
-   prebacuje ekran u istraživanje.
-   Gde: `Practise` → (faza „Endgame and technique") →
-   `Endgames from master games` → `Win` ili `Hold a draw` → `Start` →
-   `Tablebase findings`.
-   Uradi: Otvoriti `Tablebase findings` i kliknuti na neki ponuđeni potez.
-   Treba da vidiš: Potez se odigra na tabli, pojavi se čip `Exploring` i dugme
-   `Back to position`.
-   Potrebno: Windows i telefon.
-
-24. [ ] **U istraživanju se pomera i protivnička strana, bez brojanja
-   grešaka.** [0l.b242]
-   O čemu se radi: U režimu `Exploring` (posle klika na potez iz nalaza) mogu
-   da se pomeraju obe strane, a potezi se ne broje kao greške.
-   Gde: `Practise` → (faza „Endgame and technique") →
-   `Endgames from master games` → `Win` ili `Hold a draw` → `Start` →
-   `Tablebase findings` → klik na potez.
-   Uradi: U režimu `Exploring` odigrati poteze za obe strane.
-   Treba da vidiš: Panel prati novu poziciju, potezi se ne broje kao greške
-   (poruka `Exploring — moves are not graded here.`).
-   Potrebno: Windows i telefon.
-
 25. [ ] **„Save for later" stoji i pre i posle odgovora.** [0j.b262]
    O čemu se radi: Dugme za čuvanje nejasne pozicije radi u oba ekrana (treneru
    završnica i šetnji kroz partiju), i pre i posle odgovora na poziciju.
@@ -4448,6 +4423,128 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Linija se odigra do kraja; za poziciju posle greške
    Lichess (lichess.org/analysis, tablebase) stavlja na vrh isti potez koji je
    refutacija prvo odigrala, ili potez sa istim „Mate in N".
+   Potrebno: Windows ili telefon; server; internet.
+
+37. [ ] **`Show solution` imenuje poteze i zaključava tablu; pozicija ide u `Retry failed`.** [261.1]
+   O čemu se radi: Dok se pozicija rešava, pored `Hint` stoji `Show solution`. Ono završava pitanje: imenuje sve poteze koji drže rezultat, tabla se zaključa, a pokušaj se beleži jednom kao nerešen.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start`.
+   Uradi: U novoj poziciji pritisni `Show solution`. Zatim se vrati na `Practise`.
+   Treba da vidiš: Rečenica „These moves keep the win: …" ili „These moves hold the draw: …" (ili „The only move that …") sa svim potezima; tabla ne prima poteze; nema `Find the rest` ni `Show`; dugme desno kaže `Next`, ne `Skip`. Na kartici broj „to retry" je porastao za jedan, a `Retry failed` donosi tu poziciju.
+   Potrebno: Windows ili telefon; server.
+
+38. [ ] **Odgovor posle tačnog poteza je najtvrđa odbrana, ista kao u `Play to the end`.** [261.2]
+   O čemu se radi: Posle tačnog poteza protivnik više ne igra drugi potez iz sačuvane linije (biran po DTZ-u), nego ono što server odgovori — isto pravilo kao u igranju do kraja (redosled Lichess-a).
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → pozicija u topovskoj završnici (sedam figura ili manje).
+   Uradi: Odigraj tačan potez i sačekaj odgovor. Zatim istu poziciju odigraj kroz `Play to the end` istim prvim potezom.
+   Treba da vidiš: Presuda „Correct — …" se pojavi odmah, odgovor stigne malo kasnije (bez „Checking tablebases…"); odgovor je isti potez koji protivnik odigra u `Play to the end`.
+   Potrebno: Windows ili telefon; server; internet.
+
+39. [ ] **Pozicija sa osam ili više figura kaže `Engine estimate` i motorovu rečenicu za grešku.** [261.3]
+   O čemu se radi: Za pozicije koje je ocenio motor (osam figura i više) ekran više ne govori kao da je presuda tačna. Takve pozicije dolaze samo kad su štiklirane sve vrste završnica, a nivo je `All` ili bez rejtinga (faza 0 plana).
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` (sve vrste štiklirane, nivo `All`) → pozicija sa mnogo figura.
+   Uradi: Nađi poziciju sa osam ili više figura (broj figura na tabli) i odigraj pogrešan potez.
+   Treba da vidiš: Čip `Engine estimate` umesto `Exact from tablebases`; poruka „The engine judges that this move drops the win. Try another." (ili „… loses the draw …"). Posle tačnog poteza nema odgovora protivnika.
+   Potrebno: Windows ili telefon; server.
+
+40. [ ] **`Open in Analysis` posle rešene pozicije otvara stablo poteza; Syzygy panel radi, motor je ugašen.** [261.4]
+   O čemu se radi: Posle rešenja (ili prikazanog rešenja) dugme `Open in Analysis` otvara Analizu preko trenera, sa pozicijom kao stablom: prvo tvoji potezi (sa odgovorom), zatim ostali potezi koji drže, zatim potez iz partije.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → reši poziciju → `Open in Analysis`.
+   Uradi: Pogledaj stablo poteza i Syzygy panel; uključi `Engine`.
+   Treba da vidiš: Prvi ogranci su tvoj potez (sa odgovorom ispod), pa ostali koji drže, pa potez iz partije (za poziciju iz stvarne greške); Syzygy panel pokazuje rezultat svakog poteza; motor ne radi dok ne pritisneš `Engine`; nijedan potez nema komentar ni oznaku.
+   Potrebno: Windows i telefon; server.
+
+41. [ ] **Povratak: Back iz Analize vraća istu poziciju u istom stanju, a `Next` ostaje u izabranim vrstama i nivou.** [261.5]
+   O čemu se radi: Analiza se otvara preko trenera, pa se trener ne pravi iznova: pozicija, stanje, izbor vrsta završnica i nivoa, i red u `Retry failed` ostaju kakvi su bili.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` (izaberi samo jednu ili dve vrste i jedan nivo) → reši poziciju → `Open in Analysis`.
+   Uradi: Na Windows-u se vrati strelicom u traci Analize, na telefonu i sistemskim Back. Pritisni `Next` nekoliko puta. Ponovi isto u `Retry failed`.
+   Treba da vidiš: Ista pozicija, iste oznake (`Solved: …`, `Find the rest (…)`), tabla jednako zaključana; svaka sledeća pozicija je iz izabranih vrsta i nivoa; u `Retry failed` dolazi sledeća iz reda, ne prva ponovo. Taster N radi posle povratka.
+   Potrebno: Windows i telefon; server.
+
+42. [ ] **Iz vežbe koja je stala na lošem potezu Analiza stoji posle greške, okrenuta tvojoj strani.** [261.6]
+   O čemu se radi: Kad igranje do kraja stane na potezu koji gubi rezultat, `Open in Analysis` otvara stablo sa celom vežbom i stoji na poziciji posle greške; tabla je okrenuta tebi, iako je na potezu protivnik.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → `Play to the end` (ili `Punish`) → odigraj potez koji gubi → `Open in Analysis`.
+   Uradi: Pogledaj gde stoji Analiza i kako je okrenuta tabla; pogledaj Syzygy panel.
+   Treba da vidiš: Stoji na poziciji posle tvog lošeg poteza, tvoja strana je dole; potezi vežbe su u stablu redom.
+   Potrebno: Windows ili telefon; server; internet.
+
+43. [ ] **Posle ponovnog pokretanja, Analyse tab pokazuje svoju analizu, ne završnicu.** [261.7]
+   O čemu se radi: Analiza otvorena preko drugog ekrana (trener završnica, Library, Preparation, izveštaj o otvaranjima, partija iz arhive ili domaćeg) više ne upisuje skicu uređaja; skica pripada samo Analyse tabu.
+   Gde: `Analyse` tab, pa `Practise` → `Endgames from real games` → … → `Open in Analysis`.
+   Uradi: U Analyse tabu odigraj nekoliko poteza. Zatim otvori završnicu u Analizi, odigraj par poteza tamo, vrati se. Zatvori aplikaciju i pokreni je ponovo.
+   Treba da vidiš: Analyse tab pokazuje tvoje poteze od pre, ne poziciju iz završnice. (Rad u otvorenoj Analizi se čuva samo kroz `Save as…`.)
+   Potrebno: Windows ili telefon.
+
+44. [ ] **Redovi u `Tablebase findings` više ne igraju potez.** [261.8]
+   O čemu se radi: Istraživanje (čip `Exploring`, dugme `Back to position`) je uklonjeno; nalaz tablica je spisak za čitanje, a za istraživanje je tu `Open in Analysis`. Zamenjuje [0l.b240] i [0l.b242].
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → `Play to the end` → `Tablebase findings`.
+   Uradi: Klikni na potez u nalazu (na Windows-u u panelu, na telefonu u prozoru).
+   Treba da vidiš: Ništa se ne odigra; nema `Exploring` ni `Back to position`; ispod spiska nema rečenice „Tap a move to play it on the board."
+   Potrebno: Windows i telefon; server; internet.
+
+45. [ ] **Nov naslov i prva rečenica kartice; priručnik.** [261.9]
+   O čemu se radi: Pozicije su iz partija svih nivoa, ne samo velemajstorskih, pa kartica sada kaže `Endgames from real games` i „Positions from real games, played at every level from club players to grandmasters."
+   Gde: `Practise` → (faza „Endgame and technique") → kartica završnica; priručnik, strana Practise.
+   Uradi: Pročitaj karticu i odeljak u priručniku.
+   Treba da vidiš: Naslov `Endgames from real games` i nova prva rečenica na oba mesta; priručnik opisuje `Show solution`, `Open in Analysis`, povratak i `Engine estimate`, a ne pominje klik na potez iz nalaza.
+   Potrebno: Windows ili telefon.
+
+46. [ ] **`Save for later` kaže da je pozicija u Library, u treneru i u `Game blunders`.** [261.10]
+   O čemu se radi: Poruka posle čuvanja je pokazivala na ekran „My positions" koji ne postoji od 23.9.2026; pozicija ide u Library, pod `Positions`.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start`, i `Endgames from real games` → `Game blunders`.
+   Uradi: Na oba mesta pritisni `Save for later`, pa otvori Library → `Positions`.
+   Treba da vidiš: Poruka „Saved to the Library under Positions, tagged "Unclear"." na oba mesta; pozicija je u Library pod `Positions` sa oznakom `Unclear`.
+   Potrebno: Windows ili telefon; server.
+
+47. [ ] **Pozicija iz stvarne greške imenuje završnicu rečima na čipu.** [261.11]
+   O čemu se radi: Čip je pokazivao ključ tablice („KRPvKR"); sada pokazuje iste reči kao izbor vrsta („Rook and pawn versus rook"). Isti naziv dobija i sačuvana pozicija.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start`.
+   Uradi: Pogledaj prvi čip ispod zadatka; pritisni `Save for later` i pogledaj naslov u Library.
+   Treba da vidiš: Čip i naslov sačuvane pozicije kažu ime završnice rečima, velikim početnim slovom, kao u izboru vrsta.
+   Potrebno: Windows ili telefon; server.
+
+48. [ ] **Posle `Find the rest` i drugi nađeni potez dobija odgovor, a u Analizi svaki ima svoj odgovor ispod.** [261.12]
+   O čemu se radi: Svaki nađeni potez pita server za odgovor, ne samo prvi.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → pozicija sa više poteza koji drže.
+   Uradi: Reši, pritisni `Find the rest`, nađi drugi potez i sačekaj odgovor. Zatim `Open in Analysis`.
+   Treba da vidiš: I drugi potez dobije odgovor protivnika na tabli; u Analizi su oba tvoja poteza prvi ogranci, svaki sa svojim odgovorom ispod.
+   Potrebno: Windows ili telefon; server; internet.
+
+49. [ ] **Na telefonu: Analiza otvorena iz trenera ima strelicu nazad i sve reči u traci.** [261.13]
+   O čemu se radi: Traka Analize nikad nije bila merena sa strelicom nazad na uskom ekranu; test na 360 × 640 prolazi, ali uživo nije viđeno.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → reši → `Open in Analysis`, na telefonu uspravno.
+   Uradi: Pogledaj traku Analize.
+   Treba da vidiš: Strelica nazad i sve reči trake (`Board`, `Engine`, …) se vide cele, ništa nije odsečeno.
+   Potrebno: Telefon.
+
+50. [ ] **Potez vraćen sa `Take back` je sporedni ogranak u Analizi, a Syzygy panel pokazuje zašto gubi.** [261.14]
+   O čemu se radi: Potez koji je izgubio rezultat i vraćen je sa `Take back` ostaje u stablu kao sporedni ogranak pozicije iz koje je odigran; potez odigran umesto njega nastavlja liniju.
+   Gde: `Practise` → (faza „Endgame and technique") →
+   `Endgames from real games` → `Win` ili `Hold a draw` → (izaberi vrste) →
+   `Start` → `Play to the end` → odigraj potez koji gubi → `Take back` → odigraj dobar potez → (do kraja ili do greške) → `Open in Analysis`.
+   Uradi: U stablu nađi vraćeni potez i stani na poziciju pre njega.
+   Treba da vidiš: Vraćeni potez je ogranak bez nastavka, pored poteza koji je odigran umesto njega; Syzygy panel na toj poziciji pokazuje da on gubi.
    Potrebno: Windows ili telefon; server; internet.
 
 ### Practise — AI Studio i zagonetke

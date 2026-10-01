@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5326 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5383 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 1985 without TEST_DATABASE_URL, 2148 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1242,6 +1242,15 @@ phase 0's baseline (5326 / 1979 / 2142, the last measured for the first time)
 and read-only counts, and phase 2, the server (backend → **1985 / 2148**):
 `material_label` beside `material`, and no stored line in the payload. **A
 fixture that writes one value in two columns cannot tell which was read.**
+Then its phases 1 and 3–7 (→ **5383**, each full run predicted and measured
+in a detached worktree of the phase's commit; analyze the same 22): the card
+is „Endgames from real games", `Save for later` names the Library; the device
+draft belongs to the Analyse tab (`_ownsDraft`, one getter, three readers);
+`Show solution`, the reply from `/endgame/play` for every found move,
+`Engine estimate`; `Open in Analysis` pushes a tree of moves over the trainer
+and Back finds it as it was; Exploring is gone. **A stand-in pushed by the
+test cannot see how the product pushes** — the way back is walked through the
+real Analysis, and `pushReplacement` turns all six cases red.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

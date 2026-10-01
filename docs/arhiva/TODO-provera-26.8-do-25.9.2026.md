@@ -246,9 +246,9 @@ Windows mašini glasa za srpski nema dok se ne instalira hrvatski.
 - [x] Posle svakog poteza panel pokazuje nalaz za **novu** poziciju. — ✅ vlasnik, u alatu za proveru, 30.8.2026.
 - [x] Na telefonu je i dalje prozorčić i ništa se ne preliva na 360 dp. — ✅ vlasnik, u alatu za proveru, 30.8.2026.
 - [ ] Klik na potez iz nalaza ga odigra na tabli; pojavi se čip „Istraživanje"
-      i dugme „Nazad na poziciju". — *prepisano 25.9.2026 u novi spisak: Practise — Završnice i greške iz partija, stavka 23.*
+      i dugme „Nazad na poziciju". — *prepisano 25.9.2026 u novi spisak: Practise — Završnice i greške iz partija, stavka 23.* — **prevaziđeno (1.10.2026):** istraživanje iz nalaza tablica je uklonjeno; nalaz je spisak za čitanje, a za istraživanje je `Open in Analysis` (`docs/PLAN-TRENER-ZAVRSNICA.md`, D4, faza 6); nova provera je [261.8].
 - [ ] U tom režimu se pomera i protivnikova strana, potezi se ne broje kao
-      greške, a panel prati novu poziciju. — *prepisano 25.9.2026 u novi spisak: Practise — Završnice i greške iz partija, stavka 24.*
+      greške, a panel prati novu poziciju. — *prepisano 25.9.2026 u novi spisak: Practise — Završnice i greške iz partija, stavka 24.* — **prevaziđeno (1.10.2026):** istraživanje iz nalaza tablica je uklonjeno; nalaz je spisak za čitanje, a za istraživanje je `Open in Analysis` (`docs/PLAN-TRENER-ZAVRSNICA.md`, D4, faza 6); nova provera je [261.8].
 - [x] „Nazad na poziciju" vrati tačno položaj odakle se krenulo. — ✅ vlasnik, u alatu za proveru, 30.8.2026.
 - [x] Uz svaki potez piše ishod i DTZ; ispod stoji šta DTZ znači. — ✅ vlasnik, u alatu za proveru, 30.8.2026.
 - [x] Posle korišćenja se pojavi čip „Nalaz: n", i nestaje na sledećoj poziciji. — ✅ vlasnik, u alatu za proveru, 30.8.2026.
