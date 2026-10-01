@@ -23,7 +23,7 @@ some countries), so many users are minors, which decides several rules below.
 ```bash
 cd chess_app && flutter test          # 5400 tests, 1 skipped, rest green
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
-cd chess_backend && npm test          # node --test, 2007 without TEST_DATABASE_URL, 2170 with it (both measured 1.10.2026)
+cd chess_backend && npm test          # node --test, 2033 without TEST_DATABASE_URL, 2197 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1267,7 +1267,11 @@ answer; they now read the Practise cards' own fold (`puzzlesOf`, `stateOf`,
 `solvedFirstTry`), and the accuracy is solved at the first attempt over new
 puzzles. **A promise in a plan's prose is not a phase** — §4 of
 `PLAN-NAPREDAK-VEZBI.md` had said the report would follow „for free". Its §7
-plans the list of *which* puzzles.
+plans the list of *which* puzzles, and its phase 5, the server, followed
+(backend → **2033 / 2197**): `GET /api/puzzles/list`, each account's own,
+the board each puzzle asked about (a Lichess one after its setup move), one
+query per table. **A test over two mirror images can only see totals** — the
+fold's own „latest row wins" case stayed green when the rows' order was lost.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

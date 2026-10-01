@@ -10003,3 +10003,36 @@ them; the eleventh changed nothing (`+= 0`) — not a survivor — and its
 question, whether `new Set(themes)` carried anything, was answered by
 deleting it: a puzzle's tags never repeat. Seven on the two screens, each red
 on its case; one on the route, red.
+
+## 1.10.2026 — the puzzle list, phase 5: the server
+
+`GET /api/puzzles/list` (`services/puzzleList.js`), each account's own list of
+the puzzles it met, with the board each asked about. Backend 2007 → **2033**
+without a database, 2170 → **2197** with one, both measured and both
+predicted before the run; the app untouched.
+
+**A test over two mirror images can only see totals.** The fold's test „the
+latest row wins, whatever order the rows arrive in" feeds two puzzles in
+opposite orders and asserts the sums; when the rows' time order was lost,
+the two puzzles swapped fates and every sum held. It had guarded the old
+comparisons; after the refactor moved the order into a sort, nothing guarded
+it, and the mutation survived. The list shows states per puzzle, so a
+per-puzzle case now holds it. **When a refactor moves a rule into a new
+line, mutate the new line** — the old tests were written against the old
+shape of the code.
+
+**A stub answers whatever SQL it is sent.** Renaming `endgame_type` to a
+column that does not exist left all 26 stubbed cases green; only the one case
+on a throwaway database refused. Every new query to a table gets one run on
+the schema `initDB` builds.
+
+**A cursor on „latest" loses the puzzle that moves.** Paging newest first by
+the last attempt alone, a puzzle tried again between two pages jumps above
+the cursor and no page shows it. The cursor now carries the moment the first
+page read the log, and later pages read the log as it stood then.
+
+**The real row first.** The Lichess dataset in `puzzles/` opens with a zstd
+skippable frame that Node's decoder refuses („Unknown frame descriptor");
+the real frame starts 12 bytes in. Its first row gave the gate a puzzle
+whose setup move is a capture, and the board after it was worked out by
+hand, rank by rank, rather than by the code under test.

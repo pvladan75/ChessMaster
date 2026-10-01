@@ -244,13 +244,27 @@ state, since, before, limit })` in `puzzleProgress.js`: `attemptsOf`, then
 
 ```json
 { "source": "endgame", "puzzleId": "eg_812", "state": "failed",
-  "firstTry": false, "tries": 3, "firstAt": "…", "latestAt": "…",
-  "fen": "8/5pk1/…", "title": "Rook endgame · Hold a draw", "available": true }
+  "firstTry": false, "tries": 3, "solvedOnTry": null,
+  "firstAt": "…", "latestAt": "…", "available": true, "fen": "8/5pk1/…",
+  "detail": { "mode": "draw", "type": "RookEndgame", "material": "KRPvKR",
+              "materialLabel": "rook and pawn versus rook" } }
 ```
 
-— newest `latestAt` first, filtered by source and state, paged by a
-`before` cursor on `latestAt` (an offset would skip a row when a new attempt
-moves a puzzle to the top). Positions are joined **per source, in one query
+— newest `latestAt` first, filtered by source and state, a page at a time.
+*(As built, 1.10.2026: a row carries `detail` — the facts its table has, a
+mate's depth, an ending's mode and label, a game blunder's ply and players,
+a basic mate's preset, an own exercise's task — instead of a `title`. The
+app writes the words, as it does everywhere; a basic mate's preset is only
+named in the app. `tries` counts answers, not skips, and `solvedOnTry` says
+which answer first solved it.)*
+
+**The cursor holds the moment the first page read the log**, as well as the
+place the page ended. Later pages read the log as it stood then: a puzzle
+tried again while the list is being read keeps its place, instead of
+jumping above the cursor where no later page would show it, and the new try
+appears when the list is read again from the top. A cursor on `latestAt`
+alone, as first drafted, loses exactly that puzzle; an offset loses it the
+same way. Positions are joined **per source, in one query
 each** (`… WHERE puzzle_id = ANY($1)`), never per row: at most five queries
 for a page, whatever its length. `blunder_game` reads its game's JSONB once
 per game on the page; `basic_mate` reads nothing.
@@ -322,7 +336,7 @@ where its numbers are.
 
 | # | Phase | Carrier | Gate |
 |---|---|---|---|
-| 5 | Server: `puzzleListOf` and `GET /api/puzzles/list`; positions joined per source; `available: false`; the `before` cursor | lead writes the gate, implementer builds | Stub pools asserting the SQL each source is asked (one query per source, never per row); **the list's states summed equal `foldAttempts` over the same rows** (one home, a property over random logs); a deleted own exercise listed with `available: false`; a real Lichess row's board is the position after its `setup_move`, not the stored FEN; paging returns every puzzle exactly once across pages while a new attempt arrives between them; **the list is the caller's alone** — the SQL is bound to the session's id, a `userId` or `studentId` in the query changes nothing, and an `own` exercise of another account named by an id in the log comes back with no board |
+| 5 | Server: `puzzleListOf` and `GET /api/puzzles/list`; positions joined per source; `available: false`; the `before` cursor | lead, gate and build — **done 1.10.2026.** `services/puzzleList.js`, the route after `/puzzles/retry`, `puzzlesOf` keeping each puzzle's rows. Gate: `test/puzzle_list.test.js` (26 cases, the fold property over eight seeded random logs) and `test/puzzle_list_db.test.js` (one case on a real database: every source's table, the owner scope). Seventeen mutations red on their own cases, after one survived: a fold that lost the rows' time order kept every total, because the fold's own test of that rule uses two mirror-image puzzles and asserts only totals — a per-puzzle case now holds it. A wrong column name passes every stub and fails only on the real database, which is what the second file is for. Backend 2007 → 2033 without a database, 2170 → 2197 with one (both measured) | Stub pools asserting the SQL each source is asked (one query per source, never per row); **the list's states summed equal `foldAttempts` over the same rows** (one home, a property over random logs); a deleted own exercise listed with `available: false`; a real Lichess row's board is the position after its `setup_move`, not the stored FEN; paging returns every puzzle exactly once across pages while a new attempt arrives between them; **the list is the caller's alone** — the SQL is bound to the session's id, a `userId` or `studentId` in the query changes nothing, and an `own` exercise of another account named by an id in the log comes back with no board |
 | 6 | App: `PuzzleHistoryList` and the cards' door | implementer | Widget tests at 360 × 640, 900 × 700, 1536 × 792; the door is on the card for an account with no trainer and no students; state in words on every row; filters that compose (a fixture where each cuts differently); boards square on both platforms' densities; an absence check that stands where the row would be drawn; the request carries the filters the chips show |
 | 7 | Actions: `Try again` (retry mode with a queue of one, per retryable drill) and `Open in Analysis` (D3) | implementer | A try writes one attempt row with the right source and id (fake the client); the list moves after it; `Try again` is on no `blunder_game` or `basic_mate` row (D2); `Open in Analysis` is on every row with a board — failed, skipped and solved alike — and on none without one, and it opens the row's own board (a Lichess row after its `setup_move`); a look followed by a solved try moves `solved` and leaves `firstTry` false |
 | 8 | Live pass, items in `TODO-provera.md` under Practise | owner | ticked |
