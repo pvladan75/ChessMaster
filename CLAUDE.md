@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5446 tests, 1 skipped, rest green
+cd chess_app && flutter test          # 5495 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1299,6 +1299,19 @@ draws a chip for every theme it ticks; six mate motifs have words; and both
 label tables are held to `chess_backend/test/fixtures/puzzle_themes.json`,
 which both suites read. **A selection the user cannot see is one the user
 cannot undo.**
+Then speech from clips (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`, → **5495**, a full
+run on 3.10.2026 with nothing else running; analyze the same 22; the server
+untouched): the puzzle screen speaks from 277 clips shipped in
+`assets/speech/`, each **cut out of a carrier sentence of the same shape** at
+the word times Azure's SDK reports, in one voice, with 50 ms before a square
+and no network. The owner's ear refused word-by-word clips at every pause
+from 160 ms to 0: **a word rendered alone is an utterance of its own**, and
+no pause fixes intonation. The server's speech-to-text could not cut the
+carriers — it heard „to e5" as one word. The gate's numbers were measured
+before they were written, which is why its third case is „bounded silence
+at the edges", not „silence": the midpoint of a pause before „Check."
+belongs to the clip. And the lead's own stitch case could not pass — a sum
+of floored frames is not the floor of the sum — and the worker stopped on it.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

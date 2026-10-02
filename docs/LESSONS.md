@@ -10182,3 +10182,42 @@ can be hit.
 **Two doors to one drill read one map.** The hub's „Retry failed" and the
 list's „Try again" both ask `AppRoutes.retryPath` which drill retries a
 source; a mutation of either door's use of it goes red.
+
+## Speech from clips: phases 0–2 — 2–3.10.2026
+
+App 5446 → **5495** (a full run on 3.10.2026 with nothing else running; 1
+skipped): `speech_clips_test` 5, `spoken_line_test` 16, `speech_pilot_test`
+28 — 5446 + 49 = 5495, each file counted by its cases after the run. Analyze
+the same 22 infos. Backend untouched (2050 / 2214 as of 1.10.2026). The
+tool under `tools/speech_clips/` has six `node --test` cases of its own.
+
+What it taught, in the order it was paid for:
+
+- **A word rendered alone is an utterance of its own.** The owner heard
+  thirteen sentences stitched from isolated clips at pauses of 160, 120, 80,
+  40, 20, 10 and 0 ms and refused every one for the same reason: the
+  intonation fell at every word. The fix was not a pause but where the clip
+  comes from — cut out of a carrier sentence of the same shape, so a square
+  after „bishop" was spoken after „bishop". Measure the thing the ear
+  complains about before tuning the thing you can tune.
+- **The instrument decides what can be cut.** The server's speech-to-text
+  returns word times, and heard „to e5" as one word. Azure's SDK reports
+  the offset of every word it writes, exactly. The SDK is a tool dependency
+  only; the server keeps its REST provider.
+- **Measure before writing a gate's numbers.** The plan's phase 1 gate said
+  „the first and last 20 ms of every clip are under the floor". Measured, a
+  trimmed phrase has up to 20 ms of silence at an edge and a cut clip up to
+  200 ms at its head — the midpoint of the pause before „Check." — and that
+  silence belongs to the clip. The case as drafted would have failed every
+  clip; the case as written bounds the silence and asks for speech somewhere.
+- **A sum of floored parts is not the floor of the sum.** The lead's stitch
+  case expected `22050 × 1600 ÷ 1000` frames; the clips' frames are each
+  floored, and 350 ms is 7717.5 of them. One frame short, in a case the lead
+  wrote and believed. The worker stopped and said so, as the brief asks.
+- **Run `node --test` by file, not by directory**, on this machine: the
+  directory form treats the folder as a test and reports a failure with no
+  case named.
+- A double-speak already on master (`SpeakableInfo`: an `autoSpeak` panel
+  spoke twice when its speaker turned speech on) was found by the pilot's
+  speech-off case — rule 14, the feature that woke it being the first screen
+  to put a `SpeakableInfo` on a line that is also spoken on arrival.

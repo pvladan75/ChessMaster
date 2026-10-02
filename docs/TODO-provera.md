@@ -4697,6 +4697,48 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Red kaže „Solved after a skip". Zagonetka rešena uz pomoć (`Hint`) kaže „Solved with a hint".
    Potrebno: Windows; server.
 
+16. [ ] **Zadatak zagonetke se izgovara iz ugrađenih klipova, i piše isto što i kaže.** [265.1]
+   O čemu se radi: Od 3.10.2026 ekran zagonetki govori glasom koji je u aplikaciji (Andrew, klipovi isečeni iz celih rečenica, `PLAN-GOVOR-IZ-KLIPOVA.md`), bez glasa uređaja i bez servera. Rečenica na ekranu je ista koju glas kaže; umesto ⚪/⚫ stoji ikona strane.
+   Gde: `Practise` → `Puzzles: Mate in 1, 2 or 3 moves` (ili `Find the winning path`) → zvučnik pored zadatka.
+   Uradi: Ako je govor isključen, pritisni zvučnik; pa `Next position` dva-tri puta.
+   Treba da vidiš: Čuješ „White to move. Mate in 2." (ili „Black to move. Find the winning path."), tačno kako piše iznad table; svaka nova pozicija se izgovori jednom, ista pozicija se ne ponavlja sama.
+   Potrebno: Windows i telefon; zvučnik uključen; nije potreban server.
+
+17. [ ] **Protivnikov odgovor se kaže kao potez: „Black plays knight d7."** [265.2]
+   O čemu se radi: Posle tvog tačnog poteza protivnikov odgovor se izgovara kratko, kako igrači kažu: figura i polje; „takes" za uzimanje; „Check." / „Checkmate." posle; „castles kingside"; „pawn e8 promotes to queen"; slovo linije kad dve iste figure mogu na polje („rook a a8").
+   Gde: Isti ekran, posle tačnog poteza u zagonetki sa više poteza (Mate in 2 ili 3).
+   Uradi: Odigraj tačan potez i slušaj odgovor; nađi i jedan odgovor sa uzimanjem i jedan sa šahom.
+   Treba da vidiš: Potez je rečen u sekundi posle što je odigran, bez zastoja table; reči se slažu sa potezom na tabli.
+   Potrebno: Windows i telefon.
+
+18. [ ] **Presude se čuju: tačno, netačno, mat.** [265.3]
+   O čemu se radi: „Correct. Keep going." posle tačnog poteza koji ne završava zagonetku; „Incorrect. Try another move." posle pogrešnog; „Checkmate. Puzzle solved." kad daš mat. U vežbi protiv motora: „Checkmate. Stockfish wins. Try again." i „Draw by stalemate. Try again." (i druge remi rečenice).
+   Gde: Isti ekran.
+   Uradi: Pogreši namerno, pa reši; u osnovnom matu daj da te motor matira.
+   Treba da vidiš: Svaka presuda se čuje jednom, u trenutku kad se pojavi i poruka/dijalog; ni jedna poruka ne kasni zbog glasa.
+   Potrebno: Windows i telefon.
+
+19. [ ] **Zvučnik uključuje govor tu gde jesi, i ćuti kad je govor isključen.** [265.4]
+   O čemu se radi: Isti zvučnik kao na drugim ekranima: sa isključenim govorom pritisak ga uključi i kaže zadatak jednom (ne dvaput); sa uključenim govorom pritisak za vreme govora prekida, a u tišini ponavlja.
+   Gde: Isti ekran; `Settings` → `Speech`.
+   Uradi: Isključi govor u Settings, vrati se na zagonetke, pritisni zvučnik; pritisni ga ponovo dok govori.
+   Treba da vidiš: Prvi pritisak — jedna rečenica; drugi — prekid. Dok je govor isključen, ni potezi ni presude se ne čuju.
+   Potrebno: Windows i telefon.
+
+20. [ ] **Pauza pred poljem i šavovi zvuče kako si odobrio na probi, i na zvučniku telefona.** [265.5]
+   O čemu se radi: Klipovi su spojeni sa 50 ms tišine pred poljem i bez pauze drugde — isto što si čuo u fajlovima od 2.10.2026 (Andrew, kratak oblik). Ovo je ista provera na pravom uređaju.
+   Gde: Isti ekran.
+   Uradi: Odslušaj desetak odgovora na telefonu bez slušalica i na Windowsu.
+   Treba da vidiš: Nema klika ni odsečenog početka reči na šavovima; polje se ne lepi za figuru; ako nešto smeta, zapiši koju rečenicu.
+   Potrebno: Windows i telefon.
+
+21. [ ] **Veličina aplikacije porasla za klipove koliko je izmereno.** [265.6]
+   O čemu se radi: `assets/speech/` nosi 277 klipova, 7,2 MB nekomprimovano (faza 1). APK ih pakuje; očekivan rast je najviše toliko.
+   Gde: Play Console / veličina APK-a posle gradnje, ili `Settings` → `About` ako piše veličina.
+   Uradi: Uporedi veličinu APK-a pre i posle.
+   Treba da vidiš: Rast do oko 7 MB; ako je znatno više, javi.
+   Potrebno: Android build.
+
 ### Practise — Practise — ostalo
 
 1. [ ] **Isti panel stabla radi i u Analizi.** [70.9]
