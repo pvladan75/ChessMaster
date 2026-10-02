@@ -5,6 +5,7 @@ import 'package:chess_app/app_binding.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/services/game_session_service.dart';
+import 'package:chess_app/core/speech/clip_voice.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/routing/app_router.dart';
 import 'package:chess_app/screens/age_gate_screen.dart';
@@ -54,6 +55,7 @@ void main() async {
     enabled: settings.speechEnabled,
     rate: settings.speechRate,
     preferred: settings.speechLanguage.isEmpty ? null : settings.speechLanguage,
+    clipVoice: ClipVoice(),
   ));
 
   runApp(const ProviderScope(child: ChessApp()));

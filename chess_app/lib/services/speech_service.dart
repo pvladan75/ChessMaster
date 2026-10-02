@@ -1,9 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:chess_app/core/services/speech_text.dart';
+import 'package:chess_app/core/speech/clip_voice.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/services/app_logger.dart';
 
 /// Everything the app needs from a synthesiser, and nothing else.
@@ -95,6 +98,16 @@ class SpeechService extends ChangeNotifier {
 
   SpeechState _state = SpeechState.off;
   SpeechState get state => _state;
+
+  /// The clips' voice (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`), set by [init].
+  ClipVoice? _clipVoice;
+  AssetBundle? _clipBundle;
+
+  /// Why [state] is [SpeechState.failed], when the cause is the clip bundle
+  /// (D10) - it names the token. Null when there is nothing specific to say,
+  /// and Settings then gives its general sentence.
+  String? _failureReason;
+  String? get failureReason => _failureReason;
 
   List<String> _available = const [];
 
@@ -308,11 +321,33 @@ class SpeechService extends ChangeNotifier {
     required double rate,
     String? preferred,
     TtsEngine? engine,
+    ClipVoice? clipVoice,
+    AssetBundle? clipBundle,
   }) async {
     _enabled = enabled;
     _rate = rate;
     _forgetRate();
     _engineVoice = null;
+    _failureReason = null;
+
+    // The clips are checked against the bundle at start (D10): a missing one
+    // is a broken build, and it is said, with the token's name, rather than
+    // found one sentence at a time.
+    //
+    // [refresh] passes none and reads the same bundle again, so "Check for
+    // voices again" cannot clear a broken bundle's failure.
+    final clips = clipVoice ?? _clipVoice;
+    _clipVoice = clips;
+    _clipBundle = clipBundle ?? _clipBundle;
+    String? clipProblem;
+    if (clips != null) {
+      try {
+        await clips.load(_clipBundle ?? rootBundle);
+      } catch (e) {
+        clipProblem = e.toString();
+        AppLogger.log('[Speech] $clipProblem');
+      }
+    }
 
     try {
       // Built inside the guard, not before it. Creating the plugin object is
@@ -326,6 +361,7 @@ class SpeechService extends ChangeNotifier {
       AppLogger.log('[Speech] Synthesis is not available: $e');
       _available = const [];
       _state = SpeechState.failed;
+      _failureReason = clipProblem;
       notifyListeners();
       return;
     }
@@ -339,12 +375,20 @@ class SpeechService extends ChangeNotifier {
       _state = SpeechState.noVoice;
       AppLogger.log(
           '[Speech] No voice for the app language. Installed: ${_available.join(', ')}');
+      if (clipProblem != null) {
+        _state = SpeechState.failed;
+        _failureReason = clipProblem;
+      }
       notifyListeners();
       return;
     }
 
     if (await _apply()) {
       _state = _enabled ? SpeechState.ready : SpeechState.off;
+    }
+    if (clipProblem != null) {
+      _state = SpeechState.failed;
+      _failureReason = clipProblem;
     }
     notifyListeners();
   }
@@ -425,7 +469,7 @@ class SpeechService extends ChangeNotifier {
   /// the older of the two is already out of date and nobody wants to hear a
   /// backlog. What must not happen is losing the newest, which is the one that
   /// describes the board as it now stands.
-  ({String text, String voice})? _queued;
+  ({String text, String voice, SpokenLine? line})? _queued;
 
   /// Says a sentence the screen is showing.
   ///
@@ -449,11 +493,57 @@ class SpeechService extends ChangeNotifier {
     if (!force && spoken == _lastSpoken) return;
 
     if (_speaking) {
-      _queued = (text: spoken, voice: voice);
+      _queued = (text: spoken, voice: voice, line: null);
       return;
     }
     _lastSpoken = spoken;
     await _utter(spoken, voice);
+  }
+
+  /// Says a [SpokenLine] from the shipped clips, on the same queue as
+  /// [speak] (D9): the same switch, the same one `speaking` state, the same
+  /// `_lastSpoken` (the line's text) and the same watchdog, so a `String` asked
+  /// while a line plays waits for it and the other way round.
+  Future<void> speakLine(SpokenLine line, {bool force = false}) async {
+    if (!canSpeakNow()) return;
+    if (_clipVoice == null || line.tokens.isEmpty) return;
+    final spoken = line.text;
+    if (!force && spoken == _lastSpoken) return;
+
+    if (_speaking) {
+      _queued = (text: spoken, voice: '', line: line);
+      return;
+    }
+    _lastSpoken = spoken;
+    await _utterLine(line);
+  }
+
+  /// One line, start to finish, and whatever was waiting behind it.
+  Future<void> _utterLine(SpokenLine line) async {
+    try {
+      _startSpeaking(line.text);
+      await _clipVoice?.speak(line);
+    } catch (e) {
+      AppLogger.log('[Speech] A line could not be played: $e');
+    } finally {
+      _finishSpeaking();
+    }
+    await _next();
+  }
+
+  /// What was waiting behind the sentence that has just ended.
+  Future<void> _next() async {
+    final next = _queued;
+    _queued = null;
+    if (next == null) return;
+    if (!_enabled || _state == SpeechState.failed) return;
+    _lastSpoken = next.text;
+    final line = next.line;
+    if (line != null) {
+      await _utterLine(line);
+    } else {
+      await _utter(next.text, next.voice);
+    }
   }
 
   /// Puts the engine on [voice], unless it is there already.
@@ -507,13 +597,7 @@ class SpeechService extends ChangeNotifier {
     } finally {
       _finishSpeaking();
     }
-
-    final next = _queued;
-    _queued = null;
-    if (next == null) return;
-    if (!_enabled || _state == SpeechState.failed) return;
-    _lastSpoken = next.text;
-    await _utter(next.text, next.voice);
+    await _next();
   }
 
   // Neither of these notifies, on purpose, and it is not an oversight to be
@@ -559,6 +643,18 @@ class SpeechService extends ChangeNotifier {
     _queued = null;
     _finishSpeaking();
     await _stopEngine();
+    await _stopClips();
+  }
+
+  /// Cuts a stitched line off, if there is a voice for it. Not guarded by
+  /// [_spokeAtLeastOnce]: that guard is about a null pointer in the device
+  /// engine's Windows half, and the clips' player has no such thing.
+  Future<void> _stopClips() async {
+    try {
+      await _clipVoice?.stop();
+    } catch (e) {
+      AppLogger.log('[Speech] Stopping a line failed: $e');
+    }
   }
 
   /// Silences the voice, if there is anything to silence.

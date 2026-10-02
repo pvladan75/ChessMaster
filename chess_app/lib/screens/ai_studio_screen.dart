@@ -45,6 +45,11 @@ import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
+import 'package:chess_app/services/speech_service.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 enum PuzzleGameState {
@@ -121,6 +126,11 @@ class AiStudioScreen extends ConsumerStatefulWidget {
   /// otherwise.
   final ExerciseApiService? exerciseApi;
 
+  /// The voice the pilot speaks through (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`);
+  /// the app's one service otherwise. A seam for a test, as on
+  /// [SpeakableInfo].
+  final SpeechService? speech;
+
   const AiStudioScreen({
     super.key,
     required this.userSession,
@@ -133,6 +143,7 @@ class AiStudioScreen extends ConsumerStatefulWidget {
     this.assignmentId,
     this.exerciseId,
     this.exerciseApi,
+    this.speech,
   }) : assert(assignmentId == null || exerciseId == null,
             'a game is posted to its homework or to its exercise, not both');
 
@@ -678,6 +689,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             });
 
             _showSnackBar('Incorrect move! Try another move.');
+            _sayToken(SpeechVocabulary.incorrectTryAnother);
             return;
           }
         }
@@ -876,7 +888,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }
       }
 
+      final fenBeforeReply = _puzzleGame?.fen;
       _playPuzzleMove(validMove);
+      if (fenBeforeReply != null) _sayReply(fenBeforeReply, validMove);
       if (_puzzleGame != null) {
         _activeFen = _puzzleGame!.fen;
         resetBoardState(isNewPuzzle: false);
@@ -906,6 +920,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         } else if (verdict.outcome == DrillOutcome.readerWon) {
           setState(() => _puzzleSolved = true);
           _showEndgameWinDialog();
+          _saySolved();
         } else if (verdict.outcome == DrillOutcome.drawn) {
           _showEndgameDrawDialog(verdict.ending!);
         } else {
@@ -1116,6 +1131,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _pending.clear();
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
     _stockfishService.detach(this);
+    // Leaving means silence: a line that is still playing belongs to a screen
+    // that is gone.
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
     super.dispose();
   }
 
@@ -1188,6 +1208,58 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (_puzzleGame!.turn != task.side) {
       _triggerOpponentBotResponse();
     }
+  }
+
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  /// Bumped whenever a puzzle is put on the board - a new one or the same one
+  /// again - so the task line is a new widget and says its sentence again.
+  int _taskSerial = 0;
+
+  /// The task the screen sets, as the sentence it draws and speaks (D3, D4):
+  /// whose move it is, and what is asked. Null where this screen asks nothing
+  /// of the kind.
+  SpokenLine? get _taskLine {
+    final category = _selectedCategory;
+    if (category == 'basic_mate' || category == 'engine_game') return null;
+    final side = _puzzleOrientation == PlayerColor.white
+        ? SpeechVocabulary.whiteToMove
+        : SpeechVocabulary.blackToMove;
+    if (category == 'mate_puzzle') {
+      final depth = (int.tryParse(_selectedMateDepth) ?? 1).clamp(0, 99);
+      return SpokenLine(
+          [side, SpeechVocabulary.mateIn, SpeechVocabulary.number(depth)]);
+    }
+    return SpokenLine([side, SpeechVocabulary.findWinningPath]);
+  }
+
+  /// Says [line] through the one speech service. Forced, because the same
+  /// verdict twice in a row is two verdicts, and guarded, because a voice that
+  /// throws must never be able to stop the move or the dialog it reports.
+  void _say(SpokenLine line) {
+    if (!mounted || _selectedCategory == 'engine_game') return;
+    try {
+      unawaited(_speech.speakLine(line, force: true).catchError((Object _) {}));
+    } catch (_) {}
+  }
+
+  void _sayToken(SpeechToken token, [SpeechToken? then]) =>
+      _say(SpokenLine([token, if (then != null) then]));
+
+  void _saySolved() =>
+      _sayToken(SpeechVocabulary.checkmate, SpeechVocabulary.puzzleSolved);
+
+  /// The reply the engine, or the puzzle, has just played: `fenBefore` is the
+  /// position it was played in, so the words are read off the move that was
+  /// played and not off a string of squares.
+  void _sayReply(String fenBefore, String lan) {
+    if (lan.length < 4) return;
+    try {
+      final facts = MoveWords.factsOf(
+          fenBefore, lan.substring(0, 2), lan.substring(2, 4),
+          promotion: lan.length > 4 ? lan[4].toLowerCase() : 'q');
+      if (facts != null) _say(MoveWords.line(facts));
+    } catch (_) {}
   }
 
   String get _categoryDisplayName {
@@ -1328,6 +1400,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   Future<void> _fetchNextPuzzle() async {
     _resetEngineState();
+    // A new puzzle is announced even when its sentence is the last one's.
+    _speech.forget();
     final String currentId =
         _currentPuzzle?['puzzle_id'] ?? _currentPuzzle?['id'] ?? '';
     setState(() {
@@ -1372,6 +1446,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _activeBranchPoints.clear();
           _isReplayingSolution = false;
           _showSolutionTree = false;
+          _taskSerial++;
         });
 
         print('\n==================================================');
@@ -1784,6 +1859,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       } else {
         _submitPuzzleResult(true);
       }
+      _saySolved();
       return;
     }
 
@@ -1894,6 +1970,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             });
 
             _showSnackBar('Great! Now solve the opponent\'s other defense.');
+            _sayToken(SpeechVocabulary.correctKeepGoing);
 
             // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
             _pause(const Duration(milliseconds: 600)).then((_) {
@@ -1907,6 +1984,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 final oppTo = nextOppMove.substring(2, 4);
                 final oppPromo = nextOppMove.length > 4 ? nextOppMove[4] : null;
 
+                final fenBeforeVariation = _puzzleGame!.fen;
                 _puzzleGame!.move(
                     {'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
                 final animatedPiece = _puzzleGame!.get(oppTo);
@@ -1916,6 +1994,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
                 _lastMoveTo = oppTo;
+                _sayReply(fenBeforeVariation, nextOppMove);
 
                 final oppSubNode = pendingBP.oppBranchMap[nextOppMove];
                 if (oppSubNode is Map) {
@@ -1950,10 +2029,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           });
           _submitPuzzleResult(true);
           _showSnackBar('Congratulations! Puzzle solved! 🎉');
+          _saySolved();
           return;
         }
 
         if (subBranch is Map) {
+          // A right move, and the puzzle goes on: the reply follows in a moment
+          // and waits behind this on the one queue.
+          _sayToken(SpeechVocabulary.correctKeepGoing);
           final Map<String, dynamic> oppTree =
               Map<String, dynamic>.from(subBranch);
 
@@ -2008,6 +2091,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               final oppTo = oppMoveLan.substring(2, 4);
               final oppPromo = oppMoveLan.length > 4 ? oppMoveLan[4] : null;
 
+              final fenBeforeReply = _puzzleGame!.fen;
               final moveObj = _puzzleGame!
                   .move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
               if (moveObj) {
@@ -2018,6 +2102,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
                 _lastMoveTo = oppTo;
+                _sayReply(fenBeforeReply, oppMoveLan);
               }
 
               if (nextSubTree is Map) {
@@ -2056,6 +2141,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   });
                   _submitPuzzleResult(true);
                   _showSnackBar('Congratulations! Puzzle solved! 🎉');
+                  _saySolved();
                 }
               }
             } catch (e) {
@@ -2076,6 +2162,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         });
         _submitPuzzleResult(true);
         _showSnackBar('Congratulations! Puzzle solved! 🎉');
+        _saySolved();
         return;
       } else {
         // Move NOT in solution tree -> Show failure modal dialog with 3 choices!
@@ -2153,6 +2240,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   void _showFailureDialog() {
     if (!mounted) return;
+    _sayToken(SpeechVocabulary.incorrectTryAnother);
     _sendBackendLog({
       'type': 'buttonClick',
       'button': 'Dialog Shown - Incorrect Move',
@@ -2410,21 +2498,30 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   /// others. A child who has just been mated deserves the same weight of answer
   /// as one who has just mated — and, more plainly, needs to be told which of
   /// the two happened.
-  void _showEndgameLossDialog() => _showDrillEndedDialog(
-        icon: Icons.flag,
-        color: context.colors.danger,
-        title: 'Checkmate',
-        body: 'Stockfish delivered checkmate. Try again.',
-      );
+  void _showEndgameLossDialog() {
+    _showDrillEndedDialog(
+      icon: Icons.flag,
+      color: context.colors.danger,
+      title: 'Checkmate',
+      body: 'Stockfish delivered checkmate. Try again.',
+    );
+    _sayToken(
+        SpeechVocabulary.checkmate, SpeechVocabulary.stockfishWinsTryAgain);
+  }
 
   /// A draw ends the drill the way a loss does — it is not the mate the drill
   /// asked for — and says which rule ended it, in the words of [endingLabel].
-  void _showEndgameDrawDialog(GameEnding ending) => _showDrillEndedDialog(
-        icon: Icons.handshake,
-        color: context.colors.warning,
-        title: 'Draw',
-        body: 'The game is drawn: ${endingLabel(ending)}. Try again.',
-      );
+  void _showEndgameDrawDialog(GameEnding ending) {
+    _showDrillEndedDialog(
+      icon: Icons.handshake,
+      color: context.colors.warning,
+      title: 'Draw',
+      body: 'The game is drawn: ${endingLabel(ending)}. Try again.',
+    );
+    // One phrase per ending the app names; any other ending is not spoken.
+    final phrase = SpeechVocabulary.byId('draw_${ending.name}');
+    if (phrase != null) _sayToken(phrase);
+  }
 
   void _showDrillEndedDialog({
     required IconData icon,
@@ -2691,7 +2788,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _activeBranchPoints.clear();
 
     final sideToMove = fen.split(' ')[1];
+    // The same puzzle again is a fresh start, and says its task again.
+    _speech.forget();
     setState(() {
+      _taskSerial++;
       _puzzleSolved = false;
       _puzzleFailed = false;
       _expectedMoves = moves;
@@ -3057,13 +3157,37 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final isLandscape =
         MediaQuery.of(context).orientation == Orientation.landscape;
 
-    final String headerGoal = _selectedCategory == 'mate_puzzle'
-        ? '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Mate in $_selectedMateDepth'
+    // The sentence the task line draws is the sentence it speaks (D4): one
+    // SpokenLine, read for both. The side is an icon beside it - a ring for
+    // White, a disc for Black - and not a character in the text.
+    final taskLine = _taskLine;
+    final String headerGoal = taskLine != null
+        ? taskLine.text
         : (_selectedCategory == 'basic_mate'
             ? 'Practice: $_selectedBasicMateType (Checkmate Stockfish)'
-            : (_selectedCategory == 'engine_game'
-                ? _engineGameGoalSentence()
-                : '${_puzzleOrientation == PlayerColor.white ? "⚪ White" : "⚫ Black"} to move - Find the winning path'));
+            : _engineGameGoalSentence());
+    final bool taskReady = _currentPuzzle != null && !_isLoadingPuzzle;
+    final sideIcon = Icon(
+      _puzzleOrientation == PlayerColor.white
+          ? Icons.circle_outlined
+          : Icons.circle,
+      size: 14,
+      color: context.colors.onInfoContainer,
+    );
+    Widget taskText(TextStyle style, {required bool compact}) {
+      if (taskLine == null || !taskReady) {
+        return Text(headerGoal, style: style, overflow: TextOverflow.ellipsis);
+      }
+      return SpeakableInfo(
+        key: ValueKey('task-$_taskSerial'),
+        text: taskLine.text,
+        line: taskLine,
+        autoSpeak: true,
+        compact: compact,
+        speech: widget.speech,
+        style: style,
+      );
+    }
 
     // What used to be a „back to selection" card lived here and was never
     // placed in the portrait tree — so its board menu and its opponent button
@@ -3093,17 +3217,19 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 : context.colors.accent,
           ),
           const SizedBox(width: AppSpacing.sm),
+          if (taskLine != null) ...[
+            sideIcon,
+            const SizedBox(width: AppSpacing.sm),
+          ],
           Flexible(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  headerGoal,
-                  style: AppText.bodyLargeBold
-                      .copyWith(color: context.colors.onInfoContainer),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                taskText(
+                    AppText.bodyLargeBold
+                        .copyWith(color: context.colors.onInfoContainer),
+                    compact: false),
                 if (_engineGameTurnLine(onBanner: true) case final turn?) turn,
               ],
             ),
@@ -3195,13 +3321,21 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               turn,
               const SizedBox(width: AppSpacing.sm),
             ],
-            Expanded(
-              child: Text(
-                headerGoal,
-                style: AppText.captionBold
-                    .copyWith(color: context.colors.textPrimary),
-                overflow: TextOverflow.ellipsis,
+            if (taskLine != null) ...[
+              Icon(
+                _puzzleOrientation == PlayerColor.white
+                    ? Icons.circle_outlined
+                    : Icons.circle,
+                size: 12,
+                color: context.colors.textPrimary,
               ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            Expanded(
+              child: taskText(
+                  AppText.captionBold
+                      .copyWith(color: context.colors.textPrimary),
+                  compact: true),
             ),
             if (_selectedCategory != 'engine_game') ...[
               EngineOpponentButton(

@@ -478,8 +478,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: Text(
                           speech.state == SpeechState.failed
-                              ? 'This device does not have speech synthesis, so reading '
-                                  'is not available.'
+                              ? (speech.failureReason ??
+                                  'This device does not have speech synthesis, so reading '
+                                      'is not available.')
                               : 'No installed voice found for this language. On Windows: '
                                   'Settings → Time & Language → Speech → Add voices. '
                                   'On Android: Settings → Accessibility → Text-to-speech.',

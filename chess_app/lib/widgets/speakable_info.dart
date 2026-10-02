@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -38,10 +39,22 @@ class SpeakableInfo extends StatefulWidget {
     this.hideButtonWhenOff = false,
     this.settings,
     this.speech,
+    this.line,
+    this.compact = false,
   });
 
   /// The sentence, both shown and spoken.
   final String text;
+
+  /// The same sentence as a [SpokenLine], when it is one
+  /// (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`): it is then played from the shipped
+  /// clips through `SpeechService.speakLine` instead of being handed to the
+  /// device voice as a string. [text] stays what is drawn, and the caller
+  /// passes `line.text`, so the two cannot differ.
+  final SpokenLine? line;
+
+  /// A speaker with no padding, for a header only as tall as its text.
+  final bool compact;
 
   final TextStyle? style;
 
@@ -148,7 +161,12 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
   /// reader's decision and it is made by pressing the speaker.
   Future<void> _say({bool force = false}) async {
     try {
-      await _speech.speak(widget.text, force: force);
+      final line = widget.line;
+      if (line != null) {
+        await _speech.speakLine(line, force: force);
+      } else {
+        await _speech.speak(widget.text, force: force);
+      }
     } catch (_) {
       // A machine without a voice is a fact about the machine. The sentence is
       // on screen either way, which is the whole reason this is decoration.
@@ -162,7 +180,10 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
         await _speech.setEnabled(true);
         if (!mounted) return;
         setState(() {});
-        await _say(force: true);
+        // A panel that speaks by itself was told when speech became possible
+        // (`_availabilityChanged`, forced) while it was being switched on, and
+        // saying it here as well made the sentence play twice.
+        if (!widget.autoSpeak) await _say(force: true);
         return;
       }
       // On, and already talking: the press means stop. On and quiet: say it
@@ -203,6 +224,8 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
               size: 20,
               color: on ? context.colors.accent : context.colors.textMuted,
             ),
+            padding: widget.compact ? EdgeInsets.zero : null,
+            constraints: widget.compact ? const BoxConstraints() : null,
             onPressed: _pressed,
           ),
       ],
