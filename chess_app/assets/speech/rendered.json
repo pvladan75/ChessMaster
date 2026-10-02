@@ -1,0 +1,1941 @@
+{
+  "white_to_move": {
+    "kind": "phrase",
+    "carrier": "White to move.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "black_to_move": {
+    "kind": "phrase",
+    "carrier": "Black to move.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "find_winning_path": {
+    "kind": "phrase",
+    "carrier": "Find the winning path.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "correct_keep_going": {
+    "kind": "phrase",
+    "carrier": "Correct. Keep going.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "incorrect_try_another": {
+    "kind": "phrase",
+    "carrier": "Incorrect. Try another move.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "checkmate": {
+    "kind": "phrase",
+    "carrier": "Checkmate.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "puzzle_solved": {
+    "kind": "phrase",
+    "carrier": "Puzzle solved.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "stockfish_wins_try_again": {
+    "kind": "phrase",
+    "carrier": "Stockfish wins. Try again.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "white_castles_kingside": {
+    "kind": "phrase",
+    "carrier": "White castles kingside.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "white_castles_queenside": {
+    "kind": "phrase",
+    "carrier": "White castles queenside.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "black_castles_kingside": {
+    "kind": "phrase",
+    "carrier": "Black castles kingside.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "black_castles_queenside": {
+    "kind": "phrase",
+    "carrier": "Black castles queenside.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "draw_stalemate": {
+    "kind": "phrase",
+    "carrier": "Draw by stalemate. Try again.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "draw_insufficientMaterial": {
+    "kind": "phrase",
+    "carrier": "Draw: not enough material to mate. Try again.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "draw_threefoldRepetition": {
+    "kind": "phrase",
+    "carrier": "Draw: the same position three times. Try again.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "draw_fiftyMoves": {
+    "kind": "phrase",
+    "carrier": "Draw: fifty moves without a capture or a pawn move. Try again.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "draw_moveLimit": {
+    "kind": "phrase",
+    "carrier": "Draw: the move limit was reached. Try again.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "black_plays": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e5.",
+    "wordFrom": 1,
+    "wordTo": 2,
+    "voice": "en-US-AndrewNeural"
+  },
+  "white_plays": {
+    "kind": "cut",
+    "carrier": "White plays bishop e5.",
+    "wordFrom": 1,
+    "wordTo": 2,
+    "voice": "en-US-AndrewNeural"
+  },
+  "takes": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "check": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e5. Check.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "promotes_to": {
+    "kind": "cut",
+    "carrier": "Black plays pawn e8, promotes to queen.",
+    "wordFrom": 5,
+    "wordTo": 6,
+    "voice": "en-US-AndrewNeural"
+  },
+  "mate_in": {
+    "kind": "cut",
+    "carrier": "Mate in 3.",
+    "wordFrom": 1,
+    "wordTo": 2,
+    "voice": "en-US-AndrewNeural"
+  },
+  "piece_king": {
+    "kind": "cut",
+    "carrier": "Black plays king e5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "piece_queen": {
+    "kind": "cut",
+    "carrier": "Black plays queen e5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "piece_rook": {
+    "kind": "cut",
+    "carrier": "Black plays rook e5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "piece_bishop": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "piece_knight": {
+    "kind": "cut",
+    "carrier": "Black plays knight e5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "piece_pawn": {
+    "kind": "cut",
+    "carrier": "Black plays pawn e5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "prom_queen": {
+    "kind": "cut",
+    "carrier": "Black plays pawn e8, promotes to queen.",
+    "wordFrom": 7,
+    "wordTo": 7,
+    "voice": "en-US-AndrewNeural"
+  },
+  "prom_rook": {
+    "kind": "cut",
+    "carrier": "Black plays pawn e8, promotes to rook.",
+    "wordFrom": 7,
+    "wordTo": 7,
+    "voice": "en-US-AndrewNeural"
+  },
+  "prom_bishop": {
+    "kind": "cut",
+    "carrier": "Black plays pawn e8, promotes to bishop.",
+    "wordFrom": 7,
+    "wordTo": 7,
+    "voice": "en-US-AndrewNeural"
+  },
+  "prom_knight": {
+    "kind": "cut",
+    "carrier": "Black plays pawn e8, promotes to knight.",
+    "wordFrom": 7,
+    "wordTo": 7,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_a8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_a8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes a8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_b8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop b8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_b8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes b8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_c8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop c8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_c8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes c8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_d8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop d8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_d8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes d8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_e8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop e8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_e8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes e8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_f8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop f8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_f8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes f8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_g8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop g8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_g8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes g8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h1.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h1": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h1.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h2.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h2": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h2.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h3.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h3": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h3.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h4.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h4": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h4.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h5.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h5": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h5.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h6.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h6": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h6.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h7.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h7": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h7.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sq_h8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop h8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "sqx_h8": {
+    "kind": "cut",
+    "carrier": "Black plays bishop takes h8.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_a": {
+    "kind": "cut",
+    "carrier": "White plays rook a a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_b": {
+    "kind": "cut",
+    "carrier": "White plays rook b a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_c": {
+    "kind": "cut",
+    "carrier": "White plays rook c a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_d": {
+    "kind": "cut",
+    "carrier": "White plays rook d a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_e": {
+    "kind": "cut",
+    "carrier": "White plays rook e a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_f": {
+    "kind": "cut",
+    "carrier": "White plays rook f a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_g": {
+    "kind": "cut",
+    "carrier": "White plays rook g a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "file_h": {
+    "kind": "cut",
+    "carrier": "White plays rook h a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_1": {
+    "kind": "cut",
+    "carrier": "White plays rook 1 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_2": {
+    "kind": "cut",
+    "carrier": "White plays rook 2 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_3": {
+    "kind": "cut",
+    "carrier": "White plays rook 3 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_4": {
+    "kind": "cut",
+    "carrier": "White plays rook 4 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_5": {
+    "kind": "cut",
+    "carrier": "White plays rook 5 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_6": {
+    "kind": "cut",
+    "carrier": "White plays rook 6 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_7": {
+    "kind": "cut",
+    "carrier": "White plays rook 7 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "rank_8": {
+    "kind": "cut",
+    "carrier": "White plays rook 8 a8.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_0": {
+    "kind": "cut",
+    "carrier": "Mate in 0.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_1": {
+    "kind": "cut",
+    "carrier": "Mate in 1.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_2": {
+    "kind": "cut",
+    "carrier": "Mate in 2.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_3": {
+    "kind": "cut",
+    "carrier": "Mate in 3.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_4": {
+    "kind": "cut",
+    "carrier": "Mate in 4.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_5": {
+    "kind": "cut",
+    "carrier": "Mate in 5.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_6": {
+    "kind": "cut",
+    "carrier": "Mate in 6.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_7": {
+    "kind": "cut",
+    "carrier": "Mate in 7.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_8": {
+    "kind": "cut",
+    "carrier": "Mate in 8.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_9": {
+    "kind": "cut",
+    "carrier": "Mate in 9.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_10": {
+    "kind": "cut",
+    "carrier": "Mate in 10.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_11": {
+    "kind": "cut",
+    "carrier": "Mate in 11.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_12": {
+    "kind": "cut",
+    "carrier": "Mate in 12.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_13": {
+    "kind": "cut",
+    "carrier": "Mate in 13.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_14": {
+    "kind": "cut",
+    "carrier": "Mate in 14.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_15": {
+    "kind": "cut",
+    "carrier": "Mate in 15.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_16": {
+    "kind": "cut",
+    "carrier": "Mate in 16.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_17": {
+    "kind": "cut",
+    "carrier": "Mate in 17.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_18": {
+    "kind": "cut",
+    "carrier": "Mate in 18.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_19": {
+    "kind": "cut",
+    "carrier": "Mate in 19.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_20": {
+    "kind": "cut",
+    "carrier": "Mate in 20.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_21": {
+    "kind": "cut",
+    "carrier": "Mate in 21.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_22": {
+    "kind": "cut",
+    "carrier": "Mate in 22.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_23": {
+    "kind": "cut",
+    "carrier": "Mate in 23.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_24": {
+    "kind": "cut",
+    "carrier": "Mate in 24.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_25": {
+    "kind": "cut",
+    "carrier": "Mate in 25.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_26": {
+    "kind": "cut",
+    "carrier": "Mate in 26.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_27": {
+    "kind": "cut",
+    "carrier": "Mate in 27.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_28": {
+    "kind": "cut",
+    "carrier": "Mate in 28.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_29": {
+    "kind": "cut",
+    "carrier": "Mate in 29.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_30": {
+    "kind": "cut",
+    "carrier": "Mate in 30.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_31": {
+    "kind": "cut",
+    "carrier": "Mate in 31.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_32": {
+    "kind": "cut",
+    "carrier": "Mate in 32.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_33": {
+    "kind": "cut",
+    "carrier": "Mate in 33.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_34": {
+    "kind": "cut",
+    "carrier": "Mate in 34.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_35": {
+    "kind": "cut",
+    "carrier": "Mate in 35.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_36": {
+    "kind": "cut",
+    "carrier": "Mate in 36.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_37": {
+    "kind": "cut",
+    "carrier": "Mate in 37.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_38": {
+    "kind": "cut",
+    "carrier": "Mate in 38.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_39": {
+    "kind": "cut",
+    "carrier": "Mate in 39.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_40": {
+    "kind": "cut",
+    "carrier": "Mate in 40.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_41": {
+    "kind": "cut",
+    "carrier": "Mate in 41.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_42": {
+    "kind": "cut",
+    "carrier": "Mate in 42.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_43": {
+    "kind": "cut",
+    "carrier": "Mate in 43.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_44": {
+    "kind": "cut",
+    "carrier": "Mate in 44.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_45": {
+    "kind": "cut",
+    "carrier": "Mate in 45.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_46": {
+    "kind": "cut",
+    "carrier": "Mate in 46.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_47": {
+    "kind": "cut",
+    "carrier": "Mate in 47.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_48": {
+    "kind": "cut",
+    "carrier": "Mate in 48.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_49": {
+    "kind": "cut",
+    "carrier": "Mate in 49.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_50": {
+    "kind": "cut",
+    "carrier": "Mate in 50.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_51": {
+    "kind": "cut",
+    "carrier": "Mate in 51.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_52": {
+    "kind": "cut",
+    "carrier": "Mate in 52.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_53": {
+    "kind": "cut",
+    "carrier": "Mate in 53.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_54": {
+    "kind": "cut",
+    "carrier": "Mate in 54.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_55": {
+    "kind": "cut",
+    "carrier": "Mate in 55.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_56": {
+    "kind": "cut",
+    "carrier": "Mate in 56.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_57": {
+    "kind": "cut",
+    "carrier": "Mate in 57.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_58": {
+    "kind": "cut",
+    "carrier": "Mate in 58.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_59": {
+    "kind": "cut",
+    "carrier": "Mate in 59.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_60": {
+    "kind": "cut",
+    "carrier": "Mate in 60.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_61": {
+    "kind": "cut",
+    "carrier": "Mate in 61.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_62": {
+    "kind": "cut",
+    "carrier": "Mate in 62.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_63": {
+    "kind": "cut",
+    "carrier": "Mate in 63.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_64": {
+    "kind": "cut",
+    "carrier": "Mate in 64.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_65": {
+    "kind": "cut",
+    "carrier": "Mate in 65.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_66": {
+    "kind": "cut",
+    "carrier": "Mate in 66.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_67": {
+    "kind": "cut",
+    "carrier": "Mate in 67.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_68": {
+    "kind": "cut",
+    "carrier": "Mate in 68.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_69": {
+    "kind": "cut",
+    "carrier": "Mate in 69.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_70": {
+    "kind": "cut",
+    "carrier": "Mate in 70.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_71": {
+    "kind": "cut",
+    "carrier": "Mate in 71.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_72": {
+    "kind": "cut",
+    "carrier": "Mate in 72.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_73": {
+    "kind": "cut",
+    "carrier": "Mate in 73.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_74": {
+    "kind": "cut",
+    "carrier": "Mate in 74.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_75": {
+    "kind": "cut",
+    "carrier": "Mate in 75.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_76": {
+    "kind": "cut",
+    "carrier": "Mate in 76.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_77": {
+    "kind": "cut",
+    "carrier": "Mate in 77.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_78": {
+    "kind": "cut",
+    "carrier": "Mate in 78.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_79": {
+    "kind": "cut",
+    "carrier": "Mate in 79.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_80": {
+    "kind": "cut",
+    "carrier": "Mate in 80.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_81": {
+    "kind": "cut",
+    "carrier": "Mate in 81.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_82": {
+    "kind": "cut",
+    "carrier": "Mate in 82.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_83": {
+    "kind": "cut",
+    "carrier": "Mate in 83.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_84": {
+    "kind": "cut",
+    "carrier": "Mate in 84.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_85": {
+    "kind": "cut",
+    "carrier": "Mate in 85.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_86": {
+    "kind": "cut",
+    "carrier": "Mate in 86.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_87": {
+    "kind": "cut",
+    "carrier": "Mate in 87.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_88": {
+    "kind": "cut",
+    "carrier": "Mate in 88.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_89": {
+    "kind": "cut",
+    "carrier": "Mate in 89.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_90": {
+    "kind": "cut",
+    "carrier": "Mate in 90.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_91": {
+    "kind": "cut",
+    "carrier": "Mate in 91.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_92": {
+    "kind": "cut",
+    "carrier": "Mate in 92.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_93": {
+    "kind": "cut",
+    "carrier": "Mate in 93.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_94": {
+    "kind": "cut",
+    "carrier": "Mate in 94.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_95": {
+    "kind": "cut",
+    "carrier": "Mate in 95.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_96": {
+    "kind": "cut",
+    "carrier": "Mate in 96.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_97": {
+    "kind": "cut",
+    "carrier": "Mate in 97.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_98": {
+    "kind": "cut",
+    "carrier": "Mate in 98.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "n_99": {
+    "kind": "cut",
+    "carrier": "Mate in 99.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  }
+}

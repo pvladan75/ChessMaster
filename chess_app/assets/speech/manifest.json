@@ -1,0 +1,2192 @@
+{
+  "voice": "en-US-AndrewNeural",
+  "format": {
+    "sampleRate": 22050,
+    "bitsPerSample": 16,
+    "channels": 1
+  },
+  "tokens": [
+    {
+      "id": "white_to_move",
+      "kind": "phrase",
+      "text": "White to move.",
+      "carrier": "White to move."
+    },
+    {
+      "id": "black_to_move",
+      "kind": "phrase",
+      "text": "Black to move.",
+      "carrier": "Black to move."
+    },
+    {
+      "id": "find_winning_path",
+      "kind": "phrase",
+      "text": "Find the winning path.",
+      "carrier": "Find the winning path."
+    },
+    {
+      "id": "correct_keep_going",
+      "kind": "phrase",
+      "text": "Correct. Keep going.",
+      "carrier": "Correct. Keep going."
+    },
+    {
+      "id": "incorrect_try_another",
+      "kind": "phrase",
+      "text": "Incorrect. Try another move.",
+      "carrier": "Incorrect. Try another move."
+    },
+    {
+      "id": "checkmate",
+      "kind": "phrase",
+      "text": "Checkmate.",
+      "carrier": "Checkmate."
+    },
+    {
+      "id": "puzzle_solved",
+      "kind": "phrase",
+      "text": "Puzzle solved.",
+      "carrier": "Puzzle solved."
+    },
+    {
+      "id": "stockfish_wins_try_again",
+      "kind": "phrase",
+      "text": "Stockfish wins. Try again.",
+      "carrier": "Stockfish wins. Try again."
+    },
+    {
+      "id": "white_castles_kingside",
+      "kind": "phrase",
+      "text": "White castles kingside.",
+      "carrier": "White castles kingside."
+    },
+    {
+      "id": "white_castles_queenside",
+      "kind": "phrase",
+      "text": "White castles queenside.",
+      "carrier": "White castles queenside."
+    },
+    {
+      "id": "black_castles_kingside",
+      "kind": "phrase",
+      "text": "Black castles kingside.",
+      "carrier": "Black castles kingside."
+    },
+    {
+      "id": "black_castles_queenside",
+      "kind": "phrase",
+      "text": "Black castles queenside.",
+      "carrier": "Black castles queenside."
+    },
+    {
+      "id": "draw_stalemate",
+      "kind": "phrase",
+      "text": "Draw by stalemate. Try again.",
+      "carrier": "Draw by stalemate. Try again."
+    },
+    {
+      "id": "draw_insufficientMaterial",
+      "kind": "phrase",
+      "text": "Draw: not enough material to mate. Try again.",
+      "carrier": "Draw: not enough material to mate. Try again."
+    },
+    {
+      "id": "draw_threefoldRepetition",
+      "kind": "phrase",
+      "text": "Draw: the same position three times. Try again.",
+      "carrier": "Draw: the same position three times. Try again."
+    },
+    {
+      "id": "draw_fiftyMoves",
+      "kind": "phrase",
+      "text": "Draw: fifty moves without a capture or a pawn move. Try again.",
+      "carrier": "Draw: fifty moves without a capture or a pawn move. Try again."
+    },
+    {
+      "id": "draw_moveLimit",
+      "kind": "phrase",
+      "text": "Draw: the move limit was reached. Try again.",
+      "carrier": "Draw: the move limit was reached. Try again."
+    },
+    {
+      "id": "black_plays",
+      "kind": "cut",
+      "text": "Black plays",
+      "carrier": "Black plays bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "white_plays",
+      "kind": "cut",
+      "text": "White plays",
+      "carrier": "White plays bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "takes",
+      "kind": "cut",
+      "text": "takes",
+      "carrier": "Black plays bishop takes e5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "check",
+      "kind": "cut",
+      "text": "Check",
+      "carrier": "Black plays bishop e5. Check.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "promotes_to",
+      "kind": "cut",
+      "text": "promotes to",
+      "carrier": "Black plays pawn e8, promotes to queen.",
+      "wordFrom": 5,
+      "wordTo": 6
+    },
+    {
+      "id": "mate_in",
+      "kind": "cut",
+      "text": "Mate in",
+      "carrier": "Mate in 3.",
+      "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "piece_king",
+      "kind": "cut",
+      "text": "king",
+      "carrier": "Black plays king e5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "piece_queen",
+      "kind": "cut",
+      "text": "queen",
+      "carrier": "Black plays queen e5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "piece_rook",
+      "kind": "cut",
+      "text": "rook",
+      "carrier": "Black plays rook e5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "piece_bishop",
+      "kind": "cut",
+      "text": "bishop",
+      "carrier": "Black plays bishop e5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "piece_knight",
+      "kind": "cut",
+      "text": "knight",
+      "carrier": "Black plays knight e5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "piece_pawn",
+      "kind": "cut",
+      "text": "pawn",
+      "carrier": "Black plays pawn e5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "prom_queen",
+      "kind": "cut",
+      "text": "queen",
+      "carrier": "Black plays pawn e8, promotes to queen.",
+      "wordFrom": 7,
+      "wordTo": 7
+    },
+    {
+      "id": "prom_rook",
+      "kind": "cut",
+      "text": "rook",
+      "carrier": "Black plays pawn e8, promotes to rook.",
+      "wordFrom": 7,
+      "wordTo": 7
+    },
+    {
+      "id": "prom_bishop",
+      "kind": "cut",
+      "text": "bishop",
+      "carrier": "Black plays pawn e8, promotes to bishop.",
+      "wordFrom": 7,
+      "wordTo": 7
+    },
+    {
+      "id": "prom_knight",
+      "kind": "cut",
+      "text": "knight",
+      "carrier": "Black plays pawn e8, promotes to knight.",
+      "wordFrom": 7,
+      "wordTo": 7
+    },
+    {
+      "id": "sq_a1",
+      "kind": "cut",
+      "text": "a1",
+      "carrier": "Black plays bishop a1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a1",
+      "kind": "cut",
+      "text": "a1",
+      "carrier": "Black plays bishop takes a1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a2",
+      "kind": "cut",
+      "text": "a2",
+      "carrier": "Black plays bishop a2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a2",
+      "kind": "cut",
+      "text": "a2",
+      "carrier": "Black plays bishop takes a2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a3",
+      "kind": "cut",
+      "text": "a3",
+      "carrier": "Black plays bishop a3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a3",
+      "kind": "cut",
+      "text": "a3",
+      "carrier": "Black plays bishop takes a3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a4",
+      "kind": "cut",
+      "text": "a4",
+      "carrier": "Black plays bishop a4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a4",
+      "kind": "cut",
+      "text": "a4",
+      "carrier": "Black plays bishop takes a4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a5",
+      "kind": "cut",
+      "text": "a5",
+      "carrier": "Black plays bishop a5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a5",
+      "kind": "cut",
+      "text": "a5",
+      "carrier": "Black plays bishop takes a5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a6",
+      "kind": "cut",
+      "text": "a6",
+      "carrier": "Black plays bishop a6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a6",
+      "kind": "cut",
+      "text": "a6",
+      "carrier": "Black plays bishop takes a6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a7",
+      "kind": "cut",
+      "text": "a7",
+      "carrier": "Black plays bishop a7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a7",
+      "kind": "cut",
+      "text": "a7",
+      "carrier": "Black plays bishop takes a7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_a8",
+      "kind": "cut",
+      "text": "a8",
+      "carrier": "Black plays bishop a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_a8",
+      "kind": "cut",
+      "text": "a8",
+      "carrier": "Black plays bishop takes a8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b1",
+      "kind": "cut",
+      "text": "b1",
+      "carrier": "Black plays bishop b1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b1",
+      "kind": "cut",
+      "text": "b1",
+      "carrier": "Black plays bishop takes b1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b2",
+      "kind": "cut",
+      "text": "b2",
+      "carrier": "Black plays bishop b2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b2",
+      "kind": "cut",
+      "text": "b2",
+      "carrier": "Black plays bishop takes b2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b3",
+      "kind": "cut",
+      "text": "b3",
+      "carrier": "Black plays bishop b3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b3",
+      "kind": "cut",
+      "text": "b3",
+      "carrier": "Black plays bishop takes b3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b4",
+      "kind": "cut",
+      "text": "b4",
+      "carrier": "Black plays bishop b4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b4",
+      "kind": "cut",
+      "text": "b4",
+      "carrier": "Black plays bishop takes b4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b5",
+      "kind": "cut",
+      "text": "b5",
+      "carrier": "Black plays bishop b5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b5",
+      "kind": "cut",
+      "text": "b5",
+      "carrier": "Black plays bishop takes b5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b6",
+      "kind": "cut",
+      "text": "b6",
+      "carrier": "Black plays bishop b6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b6",
+      "kind": "cut",
+      "text": "b6",
+      "carrier": "Black plays bishop takes b6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b7",
+      "kind": "cut",
+      "text": "b7",
+      "carrier": "Black plays bishop b7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b7",
+      "kind": "cut",
+      "text": "b7",
+      "carrier": "Black plays bishop takes b7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_b8",
+      "kind": "cut",
+      "text": "b8",
+      "carrier": "Black plays bishop b8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_b8",
+      "kind": "cut",
+      "text": "b8",
+      "carrier": "Black plays bishop takes b8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c1",
+      "kind": "cut",
+      "text": "c1",
+      "carrier": "Black plays bishop c1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c1",
+      "kind": "cut",
+      "text": "c1",
+      "carrier": "Black plays bishop takes c1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c2",
+      "kind": "cut",
+      "text": "c2",
+      "carrier": "Black plays bishop c2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c2",
+      "kind": "cut",
+      "text": "c2",
+      "carrier": "Black plays bishop takes c2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c3",
+      "kind": "cut",
+      "text": "c3",
+      "carrier": "Black plays bishop c3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c3",
+      "kind": "cut",
+      "text": "c3",
+      "carrier": "Black plays bishop takes c3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c4",
+      "kind": "cut",
+      "text": "c4",
+      "carrier": "Black plays bishop c4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c4",
+      "kind": "cut",
+      "text": "c4",
+      "carrier": "Black plays bishop takes c4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c5",
+      "kind": "cut",
+      "text": "c5",
+      "carrier": "Black plays bishop c5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c5",
+      "kind": "cut",
+      "text": "c5",
+      "carrier": "Black plays bishop takes c5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c6",
+      "kind": "cut",
+      "text": "c6",
+      "carrier": "Black plays bishop c6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c6",
+      "kind": "cut",
+      "text": "c6",
+      "carrier": "Black plays bishop takes c6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c7",
+      "kind": "cut",
+      "text": "c7",
+      "carrier": "Black plays bishop c7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c7",
+      "kind": "cut",
+      "text": "c7",
+      "carrier": "Black plays bishop takes c7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_c8",
+      "kind": "cut",
+      "text": "c8",
+      "carrier": "Black plays bishop c8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_c8",
+      "kind": "cut",
+      "text": "c8",
+      "carrier": "Black plays bishop takes c8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d1",
+      "kind": "cut",
+      "text": "d1",
+      "carrier": "Black plays bishop d1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d1",
+      "kind": "cut",
+      "text": "d1",
+      "carrier": "Black plays bishop takes d1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d2",
+      "kind": "cut",
+      "text": "d2",
+      "carrier": "Black plays bishop d2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d2",
+      "kind": "cut",
+      "text": "d2",
+      "carrier": "Black plays bishop takes d2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d3",
+      "kind": "cut",
+      "text": "d3",
+      "carrier": "Black plays bishop d3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d3",
+      "kind": "cut",
+      "text": "d3",
+      "carrier": "Black plays bishop takes d3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d4",
+      "kind": "cut",
+      "text": "d4",
+      "carrier": "Black plays bishop d4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d4",
+      "kind": "cut",
+      "text": "d4",
+      "carrier": "Black plays bishop takes d4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d5",
+      "kind": "cut",
+      "text": "d5",
+      "carrier": "Black plays bishop d5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d5",
+      "kind": "cut",
+      "text": "d5",
+      "carrier": "Black plays bishop takes d5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d6",
+      "kind": "cut",
+      "text": "d6",
+      "carrier": "Black plays bishop d6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d6",
+      "kind": "cut",
+      "text": "d6",
+      "carrier": "Black plays bishop takes d6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d7",
+      "kind": "cut",
+      "text": "d7",
+      "carrier": "Black plays bishop d7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d7",
+      "kind": "cut",
+      "text": "d7",
+      "carrier": "Black plays bishop takes d7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_d8",
+      "kind": "cut",
+      "text": "d8",
+      "carrier": "Black plays bishop d8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_d8",
+      "kind": "cut",
+      "text": "d8",
+      "carrier": "Black plays bishop takes d8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e1",
+      "kind": "cut",
+      "text": "e1",
+      "carrier": "Black plays bishop e1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e1",
+      "kind": "cut",
+      "text": "e1",
+      "carrier": "Black plays bishop takes e1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e2",
+      "kind": "cut",
+      "text": "e2",
+      "carrier": "Black plays bishop e2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e2",
+      "kind": "cut",
+      "text": "e2",
+      "carrier": "Black plays bishop takes e2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e3",
+      "kind": "cut",
+      "text": "e3",
+      "carrier": "Black plays bishop e3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e3",
+      "kind": "cut",
+      "text": "e3",
+      "carrier": "Black plays bishop takes e3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e4",
+      "kind": "cut",
+      "text": "e4",
+      "carrier": "Black plays bishop e4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e4",
+      "kind": "cut",
+      "text": "e4",
+      "carrier": "Black plays bishop takes e4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e5",
+      "kind": "cut",
+      "text": "e5",
+      "carrier": "Black plays bishop e5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e5",
+      "kind": "cut",
+      "text": "e5",
+      "carrier": "Black plays bishop takes e5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e6",
+      "kind": "cut",
+      "text": "e6",
+      "carrier": "Black plays bishop e6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e6",
+      "kind": "cut",
+      "text": "e6",
+      "carrier": "Black plays bishop takes e6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e7",
+      "kind": "cut",
+      "text": "e7",
+      "carrier": "Black plays bishop e7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e7",
+      "kind": "cut",
+      "text": "e7",
+      "carrier": "Black plays bishop takes e7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_e8",
+      "kind": "cut",
+      "text": "e8",
+      "carrier": "Black plays bishop e8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_e8",
+      "kind": "cut",
+      "text": "e8",
+      "carrier": "Black plays bishop takes e8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f1",
+      "kind": "cut",
+      "text": "f1",
+      "carrier": "Black plays bishop f1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f1",
+      "kind": "cut",
+      "text": "f1",
+      "carrier": "Black plays bishop takes f1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f2",
+      "kind": "cut",
+      "text": "f2",
+      "carrier": "Black plays bishop f2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f2",
+      "kind": "cut",
+      "text": "f2",
+      "carrier": "Black plays bishop takes f2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f3",
+      "kind": "cut",
+      "text": "f3",
+      "carrier": "Black plays bishop f3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f3",
+      "kind": "cut",
+      "text": "f3",
+      "carrier": "Black plays bishop takes f3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f4",
+      "kind": "cut",
+      "text": "f4",
+      "carrier": "Black plays bishop f4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f4",
+      "kind": "cut",
+      "text": "f4",
+      "carrier": "Black plays bishop takes f4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f5",
+      "kind": "cut",
+      "text": "f5",
+      "carrier": "Black plays bishop f5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f5",
+      "kind": "cut",
+      "text": "f5",
+      "carrier": "Black plays bishop takes f5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f6",
+      "kind": "cut",
+      "text": "f6",
+      "carrier": "Black plays bishop f6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f6",
+      "kind": "cut",
+      "text": "f6",
+      "carrier": "Black plays bishop takes f6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f7",
+      "kind": "cut",
+      "text": "f7",
+      "carrier": "Black plays bishop f7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f7",
+      "kind": "cut",
+      "text": "f7",
+      "carrier": "Black plays bishop takes f7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_f8",
+      "kind": "cut",
+      "text": "f8",
+      "carrier": "Black plays bishop f8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_f8",
+      "kind": "cut",
+      "text": "f8",
+      "carrier": "Black plays bishop takes f8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g1",
+      "kind": "cut",
+      "text": "g1",
+      "carrier": "Black plays bishop g1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g1",
+      "kind": "cut",
+      "text": "g1",
+      "carrier": "Black plays bishop takes g1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g2",
+      "kind": "cut",
+      "text": "g2",
+      "carrier": "Black plays bishop g2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g2",
+      "kind": "cut",
+      "text": "g2",
+      "carrier": "Black plays bishop takes g2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g3",
+      "kind": "cut",
+      "text": "g3",
+      "carrier": "Black plays bishop g3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g3",
+      "kind": "cut",
+      "text": "g3",
+      "carrier": "Black plays bishop takes g3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g4",
+      "kind": "cut",
+      "text": "g4",
+      "carrier": "Black plays bishop g4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g4",
+      "kind": "cut",
+      "text": "g4",
+      "carrier": "Black plays bishop takes g4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g5",
+      "kind": "cut",
+      "text": "g5",
+      "carrier": "Black plays bishop g5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g5",
+      "kind": "cut",
+      "text": "g5",
+      "carrier": "Black plays bishop takes g5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g6",
+      "kind": "cut",
+      "text": "g6",
+      "carrier": "Black plays bishop g6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g6",
+      "kind": "cut",
+      "text": "g6",
+      "carrier": "Black plays bishop takes g6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g7",
+      "kind": "cut",
+      "text": "g7",
+      "carrier": "Black plays bishop g7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g7",
+      "kind": "cut",
+      "text": "g7",
+      "carrier": "Black plays bishop takes g7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_g8",
+      "kind": "cut",
+      "text": "g8",
+      "carrier": "Black plays bishop g8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_g8",
+      "kind": "cut",
+      "text": "g8",
+      "carrier": "Black plays bishop takes g8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h1",
+      "kind": "cut",
+      "text": "h1",
+      "carrier": "Black plays bishop h1.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h1",
+      "kind": "cut",
+      "text": "h1",
+      "carrier": "Black plays bishop takes h1.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h2",
+      "kind": "cut",
+      "text": "h2",
+      "carrier": "Black plays bishop h2.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h2",
+      "kind": "cut",
+      "text": "h2",
+      "carrier": "Black plays bishop takes h2.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h3",
+      "kind": "cut",
+      "text": "h3",
+      "carrier": "Black plays bishop h3.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h3",
+      "kind": "cut",
+      "text": "h3",
+      "carrier": "Black plays bishop takes h3.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h4",
+      "kind": "cut",
+      "text": "h4",
+      "carrier": "Black plays bishop h4.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h4",
+      "kind": "cut",
+      "text": "h4",
+      "carrier": "Black plays bishop takes h4.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h5",
+      "kind": "cut",
+      "text": "h5",
+      "carrier": "Black plays bishop h5.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h5",
+      "kind": "cut",
+      "text": "h5",
+      "carrier": "Black plays bishop takes h5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h6",
+      "kind": "cut",
+      "text": "h6",
+      "carrier": "Black plays bishop h6.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h6",
+      "kind": "cut",
+      "text": "h6",
+      "carrier": "Black plays bishop takes h6.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h7",
+      "kind": "cut",
+      "text": "h7",
+      "carrier": "Black plays bishop h7.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h7",
+      "kind": "cut",
+      "text": "h7",
+      "carrier": "Black plays bishop takes h7.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "sq_h8",
+      "kind": "cut",
+      "text": "h8",
+      "carrier": "Black plays bishop h8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "sqx_h8",
+      "kind": "cut",
+      "text": "h8",
+      "carrier": "Black plays bishop takes h8.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "file_a",
+      "kind": "cut",
+      "text": "a",
+      "carrier": "White plays rook a a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_b",
+      "kind": "cut",
+      "text": "b",
+      "carrier": "White plays rook b a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_c",
+      "kind": "cut",
+      "text": "c",
+      "carrier": "White plays rook c a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_d",
+      "kind": "cut",
+      "text": "d",
+      "carrier": "White plays rook d a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_e",
+      "kind": "cut",
+      "text": "e",
+      "carrier": "White plays rook e a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_f",
+      "kind": "cut",
+      "text": "f",
+      "carrier": "White plays rook f a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_g",
+      "kind": "cut",
+      "text": "g",
+      "carrier": "White plays rook g a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "file_h",
+      "kind": "cut",
+      "text": "h",
+      "carrier": "White plays rook h a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_1",
+      "kind": "cut",
+      "text": "1",
+      "carrier": "White plays rook 1 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_2",
+      "kind": "cut",
+      "text": "2",
+      "carrier": "White plays rook 2 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_3",
+      "kind": "cut",
+      "text": "3",
+      "carrier": "White plays rook 3 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_4",
+      "kind": "cut",
+      "text": "4",
+      "carrier": "White plays rook 4 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_5",
+      "kind": "cut",
+      "text": "5",
+      "carrier": "White plays rook 5 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_6",
+      "kind": "cut",
+      "text": "6",
+      "carrier": "White plays rook 6 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_7",
+      "kind": "cut",
+      "text": "7",
+      "carrier": "White plays rook 7 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "rank_8",
+      "kind": "cut",
+      "text": "8",
+      "carrier": "White plays rook 8 a8.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "n_0",
+      "kind": "cut",
+      "text": "0",
+      "carrier": "Mate in 0.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_1",
+      "kind": "cut",
+      "text": "1",
+      "carrier": "Mate in 1.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_2",
+      "kind": "cut",
+      "text": "2",
+      "carrier": "Mate in 2.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_3",
+      "kind": "cut",
+      "text": "3",
+      "carrier": "Mate in 3.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_4",
+      "kind": "cut",
+      "text": "4",
+      "carrier": "Mate in 4.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_5",
+      "kind": "cut",
+      "text": "5",
+      "carrier": "Mate in 5.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_6",
+      "kind": "cut",
+      "text": "6",
+      "carrier": "Mate in 6.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_7",
+      "kind": "cut",
+      "text": "7",
+      "carrier": "Mate in 7.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_8",
+      "kind": "cut",
+      "text": "8",
+      "carrier": "Mate in 8.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_9",
+      "kind": "cut",
+      "text": "9",
+      "carrier": "Mate in 9.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_10",
+      "kind": "cut",
+      "text": "10",
+      "carrier": "Mate in 10.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_11",
+      "kind": "cut",
+      "text": "11",
+      "carrier": "Mate in 11.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_12",
+      "kind": "cut",
+      "text": "12",
+      "carrier": "Mate in 12.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_13",
+      "kind": "cut",
+      "text": "13",
+      "carrier": "Mate in 13.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_14",
+      "kind": "cut",
+      "text": "14",
+      "carrier": "Mate in 14.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_15",
+      "kind": "cut",
+      "text": "15",
+      "carrier": "Mate in 15.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_16",
+      "kind": "cut",
+      "text": "16",
+      "carrier": "Mate in 16.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_17",
+      "kind": "cut",
+      "text": "17",
+      "carrier": "Mate in 17.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_18",
+      "kind": "cut",
+      "text": "18",
+      "carrier": "Mate in 18.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_19",
+      "kind": "cut",
+      "text": "19",
+      "carrier": "Mate in 19.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_20",
+      "kind": "cut",
+      "text": "20",
+      "carrier": "Mate in 20.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_21",
+      "kind": "cut",
+      "text": "21",
+      "carrier": "Mate in 21.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_22",
+      "kind": "cut",
+      "text": "22",
+      "carrier": "Mate in 22.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_23",
+      "kind": "cut",
+      "text": "23",
+      "carrier": "Mate in 23.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_24",
+      "kind": "cut",
+      "text": "24",
+      "carrier": "Mate in 24.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_25",
+      "kind": "cut",
+      "text": "25",
+      "carrier": "Mate in 25.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_26",
+      "kind": "cut",
+      "text": "26",
+      "carrier": "Mate in 26.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_27",
+      "kind": "cut",
+      "text": "27",
+      "carrier": "Mate in 27.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_28",
+      "kind": "cut",
+      "text": "28",
+      "carrier": "Mate in 28.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_29",
+      "kind": "cut",
+      "text": "29",
+      "carrier": "Mate in 29.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_30",
+      "kind": "cut",
+      "text": "30",
+      "carrier": "Mate in 30.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_31",
+      "kind": "cut",
+      "text": "31",
+      "carrier": "Mate in 31.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_32",
+      "kind": "cut",
+      "text": "32",
+      "carrier": "Mate in 32.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_33",
+      "kind": "cut",
+      "text": "33",
+      "carrier": "Mate in 33.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_34",
+      "kind": "cut",
+      "text": "34",
+      "carrier": "Mate in 34.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_35",
+      "kind": "cut",
+      "text": "35",
+      "carrier": "Mate in 35.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_36",
+      "kind": "cut",
+      "text": "36",
+      "carrier": "Mate in 36.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_37",
+      "kind": "cut",
+      "text": "37",
+      "carrier": "Mate in 37.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_38",
+      "kind": "cut",
+      "text": "38",
+      "carrier": "Mate in 38.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_39",
+      "kind": "cut",
+      "text": "39",
+      "carrier": "Mate in 39.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_40",
+      "kind": "cut",
+      "text": "40",
+      "carrier": "Mate in 40.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_41",
+      "kind": "cut",
+      "text": "41",
+      "carrier": "Mate in 41.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_42",
+      "kind": "cut",
+      "text": "42",
+      "carrier": "Mate in 42.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_43",
+      "kind": "cut",
+      "text": "43",
+      "carrier": "Mate in 43.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_44",
+      "kind": "cut",
+      "text": "44",
+      "carrier": "Mate in 44.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_45",
+      "kind": "cut",
+      "text": "45",
+      "carrier": "Mate in 45.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_46",
+      "kind": "cut",
+      "text": "46",
+      "carrier": "Mate in 46.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_47",
+      "kind": "cut",
+      "text": "47",
+      "carrier": "Mate in 47.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_48",
+      "kind": "cut",
+      "text": "48",
+      "carrier": "Mate in 48.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_49",
+      "kind": "cut",
+      "text": "49",
+      "carrier": "Mate in 49.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_50",
+      "kind": "cut",
+      "text": "50",
+      "carrier": "Mate in 50.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_51",
+      "kind": "cut",
+      "text": "51",
+      "carrier": "Mate in 51.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_52",
+      "kind": "cut",
+      "text": "52",
+      "carrier": "Mate in 52.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_53",
+      "kind": "cut",
+      "text": "53",
+      "carrier": "Mate in 53.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_54",
+      "kind": "cut",
+      "text": "54",
+      "carrier": "Mate in 54.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_55",
+      "kind": "cut",
+      "text": "55",
+      "carrier": "Mate in 55.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_56",
+      "kind": "cut",
+      "text": "56",
+      "carrier": "Mate in 56.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_57",
+      "kind": "cut",
+      "text": "57",
+      "carrier": "Mate in 57.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_58",
+      "kind": "cut",
+      "text": "58",
+      "carrier": "Mate in 58.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_59",
+      "kind": "cut",
+      "text": "59",
+      "carrier": "Mate in 59.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_60",
+      "kind": "cut",
+      "text": "60",
+      "carrier": "Mate in 60.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_61",
+      "kind": "cut",
+      "text": "61",
+      "carrier": "Mate in 61.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_62",
+      "kind": "cut",
+      "text": "62",
+      "carrier": "Mate in 62.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_63",
+      "kind": "cut",
+      "text": "63",
+      "carrier": "Mate in 63.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_64",
+      "kind": "cut",
+      "text": "64",
+      "carrier": "Mate in 64.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_65",
+      "kind": "cut",
+      "text": "65",
+      "carrier": "Mate in 65.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_66",
+      "kind": "cut",
+      "text": "66",
+      "carrier": "Mate in 66.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_67",
+      "kind": "cut",
+      "text": "67",
+      "carrier": "Mate in 67.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_68",
+      "kind": "cut",
+      "text": "68",
+      "carrier": "Mate in 68.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_69",
+      "kind": "cut",
+      "text": "69",
+      "carrier": "Mate in 69.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_70",
+      "kind": "cut",
+      "text": "70",
+      "carrier": "Mate in 70.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_71",
+      "kind": "cut",
+      "text": "71",
+      "carrier": "Mate in 71.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_72",
+      "kind": "cut",
+      "text": "72",
+      "carrier": "Mate in 72.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_73",
+      "kind": "cut",
+      "text": "73",
+      "carrier": "Mate in 73.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_74",
+      "kind": "cut",
+      "text": "74",
+      "carrier": "Mate in 74.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_75",
+      "kind": "cut",
+      "text": "75",
+      "carrier": "Mate in 75.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_76",
+      "kind": "cut",
+      "text": "76",
+      "carrier": "Mate in 76.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_77",
+      "kind": "cut",
+      "text": "77",
+      "carrier": "Mate in 77.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_78",
+      "kind": "cut",
+      "text": "78",
+      "carrier": "Mate in 78.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_79",
+      "kind": "cut",
+      "text": "79",
+      "carrier": "Mate in 79.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_80",
+      "kind": "cut",
+      "text": "80",
+      "carrier": "Mate in 80.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_81",
+      "kind": "cut",
+      "text": "81",
+      "carrier": "Mate in 81.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_82",
+      "kind": "cut",
+      "text": "82",
+      "carrier": "Mate in 82.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_83",
+      "kind": "cut",
+      "text": "83",
+      "carrier": "Mate in 83.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_84",
+      "kind": "cut",
+      "text": "84",
+      "carrier": "Mate in 84.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_85",
+      "kind": "cut",
+      "text": "85",
+      "carrier": "Mate in 85.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_86",
+      "kind": "cut",
+      "text": "86",
+      "carrier": "Mate in 86.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_87",
+      "kind": "cut",
+      "text": "87",
+      "carrier": "Mate in 87.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_88",
+      "kind": "cut",
+      "text": "88",
+      "carrier": "Mate in 88.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_89",
+      "kind": "cut",
+      "text": "89",
+      "carrier": "Mate in 89.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_90",
+      "kind": "cut",
+      "text": "90",
+      "carrier": "Mate in 90.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_91",
+      "kind": "cut",
+      "text": "91",
+      "carrier": "Mate in 91.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_92",
+      "kind": "cut",
+      "text": "92",
+      "carrier": "Mate in 92.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_93",
+      "kind": "cut",
+      "text": "93",
+      "carrier": "Mate in 93.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_94",
+      "kind": "cut",
+      "text": "94",
+      "carrier": "Mate in 94.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_95",
+      "kind": "cut",
+      "text": "95",
+      "carrier": "Mate in 95.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_96",
+      "kind": "cut",
+      "text": "96",
+      "carrier": "Mate in 96.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_97",
+      "kind": "cut",
+      "text": "97",
+      "carrier": "Mate in 97.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_98",
+      "kind": "cut",
+      "text": "98",
+      "carrier": "Mate in 98.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "n_99",
+      "kind": "cut",
+      "text": "99",
+      "carrier": "Mate in 99.",
+      "wordFrom": 3,
+      "wordTo": 3
+    }
+  ]
+}

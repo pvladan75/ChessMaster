@@ -1,0 +1,1 @@
+{"name":"speech-clips-tool","private":true,"description":"Renders the speech clips of docs/PLAN-GOVOR-IZ-KLIPOVA.md; run by hand, never by the app or the server.","dependencies":{"microsoft-cognitiveservices-speech-sdk":"^1.52.0"}}
