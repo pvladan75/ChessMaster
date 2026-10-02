@@ -10221,3 +10221,10 @@ What it taught, in the order it was paid for:
   spoke twice when its speaker turned speech on) was found by the pilot's
   speech-off case — rule 14, the feature that woke it being the first screen
   to put a `SpeakableInfo` on a line that is also spoken on arrival.
+
+The same day, the other defence: 5495 → **5499** (one pure case, three on the
+pilot screen). **A future that resolves when a thing is queued is not a future
+that resolves when the thing is done** — the move drawn „when the sentence is
+over“ landed under the verdict still playing, until the queued slot carried a
+completer. And a fixture with two defences answered by the same move is one
+defence: the screen folds them, so the gate's two needed two answers.

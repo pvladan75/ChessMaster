@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5495 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5499 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1311,7 +1311,11 @@ carriers — it heard „to e5" as one word. The gate's numbers were measured
 before they were written, which is why its third case is „bounded silence
 at the edges", not „silence": the midpoint of a pause before „Check."
 belongs to the clip. And the lead's own stitch case could not pass — a sum
-of floored frames is not the floor of the sum — and the worker stopped on it.
+of floored frames is not the floor of the sum — and the worker stopped on it. Then the
+other defence (→ **5499**, a full run the same day): the board goes back,
+the voice says „Now suppose Black plays pawn d4.“ and the move is drawn when
+the sentence is over — which needed a **queued** line's future to complete
+when it has been played, not when it was put in the slot.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

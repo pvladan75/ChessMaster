@@ -4739,6 +4739,13 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Rast do oko 7 MB; ako je znatno više, javi.
    Potrebno: Android build.
 
+22. [ ] **Druga odbrana: tabla se vrati, glas kaže „Now suppose Black plays pawn d4.", pa se potez nacrta.** [265.7]
+   O čemu se radi: Kad zagonetka ima više odgovora crnog na tvoj prvi potez (kao f3 sa ..Kd4 i ..d4 na tvojoj slici od 3.10.2026), posle mata u prvoj grani tabla se vraća na poziciju posle tvog poteza, glas prvo kaže koju drugu odbranu crni igra, i tek kad rečenica prođe potez se odigra na tabli. Sa isključenim govorom potez se odigra odmah, kao i do sada.
+   Gde: `Practise` → `Puzzles: Mate in 1, 2 or 3 moves` → `Mate in 2` → zagonetka sa dve odbrane u stablu (desno, „Graphical Move Tree" sa dve grane).
+   Uradi: Reši prvu granu do mata i sačekaj.
+   Treba da vidiš: Posle „Correct. Keep going." tabla se vrati; čuješ „Now suppose Black plays pawn d4." (figura i polje te odbrane); potez se nacrta tek po kraju rečenice; posle toga rešavaš drugu granu kao do sada. Rokada kao odbrana se kaže kao „Black castles kingside.", bez „Now suppose".
+   Potrebno: Windows i telefon; zvučnik.
+
 ### Practise — Practise — ostalo
 
 1. [ ] **Isti panel stabla radi i u Analizi.** [70.9]

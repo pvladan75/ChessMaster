@@ -175,8 +175,19 @@ prepravljen. Ciljani skup 167 zeleno, analyze istih 22. Provera uživo
 [265.1]–[265.6] (poruka „Checkmate." se čuje dvaput kod poraza u vežbi —
 odgovor pa dijalog; [265.3] odlučuje).
 
-**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026: **5495** (1 preskočen),
-upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova provera uživo [265.1]–[265.6]; pa faza 4 — tabela
+**Druga odbrana, 3.10.2026** (lead, na vlasnikovu sliku zagonetke sa dve
+odbrane): kad se tabla vrati da proba drugu odbranu, glas kaže „Now suppose
+Black plays pawn d4." i potez se nacrta **kad rečenica prođe** (odmah kad je
+govor isključen). Dva nova žetona (279 klipova, 7,4 MB),
+`MoveWords.supposeLine`, i `speakLine` čiji se Future završava kad je
+**red čekanja** odsviran, ne kad je linija stavljena u njega — jer „Correct.
+Keep going." još traje kad se traži pretpostavka. Pitanje umesto tvrdnje je
+odbijeno: polja su isečena iz tvrdnji i padaju. Tri mutacije crvene na svom
+slučaju; provera uživo [265.7].
+
+**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026: **5495** (1 preskočen) pre
+druge odbrane, upisano u `CLAUDE.md` i `LESSONS.md`; sa drugom odbranom **5499**,
+izmereno 3.10.2026 i upisano u `CLAUDE.md`; vlasnikova provera uživo [265.1]–[265.7]; pa faza 4 — tabela
 reči za sledeći modul (taktika, pa završnice i `EndgameInfoPanel`, pa
 repertoar, pa šetnja), svaka odobrena pre gradnje; `flutter_tts` se briše tek
 na kraju.

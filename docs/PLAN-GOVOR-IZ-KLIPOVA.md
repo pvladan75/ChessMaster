@@ -130,6 +130,7 @@ copied here. The draft:
 |---|---|
 | A puzzle appears, or „Next position" | „White to move. Mate in two." / „Black to move. Find the winning path." |
 | The opponent replies | „Black plays knight d7." / „Black plays queen takes e8." (D1) |
+| The puzzle goes back to try the opponent's other defence | „Now suppose Black plays pawn d4." — said first, the move drawn when the sentence is over (added 3.10.2026) |
 | A right move that does not end the puzzle | „Correct. Keep going." |
 | A wrong move | „Incorrect. Try another move." |
 | Mate delivered | „Checkmate. Puzzle solved." |
@@ -283,6 +284,22 @@ decides whether that stays ([265.3]). The basic mate drill speaks replies
 and verdicts as well; the homework game (`engine_game`) stays silent.
 `SpeechService.init` loads the clips only when handed a `ClipVoice`, which
 `main.dart` does, so the existing speech tests never touch `rootBundle`.
+
+**Added the same day, on the owner's picture of a puzzle with two defences:**
+when the board goes back to try the other defence, the voice says „Now
+suppose Black plays pawn d4." and the move is drawn **when the sentence is
+over** (at once with speech off). Two cut tokens (`now_suppose_white_plays`,
+`now_suppose_black_plays`, carriers of that shape; 277 → **279** clips,
+7.4 MB), `MoveWords.supposeLine` (castling is said plainly, its sentence
+carrying the side), and `SpeechService.speakLine`'s future now completes
+when a **queued** line has been played, not when it was put in the slot —
+the verdict „Correct. Keep going." is still playing when the supposition is
+asked for, and a future that resolved at once would have drawn the move
+under it. A question form was considered and refused: every square clip is
+cut from a statement and falls, and a question's square rises. The gate's
+fixture first folded into one defence — the screen treats two defences with
+the same answer as one — so the two defences have two answers. Three
+mutations, each red on its case. Live item [265.7].
 
 `SpokenLine` and `MoveWords` in `lib/core/speech/`; `ClipVoice` (load,
 stitch, play, stop) with the player behind a seam a test can fake;
