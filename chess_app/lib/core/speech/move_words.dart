@@ -91,6 +91,17 @@ class MoveWords {
     return SpokenLine(tokens);
   }
 
+  /// The same move as the opponent's *other* defence, said before it is
+  /// drawn: „Now suppose Black plays pawn d4." Castling has no such form —
+  /// its sentence carries the side in its own words — so a castling move is
+  /// said as [line] says it.
+  static SpokenLine supposeLine(MoveFacts f) {
+    if (f.castles != null) return line(f);
+    final plain = line(f);
+    return SpokenLine(
+        [SpeechVocabulary.nowSuppose(f.side), ...plain.tokens.skip(1)]);
+  }
+
   /// The facts of the move [from]→[to] played in the position [fenBefore], or
   /// null when it is not a legal move there. Read off a copy of the position;
   /// nothing is played on the caller's board.

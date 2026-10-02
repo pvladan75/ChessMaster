@@ -160,6 +160,20 @@
     "wordTo": 2,
     "voice": "en-US-AndrewNeural"
   },
+  "now_suppose_white_plays": {
+    "kind": "cut",
+    "carrier": "Now suppose White plays bishop e5.",
+    "wordFrom": 1,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "now_suppose_black_plays": {
+    "kind": "cut",
+    "carrier": "Now suppose Black plays bishop e5.",
+    "wordFrom": 1,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
   "piece_king": {
     "kind": "cut",
     "carrier": "Black plays king e5.",

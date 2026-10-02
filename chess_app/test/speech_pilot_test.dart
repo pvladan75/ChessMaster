@@ -444,6 +444,92 @@ void main() {
     });
   });
 
+  // ── 2b. the other defence: said first, drawn when the sentence is over ──
+
+  group('the other defence', () {
+    // A puzzle whose first move has two replies in the tree: the reader mates
+    // after the first, the board goes back, and the second is announced.
+    Map<String, dynamic> twoDefences() => _puzzle(
+          '7k/7p/8/3n4/8/8/P7/K5N1 w - - 0 1',
+          {
+            'a2a3': {
+              // Two defences with two different answers: defences answered
+              // by the same move are folded into one by the screen.
+              'd5b6': {'a3a4': 'CHECKMATE'},
+              'h7h6': {'g1h3': 'CHECKMATE'},
+            }
+          },
+        );
+
+    String fenOnBoard(WidgetTester tester) => tester
+        .widget<SkinnedChessBoard>(find.byType(SkinnedChessBoard).first)
+        .controller
+        .getFen();
+
+    testWidgets(
+        'the board goes back, the voice says the other defence, and the move '
+        'is drawn only when the sentence has been said', (tester) async {
+      final rig = await _rig();
+      await http.runWithClient(() async {
+        await _pump(tester, rig.speech);
+        await _moveAndWait(tester, 'a2', 'a3');
+        expect(rig.voice.said.last, 'black_plays piece_knight sq_b6');
+        // The mating move of the first line; the verdict is said at once,
+        // the supposition 600 ms later — and from here the voice is held.
+        await _move(tester, 'a3', 'a4');
+        await tester.pump(const Duration(milliseconds: 100));
+        final hold = Completer<void>();
+        rig.voice.hold = hold;
+        await tester.pump(const Duration(milliseconds: 700));
+        expect(rig.voice.said.last, 'now_suppose_black_plays piece_pawn sq_h6');
+        expect(rig.voice.lines.last.text, 'Now suppose Black plays pawn h6.');
+        // Said, not yet drawn: the pawn is still on h7 and the board is the
+        // position after the reader's first move.
+        expect(fenOnBoard(tester), startsWith('7k/7p/8/3n4/8/P7/8/K5N1 b'));
+        hold.complete();
+        rig.voice.hold = null;
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(fenOnBoard(tester), startsWith('7k/8/7p/3n4/8/P7/8/K5N1 w'));
+        await _leave(tester);
+      }, () => _server(twoDefences()));
+    });
+
+    testWidgets('with speech off the other defence is drawn at once',
+        (tester) async {
+      final rig = await _rig(enabled: false);
+      await http.runWithClient(() async {
+        await _pump(tester, rig.speech);
+        await _moveAndWait(tester, 'a2', 'a3');
+        await _move(tester, 'a3', 'a4');
+        await tester.pump(const Duration(milliseconds: 800));
+        expect(rig.voice.said, isEmpty);
+        expect(fenOnBoard(tester), startsWith('7k/8/7p/3n4/8/P7/8/K5N1 w'));
+        await _leave(tester);
+      }, () => _server(twoDefences()));
+    });
+
+    testWidgets('a line queued behind another completes when it has been said',
+        (tester) async {
+      final rig = await _rig();
+      final first = Completer<void>();
+      rig.voice.hold = first;
+      unawaited(rig.speech.speakLine(SpokenLine([SpeechVocabulary.checkmate])));
+      var done = false;
+      unawaited(rig.speech
+          .speakLine(SpokenLine([SpeechVocabulary.puzzleSolved]), force: true)
+          .then((_) => done = true));
+      await tester.pump();
+      expect(done, isFalse);
+      rig.voice.hold = null;
+      first.complete();
+      await tester.pump();
+      await tester.pump();
+      expect(done, isTrue);
+      expect(rig.voice.said, ['checkmate', 'puzzle_solved']);
+    });
+  });
+
   // ── 3. the verdicts ────────────────────────────────────────────────────
 
   group('the verdicts', () {

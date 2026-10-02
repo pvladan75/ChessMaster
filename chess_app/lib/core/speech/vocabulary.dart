@@ -166,6 +166,11 @@ class SpeechVocabulary {
   static SpeechToken get promotesTo => _must('promotes_to');
   static SpeechToken get mateIn => _must('mate_in');
 
+  /// „Now suppose Black plays" — the head of the sentence a puzzle says when
+  /// it goes back to try the opponent's other defence.
+  static SpeechToken nowSuppose(String side) =>
+      _must('now_suppose_${side}_plays');
+
   static SpeechToken piece(String piece) => _must('piece_$piece');
   static SpeechToken promotionPiece(String piece) => _must('prom_$piece');
 
@@ -223,6 +228,12 @@ class SpeechVocabulary {
     cut('promotes_to', 'promotes to', 'Black plays pawn e8, promotes to queen.',
         5, 6);
     cut('mate_in', 'Mate in', 'Mate in 3.', 1, 2);
+    // The second defence of a puzzle: the board goes back and the voice says
+    // what the opponent plays instead, before the move is drawn.
+    cut('now_suppose_white_plays', 'Now suppose White plays',
+        'Now suppose White plays bishop e5.', 1, 4);
+    cut('now_suppose_black_plays', 'Now suppose Black plays',
+        'Now suppose Black plays bishop e5.', 1, 4);
 
     for (final p in kPieces) {
       cut('piece_$p', p, 'Black plays $p e5.', 3, 3);

@@ -469,7 +469,12 @@ class SpeechService extends ChangeNotifier {
   /// the older of the two is already out of date and nobody wants to hear a
   /// backlog. What must not happen is losing the newest, which is the one that
   /// describes the board as it now stands.
-  ({String text, String voice, SpokenLine? line})? _queued;
+  ({
+    String text,
+    String voice,
+    SpokenLine? line,
+    Completer<void>? done
+  })? _queued;
 
   /// Says a sentence the screen is showing.
   ///
@@ -493,7 +498,7 @@ class SpeechService extends ChangeNotifier {
     if (!force && spoken == _lastSpoken) return;
 
     if (_speaking) {
-      _queued = (text: spoken, voice: voice, line: null);
+      _queued = (text: spoken, voice: voice, line: null, done: null);
       return;
     }
     _lastSpoken = spoken;
@@ -511,8 +516,14 @@ class SpeechService extends ChangeNotifier {
     if (!force && spoken == _lastSpoken) return;
 
     if (_speaking) {
-      _queued = (text: spoken, voice: '', line: line);
-      return;
+      // The caller may be holding a move back until this line has been said
+      // (the puzzle's other defence), so the future it gets completes when
+      // the line has been played, not when it was put in the slot — and when
+      // the slot is overwritten or emptied, so nothing waits for ever.
+      _queued?.done?.complete();
+      final done = Completer<void>();
+      _queued = (text: spoken, voice: '', line: line, done: done);
+      return done.future;
     }
     _lastSpoken = spoken;
     await _utterLine(line);
@@ -536,13 +547,17 @@ class SpeechService extends ChangeNotifier {
     final next = _queued;
     _queued = null;
     if (next == null) return;
-    if (!_enabled || _state == SpeechState.failed) return;
-    _lastSpoken = next.text;
-    final line = next.line;
-    if (line != null) {
-      await _utterLine(line);
-    } else {
-      await _utter(next.text, next.voice);
+    try {
+      if (!_enabled || _state == SpeechState.failed) return;
+      _lastSpoken = next.text;
+      final line = next.line;
+      if (line != null) {
+        await _utterLine(line);
+      } else {
+        await _utter(next.text, next.voice);
+      }
+    } finally {
+      next.done?.complete();
     }
   }
 
@@ -640,6 +655,7 @@ class SpeechService extends ChangeNotifier {
   /// app itself never does.
   Future<void> stop() async {
     _lastSpoken = '';
+    _queued?.done?.complete();
     _queued = null;
     _finishSpeaking();
     await _stopEngine();

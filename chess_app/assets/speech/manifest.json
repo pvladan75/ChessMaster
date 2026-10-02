@@ -157,6 +157,22 @@
       "wordTo": 2
     },
     {
+      "id": "now_suppose_white_plays",
+      "kind": "cut",
+      "text": "Now suppose White plays",
+      "carrier": "Now suppose White plays bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
+      "id": "now_suppose_black_plays",
+      "kind": "cut",
+      "text": "Now suppose Black plays",
+      "carrier": "Now suppose Black plays bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
       "id": "piece_king",
       "kind": "cut",
       "text": "king",

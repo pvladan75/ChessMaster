@@ -1249,6 +1249,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   void _saySolved() =>
       _sayToken(SpeechVocabulary.checkmate, SpeechVocabulary.puzzleSolved);
 
+  /// The opponent's other defence, said before it is drawn — and waited for,
+  /// so the move lands after the sentence. Resolves at once when speech is
+  /// off, when the voice throws, or when nothing can be said of the move.
+  Future<void> _saySuppose(String fenBefore, String lan) async {
+    if (!mounted || _selectedCategory == 'engine_game' || lan.length < 4) {
+      return;
+    }
+    try {
+      final facts = MoveWords.factsOf(
+          fenBefore, lan.substring(0, 2), lan.substring(2, 4),
+          promotion: lan.length > 4 ? lan[4].toLowerCase() : 'q');
+      if (facts == null) return;
+      await _speech
+          .speakLine(MoveWords.supposeLine(facts), force: true)
+          .catchError((Object _) {});
+    } catch (_) {}
+  }
+
   /// The reply the engine, or the puzzle, has just played: `fenBefore` is the
   /// position it was played in, so the words are read off the move that was
   /// played and not off a string of squares.
@@ -1972,19 +1990,35 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             _showSnackBar('Great! Now solve the opponent\'s other defense.');
             _sayToken(SpeechVocabulary.correctKeepGoing);
 
-            // Reset board to the EXACT branching FEN (post-user-move position) and play next opponent variation
-            _pause(const Duration(milliseconds: 600)).then((_) {
+            // Reset board to the EXACT branching FEN (post-user-move position),
+            // say which other defence is coming, and only then play it: the
+            // owner's ask of 3.10.2026 — the board goes back, the voice says
+            // „Now suppose Black plays pawn d4.", and the move is drawn when
+            // the sentence is over. With speech off the sentence takes no
+            // time and the move is drawn at once, as before.
+            final bp = pendingBP;
+            _pause(const Duration(milliseconds: 600)).then((_) async {
               if (!mounted) return;
               try {
-                _puzzleGame = chess.Chess.fromFEN(pendingBP!.fenPostUserMove);
-                _puzzleBoardController.loadFen(pendingBP.fenPostUserMove);
-                _activeFen = pendingBP.fenPostUserMove;
+                _puzzleGame = chess.Chess.fromFEN(bp.fenPostUserMove);
+                _puzzleBoardController.loadFen(bp.fenPostUserMove);
+                _activeFen = bp.fenPostUserMove;
+                setState(() {
+                  _lastMoveFrom = null;
+                  _lastMoveTo = null;
+                });
 
                 final oppFrom = nextOppMove.substring(0, 2);
                 final oppTo = nextOppMove.substring(2, 4);
                 final oppPromo = nextOppMove.length > 4 ? nextOppMove[4] : null;
-
                 final fenBeforeVariation = _puzzleGame!.fen;
+
+                await _saySuppose(fenBeforeVariation, nextOppMove);
+                if (!mounted) return;
+                // The board may have been replaced while the voice spoke —
+                // a new puzzle, Try again — and this defence is then nobody's.
+                if (_activeFen != fenBeforeVariation) return;
+
                 _puzzleGame!.move(
                     {'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
                 final animatedPiece = _puzzleGame!.get(oppTo);
@@ -1994,9 +2028,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
                 _lastMoveTo = oppTo;
-                _sayReply(fenBeforeVariation, nextOppMove);
 
-                final oppSubNode = pendingBP.oppBranchMap[nextOppMove];
+                final oppSubNode = bp.oppBranchMap[nextOppMove];
                 if (oppSubNode is Map) {
                   _currentSolutionsNode = Map<String, dynamic>.from(oppSubNode);
                 } else if (oppSubNode is List) {

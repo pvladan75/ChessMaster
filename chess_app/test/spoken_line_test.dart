@@ -157,6 +157,28 @@ void main() {
       );
     });
 
+    test('the other defence is said as a supposition, then the move (D3)', () {
+      final line = MoveWords.supposeLine(
+          const MoveFacts(side: 'black', piece: 'pawn', to: 'd4'));
+      expect(ids(line), ['now_suppose_black_plays', 'piece_pawn', 'sq_d4']);
+      expect(line.text, 'Now suppose Black plays pawn d4.');
+      expect(
+        ids(MoveWords.supposeLine(const MoveFacts(
+            side: 'white',
+            piece: 'knight',
+            to: 'e5',
+            capture: true,
+            check: true))),
+        ['now_suppose_white_plays', 'piece_knight', 'takes', 'sqx_e5', 'check'],
+      );
+      // Castling carries the side in its own sentence, so it is said plainly.
+      expect(
+        ids(MoveWords.supposeLine(const MoveFacts(
+            side: 'black', piece: 'king', to: 'g8', castles: 'kingside'))),
+        ['black_castles_kingside'],
+      );
+    });
+
     test('every legal shape of move names only tokens with a clip', () {
       for (final side in ['white', 'black']) {
         for (final piece in kPieces) {
