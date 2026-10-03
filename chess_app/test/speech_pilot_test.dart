@@ -297,7 +297,11 @@ void main() {
       await http.runWithClient(() async {
         await _pump(tester, rig.speech);
         expect(rig.voice.said, [_taskMate2]);
-        await tester.tap(find.text('Next Position'));
+        // "Next" is the filled button under the board (phase 1 of
+        // docs/PLAN-EKRANI.md; it was "Next Position" in the header).
+        final next = find.widgetWithText(FilledButton, 'Next');
+        await tester.ensureVisible(next);
+        await tester.tap(next);
         await tester.pumpAndSettle();
         expect(rig.voice.said, [_taskMate2, _taskMate2]);
         await _leave(tester);
@@ -531,7 +535,10 @@ void main() {
         await _pump(tester, rig.speech);
         await _move(tester, 'a2', 'a3');
         await tester.pumpAndSettle();
-        expect(find.text('Incorrect Move!'), findsOneWidget);
+        // The sentence the voice says is the sentence the panel draws; it was
+        // the title of a bottom sheet („Incorrect Move!").
+        expect(find.text('Incorrect. Try another move.'), findsOneWidget);
+        expect(find.byType(BottomSheet), findsNothing);
         expect(rig.voice.said, [_taskMate2, 'incorrect_try_another']);
         expect(rig.voice.lines.last.text, 'Incorrect. Try another move.');
         await _leave(tester);

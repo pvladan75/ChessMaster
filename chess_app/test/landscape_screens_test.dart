@@ -276,7 +276,9 @@ void main() {
           ),
         );
         expectBoardBeside(tester, size);
-        expectOnScreen(tester, size, find.byTooltip('Next Position'));
+        // The one filled button, in the panel's column; the header icon
+        // that had the tooltip „Next Position" is gone (R5).
+        expectOnScreen(tester, size, find.widgetWithText(FilledButton, 'Next'));
       });
     }
   });

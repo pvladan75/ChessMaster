@@ -7,7 +7,6 @@ import 'package:chess_app/widgets/ai_studio/pgn_solution_tree_widget.dart';
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/widgets/game_screen/move_keyboard_shortcuts.dart';
 import 'package:chess_app/widgets/game_screen/move_navigation_controls.dart';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -15,7 +14,7 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
+
 import 'package:chess/chess.dart' as chess;
 import 'package:chess_app/constants.dart';
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
@@ -34,6 +33,7 @@ import 'package:chess_app/widgets/engine_opponent_sheet.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 import 'package:chess_app/widgets/promotion_picker.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 
@@ -57,6 +57,57 @@ enum PuzzleGameState {
   verifyingMove,
   waitingEngineMove,
   puzzleCompleted,
+}
+
+/// What kind of thing the panel is saying about the last answer.
+enum _VerdictKind {
+  /// A move that is not in the solution tree: the board stays as it is until
+  /// the reader chooses (Try again, Show solution, Next).
+  wrong,
+
+  /// A move the engine refused, taken back on its own: nothing to choose.
+  rejected,
+
+  /// A right move that leaves another defence to solve.
+  defence,
+  solved,
+
+  /// The drill ended against the reader, or with no mate to deliver.
+  lost,
+  drawn,
+
+  /// An own game of „Play it out" ended.
+  gameEnded,
+}
+
+/// The one piece of state that says what the panel says about the last answer
+/// (rule R3 of `docs/PLAN-EKRANI.md`): where a snackbar, a dialog and a bottom
+/// sheet used to say it, five ways. Its [lines] are drawn text; what is spoken
+/// is said where it always was, by `_say…`, and is not carried here.
+class _Verdict {
+  const _Verdict(this.kind, this.lines,
+      {required this.good, required this.icon});
+
+  final _VerdictKind kind;
+  final List<String> lines;
+  final bool good;
+
+  /// A shape that says good or not good by itself, never by colour alone.
+  final IconData icon;
+
+  /// Whether the board waits for a choice: an answer that ended the drill, or
+  /// one that was wrong and has not been taken back. The modal sheet and the
+  /// dialogs kept the board still by being in the way; this does it by name.
+  bool get locksBoard =>
+      kind == _VerdictKind.wrong ||
+      kind == _VerdictKind.lost ||
+      kind == _VerdictKind.drawn;
+
+  /// The drill is over for the reader, and not by a solve.
+  bool get endsDrill => kind == _VerdictKind.lost || kind == _VerdictKind.drawn;
+
+  _Verdict withLine(String line) =>
+      _Verdict(kind, [...lines, line], good: good, icon: icon);
 }
 
 class VariationBranchPoint {
@@ -290,6 +341,32 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   bool _isLoadingPuzzle = false;
   bool _puzzleSolved = false;
   bool _puzzleFailed = false;
+
+  /// What the panel says about the last answer; null when it says nothing.
+  /// Cleared wherever a puzzle is put on the board again and at the reader's
+  /// next move.
+  _Verdict? _verdict;
+
+  bool get _verdictLocksBoard => _verdict?.locksBoard ?? false;
+
+  /// The puzzle is over for the reader: solved, given up on, or a drill that
+  /// ended against them. Decides when the engine's panel may appear (answer
+  /// B of `docs/PLAN-EKRANI.md`), and when „Show solution" has nothing left
+  /// to show.
+  bool get _puzzleOver =>
+      _puzzleSolved ||
+      _puzzleFailed ||
+      _showSolutionTree ||
+      (_verdict?.endsDrill ?? false);
+
+  /// Says [verdict] in the panel. After the answer is on the board and the
+  /// result is recorded, like the dialogs it replaces: **do the thing, then
+  /// say it**.
+  void _declare(_Verdict verdict) {
+    if (!mounted) return;
+    setState(() => _verdict = verdict);
+  }
+
   bool _isBackendConnected = true;
   int _consecutiveServerFailures = 0;
   Timer? _serverHealthTimer;
@@ -376,8 +453,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     final opening = widget.initialCategory;
     if (opening != null) {
       if (widget.mateDepth != null) _selectedMateDepth = widget.mateDepth!;
-      if (widget.basicMateLevel != null)
+      if (widget.basicMateLevel != null) {
         _selectedBasicMateType = widget.basicMateLevel!;
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _launchCategory(opening);
       });
@@ -490,6 +568,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     // 5. IF loading a COMPLETELY NEW PUZZLE, reset evaluation toggles A/B to OFF!
     if (isNewPuzzle) {
+      _verdict = null;
       _showEvaluation = false;
       _showEvalBar = false;
       _userMoveCount = 0;
@@ -688,7 +767,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   'Stockfish at depth $depth did not find mate in $remainingNeeded moves.',
             });
 
-            _showSnackBar('Incorrect move! Try another move.');
+            _declare(_incorrectVerdict(_VerdictKind.rejected));
             _sayToken(SpeechVocabulary.incorrectTryAnother);
             return;
           }
@@ -916,13 +995,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         final verdict =
             verdictFor(_puzzleGame!, _userColor ?? _puzzleGame!.turn);
         if (verdict.outcome == DrillOutcome.readerLost) {
-          _showEndgameLossDialog();
+          _declareLoss();
         } else if (verdict.outcome == DrillOutcome.readerWon) {
           setState(() => _puzzleSolved = true);
-          _showEndgameWinDialog();
+          _declareWin();
           _saySolved();
         } else if (verdict.outcome == DrillOutcome.drawn) {
-          _showEndgameDrawDialog(verdict.ending!);
+          _declareDraw(verdict.ending!);
         } else {
           if (_selectedCategory != 'mate_puzzle' &&
               (_showEvaluation || _showEvalBar)) {
@@ -1281,10 +1360,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   }
 
   String get _categoryDisplayName {
-    if (_selectedCategory == 'mate_puzzle')
+    if (_selectedCategory == 'mate_puzzle') {
       return 'Puzzles: Mate in $_selectedMateDepth';
-    if (_selectedCategory == 'basic_mate')
+    }
+    if (_selectedCategory == 'basic_mate') {
       return 'Practice basic checkmate ($_selectedBasicMateType)';
+    }
     if (_selectedCategory == 'winning_position') return 'Find the winning path';
     return _selectedCategory ?? 'Training';
   }
@@ -1382,16 +1463,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     );
   }
 
-  /// „Next Position" pressed before the puzzle is solved is a skip, recorded
-  /// so it does not read as "never seen" on the hub card
-  /// (docs/PLAN-NAPREDAK-VEZBI.md §4). Solved puzzles reach this only through
-  /// the win/loss dialogs, which already recorded the attempt themselves.
+  /// „Next" pressed before the puzzle is solved is a skip, recorded so it does
+  /// not read as "never seen" on the hub card
+  /// (docs/PLAN-NAPREDAK-VEZBI.md §4) — **unless a wrong move was made**: then
+  /// giving the puzzle up is a failure, as it was when the sheet that said
+  /// „Incorrect Move!" had a „Next Puzzle". A drill that ended against the
+  /// reader records nothing, as its dialog's „Next Position" did not.
+  /// Solved puzzles have recorded the attempt themselves.
   void _goToNextPuzzle() {
-    if (!_puzzleSolved && !_puzzleFailed) {
+    if (_verdict?.kind == _VerdictKind.wrong) {
+      _sendBackendLog({'type': 'buttonClick', 'button': 'Next Puzzle'});
+      _submitPuzzleResult(false);
+    } else if (!_puzzleSolved &&
+        !_puzzleFailed &&
+        !(_verdict?.endsDrill ?? false)) {
       if (_selectedCategory == 'basic_mate') {
         _recordBasicMateAttempt(solved: false, skipped: true);
       } else {
-        _submitPuzzleResult(false, skipped: true, showResultDialog: false);
+        _submitPuzzleResult(false, skipped: true);
       }
     }
     if (_selectedCategory == 'basic_mate') {
@@ -1541,7 +1630,29 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     _activeFen = _initialPuzzleFen;
     _puzzleBoardController.loadFen(_initialPuzzleFen!);
 
+    // The puzzle starts over from its first move, so the tree it is walked
+    // along does too: a solved line left the screen standing at its last node.
+    if (_currentPuzzle != null && _currentPuzzle!['solutions'] != null) {
+      _rootSolutionsTree =
+          Map<String, dynamic>.from(_currentPuzzle!['solutions']);
+      _currentSolutionsNode = Map<String, dynamic>.from(_rootSolutionsTree);
+    }
+    _activeBranchPoints.clear();
+
+    // Solving it again is solving it: the engine's panel goes (answer B) and
+    // the engine with it, so the second go is not helped by the first one's
+    // arrows. A game of „Play it out" keeps its engine, as it always had it.
+    final solvingAgain = _selectedCategory != 'engine_game' &&
+        _selectedCategory != 'mate_puzzle';
+    if (solvingAgain) {
+      _showEvaluation = false;
+      _showEvalBar = false;
+      _engineLinesMap.clear();
+      _engineArrows.clear();
+    }
+
     setState(() {
+      _verdict = null;
       _puzzleSolved = false;
       _puzzleFailed = false;
       _moveIndex = 0;
@@ -1551,7 +1662,8 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       _puzzleMoveTree = MoveTree(startingFen: _initialPuzzleFen!);
     });
 
-    if (_selectedCategory != 'mate_puzzle' &&
+    if (!solvingAgain &&
+        _selectedCategory != 'mate_puzzle' &&
         (_showEvaluation || _showEvalBar)) {
       _selectedGroupedMoveIndices.clear();
       _stockfishService.setMultiPV(_analysisLines);
@@ -1569,17 +1681,24 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   }
 
   Future<void> _handleSquareTap(String square) async {
-    if (_isOpponentTurn || _puzzleSolved || _puzzleGame == null) return;
+    if (_isOpponentTurn ||
+        _puzzleSolved ||
+        _verdictLocksBoard ||
+        _puzzleGame == null) {
+      return;
+    }
 
     final piece = _puzzleGame!.get(square);
     final isTurnWhite = _puzzleGame!.turn == chess.Color.WHITE;
 
     bool isFriendlyPiece = false;
     if (piece != null) {
-      if (isTurnWhite && piece.color == chess.Color.WHITE)
+      if (isTurnWhite && piece.color == chess.Color.WHITE) {
         isFriendlyPiece = true;
-      if (!isTurnWhite && piece.color == chess.Color.BLACK)
+      }
+      if (!isTurnWhite && piece.color == chess.Color.BLACK) {
         isFriendlyPiece = true;
+      }
     }
 
     if (isFriendlyPiece) {
@@ -1665,8 +1784,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           'promotion': promo.isEmpty ? 'q' : promo,
         });
         final animatedPiece = _puzzleGame!.get(toStr);
-        if (animatedPiece != null)
+        if (animatedPiece != null) {
           _triggerMoveAnimation(fromStr, toStr, animatedPiece);
+        }
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         _recordMoveInTree(fromStr, toStr, san: san);
@@ -1674,8 +1794,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       } else {
         _puzzleBoardController.makeMove(from: fromStr, to: toStr);
         final animatedPiece = _puzzleBoardController.game.get(toStr);
-        if (animatedPiece != null)
+        if (animatedPiece != null) {
           _triggerMoveAnimation(fromStr, toStr, animatedPiece);
+        }
         _activeFen = _puzzleBoardController.getFen();
       }
       setState(() {
@@ -1694,10 +1815,14 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     if (_isOpponentTurn ||
         _puzzleGame == null ||
         _isVerifyingUserMove ||
-        _puzzleSolved) return;
+        _puzzleSolved) {
+      return;
+    }
     _isVerifyingUserMove = true;
     setState(() {
       _gameState = PuzzleGameState.verifyingMove;
+      // The last answer has been read: a move is the next question.
+      _verdict = null;
     });
 
     final currentFen = _puzzleBoardController.getFen();
@@ -1846,7 +1971,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         'status': 'DRAWN',
         'reason': endingLabel(verdict.ending!),
       });
-      _showEndgameDrawDialog(verdict.ending!);
+      _declareDraw(verdict.ending!);
       return;
     }
     if (verdict.outcome == DrillOutcome.readerWon &&
@@ -1867,16 +1992,15 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       if (_selectedCategory == 'basic_mate') {
         setState(() => _puzzleSolved = true);
         _recordBasicMateAttempt(solved: true);
-        _showEndgameWinDialog();
       } else if (_selectedCategory == 'winning_position') {
         setState(() => _puzzleSolved = true);
-        // Records and moves the rating without opening a second dialog —
-        // `_showEndgameWinDialog` already tells the player they won.
-        _submitPuzzleResult(true, showResultDialog: false);
-        _showEndgameWinDialog();
+        // Records and moves the rating; the panel says it, with the rating
+        // once the server has answered.
+        _submitPuzzleResult(true);
       } else {
         _submitPuzzleResult(true);
       }
+      _declareWin();
       _saySolved();
       return;
     }
@@ -1987,7 +2111,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               'remainingBranches': pendingBP.pendingOpponentMoves.length,
             });
 
-            _showSnackBar('Great! Now solve the opponent\'s other defense.');
+            _declare(const _Verdict(
+              _VerdictKind.defence,
+              ['Great! Now solve the opponent\'s other defense.'],
+              good: true,
+              icon: Icons.check_circle_outline,
+            ));
             // „Correct." and not „Keep going.": the line is over and the board
             // is about to go back to the fork (the owner's live pass of
             // 3.10.2026, [265.7]).
@@ -2025,8 +2154,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                 _puzzleGame!.move(
                     {'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
                 final animatedPiece = _puzzleGame!.get(oppTo);
-                if (animatedPiece != null)
+                if (animatedPiece != null) {
                   _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
+                }
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -2064,7 +2194,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             _gameState = PuzzleGameState.puzzleCompleted;
           });
           _submitPuzzleResult(true);
-          _showSnackBar('Congratulations! Puzzle solved! 🎉');
+          _declareWin();
           _saySolved();
           return;
         }
@@ -2132,8 +2262,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                   .move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
               if (moveObj) {
                 final animatedPiece = _puzzleGame!.get(oppTo);
-                if (animatedPiece != null)
+                if (animatedPiece != null) {
                   _triggerMoveAnimation(oppFrom, oppTo, animatedPiece);
+                }
                 _puzzleBoardController.loadFen(_puzzleGame!.fen);
                 _activeFen = _puzzleGame!.fen;
                 _lastMoveFrom = oppFrom;
@@ -2176,7 +2307,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     _gameState = PuzzleGameState.puzzleCompleted;
                   });
                   _submitPuzzleResult(true);
-                  _showSnackBar('Congratulations! Puzzle solved! 🎉');
+                  _declareWin();
                   _saySolved();
                 }
               }
@@ -2197,13 +2328,13 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           _gameState = PuzzleGameState.puzzleCompleted;
         });
         _submitPuzzleResult(true);
-        _showSnackBar('Congratulations! Puzzle solved! 🎉');
+        _declareWin();
         _saySolved();
         return;
       } else {
-        // Move NOT in solution tree -> Show failure modal dialog with 3 choices!
+        // Move NOT in solution tree -> Declare it in the panel, with 3 choices under the board!
         print(
-            '[TREE_VERIFICATION] ❌ Move $userLan is not in the solution tree! Showing error dialog.');
+            '[TREE_VERIFICATION] ❌ Move $userLan is not in the solution tree! Declaring it in the panel.');
         _sendBackendLog({
           'mode': _categoryDisplayName,
           'initialFen': _initialPuzzleFen,
@@ -2213,7 +2344,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           'validTreeKeys': _currentSolutionsNode?.keys.join(', '),
           'reason': 'Move is not in the puzzle solution tree',
         });
-        _showFailureDialog();
+        _declareWrongMove();
         return;
       }
     }
@@ -2274,144 +2405,59 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     return true;
   }
 
-  void _showFailureDialog() {
+  /// „Incorrect. Try another move." as the panel draws it — the sentence the
+  /// voice says, drawn from the same line (D4).
+  _Verdict _incorrectVerdict(_VerdictKind kind) => _Verdict(
+        kind,
+        [
+          SpokenLine([SpeechVocabulary.incorrectTryAnother]).text
+        ],
+        good: false,
+        icon: Icons.cancel_outlined,
+      );
+
+  /// A move that is not in the solution tree. It used to open a bottom sheet
+  /// that kept the board still by being in the way; now the panel says it, the
+  /// board waits ([_Verdict.locksBoard]) and the choices are the buttons under
+  /// the board, with the side effects the sheet's three had.
+  void _declareWrongMove() {
     if (!mounted) return;
     _sayToken(SpeechVocabulary.incorrectTryAnother);
     _sendBackendLog({
       'type': 'buttonClick',
-      'button': 'Dialog Shown - Incorrect Move',
+      'button': 'Verdict Shown - Incorrect Move',
       'puzzleId': _currentPuzzle?['puzzle_id'],
       'fen': _puzzleGame?.fen,
     });
+    _declare(_incorrectVerdict(_VerdictKind.wrong));
+  }
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: context.colors.surface,
-      isDismissible: false,
-      enableDrag: false,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSpacing.xl)),
-      ),
-      builder: (ctx) {
-        final bottomPadding = MediaQuery.of(ctx).padding.bottom;
-        final isLandscape =
-            MediaQuery.of(ctx).orientation == Orientation.landscape;
-        return SafeArea(
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.88,
-            ),
-            padding: EdgeInsets.only(
-              left: AppSpacing.xl,
-              right: AppSpacing.xl,
-              top: AppSpacing.lg,
-              bottom: bottomPadding + AppSpacing.xl,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.cancel_outlined,
-                      color: context.colors.danger,
-                      size: isLandscape ? 36 : 48),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    'Incorrect Move!',
-                    style: AppText.headline
-                        .copyWith(color: context.colors.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'The move you played is not in the solution tree. Choose an option:',
-                    textAlign: TextAlign.center,
-                    style: AppText.bodyLarge
-                        .copyWith(color: context.colors.textMuted),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Try Again'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: context.colors.warning,
-                        foregroundColor: context.colors.canvas,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: AppSpacing.md),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _sendBackendLog({
-                          'type': 'buttonClick',
-                          'button': 'Modal - Try Again'
-                        });
-                        _undoIncorrectUserMove();
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.lightbulb_outline),
-                          label: const Text('Show Solution'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: context.colors.accentAlt,
-                            foregroundColor: context.colors.canvas,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.md),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _sendBackendLog({
-                              'type': 'buttonClick',
-                              'button': 'Modal - Show Solution'
-                            });
-                            // A wrong move was already made and rejected —
-                            // this is a failure, not a skip; recorded once,
-                            // here, since the replay itself never was.
-                            _submitPuzzleResult(false, showResultDialog: false);
-                            _playFullSolutionReplay();
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.arrow_forward),
-                          label: const Text('Next Puzzle'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: context.colors.accent,
-                            foregroundColor: context.colors.canvas,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: AppSpacing.md),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _sendBackendLog({
-                              'type': 'buttonClick',
-                              'button': 'Modal - Next Puzzle'
-                            });
-                            // Same reasoning as "Show Solution" above: a wrong
-                            // move already happened, so giving up here is a
-                            // failure, not a skip.
-                            _submitPuzzleResult(false, showResultDialog: false);
-                            _fetchNextPuzzle();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  /// „Try again", wherever it is pressed: after a wrong move the move is taken
+  /// back, after a drill that ended the drill starts again, and otherwise the
+  /// position is put back as it was.
+  void _onTryAgain() {
+    final kind = _verdict?.kind;
+    if (kind == _VerdictKind.wrong) {
+      _sendBackendLog({'type': 'buttonClick', 'button': 'Try Again'});
+      _undoIncorrectUserMove();
+      return;
+    }
+    if (kind == _VerdictKind.lost || kind == _VerdictKind.drawn) {
+      _resetCurrentPuzzle();
+      return;
+    }
+    _restartCurrentPuzzle();
+  }
+
+  /// „Show solution": the reader gives the puzzle up. A failure and not a
+  /// skip, recorded once, here — the replay itself records nothing. It is the
+  /// sheet's „Show Solution", which a reader who had not yet moved could not
+  /// press.
+  void _onShowSolution() {
+    _sendBackendLog({'type': 'buttonClick', 'button': 'Show Solution'});
+    _submitPuzzleResult(false);
+    setState(() => _verdict = null);
+    _playFullSolutionReplay();
   }
 
   void _undoIncorrectUserMove() {
@@ -2499,8 +2545,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _puzzleGame!
             .move({'from': oppFrom, 'to': oppTo, 'promotion': oppPromo});
         final replayOppPiece = _puzzleGame!.get(oppTo);
-        if (replayOppPiece != null)
+        if (replayOppPiece != null) {
           _triggerMoveAnimation(oppFrom, oppTo, replayOppPiece);
+        }
         _puzzleBoardController.loadFen(_puzzleGame!.fen);
         _activeFen = _puzzleGame!.fen;
         setState(() {
@@ -2528,114 +2575,50 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     });
   }
 
-  /// The counterpart to [_showEndgameWinDialog], which had none.
-  ///
-  /// Losing used to be a snackbar in one drill and a victory dialog in the
-  /// others. A child who has just been mated deserves the same weight of answer
-  /// as one who has just mated — and, more plainly, needs to be told which of
-  /// the two happened.
-  void _showEndgameLossDialog() {
-    _showDrillEndedDialog(
+  /// The drill is lost: Stockfish mated the reader. Said in the panel with
+  /// Try again and Next under the board, where it used to be a dialog with the
+  /// same two. A reader who has just been mated needs to be told which of the
+  /// two happened, and needs the same weight of answer as one who has just
+  /// mated.
+  void _declareLoss() {
+    _declare(const _Verdict(
+      _VerdictKind.lost,
+      ['Stockfish delivered checkmate. Try again.'],
+      good: false,
       icon: Icons.flag,
-      color: context.colors.danger,
-      title: 'Checkmate',
-      body: 'Stockfish delivered checkmate. Try again.',
-    );
+    ));
     _sayToken(
         SpeechVocabulary.checkmate, SpeechVocabulary.stockfishWinsTryAgain);
   }
 
   /// A draw ends the drill the way a loss does — it is not the mate the drill
   /// asked for — and says which rule ended it, in the words of [endingLabel].
-  void _showEndgameDrawDialog(GameEnding ending) {
-    _showDrillEndedDialog(
+  void _declareDraw(GameEnding ending) {
+    _declare(_Verdict(
+      _VerdictKind.drawn,
+      ['The game is drawn: ${endingLabel(ending)}. Try again.'],
+      good: false,
       icon: Icons.handshake,
-      color: context.colors.warning,
-      title: 'Draw',
-      body: 'The game is drawn: ${endingLabel(ending)}. Try again.',
-    );
+    ));
     // One phrase per ending the app names; any other ending is not spoken.
     final phrase = SpeechVocabulary.byId('draw_${ending.name}');
     if (phrase != null) _sayToken(phrase);
   }
 
-  void _showDrillEndedDialog({
-    required IconData icon,
-    required ui.Color color,
-    required String title,
-    required String body,
-  }) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(width: AppSpacing.sm),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text(body),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.refresh),
-            label: const Text('Try again'),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _resetCurrentPuzzle();
-            },
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Next Position'),
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (_selectedCategory == 'basic_mate') {
-                _loadBasicMatePreset(_selectedBasicMateType);
-              } else {
-                _fetchNextPuzzle();
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEndgameWinDialog() {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.emoji_events, color: context.colors.warning, size: 28),
-            SizedBox(width: AppSpacing.sm),
-            Text('🎉 VICTORY!', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: const Text(
-            'Congratulations! You successfully checkmated Stockfish!'),
-        actions: [
-          ElevatedButton.icon(
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Next Position'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.accentAlt,
-                foregroundColor: context.colors.canvas),
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (_selectedCategory == 'basic_mate') {
-                _loadBasicMatePreset(_selectedBasicMateType);
-              } else {
-                _fetchNextPuzzle();
-              }
-            },
-          ),
-        ],
-      ),
-    );
+  /// The reader mated: the panel says it, in the words the voice uses, and
+  /// the rating joins it once the server has moved it
+  /// ([_submitPuzzleResult]). It was a snackbar, a „VICTORY!" dialog and a
+  /// „Puzzle Solved!" dialog, by mode.
+  void _declareWin() {
+    _declare(_Verdict(
+      _VerdictKind.solved,
+      [
+        SpokenLine([SpeechVocabulary.checkmate, SpeechVocabulary.puzzleSolved])
+            .text
+      ],
+      good: true,
+      icon: Icons.check_circle,
+    ));
   }
 
   /// Ends an assigned game: posts the moves, then says what happened.
@@ -2766,6 +2749,28 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       EngineGameSaid.notMet => context.colors.danger,
       EngineGameSaid.notJudged => context.colors.textMuted,
     };
+    final title = playedOnly ? 'Played' : engineGameSaidWords(said);
+    // A game with no goal is not judged here or by the server: say who
+    // will, so „Not judged yet" does not read as something gone wrong.
+    final body = 'The game ended: '
+        '${engineGameEndingWords(_engineGameTask, ending)}.'
+        '${verdict.needsTrainer && !alone ? ' Your trainer will look at it.' : ''}'
+        // Alone, nothing asks the tablebase again later, as a
+        // homework's pending game is asked.
+        '${alone && said == EngineGameSaid.notJudged && !playedOnly ? ' The tablebase did not answer, so this game was not counted.' : ''}';
+
+    // One's own game says it in the panel, like every other verdict here. An
+    // assigned game keeps its dialog and says it there **alone**: it has
+    // ended, one attempt is all there is, and Back is the only way on.
+    if (widget.assignmentId == null) {
+      _declare(_Verdict(
+        _VerdictKind.gameEnded,
+        [title, body],
+        good: said == EngineGameSaid.met || playedOnly,
+        icon: icon,
+      ));
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -2773,20 +2778,12 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
           children: [
             Icon(icon, color: iconColor, size: 28),
             const SizedBox(width: AppSpacing.sm),
-            Text(playedOnly ? 'Played' : engineGameSaidWords(said),
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        // A game with no goal is not judged here or by the server: say who
-        // will, so „Not judged yet" does not read as something gone wrong.
-        content: Text('The game ended: '
-            '${engineGameEndingWords(_engineGameTask, ending)}.'
-            '${verdict.needsTrainer && !alone ? ' Your trainer will look at it.' : ''}'
-            // Alone, nothing asks the tablebase again later, as a
-            // homework's pending game is asked.
-            '${alone && said == EngineGameSaid.notJudged && !playedOnly ? ' The tablebase did not answer, so this game was not counted.' : ''}'),
+        content: Text(body),
         actions: [
-          ElevatedButton.icon(
+          TextButton.icon(
             icon: const Icon(Icons.arrow_back),
             label: const Text('Back'),
             onPressed: () {
@@ -2817,6 +2814,11 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
     _puzzleGame = chess.Chess.fromFEN(fen);
     _activeFen = fen;
+    // `_resetEngineState` above cleared both, and nothing put them back: a
+    // „Show solution" after a „Try again" found no start to replay from, and
+    // the strip had no line to walk.
+    _initialPuzzleFen = fen;
+    _puzzleMoveTree = MoveTree(startingFen: fen);
 
     _rootSolutionsTree =
         Map<String, dynamic>.from(_currentPuzzle!['solutions'] ?? {});
@@ -2855,11 +2857,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
   /// `PuzzleAttemptApi.record` so `newRating`/`ratingChange` come back on the
   /// same request that records the attempt.
   ///
-  /// [showResultDialog] is false when the caller already shows its own
-  /// victory dialog (`_showEndgameWinDialog`, for `winning_position`) — this
-  /// still records and updates the rating either way.
-  Future<void> _submitPuzzleResult(bool solved,
-      {bool skipped = false, bool showResultDialog = true}) async {
+  /// A solve says its rating in the panel once the server has answered: the
+  /// line joins the verdict that is standing there, if it is still this
+  /// puzzle's. It was the „Puzzle Solved!" dialog.
+  Future<void> _submitPuzzleResult(bool solved, {bool skipped = false}) async {
     // A skip is neither a solve nor a failure to show on this puzzle — the
     // caller is about to move on and reset both anyway.
     if (!skipped) {
@@ -2868,6 +2869,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         _puzzleFailed = !solved;
       });
     }
+    final puzzleSerial = _taskSerial;
 
     try {
       // Tracked, so the hub's read cannot overtake this row on the way back
@@ -2886,59 +2888,22 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
         }),
       ));
 
-      if (res.statusCode == 200) {
+      if (res.statusCode == 200 && mounted) {
         final data = jsonDecode(res.body);
         final change = data['ratingChange'] ?? 0;
         final newRating = data['newRating'] ?? 1500;
         setState(() {
           _lastRatingChange = change;
           _userRating = newRating;
+          final standing = _verdict;
+          if (solved &&
+              standing != null &&
+              standing.kind == _VerdictKind.solved &&
+              puzzleSerial == _taskSerial) {
+            _verdict = standing.withLine(
+                'New rating: $newRating (${change >= 0 ? "+" : ""}$change)');
+          }
         });
-
-        if (solved && showResultDialog && mounted) {
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Row(
-                children: [
-                  Icon(Icons.emoji_events,
-                      color: context.colors.warning, size: 28),
-                  SizedBox(width: AppSpacing.sm),
-                  Text('Puzzle Solved!',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              content: Text(
-                  'Well done! You played all the moves correctly.\nNew rating: $newRating (${change >= 0 ? "+" : ""}$change)'),
-              actions: [
-                OutlinedButton.icon(
-                  icon: Icon(Icons.account_tree_outlined,
-                      color: context.colors.accent, size: 18),
-                  label: Text('Show Solution',
-                      style: AppText.bodyLarge
-                          .copyWith(color: context.colors.accent)),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    setState(() {
-                      _showSolutionTree = true;
-                    });
-                  },
-                ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text('Next Puzzle', style: AppText.bodyLarge),
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.accent,
-                      foregroundColor: context.colors.canvas),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _fetchNextPuzzle();
-                  },
-                ),
-              ],
-            ),
-          );
-        }
       }
     } catch (e) {
       // quiet fail
@@ -2986,86 +2951,50 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
     // Opened as its own destination, back leaves it; opened as the old
     // all-in-one screen, back returns to the list inside it. The second is what
     // is left of the crossroads, and it goes with its last caller.
     final ownRoute = widget.initialCategory != null;
+    final category = _selectedCategory;
     return Scaffold(
-      // No bar in landscape: that layout is a deliberate square board sized
-      // off the window's height, and a bar costs it 38 pixels. The way out
-      // there is the arrow in the landscape header, which knows the same
-      // thing this one does - see `ownRoute` in _buildPuzzlesTab.
-      appBar: isLandscape
-          ? null
-          : PreferredSize(
-              preferredSize: const Size.fromHeight(38.0),
-              child: AppBar(
-                toolbarHeight: 38.0,
-                // One arrow, not two. The bar puts its own back button in
-                // when the screen is a pushed route, and this screen already
-                // carries one in its title row.
-                automaticallyImplyLeading: false,
-                title: Row(
-                  children: [
-                    if (ownRoute || _selectedCategory != null) ...[
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, size: 18),
-                        padding: EdgeInsets.zero,
-                        // The 38px toolbar has just enough room for a tap
-                        // target a bit past the bare 18px icon — better
-                        // than nothing, though still short of the 48dp
-                        // Material guideline (no room for that here).
-                        constraints:
-                            const BoxConstraints(minWidth: 34, minHeight: 34),
-                        // Leaving means leaving. This used to be able to set
-                        // the category back to null instead, which drew a
-                        // second crossroads inside this screen - on top of
-                        // the shell, so the side tabs were gone. That screen
-                        // state was deleted on 18.9.2026; there is one hub.
-                        onPressed: () => context.pop(),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                    ],
-                    Icon(Icons.psychology,
-                        color: context.colors.warning, size: 20),
-                    const SizedBox(width: AppSpacing.sm),
-                    // Flexible, because the bar now carries two actions:
-                    // the title is the part that may give way, and a title
-                    // that does not yield clips the controls instead — in a
-                    // release build, silently.
-                    Flexible(
-                      child: Text(
-                        _selectedCategory == null
-                            ? 'Chess trainer and exercises'
-                            : _getCategoryTitle(),
-                        style: AppText.subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                actions: _selectedCategory == null
-                    ? null
-                    : [
-                        // Reachable in portrait at last: both of these change
-                        // how the board is read, and both were built into a
-                        // card nothing drew. Sized for a 38 px bar.
-                        if (_selectedCategory != 'engine_game')
-                          EngineOpponentButton(
-                              size: 18, color: context.colors.textMuted),
-                        BoardViewMenu(
-                            size: 18,
-                            arrows: true,
-                            engine: !_assigned,
-                            boardSize: true),
-                        const SizedBox(width: AppSpacing.xs),
-                      ],
-              ),
-            ),
+      // The bar of every board screen (R5): the way back, the title, and the
+      // screen's menus — the opponent where it is offered, and the board view.
+      // Nothing that is also a button under the board. The compact bar on a
+      // phone on its side, because 12 dp of it are the board's.
+      appBar: AppBar(
+        toolbarHeight: LandscapeBoardLayout.toolbarHeight(context),
+        // One arrow, which leaves: this screen is pushed as its own route.
+        automaticallyImplyLeading: false,
+        leading: ownRoute || category != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Back',
+                // Leaving means leaving. This used to be able to set the
+                // category back to null instead, which drew a second
+                // crossroads inside this screen - on top of the shell, so the
+                // side tabs were gone. That screen state was deleted on
+                // 18.9.2026; there is one hub.
+                onPressed: () => context.pop(),
+              )
+            : null,
+        title: Text(
+          category == null
+              ? 'Chess trainer and exercises'
+              : _getCategoryTitle(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: category == null
+            ? null
+            : [
+                // Both change how the board is read. The opponent is the
+                // trainer's on an assigned game, so there is nothing to offer.
+                if (category != 'engine_game')
+                  const EngineOpponentButton(size: 22),
+                BoardViewMenu(
+                    arrows: true, engine: !_assigned, boardSize: true),
+              ],
+      ),
       // Arrow keys drive the same cursor the strip's buttons do. With no line
       // on the board there is nothing to walk, and the strip is hidden for
       // that same reason.
@@ -3128,11 +3057,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
 
   /// The words with an icon whose *shape* says it too — an hourglass for the
   /// engine, a hand for the student — never a colour alone.
-  Widget? _engineGameTurnLine({required bool onBanner}) {
+  Widget? _engineGameTurnLine() {
     final words = _engineGameTurnWords();
     if (words == null) return null;
-    final color =
-        onBanner ? context.colors.onInfoContainer : context.colors.textPrimary;
+    final color = context.colors.textPrimary;
     final engines = words != 'Your move';
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -3184,512 +3112,289 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
     );
   }
 
+  /// The panel's chips: which exercise this is, and the reader's rating where
+  /// the server has one (a puzzle from the server, not a preset or a game).
+  List<String> _panelChips() {
+    switch (_selectedCategory) {
+      case 'mate_puzzle':
+        return [
+          'Mate in ${int.tryParse(_selectedMateDepth) ?? 1}',
+          if (_currentPuzzle != null) 'Rating $_userRating',
+        ];
+      case 'winning_position':
+        return [
+          'Winning position',
+          if (_currentPuzzle != null) 'Rating $_userRating',
+        ];
+      case 'basic_mate':
+        final level = _selectedBasicMateType;
+        return [
+          'Level: ${level.isEmpty ? level : level[0].toUpperCase() + level.substring(1)}'
+        ];
+      default:
+        return const [];
+    }
+  }
+
+  /// The task, in the one place a task is (R2). Where the voice says it, the
+  /// panel gets its [SpokenLine] and says it when it appears; where this
+  /// screen says no task today (Basic checkmate, „Play it out") the panel gets
+  /// words only, and says nothing, as before.
+  ({SpokenLine? line, String text}) _panelTask() {
+    final category = _selectedCategory;
+    if (category == null) return (line: null, text: 'Loading…');
+    final line = _taskLine;
+    if (line != null) {
+      // Said once the puzzle is on the board, not while the last one is still
+      // being replaced.
+      final ready = _currentPuzzle != null && !_isLoadingPuzzle;
+      return (line: ready ? line : null, text: line.text);
+    }
+    if (category == 'basic_mate') {
+      final side = _puzzleOrientation == PlayerColor.white ? 'White' : 'Black';
+      return (line: null, text: '$side to move. Deliver checkmate.');
+    }
+    return (line: null, text: _engineGameGoalSentence());
+  }
+
+  /// Whether the solution is on show: after a solve, after giving up, and
+  /// while it is being replayed.
+  bool get _solutionVisible =>
+      _showSolutionTree ||
+      _puzzleSolved ||
+      _puzzleFailed ||
+      _isReplayingSolution;
+
+  /// The engine's panel is there where it may help: never on a mate puzzle,
+  /// never while an assigned game is being played, in „Play it out" as it
+  /// always was, and on Basic checkmate and „Find the winning path" only once
+  /// the puzzle is over — the owner's answer B of 3.10.2026, so that it gives
+  /// no help while the reader is still solving.
+  bool get _enginePanelShown {
+    if (_assigned) return false;
+    return switch (_selectedCategory) {
+      'mate_puzzle' => false,
+      'engine_game' => true,
+      _ => _puzzleOver,
+    };
+  }
+
+  Widget _buildEnginePanel(BuildContext context) {
+    return StockfishAnalysisWidget(
+      analysisDepth: _analysisDepth,
+      analysisLines: _analysisLines,
+      onAnalysisDepthChanged: (value) => _applyAnalysisDials(depth: value),
+      onAnalysisLinesChanged: (value) => _applyAnalysisDials(lines: value),
+      isEngineEnabled: _showEvaluation,
+      isAllowedToUseEngine: true,
+      isOnline: _stockfishService.isOnline,
+      isCustomEngineActive: _stockfishService.isCustomEngineActive,
+      onOpenSettings: isCustomEngineSupported ? _openEngineSettings : null,
+      onForceRestart: _restartEngineEvaluation,
+      lines: _engineLinesMap.values.toList(),
+      orientation: _puzzleOrientation,
+      isShowEvalBarEnabled: _showEvalBar,
+      onToggleShowEvalBar: () {
+        setState(() {
+          _showEvalBar = !_showEvalBar;
+        });
+      },
+      onToggleEngine: () {
+        setState(() {
+          _showEvaluation = !_showEvaluation;
+          if (_showEvaluation) {
+            _selectedGroupedMoveIndices.clear();
+            _stockfishService.setMultiPV(_analysisLines);
+            _stockfishService.analyzePosition(_puzzleBoardController.getFen(),
+                depth: _analysisDepth);
+          } else {
+            _engineLinesMap.clear();
+            _engineArrows.clear();
+          }
+        });
+      },
+    );
+  }
+
+  /// The buttons, under the board and centred on it (R4, R6): **one filled
+  /// button**, „Next", where the screen has a next; the rest are text buttons,
+  /// and „Resign" an outlined one while a game runs. Nothing here is also in
+  /// the bar (R5).
+  Widget _buildControls() {
+    final game = _selectedCategory == 'engine_game';
+    final canShowSolution = !_puzzleOver &&
+        !_isReplayingSolution &&
+        _initialPuzzleFen != null &&
+        _rootSolutionsTree.isNotEmpty;
+    // On a phone on its side the right column has 470 dp for the strip and
+    // the buttons, and four buttons with icons are two rows of it; two of the
+    // text buttons give their icons up there, so they are one.
+    final compact = LandscapeBoardLayout.applies(context);
+    Widget textButton(IconData icon, String label, VoidCallback onPressed) =>
+        compact
+            ? TextButton(onPressed: onPressed, child: Text(label))
+            : TextButton.icon(
+                icon: Icon(icon, size: 18),
+                label: Text(label),
+                onPressed: onPressed,
+              );
+    // The door to Analysis keeps its icon wherever it is drawn: it is the one
+    // mark every way into Analysis carries (`homework_closed_doors_test`).
+    final analysis = _assigned
+        ? null
+        : TextButton.icon(
+            icon: const Icon(Icons.biotech, size: 18),
+            label: const Text('Open in Analysis'),
+            onPressed: _exportToAnalysisStudio,
+          );
+    // A little less padding than a button has by default: the four of them are
+    // one row under a board 460 dp wide, which is the height the layout was
+    // given for them, and the height is a board's.
+    const tight = EdgeInsets.symmetric(horizontal: AppSpacing.sm);
+    final theme = Theme.of(context);
+    // Wrap, not Row. Four buttons with words on them outgrow a narrow column,
+    // and a release build clips instead of warning.
+    return Theme(
+      data: theme.copyWith(
+        textButtonTheme: TextButtonThemeData(
+            style: (theme.textButtonTheme.style ?? const ButtonStyle())
+                .merge(TextButton.styleFrom(padding: tight))),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+            style: (theme.outlinedButtonTheme.style ?? const ButtonStyle())
+                .merge(OutlinedButton.styleFrom(padding: tight))),
+        filledButtonTheme: FilledButtonThemeData(
+            style: (theme.filledButtonTheme.style ?? const ButtonStyle())
+                .merge(FilledButton.styleFrom(padding: tight))),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: compact ? AppSpacing.xs : AppSpacing.sm,
+        runSpacing: AppSpacing.sm,
+        children: [
+          if (game) ...[
+            // An assigned game is one attempt, judged by the server: a second
+            // play of it would just be refused (409), so there is no „Try again"
+            // or „Next" for it, only the way out of a game that is running.
+            if (!_engineGameFinished)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.flag, size: 18),
+                label: const Text('Resign'),
+                onPressed: _resignEngineGame,
+              ),
+            if (analysis != null) analysis,
+          ] else ...[
+            textButton(Icons.refresh, 'Try again', _onTryAgain),
+            if (canShowSolution)
+              textButton(
+                  Icons.lightbulb_outline, 'Show solution', _onShowSolution),
+            if (analysis != null) analysis,
+            FilledButton.icon(
+              icon: const Icon(Icons.arrow_forward, size: 18),
+              label: const Text('Next'),
+              onPressed: _goToNextPuzzle,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildActiveBoardScreen() {
     if (widget.retry && _retryQueueEmpty) {
       return _buildRetryEmptyState();
     }
 
-    final screenSize = MediaQuery.of(context).size;
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
+    final task = _panelTask();
+    final verdict = _verdict;
+    final solutions = (_currentPuzzle?['solutions'] as Map?) ?? const {};
+    // A phone on its side has the eval bar beside the board; everywhere else
+    // it is a bar across the engine's panel.
+    final horizontalEvalBar = !LandscapeBoardLayout.applies(context);
 
-    // The sentence the task line draws is the sentence it speaks (D4): one
-    // SpokenLine, read for both. The side is an icon beside it - a ring for
-    // White, a disc for Black - and not a character in the text.
-    final taskLine = _taskLine;
-    final String headerGoal = taskLine != null
-        ? taskLine.text
-        : (_selectedCategory == 'basic_mate'
-            ? 'Practice: $_selectedBasicMateType (Checkmate Stockfish)'
-            : _engineGameGoalSentence());
-    final bool taskReady = _currentPuzzle != null && !_isLoadingPuzzle;
-    final sideIcon = Icon(
-      _puzzleOrientation == PlayerColor.white
-          ? Icons.circle_outlined
-          : Icons.circle,
-      size: 14,
-      color: context.colors.onInfoContainer,
-    );
-    Widget taskText(TextStyle style, {required bool compact}) {
-      if (taskLine == null || !taskReady) {
-        return Text(headerGoal, style: style, overflow: TextOverflow.ellipsis);
-      }
-      return SpeakableInfo(
-        key: ValueKey('task-$_taskSerial'),
-        text: taskLine.text,
-        line: taskLine,
-        autoSpeak: true,
-        compact: compact,
-        speech: widget.speech,
-        style: style,
-      );
-    }
-
-    // What used to be a „back to selection" card lived here and was never
-    // placed in the portrait tree — so its board menu and its opponent button
-    // were unreachable on a phone held upright, while the landscape header
-    // carried both. The way out is the app bar's arrow; the two controls are
-    // now the app bar's actions, and the goal banner is above the board.
-
-    final goalBanner = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: context.colors.infoContainer,
-        borderRadius: AppRadii.roundedLg,
-        border: Border.all(
-            color: _puzzleOrientation == PlayerColor.white
-                ? context.colors.info
-                : context.colors.accent),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.flag,
-            size: 18,
-            color: _puzzleOrientation == PlayerColor.white
-                ? context.colors.onInfoContainer
-                : context.colors.accent,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          if (taskLine != null) ...[
-            sideIcon,
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          Flexible(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                taskText(
-                    AppText.bodyLargeBold
-                        .copyWith(color: context.colors.onInfoContainer),
-                    compact: false),
-                if (_engineGameTurnLine(onBanner: true) case final turn?) turn,
-              ],
+    // What is shown once there is something to show: the solution after a
+    // solve or a give-up, and the engine's lines once the puzzle is over.
+    final extras = <Widget>[
+      if (_solutionVisible && solutions.isNotEmpty) _buildSolutionTreeSection(),
+      if (_enginePanelShown) ...[
+        if (_showEvalBar && horizontalEvalBar)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: HorizontalEvalBarWidget(
+              eval: _currentRawEval,
+              evalString: _currentEvalString,
+              depth: _currentEvalDepth,
+              orientation: _puzzleOrientation,
             ),
           ),
-        ],
-      ),
-    );
-
-    // Wrap, not Row. Three buttons with words on them outgrow a narrow column,
-    // and the navigation test is the first thing that ever rendered this screen
-    // at a size nobody had tried. In a release build the overflow paints no
-    // warning - the third button is simply not there.
-    final actionButtonsRow = Wrap(
-      alignment: WrapAlignment.spaceEvenly,
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        if (!_assigned)
-          ElevatedButton.icon(
-            icon: const Icon(Icons.biotech, size: 16),
-            label: const Text('Analysis 🔬'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.accentAlt,
-                foregroundColor: context.colors.canvas),
-            onPressed: _exportToAnalysisStudio,
-          ),
-        // An assigned game is one attempt, judged by the server: „Try Again"
-        // and „Next Position" belong to a drill that can be repeated freely,
-        // not to a game a second play of would just be refused (409).
-        if (_selectedCategory == 'engine_game') ...[
-          if (!_engineGameFinished)
-            ElevatedButton.icon(
-              icon: const Icon(Icons.flag, size: 16),
-              label: const Text('Resign'),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: context.colors.danger,
-                  foregroundColor: context.colors.canvas),
-              onPressed: _resignEngineGame,
-            ),
-        ] else ...[
-          ElevatedButton.icon(
-            icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Try Again'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.warning,
-                foregroundColor: context.colors.canvas),
-            onPressed: _restartCurrentPuzzle,
-          ),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.arrow_forward),
-            label: const Text('Next Position'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: context.colors.accent,
-                foregroundColor: context.colors.canvas),
-            onPressed: _goToNextPuzzle,
-          ),
-        ],
+        _buildEnginePanel(context),
       ],
-    );
+    ];
 
-    if (isLandscape) {
-      // No app bar in landscape; the one-line header below carries the way
-      // out and the actions, and the board takes the rest of the height.
-      final landscapeTopHeader = SizedBox(
-        height: 24,
-        child: Row(
-          children: [
-            // Landscape hides the AppBar, so without this there is no way out at
-            // all on a desktop window - the shell's rail used to be beside this
-            // screen and no longer is, because it opens as its own route now.
-            if (_selectedCategory != null) ...[
-              IconButton(
-                icon: Icon(Icons.arrow_back,
-                    size: 18, color: context.colors.textPrimary),
-                tooltip: 'Back to training',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                // Reported from the desktop build: this arrow set the category
-                // back to null, which drew a second crossroads inside this
-                // screen - on top of the shell, so the side tabs were gone.
-                // Leaving means leaving.
-                onPressed: () => context.pop(),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            // Before the goal, not after it: the goal is the long one, and
-            // an ellipsis must never be what eats whose move it is.
-            if (_engineGameTurnLine(onBanner: false) case final turn?) ...[
-              turn,
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            if (taskLine != null) ...[
-              Icon(
-                _puzzleOrientation == PlayerColor.white
-                    ? Icons.circle_outlined
-                    : Icons.circle,
-                size: 12,
-                color: context.colors.textPrimary,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-            ],
-            Expanded(
-              child: taskText(
-                  AppText.captionBold
-                      .copyWith(color: context.colors.textPrimary),
-                  compact: true),
-            ),
-            if (_selectedCategory != 'engine_game') ...[
-              EngineOpponentButton(
-                  size: 18, color: context.colors.textSecondary),
-              const SizedBox(width: AppSpacing.sm),
-            ],
-            BoardViewMenu(
-                size: 18,
-                color: context.colors.textSecondary,
-                arrows: true,
-                engine: !_assigned,
-                boardSize: true),
-            const SizedBox(width: AppSpacing.sm),
-            if (!_assigned)
-              IconButton(
-                icon: Icon(Icons.biotech,
-                    size: 18, color: context.colors.accentAlt),
-                tooltip: 'Analyze in Analysis Board 🔬',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: _exportToAnalysisStudio,
-              ),
-            const SizedBox(width: AppSpacing.sm),
-            IconButton(
-              icon:
-                  Icon(Icons.refresh, size: 16, color: context.colors.warning),
-              tooltip: 'Try Again',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _restartCurrentPuzzle,
-            ),
-            const SizedBox(width: 10),
-            IconButton(
-              icon: Icon(Icons.arrow_forward,
-                  size: 16, color: context.colors.accent),
-              tooltip: 'Next Position',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              onPressed: _goToNextPuzzle,
-            ),
-          ],
-        ),
-      );
+    TrainerInfoPanel panelWith(List<Widget> children) => TrainerInfoPanel(
+          // A new puzzle, or the same one again, or one that has just arrived,
+          // is a new panel: it says its task again (D4), which a panel kept
+          // across them would not.
+          key: ValueKey('panel-$_taskSerial-${task.line != null}'),
+          task: task.line,
+          taskText: task.text,
+          // The side is an icon beside the task — a ring for White, a disc for
+          // Black — and not a character in the text.
+          taskLeading: _taskLine != null && _selectedCategory != null
+              ? Icon(
+                  _puzzleOrientation == PlayerColor.white
+                      ? Icons.circle_outlined
+                      : Icons.circle,
+                  size: 14,
+                )
+              : null,
+          taskExtra: _engineGameTurnLine(),
+          chips: _panelChips(),
+          messageText: verdict?.lines,
+          messageIcon: verdict?.icon,
+          messageIsGood: verdict?.good ?? false,
+          speech: widget.speech,
+          children: children,
+        );
 
-      return Padding(
-        padding: const EdgeInsets.only(
-            left: AppSpacing.xs, top: AppSpacing.xs, right: AppSpacing.xs),
-        child: Column(
-          children: [
-            landscapeTopHeader,
-            Expanded(
-              child: LandscapeBoardLayout(
-                boardScale: AppSettingsService.instance.boardSizeScale,
-                board: (side) => BoardWithCoordinates(
-                  size: side,
-                  orientation: _puzzleOrientation,
-                  builder: _buildBoardWithTapAndHighlights,
-                ),
-                boardAside: _showEvalBar
-                    ? (height) => VerticalEvalBarWidget(
-                          eval: _currentRawEval,
-                          evalString: _currentEvalString,
-                          depth: _currentEvalDepth,
-                          height: height,
-                          orientation: _puzzleOrientation,
-                        )
-                    : null,
-                panels: Column(
-                  children: [
-                    // PROMINENT LANDSCAPE CONTROL BUTTONS ON THE RIGHT SIDE PANEL
-                    Row(
-                      children: [
-                        if (!_assigned)
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.biotech, size: 16),
-                              label: const Text('Analysis 🔬',
-                                  style: AppText.captionBold),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colors.accentAlt,
-                                foregroundColor: context.colors.canvas,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 10, horizontal: AppSpacing.xs),
-                              ),
-                              onPressed: _exportToAnalysisStudio,
-                            ),
-                          ),
-                        if (_selectedCategory == 'engine_game') ...[
-                          if (!_engineGameFinished) ...[
-                            const SizedBox(width: AppSpacing.xs),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                icon: const Icon(Icons.flag, size: 16),
-                                label: const Text('Resign',
-                                    style: AppText.captionBold),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: context.colors.danger,
-                                  foregroundColor: context.colors.canvas,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 10, horizontal: AppSpacing.xs),
-                                ),
-                                onPressed: _resignEngineGame,
-                              ),
-                            ),
-                          ],
-                        ] else ...[
-                          const SizedBox(width: AppSpacing.xs),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.refresh, size: 16),
-                              label: const Text('Try again',
-                                  style: AppText.captionBold),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colors.warning,
-                                foregroundColor: context.colors.canvas,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 10, horizontal: AppSpacing.xs),
-                              ),
-                              onPressed: _restartCurrentPuzzle,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.arrow_forward, size: 16),
-                              label: const Text('Next position',
-                                  style: AppText.captionBold),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: context.colors.accent,
-                                foregroundColor: context.colors.canvas,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 10, horizontal: AppSpacing.xs),
-                              ),
-                              onPressed: () {
-                                if (_selectedCategory == 'basic_mate') {
-                                  _loadBasicMatePreset(_selectedBasicMateType);
-                                } else {
-                                  _fetchNextPuzzle();
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildSolutionTreeSection(),
-                    const SizedBox(height: AppSpacing.sm),
-                    if (_selectedCategory != 'mate_puzzle' && !_assigned)
-                      StockfishAnalysisWidget(
-                        analysisDepth: _analysisDepth,
-                        analysisLines: _analysisLines,
-                        onAnalysisDepthChanged: (value) =>
-                            _applyAnalysisDials(depth: value),
-                        onAnalysisLinesChanged: (value) =>
-                            _applyAnalysisDials(lines: value),
-                        isEngineEnabled: _showEvaluation,
-                        isAllowedToUseEngine: true,
-                        isOnline: _stockfishService.isOnline,
-                        isCustomEngineActive:
-                            _stockfishService.isCustomEngineActive,
-                        onOpenSettings: isCustomEngineSupported
-                            ? _openEngineSettings
-                            : null,
-                        onForceRestart: _restartEngineEvaluation,
-                        lines: _engineLinesMap.values.toList(),
-                        orientation: _puzzleOrientation,
-                        isShowEvalBarEnabled: _showEvalBar,
-                        onToggleShowEvalBar: () {
-                          setState(() {
-                            _showEvalBar = !_showEvalBar;
-                          });
-                        },
-                        onToggleEngine: () {
-                          setState(() {
-                            _showEvaluation = !_showEvaluation;
-                            if (_showEvaluation) {
-                              _selectedGroupedMoveIndices.clear();
-                              _stockfishService.setMultiPV(_analysisLines);
-                              _stockfishService.analyzePosition(
-                                  _puzzleBoardController.getFen(),
-                                  depth: _analysisDepth);
-                            } else {
-                              _engineLinesMap.clear();
-                              _engineArrows.clear();
-                            }
-                          });
-                        },
-                      ),
-                  ],
-                ),
-                footer: [
-                  if (_puzzleMoveTree != null)
-                    MoveNavigationControls(cursor: _moveCursor()!),
-                ],
-              ),
+    return TrainerScreenLayout(
+      board: (side) => BoardWithCoordinates(
+        size: side,
+        orientation: _puzzleOrientation,
+        builder: _buildBoardWithTapAndHighlights,
+      ),
+      boardAside: _showEvalBar
+          ? (height) => VerticalEvalBarWidget(
+                eval: _currentRawEval,
+                evalString: _currentEvalString,
+                depth: _currentEvalDepth,
+                height: height,
+                orientation: _puzzleOrientation,
+              )
+          : null,
+      // Beside the board — on a window, and in the column of a phone on its
+      // side — the solution and the engine are in the panel itself; under a
+      // phone upright they come after the buttons, so that Next is not a long
+      // scroll below them.
+      panel: panelWith(const []),
+      asidePanel: extras.isEmpty ? null : panelWith(extras),
+      extras: extras.isEmpty
+          ? null
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: extras,
             ),
-          ],
-        ),
-      );
-    }
-
-    // PORTRAIT LAYOUT: Static Board & Scrollable Controls Below
-    final double boardSize = math.min(screenSize.width - 32.0, 700.0) *
-        AppSettingsService.instance.boardSizeScale;
-
-    return Column(
-      children: [
-        // The sentence naming whose move it is and what is being asked. Built
-        // and then dropped when the landscape header took it over; the phone
-        // held upright had no goal on screen at all.
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-          child: goalBanner,
-        ),
-
-        // STATIC NON-SCROLLABLE CHESS BOARD AT TOP
-        Padding(
-          padding:
-              const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xs),
-          child: Center(
-            child: SizedBox(
-              width: boardSize,
-              height: boardSize,
-              child: Card(
-                elevation: 4,
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: _isLoadingPuzzle
-                      ? const Center(child: CircularProgressIndicator())
-                      : BoardWithCoordinates(
-                          size: boardSize - 16.0,
-                          orientation: _puzzleOrientation,
-                          builder: _buildBoardWithTapAndHighlights,
-                        ),
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // SCROLLABLE CONTROLS & BUTTONS BELOW THE BOARD
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-            child: Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 650),
-                child: Column(
-                  children: [
-                    if (_showEvalBar) ...[
-                      HorizontalEvalBarWidget(
-                        eval: _currentRawEval,
-                        evalString: _currentEvalString,
-                        depth: _currentEvalDepth,
-                        orientation: _puzzleOrientation,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-                    actionButtonsRow,
-                    const SizedBox(height: AppSpacing.md),
-                    if (_selectedCategory != 'mate_puzzle' && !_assigned)
-                      StockfishAnalysisWidget(
-                        analysisDepth: _analysisDepth,
-                        analysisLines: _analysisLines,
-                        onAnalysisDepthChanged: (value) =>
-                            _applyAnalysisDials(depth: value),
-                        onAnalysisLinesChanged: (value) =>
-                            _applyAnalysisDials(lines: value),
-                        isEngineEnabled: _showEvaluation,
-                        isAllowedToUseEngine: true,
-                        isOnline: _stockfishService.isOnline,
-                        isCustomEngineActive:
-                            _stockfishService.isCustomEngineActive,
-                        onOpenSettings: isCustomEngineSupported
-                            ? _openEngineSettings
-                            : null,
-                        onForceRestart: _restartEngineEvaluation,
-                        lines: _engineLinesMap.values.toList(),
-                        orientation: _puzzleOrientation,
-                        isShowEvalBarEnabled: _showEvalBar,
-                        onToggleShowEvalBar: () {
-                          setState(() {
-                            _showEvalBar = !_showEvalBar;
-                          });
-                        },
-                        onToggleEngine: () {
-                          setState(() {
-                            _showEvaluation = !_showEvaluation;
-                            if (_showEvaluation) {
-                              _selectedGroupedMoveIndices.clear();
-                              _stockfishService.setMultiPV(_analysisLines);
-                              _stockfishService.analyzePosition(
-                                  _puzzleBoardController.getFen(),
-                                  depth: _analysisDepth);
-                            } else {
-                              _engineLinesMap.clear();
-                              _engineArrows.clear();
-                            }
-                          });
-                        },
-                      ),
-                    const SizedBox(height: AppSpacing.md),
-                    _buildSolutionTreeSection(),
-                    const SizedBox(height: AppSpacing.md),
-                    if (_puzzleMoveTree != null)
-                      MoveNavigationControls(
-                        cursor: _moveCursor()!,
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      strip: _puzzleMoveTree != null
+          ? MoveNavigationControls(cursor: _moveCursor()!, dense: true)
+          : null,
+      controls: _buildControls(),
+      scale: AppSettingsService.instance.boardSizeScale,
+      // The solution tree is a card with a header row of about 300 dp.
+      panelWidth: 340,
+      // The move strip, the buttons and the scroll view's padding under the
+      // board; on a phone the panel as well.
+      wideReserve: 160,
+      phoneReserve: 300,
     );
   }
 
@@ -3736,6 +3441,7 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
               ignoring: _isOpponentTurn ||
                   _puzzleSolved ||
                   _puzzleFailed ||
+                  _verdictLocksBoard ||
                   _gameState != PuzzleGameState.idle,
               child: SkinnedChessBoard(
                 controller: _puzzleBoardController,
@@ -3803,8 +3509,9 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
                     milliseconds:
                         AppSettingsService.instance.moveAnimationDurationMs),
                 onCompleted: () {
-                  if (mounted)
+                  if (mounted) {
                     setState(() => _pendingAnimations.remove(pendingAnim));
+                  }
                 },
               ),
           ],
