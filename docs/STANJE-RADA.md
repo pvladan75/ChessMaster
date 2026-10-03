@@ -69,8 +69,13 @@ faze 0–13. **Faza 0 urađena 3.10.2026** (`65ef31a3`): `EndgameBoardLayout` /
 `EndgameInfoPanel` → `TrainerBoardLayout` / `TrainerInfoPanel` u
 `lib/widgets/trainer_board_layout.dart`, aplikacija 5605 / 1 preskočen, analyze
 istih 22; uz nju `a1a646a2` — `speech_clips_test` je padao na svakom svežem
-checkout-u na Windowsu (CRLF u `manifest.json`). **Sledeća je faza 1**, ekran
-zagonetki, `[implementer]` uz kapiju koju lead piše. Pomoćnik za
+checkout-u na Windowsu (CRLF u `manifest.json`). **Faza 1 urađena 3.10.2026**
+(ekran zagonetki na zajedničkom rasporedu, sve presude u panelu, motor tek
+posle kraja; aplikacija 5644 / 1 preskočen, analyze 22 → 10; provera uživo
+[266.1]–[266.3]). Pri ocenjivanju nađeno: kapija je crtala u
+`ThemeData.dark()` pa nije videla da je `Next` na 900 × 700 pola ispod prozora;
+sad crta u pravoj temi. **Sledeće su faze 2 i 3** (tactics trainer, My
+mistakes). Pomoćnik za
 render sa pravim fontom je već u `test/support/render_look.dart` (§4.3 plana;
 nije test, suite ga ne uvozi). Faza 4 (soba) čeka da vlasnik vidi crtež. Renderovanje je našlo pet
 kvarova koji postoje danas (§2 plana): „New group" pokriva dugmad poslednje

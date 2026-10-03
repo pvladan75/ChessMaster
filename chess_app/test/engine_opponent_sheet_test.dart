@@ -117,9 +117,11 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.byTooltip('Engine opponent'), findsOneWidget);
     expect(find.byType(BoardViewMenu), findsOneWidget);
-    // The goal banner was dropped the same way and is back above the board:
-    // upright, the screen said nowhere what was being asked.
-    expect(find.textContaining('Practice:'), findsOneWidget);
+    // The goal banner was dropped the same way and is back: upright, the
+    // screen said nowhere what was being asked. It is the task in the panel
+    // now („Practice: easy (Checkmate Stockfish)" was the old banner, and the
+    // phase 1 of docs/PLAN-EKRANI.md put the task in words in its place).
+    expect(find.textContaining('Deliver checkmate'), findsOneWidget);
 
     // And it opens from there, which is the point of it being on screen.
     await tester.tap(find.byTooltip('Engine opponent'));

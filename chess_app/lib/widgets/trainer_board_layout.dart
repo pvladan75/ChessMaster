@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 
 /// Everything a board screen has to say, in one place and in one order — the
@@ -36,25 +38,45 @@ import 'package:chess_app/widgets/speakable_info.dart';
 class TrainerInfoPanel extends StatefulWidget {
   const TrainerInfoPanel({
     super.key,
-    required this.task,
+    this.task,
     this.taskText,
+    this.taskLeading,
+    this.taskExtra,
     this.detail,
     this.chips = const [],
     this.message = const [],
+    this.messageText,
+    this.messageIcon,
     this.note,
     this.messageIsGood = false,
+    this.children = const [],
     this.autoSpeak = true,
     this.speech,
-  });
+  }) : assert(task != null || taskText != null,
+            'a panel without a task line must say its task in words');
 
   /// What to do now, in a sentence, and always phrased as something to do. It
   /// carries the speaker, and is said when it appears and whenever it changes.
-  final SpokenLine task;
+  ///
+  /// Null where the screen asks something it has no clips for (Basic
+  /// checkmate, „Play it out"): [taskText] is then drawn alone, with no
+  /// speaker, because a speaker that says nothing — or says some other
+  /// sentence — would be a control that is never a no-op turned inside out.
+  final SpokenLine? task;
 
   /// What the task line draws, where that cannot be [SpokenLine.text]: a list
   /// of moves is drawn with commas, which the clips have no word for. Null
   /// draws the line's own text, which is every other sentence on the screen.
+  /// With no [task] it is the whole line, and required.
   final String? taskText;
+
+  /// Drawn before the task line, beside it: the side whose move it is, as a
+  /// ring or a disc — a shape, never a character in the text.
+  final Widget? taskLeading;
+
+  /// Drawn right under the task line: „Your move" in a game, which is part of
+  /// what is being asked and not of what happened.
+  final Widget? taskExtra;
 
   /// A second sentence under the task — the story of the position, or what to
   /// do on the board. Said once, right after the task, when it appears.
@@ -68,11 +90,29 @@ class TrainerInfoPanel extends StatefulWidget {
   /// knows when the answer was given; the panel never says it twice.
   final List<SpokenLine> message;
 
+  /// The verdict as drawn text, for a sentence the screen says in other words
+  /// than it draws („Stockfish delivered checkmate. Try again." is drawn;
+  /// „Checkmate. Stockfish wins. Try again." is what the clips say) and for
+  /// lines the table has no words for, a rating. Drawn after [message], in
+  /// the same box, and never spoken.
+  final List<String>? messageText;
+
+  /// A shape for the message box: good and not good are said in words and in
+  /// the shape of an icon, never in the colour of the box alone (the owner is
+  /// colourblind). Null draws none, which is every caller that predates it.
+  final IconData? messageIcon;
+
   /// A note that is only drawn: "Checking tablebases…", a refusal from the
   /// server. Not a sentence of the table, so never spoken.
   final String? note;
 
   final bool messageIsGood;
+
+  /// Whatever the screen shows once there is something to show: the solution
+  /// tree after a puzzle, the engine's lines after it is over. Under the
+  /// message, in the panel's own column, so that what is asked, what happened
+  /// and what there is to learn from it are one thing to read.
+  final List<Widget> children;
 
   /// Say the task (and the detail) when they appear. Off where the task only
   /// repeats the verdict that was just said, so the verdict is not followed by
@@ -131,7 +171,19 @@ class _TrainerInfoPanelState extends State<TrainerInfoPanel> {
     final chips = widget.chips;
     final message = widget.message;
     final note = widget.note;
+    final messageText = widget.messageText ?? const <String>[];
+    final messageIcon = widget.messageIcon;
     final messageIsGood = widget.messageIsGood;
+    final taskWidget = task != null
+        ? SpeakableInfo(
+            text: widget.taskText ?? task.text,
+            line: task,
+            autoSpeak: widget.autoSpeak,
+            compact: true,
+            speech: widget.speech,
+            style: theme.textTheme.titleMedium,
+          )
+        : Text(widget.taskText!, style: theme.textTheme.titleMedium);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -154,19 +206,30 @@ class _TrainerInfoPanelState extends State<TrainerInfoPanel> {
             ),
             const SizedBox(height: 10),
           ],
-          SpeakableInfo(
-            text: widget.taskText ?? task.text,
-            line: task,
-            autoSpeak: widget.autoSpeak,
-            compact: true,
-            speech: widget.speech,
-            style: theme.textTheme.titleMedium,
-          ),
+          if (widget.taskLeading == null)
+            taskWidget
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Level with the first line of the task, whatever its size.
+                Padding(
+                  padding: const EdgeInsets.only(top: 5),
+                  child: widget.taskLeading!,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: taskWidget),
+              ],
+            ),
+          if (widget.taskExtra != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            widget.taskExtra!,
+          ],
           if (detail != null) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(detail.text, style: theme.textTheme.bodySmall),
           ],
-          if (message.isNotEmpty || note != null) ...[
+          if (message.isNotEmpty || messageText.isNotEmpty || note != null) ...[
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -178,14 +241,30 @@ class _TrainerInfoPanelState extends State<TrainerInfoPanel> {
                     .withValues(alpha: 0.15),
                 borderRadius: AppRadii.roundedSm,
               ),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final line in message) Text(line.text),
-                  if (note != null) Text(note),
+                  if (messageIcon != null) ...[
+                    Icon(messageIcon, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final line in message) Text(line.text),
+                        for (final text in messageText) Text(text),
+                        if (note != null) Text(note),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+          ],
+          if (widget.children.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            ...widget.children,
           ],
         ],
       ),
@@ -227,6 +306,10 @@ class TrainerBoardLayout extends StatelessWidget {
     required this.reserveHeight,
     required this.builder,
     this.maxBoard = 720,
+    this.scale = 1.0,
+    this.panelWidth = TrainerInfoPanel.sideWidth,
+    this.controlsWidth,
+    this.wrapReserve = 56,
   });
 
   final bool wide;
@@ -243,26 +326,64 @@ class TrainerBoardLayout extends StatelessWidget {
   /// long way for the eye to travel.
   final double maxBoard;
 
+  /// The reader's board size setting, 0.6–1.0. It only ever shrinks the board,
+  /// and 1.0 — every screen that does not offer the slider — leaves the size
+  /// exactly as it was worked out.
+  final double scale;
+
+  /// How wide the panel is beside the board: [TrainerInfoPanel.sideWidth]
+  /// unless the screen puts more in it than a task and a verdict — the puzzle
+  /// screen's solution tree is a card with a header row that needs about 300.
+  final double panelWidth;
+
+  /// How wide the screen's row of buttons under the board is, laid out on one
+  /// line, on a window. Where the board's column is narrower the row wraps,
+  /// and the board gives up [wrapReserve] more of the height for the second
+  /// line — so the last button is never a scroll away (measured 3.10.2026: at
+  /// 900 x 700 the puzzle screen's „Next" was half under the window). Null:
+  /// the screen's buttons never outgrow the column.
+  final double? controlsWidth;
+
+  /// The height a second line of buttons takes: a 48 px button and the gap.
+  final double wrapReserve;
+
   static const double _gap = 16;
   static const double _minColumn = 380;
 
-  @override
-  Widget build(BuildContext context) {
-    final aside = wide ? TrainerInfoPanel.sideWidth + _gap : 0.0;
+  /// The board's side with [reserve] kept under it.
+  double _boardFor(double reserve) {
+    final aside = wide ? panelWidth + _gap : 0.0;
     // The board is square, so the tighter axis bounds it. Both are needed: a
     // short wide window and a tall narrow one fail in opposite directions, and
     // a release build paints no warning when either does.
     final widthBased =
         (constraints.maxWidth - aside - 24).clamp(160.0, maxBoard);
     final heightBased =
-        (constraints.maxHeight - reserveHeight).clamp(160.0, maxBoard);
-    final boardSize = heightBased < widthBased ? heightBased : widthBased;
+        (constraints.maxHeight - reserve).clamp(160.0, maxBoard);
+    final fitted = heightBased < widthBased ? heightBased : widthBased;
+    return scale >= 1.0 ? fitted : fitted * scale.clamp(0.0, 1.0);
+  }
+
+  /// The column is at least wide enough for the navigation strip, which does
+  /// not shrink with the board.
+  static double _columnFor(double board) =>
+      board < _minColumn ? _minColumn : board;
+
+  @override
+  Widget build(BuildContext context) {
+    var boardSize = _boardFor(reserveHeight);
 
     if (!wide) return builder(boardSize);
 
-    // The column is at least wide enough for the navigation strip, which does
-    // not shrink with the board.
-    final columnWidth = boardSize < _minColumn ? _minColumn : boardSize;
+    // A column narrower than the buttons wraps them onto a second line, and
+    // that line is height the board gives up. Shrinking the board only
+    // narrows the column further, so one line more is the whole answer.
+    final buttons = controlsWidth;
+    if (buttons != null && _columnFor(boardSize) < buttons) {
+      boardSize = _boardFor(reserveHeight + wrapReserve);
+    }
+
+    final columnWidth = _columnFor(boardSize);
     return Center(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -270,9 +391,146 @@ class TrainerBoardLayout extends StatelessWidget {
         children: [
           SizedBox(width: columnWidth, child: builder(boardSize)),
           const SizedBox(width: _gap),
-          SizedBox(width: TrainerInfoPanel.sideWidth, child: panel),
+          SizedBox(width: panelWidth, child: panel),
         ],
       ),
+    );
+  }
+}
+
+/// The whole body of a board screen, with the one choice rule R1 of
+/// `docs/PLAN-EKRANI.md` describes made once.
+///
+/// A window at least [Breakpoints.wide] wide gets the board sized by its
+/// height and the panel beside it ([TrainerBoardLayout]); a phone held upright
+/// gets the panel under the board, the whole body scrolling; a phone on its
+/// side ([LandscapeBoardLayout.applies]) gets the board on the left and the
+/// panel in the right column, the buttons pinned under it. **The choice is the
+/// window's, never `MediaQuery.orientation`**: a desktop window that is wider
+/// than it is tall is not a phone on its side, and the puzzle screen used to
+/// treat it as one.
+///
+/// It was written out in `endgame_trainer_screen.dart`, and the puzzle screen
+/// was about to be the second copy; the endgame trainer calls this now and
+/// draws exactly what it drew.
+class TrainerScreenLayout extends StatelessWidget {
+  const TrainerScreenLayout({
+    super.key,
+    required this.board,
+    required this.panel,
+    required this.controls,
+    this.strip,
+    this.asidePanel,
+    this.extras,
+    this.boardAside,
+    this.scale = 1.0,
+    this.panelWidth = TrainerInfoPanel.sideWidth,
+    this.wideReserve = 140,
+    this.phoneReserve = 280,
+    this.controlsWidth,
+  });
+
+  /// The row of buttons laid out on one line; see
+  /// [TrainerBoardLayout.controlsWidth].
+  final double? controlsWidth;
+
+  /// Draws the board at the side it is given.
+  final Widget Function(double side) board;
+
+  /// Everything the screen says: under the board on a phone held upright, and
+  /// beside it wherever [asidePanel] is not given.
+  final Widget panel;
+
+  /// The buttons: under the board, centred on it; pinned under the right
+  /// column when the phone is on its side.
+  final Widget controls;
+
+  /// A strip of its own between the board and the buttons (the move strip),
+  /// pinned above the buttons on a phone on its side.
+  final Widget? strip;
+
+  /// What stands beside the board — on a window, and as the right column of a
+  /// phone on its side — where that is more than [panel] is under it: the
+  /// endgame trainer's panel with the tablebase findings under it.
+  final Widget? asidePanel;
+
+  /// What a phone held upright shows after the buttons: whatever the screen
+  /// puts in [asidePanel] beside the board on a window, so that on a phone the
+  /// buttons are not a long scroll below it. Nothing is drawn for it on a
+  /// window or a phone on its side — those have [asidePanel].
+  final Widget? extras;
+
+  /// An eval bar as tall as the board, on a phone on its side.
+  final Widget Function(double height)? boardAside;
+
+  /// The reader's board size setting, 0.6–1.0, which only ever shrinks the
+  /// board. A screen that offers the slider must pass it.
+  final double scale;
+
+  /// The panel's width beside the board on a window; see
+  /// [TrainerBoardLayout.panelWidth].
+  final double panelWidth;
+
+  /// Room under the board for the strip and the buttons, on a window and on a
+  /// phone (where the panel is under the board as well).
+  final double wideReserve;
+  final double phoneReserve;
+
+  @override
+  Widget build(BuildContext context) {
+    final wide = Breakpoints.isWide(context);
+
+    if (LandscapeBoardLayout.applies(context)) {
+      return LandscapeBoardLayout(
+        board: board,
+        boardAside: boardAside,
+        boardScale: scale,
+        panels: asidePanel ?? panel,
+        footer: [
+          if (strip != null) strip!,
+          const SizedBox(height: AppSpacing.sm),
+          controls,
+        ],
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: TrainerBoardLayout(
+            wide: wide,
+            constraints: constraints,
+            panel: asidePanel ?? panel,
+            scale: scale,
+            panelWidth: panelWidth,
+            controlsWidth: controlsWidth,
+            // The buttons under the board; on a phone the panel as well.
+            reserveHeight: wide ? wideReserve : phoneReserve,
+            builder: (boardSize) {
+              return Column(
+                children: [
+                  Center(child: board(boardSize)),
+                  if (strip != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    strip!,
+                  ],
+                  if (!wide) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    panel,
+                  ],
+                  const SizedBox(height: AppSpacing.md),
+                  controls,
+                  if (!wide && extras != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    extras!,
+                  ],
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

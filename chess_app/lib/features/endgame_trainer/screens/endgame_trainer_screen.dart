@@ -1220,7 +1220,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final solve = _solve;
     if (solve == null) return const SizedBox.shrink();
 
-    final wide = Breakpoints.isWide(context);
     final task = _task(solve);
     final panel = TrainerInfoPanel(
       key: ValueKey('panel-$_panelSerial'),
@@ -1277,43 +1276,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           ),
         );
 
-    if (LandscapeBoardLayout.applies(context)) {
-      return LandscapeBoardLayout(
-        board: board,
-        panels: aside,
-        footer: [
-          const SizedBox(height: AppSpacing.sm),
-          _buildControls(solve),
-        ],
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: TrainerBoardLayout(
-            wide: wide,
-            constraints: constraints,
-            panel: aside,
-            // The buttons under the board; on a phone the panel as well.
-            reserveHeight: wide ? 140 : 280,
-            builder: (boardSize) {
-              return Column(
-                children: [
-                  Center(child: board(boardSize)),
-                  if (!wide) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    panel,
-                  ],
-                  const SizedBox(height: AppSpacing.md),
-                  _buildControls(solve),
-                ],
-              );
-            },
-          ),
-        );
-      },
+    return TrainerScreenLayout(
+      board: board,
+      panel: panel,
+      asidePanel: aside,
+      controls: _buildControls(solve),
     );
   }
 

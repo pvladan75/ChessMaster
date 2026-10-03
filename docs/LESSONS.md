@@ -10324,3 +10324,39 @@ ambient one, so a style with no family draws as boxes in a test even where
 the body text is Roboto; naming the family in the theme's button, app-bar,
 chip, tab and dialog styles fixed every label but a `RichText` with no root
 style, which takes nothing from the theme at all.
+
+## 3.10.2026 — PLAN-EKRANI, phase 1: the puzzle screen on the shared layout (app 5605 → 5644, analyze 22 → 10)
+
+Arithmetic: 5605 + 22 (the lead's gate, `puzzle_screen_panel_test`) + 10 (the
+worker's `puzzle_screen_actions_test`) + 7 (new cases in
+`trainer_board_layout_test`) = 5644, measured twice — on the worker's commit
+and after grading — with nothing else running. Analyze lost the twelve
+`curly_braces` infos that lived in `ai_studio_screen.dart`; the ten left are
+in two other files.
+
+**A gate that pumps `ThemeData.dark()` measures a different button.** The
+lead's gate passed „Next is on screen at 900 × 700"; the rendered look, in the
+app's own theme, showed it half under the window. `AppTheme`'s buttons are 48
+px tall with wider padding, so the four buttons measured 507 px — wider than
+the 465 px column under the board — and wrapped onto a second line the gate's
+smaller buttons never needed. Pumped in `robotoTheme(AppTheme.dark)` the gate
+went red on exactly that case and nowhere else. **A layout gate pumps the
+theme the user sees, with the fonts the user sees** — rule 8 from the other
+side: not a test of the machine, but a test of a theme nobody uses.
+
+And the fix's shape: the board column cannot know its buttons will wrap
+until it knows its width, and its width is the board's. One more line's height
+is the whole answer, because shrinking the board only narrows the column
+further — so the screen states its row's width once
+(`TrainerBoardLayout.controlsWidth`) and the layout gives up a line when the
+column is narrower. The gate's own 440 at 900 × 700 had assumed one line; it
+was lowered openly to 400 (408 measured), with the reason written above it.
+
+The worker stopped on nothing but named six things the brief had left open,
+three of which mattered: the failure sheet had kept the board still by being
+in the way, so a wrong move now locks it by name (`_Verdict.locksBoard`); the
+gate's „1505 in the panel" was also satisfied by the new rating chip, so a
+mutation that dropped the verdict's rating line survived it and died only on
+the worker's own case; and two faults already on master — „Try again"
+cleared the puzzle's start and „Show solution" after it replayed nothing, and
+a restart left the solution tree where the last solve ended.

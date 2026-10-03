@@ -4857,6 +4857,27 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: U taktici samo `Show solution` (i `Skip`/`Back` kako je bilo); u završnicama `Hint` i dalje postoji.
    Potrebno: Windows.
 
+25. [ ] **Ekran zagonetki: tabla levo, panel desno, kao u završnicama.** [266.1]
+   O čemu se radi: Faza 1 plana `PLAN-EKRANI.md` (3.10.2026): ekran zagonetki ima isti raspored kao trener završnica — tabla velika koliko visina prozora dozvoljava, panel pored nje sa zadatkom, presudom i (posle rešenja) stablom rešenja. Gornja traka nema više ikonice za Analysis / Try again / Next, a ispod table je jedno popunjeno dugme `Next` i tiha dugmad `Try again`, `Show solution`, `Open in Analysis`. Zamenjuje ono što stavke [44.b1683] i [44.b1686] kažu o dijalogu „VICTORY!" i dugmetu `Next Position`.
+   Gde: `Practise` → `Mate in 1, 2, or 3` (i `Find the winning path`, `Basic checkmate`).
+   Uradi: Otvori zagonetku na svom prozoru; smanji prozor na najmanji koji Windows dozvoljava; pa isto na telefonu, uspravno i položeno.
+   Treba da vidiš: Zadatak („White to move. Mate in 1.") je u panelu, krupnim slovima, ne u traci; `Next` je na ekranu bez skrolovanja na prozoru (na telefonu uspravno je ispod panela, skrol); nema dugmadi preko cele širine.
+   Potrebno: Windows i telefon; server.
+
+26. [ ] **Presuda se kaže u panelu, ne u dijalogu.** [266.2]
+   O čemu se radi: Tvoj odgovor A od 3.10.2026: pogrešan potez, rešenje, poraz i remi u vežbi i pobeda u vežbi se pišu u panelu pored table — nema više dijaloga „Puzzle Solved!", „VICTORY!", donjeg lista „Incorrect Move!" ni traka na dnu. Posle pogrešnog poteza tabla čeka izbor: `Try again`, `Show solution` ili `Next` (koji tada beleži promašaj, kao nekad „Next Puzzle" na listu). Sopstvena igra „Play it out" kaže ishod u panelu; dodeljena zadržava dijalog sa `Back`.
+   Gde: `Practise` → `Mate in 1, 2, or 3`; `Find the winning path`.
+   Uradi: Odigraj pogrešan potez, pa `Try again`; pa reši zagonetku; u `Find the winning path` izgubi jednu vežbu i dobij jednu.
+   Treba da vidiš: Svaka presuda je u panelu sa ikonicom (✓, ✗ ili zastavica); posle rešenja i nova ocena („New rating: … (+5)"); glas kaže iste rečenice kao do sada.
+   Potrebno: Windows i telefon; server; zvučnik.
+
+27. [ ] **Motor se pojavljuje tek kad je vežba gotova.** [266.3]
+   O čemu se radi: Tvoj odgovor B od 3.10.2026: u `Find the winning path` i `Basic checkmate` panel motora (`Engine`, `Show evaluation`) postoji tek kad je zagonetka rešena, izgubljena ili joj je prikazano rešenje — ne pomaže dok rešavaš. U `Mate in N` ga nema nikad, u „Play it out" je kao i do sada.
+   Gde: `Practise` → `Find the winning path`.
+   Uradi: Otvori vežbu i pogledaj panel; pa je izgubi ili prikaži rešenje.
+   Treba da vidiš: Pre kraja nema panela motora; posle kraja je u panelu ispod presude. `Try again` ga ponovo sakrije.
+   Potrebno: Windows.
+
 ### Practise — Practise — ostalo
 
 1. [ ] **Isti panel stabla radi i u Analizi.** [70.9]

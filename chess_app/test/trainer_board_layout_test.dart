@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/trainer_board_layout.dart';
 
 const _boardKey = Key('board');
@@ -149,5 +150,159 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('King d5 loses the draw. The drill stops here.'),
         findsOneWidget);
+  });
+
+  // ── what phase 1 of docs/PLAN-EKRANI.md added for the puzzle screen ────
+
+  group('the panel, extended', () {
+    testWidgets(
+        'a task with no spoken line is words alone: no speaker beside it',
+        (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+            body: TrainerInfoPanel(taskText: 'White to move. Deliver mate.')),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('White to move. Deliver mate.'), findsOneWidget);
+      expect(find.byTooltip('Enable reading aloud'), findsNothing);
+      expect(find.byTooltip('Read aloud'), findsNothing);
+
+      // And with a line it is the speaker's, as it always was.
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+            body: TrainerInfoPanel(
+                task: SpokenLine([SpeechVocabulary.goForward]),
+                autoSpeak: false)),
+      ));
+      await tester.pumpAndSettle();
+      expect(
+          find.byWidgetPredicate((w) =>
+              w is Tooltip &&
+              (w.message == 'Enable reading aloud' ||
+                  w.message == 'Read aloud')),
+          findsOneWidget);
+    });
+
+    testWidgets(
+        'the verdict as drawn text, its shape, and the children after it '
+        'in that order', (tester) async {
+      await tester.pumpWidget(const MaterialApp(
+        home: Scaffold(
+          body: TrainerInfoPanel(
+            taskText: 'Task',
+            taskLeading: Icon(Icons.circle_outlined, key: Key('side')),
+            messageText: ['Said once', 'And a rating'],
+            messageIcon: Icons.check_circle,
+            messageIsGood: true,
+            children: [Text('the solution')],
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      final said = tester.getTopLeft(find.text('Said once'));
+      final rating = tester.getTopLeft(find.text('And a rating'));
+      final child = tester.getTopLeft(find.text('the solution'));
+      expect(rating.dy, greaterThan(said.dy));
+      expect(child.dy, greaterThan(rating.dy), reason: 'under the message');
+      // The side's icon stands level with the task, to its left.
+      expect(tester.getTopLeft(find.byKey(const Key('side'))).dx,
+          lessThan(tester.getTopLeft(find.text('Task')).dx));
+    });
+
+    testWidgets('a panel with none of it draws what it drew: no icon, no row',
+        (tester) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: TrainerInfoPanel(
+            task: SpokenLine([SpeechVocabulary.goForward]),
+            message: [
+              SpokenLine([SpeechVocabulary.correct])
+            ],
+            autoSpeak: false,
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byType(Icon), findsOneWidget, reason: 'the speaker only');
+    });
+  });
+
+  group('TrainerScreenLayout chooses by the window, once', () {
+    Future<void> pump(WidgetTester tester, Size size,
+        {double scale = 1.0}) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: TrainerScreenLayout(
+            scale: scale,
+            board: (side) =>
+                SizedBox(key: _boardKey, width: side, height: side),
+            panel: const SizedBox(key: Key('panel'), height: 40),
+            asidePanel: const SizedBox(key: Key('aside'), height: 40),
+            extras: const SizedBox(key: Key('extras'), height: 40),
+            controls: const SizedBox(key: Key('controls'), height: 40),
+            strip: const SizedBox(key: Key('strip'), height: 40),
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('a window: the aside beside the board, never the phone\'s',
+        (tester) async {
+      // Wider than tall, and not a phone: 900 x 700 is the layout of a
+      // window, which the puzzle screen used to give the phone's landscape.
+      await pump(tester, const Size(900, 700));
+      expect(find.byType(TrainerBoardLayout), findsOneWidget);
+      expect(find.byType(LandscapeBoardLayout), findsNothing);
+      expect(find.byKey(const Key('aside')), findsOneWidget);
+      expect(find.byKey(const Key('panel')), findsNothing);
+      expect(find.byKey(const Key('extras')), findsNothing);
+      expect(tester.getTopLeft(find.byKey(const Key('aside'))).dx,
+          greaterThan(tester.getRect(find.byKey(_boardKey)).right - 1));
+      // The strip and the buttons are under the board, in that order.
+      expect(tester.getTopLeft(find.byKey(const Key('strip'))).dy,
+          greaterThan(tester.getRect(find.byKey(_boardKey)).bottom));
+      expect(tester.getTopLeft(find.byKey(const Key('controls'))).dy,
+          greaterThan(tester.getTopLeft(find.byKey(const Key('strip'))).dy));
+    });
+
+    testWidgets(
+        'a phone upright: the panel under the board, the buttons, then '
+        'the extras', (tester) async {
+      await pump(tester, const Size(360, 640));
+      expect(find.byType(LandscapeBoardLayout), findsNothing);
+      final ys = [
+        for (final k in ['panel', 'controls', 'extras'])
+          tester.getTopLeft(find.byKey(Key(k))).dy
+      ];
+      expect(find.byKey(const Key('aside')), findsNothing);
+      expect(ys[0], greaterThan(tester.getRect(find.byKey(_boardKey)).bottom));
+      expect(ys[1], greaterThan(ys[0]));
+      expect(ys[2], greaterThan(ys[1]));
+    });
+
+    testWidgets(
+        'a phone on its side: the layout of its own, the aside in its '
+        'column', (tester) async {
+      await pump(tester, const Size(800, 360));
+      expect(find.byType(LandscapeBoardLayout), findsOneWidget);
+      expect(find.byType(TrainerBoardLayout), findsNothing);
+      expect(find.byKey(const Key('aside')), findsOneWidget);
+      expect(find.byKey(const Key('extras')), findsNothing);
+      expect(find.byKey(const Key('controls')), findsOneWidget);
+    });
+
+    testWidgets('the board size setting only ever shrinks the board',
+        (tester) async {
+      await pump(tester, const Size(900, 700));
+      final full = tester.getSize(find.byKey(_boardKey)).width;
+      await pump(tester, const Size(900, 700), scale: 0.6);
+      expect(tester.getSize(find.byKey(_boardKey)).width,
+          closeTo(full * 0.6, 0.01));
+    });
   });
 }
