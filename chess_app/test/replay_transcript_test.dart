@@ -834,16 +834,25 @@ void main() {
           final server = _Server(transcript: _transcript(sentences: many));
           await _player(tester, server, size: size);
           expect(tester.takeException(), isNull);
+          // Phase 7 of docs/PLAN-EKRANI.md moved the two actions from under
+          // the list to a row above it, so the list gets the column. What the
+          // case protects is unchanged: the button is in reach with forty
+          // sentences, and the list fills the column — no empty band under
+          // the list while sentences are hidden — measured now on the list.
           final panel = tester.getRect(_panel);
           final button = tester.getRect(_transcribe);
+          final list = tester.getRect(
+            find.byKey(const Key('transcript-sentence-list')),
+          );
           expect(panel.bottom, lessThanOrEqualTo(size.height));
-          expect(button.bottom, lessThanOrEqualTo(panel.bottom));
+          expect(button.bottom, lessThanOrEqualTo(list.top),
+              reason: 'the actions stand above the sentences');
           expect(_transcribe.hitTestable(), findsOneWidget);
           expect(
-            panel.bottom - button.bottom,
+            panel.bottom - list.bottom,
             lessThan(48),
-            reason: 'the list fills the column; no empty band under the '
-                'button while sentences are hidden above it',
+            reason: 'the list fills the column; no empty band under it '
+                'while sentences are hidden above it',
           );
           await _close(tester);
         },
@@ -886,7 +895,9 @@ void main() {
         findsOneWidget,
         reason: 'play is in reach while reading',
       );
-      expect(_transcribe.hitTestable(), findsOneWidget);
+      // Behind the sheet's ⋮ since phase 7 of docs/PLAN-EKRANI.md.
+      expect(find.byKey(const Key('transcript-actions')).hitTestable(),
+          findsOneWidget);
       expect(
         tester.getRect(_panel).bottom,
         lessThanOrEqualTo(tester.getRect(open).top),
@@ -931,6 +942,11 @@ void main() {
       expect(listRect.height, greaterThan(0),
           reason: 'the list above the door keeps its room');
 
+      // Phase 7 of docs/PLAN-EKRANI.md put the door behind the sheet's ⋮, so
+      // it is measured in the menu that opens from there — still whole on the
+      // screen and its words not clipped.
+      await tester.tap(find.byKey(const Key('transcript-actions')));
+      await _settle(tester);
       final door = find.byKey(const Key('transcript-make-tutorial'));
       expect(door, findsOneWidget);
       final doorRect = tester.getRect(door);

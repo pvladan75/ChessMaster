@@ -155,12 +155,18 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  // Phase 7 of docs/PLAN-EKRANI.md: the bar's icons became words, and
+  // „Download video" is one of the two things behind the word „Video". The
+  // case still protects what it did — a student has no share and no export,
+  // and is told when there is no video — and opens the menu first.
   testWidgets(
       'a student has no share and no export, and is told when there '
       'is no video', (tester) async {
     await _player(tester, _Server(_row()), me: _mila);
     expect(_share, findsNothing);
-    expect(find.byTooltip('Export to MP4 Video'), findsNothing,
+    await tester.tap(find.text('Video'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Export to MP4'), findsNothing,
         reason: 'rendering is the trainer\'s');
     await tester.tap(_download);
     await tester.pump();
@@ -175,6 +181,9 @@ void main() {
         _Server(
             _row(video: '/recordings/export-download/r.mp4?token=for-mila')),
         me: _mila);
+    // Behind the word „Video" since phase 7 of docs/PLAN-EKRANI.md.
+    await tester.tap(find.text('Video'));
+    await tester.pumpAndSettle();
     await tester.tap(_download);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
