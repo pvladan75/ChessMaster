@@ -175,19 +175,39 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     children: [
-                      if (detail.assignment.instructions != null &&
-                          detail.assignment.instructions!.isNotEmpty) ...[
-                        Text(detail.assignment.instructions!,
-                            style: AppText.bodyLarge),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      Text(
-                        detail.assignment.itemsSummary,
-                        key: const Key('homework-progress'),
-                        style: AppText.title,
+                      // One numbered list of reading width: a step is a line,
+                      // not a card as wide as the window (phase 11 of
+                      // docs/PLAN-EKRANI.md).
+                      Center(
+                        child: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: _listWidth),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (detail.assignment.instructions != null &&
+                                  detail
+                                      .assignment.instructions!.isNotEmpty) ...[
+                                Text(detail.assignment.instructions!,
+                                    style: AppText.bodyLarge),
+                                const SizedBox(height: AppSpacing.md),
+                              ],
+                              Text(
+                                detail.assignment.itemsSummary,
+                                key: const Key('homework-progress'),
+                                style: AppText.title,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              LinearProgressIndicator(
+                                value: detail.assignment.progress,
+                                backgroundColor: context.colors.surfaceRaised,
+                              ),
+                              const SizedBox(height: AppSpacing.lg),
+                              _buildSteps(detail),
+                            ],
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ...detail.children.map(_buildChildRow),
                     ],
                   ),
                 ),
@@ -222,7 +242,55 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
     );
   }
 
-  Widget _buildChildRow(HomeworkChild child) {
+  /// The reading width of the list: wide enough for a title, a line under it,
+  /// a state and two actions on one line, narrow enough that the eye does not
+  /// travel a window to get from a step's name to its button.
+  static const double _listWidth = 820;
+
+  /// Below this width the actions leave the line and go under the step's text.
+  static const double _inlineFrom = 560;
+
+  /// The numbered list: one card, one line a step, a hairline between them.
+  Widget _buildSteps(AssignmentDetail detail) {
+    // The one step that can be done now, for the person who does it. A trainer
+    // is not asked to continue anything: their door is Review and Unlock.
+    final current = _isTrainer
+        ? null
+        : detail.children
+            .where((c) => c.state == HomeworkChildState.open)
+            .firstOrNull;
+
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      color: context.colors.surface,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final inline = constraints.maxWidth >= _inlineFrom;
+          return Column(
+            children: [
+              for (var i = 0; i < detail.children.length; i++) ...[
+                if (i > 0) const Divider(height: 1),
+                _buildChildRow(
+                  detail.children[i],
+                  number: i + 1,
+                  inline: inline,
+                  isCurrent: detail.children[i].id == current?.id,
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildChildRow(
+    HomeworkChild child, {
+    required int number,
+    required bool inline,
+    required bool isCurrent,
+  }) {
     final locked = child.state == HomeworkChildState.locked;
     final done = child.state == HomeworkChildState.done;
     final stateLabel = done ? 'Done' : (locked ? 'Locked' : 'Open');
@@ -232,135 +300,188 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
     final blocker = locked ? _blockerOf(child) : null;
     final verdict = _verdict(child);
 
-    return Card(
+    final stateWord = Text(
+      stateLabel,
+      key: Key('homework-child-state-${child.id}'),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        color: stateColor,
+      ),
+    );
+
+    // What is said under the title: why it is locked, who opened it, whether
+    // it waits to be judged, how it went. Each is one short line.
+    final lines = <Widget>[
+      if (locked)
+        Text(
+          blocker != null
+              ? 'Locked until "${blocker.title}" is done.'
+              : 'Locked until an earlier item is done.',
+          style: AppText.body.copyWith(color: context.colors.textMuted),
+        ),
+      if (child.openedByTrainer)
+        Text(
+          // The same fact, said to whoever is reading it: „your
+          // trainer“ is nonsense on the trainer's own screen.
+          _isTrainer
+              ? 'You unlocked this early.'
+              : 'Unlocked early by your trainer.',
+          style: AppText.body.copyWith(color: context.colors.warning),
+        ),
+      if (child.pendingItems > 0)
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Never by hue alone (the owner is colour-blind): an
+            // hourglass is a different *shape* from the done
+            // check-mark and the locked padlock beside it, and the
+            // words say the rest. This is not a failure — the
+            // tablebase could not be reached, the game still counts
+            // as done, and it is judged the next time anybody opens
+            // this homework (`docs/PLAN-EXERCISE.md`, phase 3b).
+            Icon(Icons.hourglass_empty,
+                size: 14, color: context.colors.textMuted),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                'Played — not judged yet',
+                key: Key('homework-child-pending-${child.id}'),
+                style: AppText.body.copyWith(color: context.colors.textMuted),
+              ),
+            ),
+          ],
+        ),
+      if (verdict != null) verdict,
+    ];
+
+    final actions = <Widget>[
+      if (child.attemptedItems > 0)
+        TextButton(
+          key: Key('homework-child-review-${child.id}'),
+          style: _compactButton,
+          onPressed: () => _openReview(child),
+          child: const Text('Review'),
+        ),
+      if (_isTrainer && locked)
+        TextButton(
+          key: Key('homework-child-unlock-${child.id}'),
+          style: _compactButton,
+          onPressed:
+              _unlocking.contains(child.id) ? null : () => _unlock(child),
+          child: const Text('Unlock for student'),
+        ),
+      // The one filled button of the screen (R4): the step to do now.
+      if (isCurrent)
+        FilledButton(
+          key: Key('homework-child-continue-${child.id}'),
+          style: _compactButton,
+          onPressed: () => _openChild(child),
+          child: const Text('Continue'),
+        ),
+    ];
+
+    final title = Text(
+      child.title,
+      maxLines: 2,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 15,
+        color: locked ? context.colors.textMuted : null,
+      ),
+    );
+
+    final text = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (inline)
+          title
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: title),
+              const SizedBox(width: AppSpacing.sm),
+              stateWord,
+            ],
+          ),
+        for (final line in lines) ...[const SizedBox(height: 2), line],
+        if (!inline && actions.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Wrap(spacing: AppSpacing.sm, children: actions),
+        ],
+      ],
+    );
+
+    return Material(
       key: Key('homework-child-${child.id}'),
-      color: context.colors.surface,
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      color: Colors.transparent,
       child: InkWell(
         // The trainer's tap on a played item opens what the student did, not
         // a board to play on — the student's tap is unchanged, and so is the
-        // separate Review button below, which either side may use.
+        // separate Review button, which either side may use.
         onTap: locked
             ? null
             : (_isTrainer && child.attemptedItems > 0)
                 ? () => _openReview(child)
                 : () => _openChild(child),
-        borderRadius: AppRadii.roundedMd,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          child: Row(
+            crossAxisAlignment:
+                inline ? CrossAxisAlignment.center : CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(
-                    done
-                        ? Icons.check_circle
-                        : (locked
-                            ? Icons.lock_outline
-                            : Icons.play_circle_outline),
-                    color: stateColor,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      child.title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                  ),
-                  Text(
-                    stateLabel,
-                    key: Key('homework-child-state-${child.id}'),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: stateColor,
-                    ),
-                  ),
-                ],
+              Padding(
+                padding: EdgeInsets.only(top: inline ? 0 : 2),
+                child: Icon(
+                  done
+                      ? Icons.check_circle
+                      : (locked
+                          ? Icons.lock_outline
+                          : Icons.play_circle_outline),
+                  color: stateColor,
+                ),
               ),
-              if (locked)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
+              SizedBox(
+                width: 32,
+                child: Padding(
+                  padding: EdgeInsets.only(top: inline ? 0 : 2),
                   child: Text(
-                    blocker != null
-                        ? 'Locked until "${blocker.title}" is done.'
-                        : 'Locked until an earlier item is done.',
+                    '$number.',
+                    textAlign: TextAlign.center,
                     style:
                         AppText.body.copyWith(color: context.colors.textMuted),
                   ),
                 ),
-              if (child.openedByTrainer)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    // The same fact, said to whoever is reading it: „your
-                    // trainer“ is nonsense on the trainer's own screen.
-                    _isTrainer
-                        ? 'You unlocked this early.'
-                        : 'Unlocked early by your trainer.',
-                    style: AppText.body.copyWith(color: context.colors.warning),
-                  ),
-                ),
-              if (child.pendingItems > 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
+              ),
+              Expanded(child: text),
+              if (inline) ...[
+                const SizedBox(width: AppSpacing.sm),
+                SizedBox(width: 56, child: stateWord),
+                SizedBox(
+                  width: 260,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      // Never by hue alone (the owner is colour-blind): an
-                      // hourglass is a different *shape* from the done
-                      // check-mark and the locked padlock above, and the
-                      // words say the rest. This is not a failure — the
-                      // tablebase could not be reached, the game still counts
-                      // as done, and it is judged the next time anybody opens
-                      // this homework (`docs/PLAN-EXERCISE.md`, phase 3b).
-                      Icon(Icons.hourglass_empty,
-                          size: 14, color: context.colors.textMuted),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Played — not judged yet',
-                        key: Key('homework-child-pending-${child.id}'),
-                        style: AppText.body
-                            .copyWith(color: context.colors.textMuted),
-                      ),
+                      for (var i = 0; i < actions.length; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSpacing.sm),
+                        actions[i],
+                      ],
                     ],
                   ),
                 ),
-              if (verdict != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: verdict,
-                ),
-              if (child.attemptedItems > 0 || (_isTrainer && locked))
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (child.attemptedItems > 0)
-                      TextButton.icon(
-                        key: Key('homework-child-review-${child.id}'),
-                        onPressed: () => _openReview(child),
-                        icon: const Icon(Icons.rate_review_outlined, size: 16),
-                        label: const Text('Review', style: AppText.body),
-                      ),
-                    if (_isTrainer && locked)
-                      TextButton.icon(
-                        key: Key('homework-child-unlock-${child.id}'),
-                        onPressed: _unlocking.contains(child.id)
-                            ? null
-                            : () => _unlock(child),
-                        icon: const Icon(Icons.lock_open, size: 16),
-                        label: const Text('Unlock for student'),
-                      ),
-                  ],
-                ),
+              ],
             ],
           ),
         ),
       ),
     );
   }
+
+  static const ButtonStyle _compactButton =
+      ButtonStyle(visualDensity: VisualDensity.compact);
 
   /// How this child went, in words — shown to both sides, and never for a
   /// child that has not been attempted or is still waiting to be judged: the
@@ -386,10 +507,12 @@ class _HomeworkAssignmentScreenState extends State<HomeworkAssignmentScreen> {
           children: [
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 6),
-            Text(
-              engineGameSaidWords(said),
-              key: Key('homework-child-verdict-${child.id}'),
-              style: AppText.body.copyWith(color: context.colors.textPrimary),
+            Flexible(
+              child: Text(
+                engineGameSaidWords(said),
+                key: Key('homework-child-verdict-${child.id}'),
+                style: AppText.body.copyWith(color: context.colors.textPrimary),
+              ),
             ),
           ],
         );
