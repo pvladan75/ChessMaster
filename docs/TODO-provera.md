@@ -4029,6 +4029,13 @@ odlazi na kraj spiska u alatu.
    vraća na isti dan.
    Potrebno: Windows i telefon.
 
+10. [ ] **My mistakes: tabla levo, panel desno, potezi u notaciji.** [266.5]
+   O čemu se radi: Faza 3 plana `PLAN-EKRANI.md` (3.10.2026): partija iz koje je greška (protivnik, datum, otvaranje, rezultat) i zadatak su u panelu pored table; presuda je u panelu, kratka rečenica po redu, i svaki potez je u notaciji („The best move was O-O.", „You tried d3.", „In the game you played Ng5.") umesto `e1g1` / `f3g5`; posle odgovora su ocene na ekranu bez skrolovanja na prozoru. Ocena koju verovatno želiš je popunjena — `Again` posle pogrešnog ili prikazanog odgovora, `Good` posle tačnog (tvoja reč od 3.10.2026); ostale tri su uokvirene.
+   Gde: `Practise` → `My mistakes`.
+   Uradi: Odigraj pogrešan potez; pa na sledećoj grešci pravi; pa na trećoj samo `Show answer`.
+   Treba da vidiš: Potezi kao u knjizi (rokada „O-O", uzimanje „exd5"); `Again` popunjeno posle pogrešnog i prikazanog, `Good` posle tačnog; ocene vidljive bez skrolovanja na Windowsu (na telefonu uspravno su ispod, skrol).
+   Potrebno: Windows i telefon; uvezene partije sa greškama.
+
 ### Practise — Završnice i greške iz partija
 
 1. [ ] **Kartica završnica ima dve imenovane linije napretka.** [176.4]
@@ -4877,6 +4884,13 @@ odlazi na kraj spiska u alatu.
    Uradi: Otvori vežbu i pogledaj panel; pa je izgubi ili prikaži rešenje.
    Treba da vidiš: Pre kraja nema panela motora; posle kraja je u panelu ispod presude. `Try again` ga ponovo sakrije.
    Potrebno: Windows.
+
+28. [ ] **Taktika: tabla levo, panel desno, i brojač koji broji tačno.** [266.4]
+   O čemu se radi: Faza 2 plana `PLAN-EKRANI.md` (3.10.2026): zadatak, presuda i nova ocena („Rating: 1524 (+9)") su u panelu pored table, nema više zasebne kartice ocene ispod table. Dok rešavaš, popunjeno je `Skip`, a `Show solution` je tiho dugme; kad je gotovo, popunjeno je `Next` (ne više „Next puzzle"), a red zadatka kaže kako se završilo („Solved.", „Not solved.") umesto „Find the best move.". Brojač „Moves needed: 1 · found …" posle rešenja više ne kaže „found 0" — uvek je brojao jedan potez manje.
+   Gde: `Practise` → `Tactics tailored to you`.
+   Uradi: Reši jednu zagonetku, pa na drugoj odigraj pogrešan potez pa `Show solution`.
+   Treba da vidiš: Posle rešenja u panelu „Solved." kao red zadatka i ocena ispod; brojač kaže koliko si poteza našao (ako zagonetka nema motiv koji se imenuje); `Next` je jedino popunjeno dugme.
+   Potrebno: Windows i telefon; server.
 
 ### Practise — Practise — ostalo
 

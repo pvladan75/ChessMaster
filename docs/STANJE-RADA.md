@@ -74,8 +74,14 @@ checkout-u na Windowsu (CRLF u `manifest.json`). **Faza 1 urađena 3.10.2026**
 posle kraja; aplikacija 5644 / 1 preskočen, analyze 22 → 10; provera uživo
 [266.1]–[266.3]). Pri ocenjivanju nađeno: kapija je crtala u
 `ThemeData.dark()` pa nije videla da je `Next` na 900 × 700 pola ispod prozora;
-sad crta u pravoj temi. **Sledeće su faze 2 i 3** (tactics trainer, My
-mistakes). Pomoćnik za
+sad crta u pravoj temi. **Faze 2 i 3 urađene 3.10.2026** (tactics trainer i My
+mistakes na zajedničkom rasporedu; brojač „found 0" popravljen; potezi u
+notaciji; ocena koju verovatno želiš je popunjena, na vlasnikovu reč; red
+zadatka posle rešenja kaže kako se završilo, na vlasnikovu reč; aplikacija
+5678 / 1 preskočen, analyze istih 10; provera uživo [266.4], [266.5]).
+Otvoreno pitanje za vlasnika: na uspravnom telefonu su dugmad (Next, ocene)
+ispod panela, skrol — isto na tri ekrana. **Sledeće po planu: faze 8, 7, 6**
+(grupe, plejer snimka, tura repertoara), pa faza 4 (soba) kad vlasnik vidi crtež. Pomoćnik za
 render sa pravim fontom je već u `test/support/render_look.dart` (§4.3 plana;
 nije test, suite ga ne uvozi). Faza 4 (soba) čeka da vlasnik vidi crtež. Renderovanje je našlo pet
 kvarova koji postoje danas (§2 plana): „New group" pokriva dugmad poslednje

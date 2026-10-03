@@ -305,7 +305,16 @@ solving, no filled button) and none throwing; two green there on purpose, as
 guards of what must not change (Mate in N never shows the engine panel; an
 assigned game keeps its dialog).
 
-### Phase 2 — the tactics trainer `[implementer]`
+### Phase 2 — the tactics trainer `[implementer]` — built 3.10.2026
+
+**Done** (worker's `5f4e6891`, the lead's `bb6f299b`): `TrainerScreenLayout`,
+the header card and the rating card in `TrainerInfoPanel`, `Skip` / `Next`
+the one filled button, `Show solution` a text button, the counter counting the
+reader's moves (`ceil`; reverting it turns three gate cases red). No addition
+to the shared widgets, no `controlsWidth` needed (two buttons, 270 px). On the
+owner's word at grading, a finished puzzle's task line says how it ended
+(„Solved.", „Not solved.") instead of „Find the best move", and is not said
+again — the endgame trainer's rule; a gate case, red first. Live check [266.4].
 
 `APP/features/tactics_trainer/screens/tactics_trainer_screen.dart`, onto
 §4.1: the header card's task into the panel, the rating card after a solve
@@ -319,7 +328,22 @@ all red on `4cebfe89` for the right reason — among them the counter, measured
 real: `solvedMoveCount` floors an odd cursor, so a one-move puzzle solved says
 „found 0" and a two-move one „found 1". Brief `docs/briefs/BRIEF-EKRANI-FAZA2.md`.
 
-### Phase 3 — My mistakes `[implementer]`
+### Phase 3 — My mistakes `[implementer]` — built 3.10.2026
+
+**Done** (worker's `228556d6`, the lead's `507e0b5d`): `TrainerScreenLayout`,
+the game as chips and the task (drawn, not spoken) in the panel, the verdict
+in the panel's box with a tick, a cross or an „i", `sanOfUci` beside
+`uciOfSan` with seven pure cases, every move in SAN, the grades on screen at
+1536 × 792 and 900 × 700 with the likely one filled (`_likelyGrade`, one
+line). The worker found and fixed what the gate could not see: the task's
+side was read off the board **after** the answer, so „White to move" turned
+into „Black to move" (a case of its own, red on the old line); and an empty
+promotion string was taken as a promotion. At grading the render showed
+„O-O" breaking at its hyphen at the panel's edge; the verdict is now one short
+sentence a line. Left for the owner: on a phone held upright the grades are a
+scroll under the panel, as `Next` is on the puzzle screen and the endgame
+trainer — the shared phone order (board, panel, buttons) is one decision for
+all three. Live check [266.5].
 
 **Gate:** `T/mistake_drill_panel_test.dart` (lead, 3.10.2026), 13 cases, all
 red on `4cebfe89`. R4 for a row of four peer grades is read as: the grade the

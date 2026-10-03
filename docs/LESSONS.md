@@ -10360,3 +10360,33 @@ mutation that dropped the verdict's rating line survived it and died only on
 the worker's own case; and two faults already on master — „Try again"
 cleared the puzzle's start and „Show solution" after it replayed nothing, and
 a restart left the solution tree where the last solve ended.
+
+## 3.10.2026 — PLAN-EKRANI, phases 2 and 3: the tactics trainer and My mistakes (app 5644 → 5678)
+
+Arithmetic: 5644 + 13 (the tactics gate, its thirteenth case added at grading
+for the task line after a solve) + 13 (the mistakes gate) + 7
+(`move_motif_san_test`) + 1 (`mistake_drill_task_side_test`) = 5678, measured
+once on master after both merges, with nothing else running; analyze the same
+10 infos.
+
+**Two workers in parallel share a scratchpad, not a machine's quiet.** Both
+redirected their full run to the same `full.log`; one read the other's paths
+and a duplicate run was left going. A worker's log name is per worker, and
+the lead measures once after the merge rather than trusting two runs that
+competed for the machine.
+
+**A render finds what a text assertion cannot**, twice in one day. The
+mistakes gate held „O-O" in the panel and was green while the panel drew
+„O-" on one line and „O" on the next — a line breaks at a hyphen, and a
+castling move is a hyphenated word. And the worker's render, not the gate,
+showed „White to move" turning into „Black to move" after an answer: the task
+read the side off the board, and the board had moved. **A sentence about a
+position is read off the position it is about**, not off the board in front
+of you, which moves on.
+
+**`floor` of a cursor that counts two things is one short at the end.**
+`solvedMoveCount` divided a cursor over [reader, reply, reader…] and floored
+it, so after the reader's last move — an odd cursor — the count was one
+short; only a puzzle with no motif to name ever drew it, which is why it
+lived. Mid-line the cursor is even and up and down agree, so `ceil` changed
+nothing the solution replay reads.
