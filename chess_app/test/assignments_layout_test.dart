@@ -15,6 +15,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -42,6 +43,11 @@ Finder _button<T extends Widget>(String label) => find.ancestor(
       matching: find.byWidgetPredicate((w) => w is T),
     );
 
+/// A trainer's instruction longer than a line of a card: it is the trainer's
+/// word to the student, and is drawn whole, never cut to one line.
+const _longInstruction = 'Ten positions. Look for the checks first, then '
+    'the captures, then the threats - in that order, every time.';
+
 // ── My Assignments ───────────────────────────────────────────────────────
 
 /// Four open and two finished, none overdue: the filters have something to
@@ -61,6 +67,7 @@ class _Mine extends AssignmentApiService {
         'attempted_items': attempted,
         'solved_items': attempted,
         'trainer_name': 'Marko Ilić',
+        if (id == 1) 'instructions': _longInstruction,
       };
 
   @override
@@ -183,7 +190,17 @@ void main() {
         (tester) async {
       await _pumpMine(tester, _window);
       expect(tester.takeException(), isNull);
-      expect(find.byType(AdaptiveCardGrid), findsOneWidget);
+      // Either half of pattern A; what matters is columns and nothing cut.
+      // Widened at grading (3.10.2026): a fixed 148 px cell cut the
+      // trainer's instruction to one line.
+      expect(
+          find.byType(AdaptiveCardGrid).evaluate().length +
+              find.byType(AdaptiveCardRows).evaluate().length,
+          1);
+      final instruction =
+          tester.renderObject<RenderParagraph>(find.text(_longInstruction));
+      expect(instruction.didExceedMaxLines, isFalse,
+          reason: 'the instruction of the trainer is drawn whole');
       final first = tester.getRect(find.text('Back-rank mates, set 3'));
       final second = tester.getRect(find.text('Forks from the Italian Game'));
       expect(second.top, closeTo(first.top, 1),

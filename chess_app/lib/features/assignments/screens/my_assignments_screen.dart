@@ -149,11 +149,6 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
       ? a.childTotal > 0 && a.childCompleted >= a.childTotal
       : a.isComplete;
 
-  /// The card's height: a title line, one line of instructions, the bar and
-  /// the figures beside the action. The text inside is cut to fit rather than
-  /// the card growing, because a grid cell has one height.
-  static const double _cardHeight = 148;
-
   @override
   Widget build(BuildContext context) {
     final openCount = _assignments.where((a) => !_isDone(a)).length;
@@ -209,14 +204,14 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                         ),
                       )
                     else
-                      AdaptiveCardGrid(
-                        itemCount: shown.length,
-                        tileHeight: _cardHeight,
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemBuilder: (context, i) =>
-                            _buildAssignmentCard(shown[i]),
+                      // Row by row, each row as tall as its tallest card: a
+                      // fixed cell cut the trainer's instruction to one line
+                      // (grading, 3.10.2026).
+                      AdaptiveCardRows(
+                        children: [
+                          for (final assignment in shown)
+                            _buildAssignmentCard(assignment),
+                        ],
                       ),
                   ],
                 ],
@@ -370,8 +365,6 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                   Expanded(
                     child: Text(
                       assignment.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 15),
                     ),
@@ -393,12 +386,10 @@ class _MyAssignmentsScreenState extends State<MyAssignmentsScreen> {
                   assignment.instructions!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(assignment.instructions!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.bodyLarge),
+                  child:
+                      Text(assignment.instructions!, style: AppText.bodyLarge),
                 ),
-              const Spacer(),
+              const SizedBox(height: AppSpacing.sm),
               if (!isLesson) ...[
                 LinearProgressIndicator(
                   value: assignment.progress,
