@@ -55,7 +55,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Brisanje naloga — 4.10.2026, komitovano na `master`, nije gurnuto; ostaje provera uživo ([268.1]–[268.5])
+## Brisanje naloga — 4.10.2026, komitovano na `master` (`76bcea72`, gurnuto 4.10.2026); ostaje provera uživo ([268.1]–[268.5])
 
 Korisnik briše svoj nalog iz aplikacije: `Settings` → `ACCOUNT` →
 `Delete account`. Politika privatnosti je to obećavala od početka („Brisanjem
