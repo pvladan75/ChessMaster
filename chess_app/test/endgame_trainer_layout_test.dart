@@ -127,7 +127,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('hold the draw'), findsOneWidget);
+    expect(find.textContaining('Hold the draw'), findsOneWidget);
   });
 
   testWidgets('says "nothing matches" and "unavailable" differently', (
@@ -210,7 +210,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Back to task'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('hold the draw'), findsOneWidget);
+    expect(find.textContaining('Hold the draw'), findsOneWidget);
   });
 
   testWidgets('leaving the drill goes back to the task, hunt and all',
@@ -257,12 +257,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tapAt(at('f1'));
     await tester.pumpAndSettle();
-    // "Tačno" alone also matches the "Tačno iz tablica" chip, and the heading
-    // says "Rešeno — remi je održan" beside the verdict.
-    expect(find.textContaining('draw held'), findsWidgets);
-    // The button by its exact label: the panel's explanation names it too.
+    // The verdict and the heading both say it (phase 4b: „Correct. The draw is
+    // held. Other moves to find: 1." under „Solved. The draw is held.").
+    expect(find.textContaining('The draw is held'), findsWidgets);
     expect(find.text('Find the rest (1/2)'), findsOneWidget);
-    expect(find.textContaining('Board is locked'), findsOneWidget);
+    // The long explanation of the locked board has no row in the spoken table
+    // and is no longer drawn; the buttons it named are on the screen.
+    expect(find.textContaining('Board is locked'), findsNothing);
 
     await tester.ensureVisible(find.text('Play to the end'));
     await tester.pumpAndSettle();
@@ -279,7 +280,10 @@ void main() {
       isTrue,
       reason: 'zadatak nije gotov, pa tabla mora da prima potez',
     );
-    expect(find.textContaining('find another'), findsOneWidget);
+    // Asked again: the task is the question once more. (The note that said
+    // „Same position - find another move" has no row in the spoken table.)
+    expect(find.textContaining('Hold the draw'), findsOneWidget);
+    expect(find.textContaining('find another'), findsNothing);
   });
 
   testWidgets('on a wide window the finding sits beside the board, not over it',
@@ -478,7 +482,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // The story, and the rating of whoever got it wrong.
-    expect(find.textContaining('In the game, Ra2+ was played'), findsOneWidget);
+    // (A check is not said inside a sentence of its own: „rook a2", not „Ra2+".)
+    expect(find.text('In the game, White played rook a2 and lost the draw.'),
+        findsOneWidget);
     expect(find.text('Blunder by: 2270'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Punish'));
@@ -490,13 +496,15 @@ void main() {
     expect(find.textContaining('Punish the blunder'), findsOneWidget);
     // The mistake is already on the board and the win belongs to the other
     // side, so the exercise is played from there.
-    expect(find.textContaining('the draw was lost'), findsOneWidget);
+    // The long introduction that said so is gone (it has no row in the spoken
+    // table); the task line names the exercise.
+    expect(find.textContaining('the draw was lost'), findsNothing);
 
     await tester.ensureVisible(find.text('Back to task'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Back to task'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('hold the draw'), findsOneWidget);
+    expect(find.textContaining('Hold the draw'), findsOneWidget);
   });
 
   testWidgets('a position with nothing to punish does not offer it',
@@ -540,8 +548,8 @@ void main() {
         ),
       );
       expectBoardBeside(tester, size);
-      expect(find.textContaining('hold the draw'), findsOneWidget);
-      for (final label in ['Hint', 'Save for later', 'Skip']) {
+      expect(find.textContaining('Hold the draw'), findsOneWidget);
+      for (final label in ['Save for later', 'Skip']) {
         expectOnScreen(tester, size, find.text(label));
       }
     });

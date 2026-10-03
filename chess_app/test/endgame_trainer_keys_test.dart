@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:chess_app/features/endgame_trainer/models/endgame_puzzle.dart';
 import 'package:chess_app/features/endgame_trainer/screens/endgame_trainer_screen.dart';
 import 'package:chess_app/features/endgame_trainer/services/endgame_api_service.dart';
 import 'package:chess_app/models/user_session.dart';
-import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 /// One position, no network. Counts how many times the next one was asked for,
 /// which is what the N key has to prove.
@@ -103,17 +101,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('H asks for help without anything being clicked first',
+  // Was „H asks for help" and „H says nothing once the position is solved": the
+  // Hint was deleted on the owner's word of 3.10.2026 (docs/PLAN-GOVOR-IZ-KLIPOVA.md,
+  // phase 4b), and with it its key. H is a key with nothing behind it now, at
+  // any moment.
+  testWidgets('H does nothing: the Hint is gone, and so is its key',
       (tester) async {
-    // The whole point of the wrapper claiming the focus: a freshly opened
-    // screen leaves it on the route, and a binding below the focused node is
-    // never asked.
     await pump(tester);
+    expect(find.text('Hint'), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Move leads to square'), findsOneWidget);
+    expect(find.textContaining('Move leads to square'), findsNothing);
   });
 
   testWidgets('N asks for the next position', (tester) async {
@@ -124,37 +124,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(api.fetches, 2);
-  });
-
-  testWidgets('H says nothing once the position is solved', (tester) async {
-    await pump(tester);
-
-    final board = find.byType(ChessBoardWithOverlay);
-    final widget = tester.widget<ChessBoardWithOverlay>(board);
-    final rect = tester.getRect(board);
-    final square = widget.boardSize / 8;
-    Offset at(String name) {
-      final file = name.codeUnitAt(0) - 'a'.codeUnitAt(0);
-      final rank = name.codeUnitAt(1) - '1'.codeUnitAt(0);
-      final col =
-          widget.boardOrientation == PlayerColor.black ? 7 - file : file;
-      final row =
-          widget.boardOrientation == PlayerColor.black ? rank : 7 - rank;
-      return rect.topLeft + Offset((col + 0.5) * square, (row + 0.5) * square);
-    }
-
-    // Rf1 holds the draw.
-    await tester.tapAt(at('a1'));
-    await tester.pumpAndSettle();
-    await tester.tapAt(at('f1'));
-    await tester.pumpAndSettle();
-    expect(find.text('Hint'), findsNothing, reason: 'rešeno, pa nema dugmeta');
-
-    await tester.sendKeyEvent(LogicalKeyboardKey.keyH);
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Move leads to square'), findsNothing,
-        reason: 'taster bez dugmeta ne sme da radi');
   });
 
   testWidgets('U takes a move back only after there is one to take back',
@@ -205,9 +174,10 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
     await tester.pumpAndSettle();
 
-    // Still the drill, and back at its opening sentence.
-    expect(find.textContaining('Play to the end'), findsOneWidget);
-    expect(find.textContaining('Opponent'), findsOneWidget);
+    // Still the drill, and back at its opening sentence (phase 4b: the task
+    // line; the long introduction under it has no row in the spoken table).
+    expect(find.text('Play to the end. Hold the draw.'), findsOneWidget);
+    expect(find.textContaining('Opponent'), findsNothing);
     expect(api.fetches, 1, reason: 'ispočetka je ova pozicija, ne sledeća');
   });
 }

@@ -151,6 +151,57 @@ class SpeechVocabulary {
   static SpeechToken get solvedWithHelp => _must('solved_with_help');
   static SpeechToken get notSolved => _must('not_solved');
   static SpeechToken get oneAttempt => _must('one_attempt');
+  // The endgame trainer and the blunder walk (phase 4b).
+  static SpeechToken get keepTheWin => _must('keep_the_win');
+  static SpeechToken get holdTheDraw => _must('hold_the_draw');
+  static SpeechToken get correctWinKept => _must('correct_win_kept');
+  static SpeechToken get correctDrawHeld => _must('correct_draw_held');
+  static SpeechToken get onlyMove => _must('only_move');
+  static SpeechToken get foundEveryMove => _must('found_every_move');
+  static SpeechToken get otherMovesToFind => _must('other_moves_to_find');
+  static SpeechToken get wrongDropsWin => _must('wrong_drops_win');
+  static SpeechToken get wrongLosesDraw => _must('wrong_loses_draw');
+  static SpeechToken get engineDropsWin => _must('engine_drops_win');
+  static SpeechToken get engineLosesDraw => _must('engine_loses_draw');
+  static SpeechToken get alreadyFound => _must('already_found');
+  static SpeechToken get restored => _must('restored');
+  static SpeechToken get solvedWinKept => _must('solved_win_kept');
+  static SpeechToken get solvedDrawHeld => _must('solved_draw_held');
+  static SpeechToken get onlyMoveKeepsWinIs => _must('only_move_keeps_win_is');
+  static SpeechToken get onlyMoveHoldsDrawIs =>
+      _must('only_move_holds_draw_is');
+  static SpeechToken get theseMovesKeepWin => _must('these_moves_keep_win');
+  static SpeechToken get theseMovesHoldDraw => _must('these_moves_hold_draw');
+  static SpeechToken inTheGamePlayed(String side) =>
+      _must('in_the_game_${side}_played');
+  static SpeechToken get andDroppedTheWin => _must('and_dropped_the_win');
+  static SpeechToken get andLostTheDraw => _must('and_lost_the_draw');
+  static SpeechToken get playToEndWin => _must('play_to_end_win');
+  static SpeechToken get playToEndDraw => _must('play_to_end_draw');
+  static SpeechToken get punishBlunder => _must('punish_blunder');
+  static SpeechToken get goodKeepGoing => _must('good_keep_going');
+  static SpeechToken get movesLeftToHold => _must('moves_left_to_hold');
+  static SpeechToken get losesDrawDrillStops => _must('loses_draw_drill_stops');
+  static SpeechToken get letsWinGoLost => _must('lets_win_go_lost');
+  static SpeechToken get letsWinGoDraw => _must('lets_win_go_draw');
+  static SpeechToken get drawHeldCompleted => _must('draw_held_completed');
+  static SpeechToken get checkmateCompleted => _must('checkmate_completed');
+  static SpeechToken get drawNothingToHold => _must('draw_nothing_to_hold');
+  static SpeechToken get tablebaseSilent => _must('tablebase_silent');
+  static SpeechToken playedHere(String side) => _must('${side}_played');
+  static SpeechToken get hereLetWinGo => _must('here_let_win_go');
+  static SpeechToken get hereLostDraw => _must('here_lost_draw');
+  static SpeechToken get playMoveHoldsWin => _must('play_move_holds_win');
+  static SpeechToken get playMoveHoldsDraw => _must('play_move_holds_draw');
+  static SpeechToken get goForward => _must('go_forward');
+  static SpeechToken get correct => _must('correct');
+  static SpeechToken get gameContinues => _must('game_continues');
+  static SpeechToken get lastMistakeGameOver => _must('last_mistake_game_over');
+  static SpeechToken get alsoLetsWinGo => _must('also_lets_win_go');
+  static SpeechToken get doesNotHoldDraw => _must('does_not_hold_draw');
+  static SpeechToken get watchRefutationOf => _must('watch_refutation_of');
+  static SpeechToken get gameFinishedFound => _must('game_finished_found');
+  static SpeechToken get ofToken => _must('of');
   static SpeechToken get whiteCastlesKingside =>
       _must('white_castles_kingside');
   static SpeechToken get whiteCastlesQueenside =>
@@ -191,6 +242,9 @@ class SpeechVocabulary {
   /// The rank, said only where the file does not settle it: „rook 1 a8".
   static SpeechToken rank(int rank) => _must('rank_$rank');
 
+  /// 0–99 inside a sentence („Found 3 of 5"), cut from that position.
+  static SpeechToken numberInside(int n) => _must('nmid_$n');
+
   /// 0–99, as a whole number („twenty-one" is one clip), cut from „Mate in N."
   static SpeechToken number(int n) => _must('n_$n');
 
@@ -229,6 +283,39 @@ class SpeechVocabulary {
     phrase('solved_with_help', 'Solved with help.');
     phrase('not_solved', 'Not solved.');
     phrase('one_attempt', 'Incorrect. The assignment allows one attempt.');
+    // The endgame trainer and the blunder walk (phase 4b, 3.10.2026).
+    phrase('keep_the_win', 'Keep the win.');
+    phrase('hold_the_draw', 'Hold the draw.');
+    phrase('correct_win_kept', 'Correct. The win is kept.');
+    phrase('correct_draw_held', 'Correct. The draw is held.');
+    phrase('only_move', 'That was the only move.');
+    phrase('found_every_move', 'You found every move that holds.');
+    phrase('wrong_drops_win', 'That move drops the win. Try another.');
+    phrase('wrong_loses_draw', 'That move loses the draw. Try another.');
+    phrase('engine_drops_win',
+        'The engine judges that this move drops the win. Try another.');
+    phrase('engine_loses_draw',
+        'The engine judges that this move loses the draw. Try another.');
+    phrase('already_found', 'You already found that move. Look for another.');
+    phrase(
+        'restored', 'Restored to the position before that move. Try another.');
+    phrase('solved_win_kept', 'Solved. The win is kept.');
+    phrase('solved_draw_held', 'Solved. The draw is held.');
+    phrase('play_to_end_win', 'Play to the end. Keep the win.');
+    phrase('play_to_end_draw', 'Play to the end. Hold the draw.');
+    phrase('punish_blunder', 'Punish the blunder. Play the win to the end.');
+    phrase('good_keep_going', 'Good. Keep going.');
+    phrase('draw_held_completed', 'Draw held. Drill completed.');
+    phrase('checkmate_completed', 'Checkmate. Drill completed.');
+    phrase('draw_nothing_to_hold', 'Draw. Nothing left to hold.');
+    phrase('tablebase_silent',
+        'The tablebase is not answering. Try again in a moment.');
+    phrase('play_move_holds_win', 'Play the move that holds the win.');
+    phrase('play_move_holds_draw', 'Play the move that holds the draw.');
+    phrase('go_forward', 'Go forward to the next mistake.');
+    phrase('correct', 'Correct.');
+    phrase('game_continues', 'The game continues as played.');
+    phrase('last_mistake_game_over', 'That was the last mistake. Game over.');
 
     // The frame of a move sentence (D12).
     const frame = 'Black plays bishop e5.';
@@ -239,6 +326,56 @@ class SpeechVocabulary {
     cut('promotes_to', 'promotes to', 'Black plays pawn e8, promotes to queen.',
         5, 6);
     cut('mate_in', 'Mate in', 'Mate in 3.', 1, 2);
+    // Fragments around a move or a number (phase 4b). A move after a head is
+    // in the position the move clips were cut for; a tail follows a square.
+    cut('in_the_game_white_played', 'In the game, White played',
+        'In the game, White played bishop e5 and dropped the win.', 1, 5);
+    cut('in_the_game_black_played', 'In the game, Black played',
+        'In the game, Black played bishop e5 and dropped the win.', 1, 5);
+    cut('and_dropped_the_win', 'and dropped the win',
+        'In the game, White played bishop e5 and dropped the win.', 8, 11);
+    cut('and_lost_the_draw', 'and lost the draw',
+        'In the game, White played bishop e5 and lost the draw.', 8, 11);
+    cut('other_moves_to_find', 'Other moves to find:',
+        'Other moves to find: 3.', 1, 4);
+    cut('only_move_keeps_win_is', 'The only move that keeps the win is',
+        'The only move that keeps the win is bishop e5.', 1, 8);
+    cut('only_move_holds_draw_is', 'The only move that holds the draw is',
+        'The only move that holds the draw is bishop e5.', 1, 8);
+    cut('these_moves_keep_win', 'These moves keep the win:',
+        'These moves keep the win: bishop e5, rook a1.', 1, 5);
+    cut('these_moves_hold_draw', 'These moves hold the draw:',
+        'These moves hold the draw: bishop e5, rook a1.', 1, 5);
+    cut('moves_left_to_hold', 'Moves left to hold:', 'Moves left to hold: 5.',
+        1, 4);
+    cut('loses_draw_drill_stops', 'loses the draw. The drill stops here.',
+        'Bishop e5 loses the draw. The drill stops here.', 3, 9);
+    cut('lets_win_go_lost', 'lets the win go. The position is now lost.',
+        'Bishop e5 lets the win go. The position is now lost.', 3, 11);
+    cut('lets_win_go_draw', 'lets the win go. The position is now a draw.',
+        'Bishop e5 lets the win go. The position is now a draw.', 3, 12);
+    cut('white_played', 'White played',
+        'White played bishop e5 here and let the win go.', 1, 2);
+    cut('black_played', 'Black played',
+        'Black played bishop e5 here and let the win go.', 1, 2);
+    cut('here_let_win_go', 'here and let the win go',
+        'White played bishop e5 here and let the win go.', 5, 10);
+    cut('here_lost_draw', 'here and lost the draw',
+        'White played bishop e5 here and lost the draw.', 5, 9);
+    cut('also_lets_win_go', 'also lets the win go. Try another move.',
+        'Bishop e5 also lets the win go. Try another move.', 3, 10);
+    cut('does_not_hold_draw', 'does not hold the draw. Try another move.',
+        'Bishop e5 does not hold the draw. Try another move.', 3, 10);
+    cut('watch_refutation_of', 'Watch the refutation of',
+        'Watch the refutation of bishop e5.', 1, 4);
+    cut('game_finished_found', 'Game finished. Found',
+        'Game finished. Found 3 of 5.', 1, 3);
+    cut('of', 'of', 'Game finished. Found 3 of 5.', 5, 5);
+    // A number inside a sentence („Found 3 of 5") is cut from that position;
+    // the plain numbers end a sentence („Mate in 3.").
+    for (var n = 0; n <= 99; n++) {
+      cut('nmid_$n', '$n', 'Found $n of 5.', 2, 2);
+    }
     // The second defence of a puzzle: the board goes back and the voice says
     // what the opponent plays instead, before the move is drawn.
     cut('now_suppose_white_plays', 'Now suppose White plays',

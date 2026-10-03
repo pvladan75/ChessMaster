@@ -80,7 +80,6 @@ final kShortcutGroups = <ShortcutGroup>[
       // endgames screen writes it — `shortcuts_screen_test` holds it to that.
       AppShortcut(['N'], 'Next, or Skip before the position is solved.'),
       AppShortcut(['R'], 'Start over, while playing out the position.'),
-      AppShortcut(['H'], 'Hint.'),
       AppShortcut([
         'T'
       ], 'Tablebase findings, or Hide findings, while playing out the position.'),

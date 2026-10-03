@@ -1,10 +1,15 @@
-/// One judged move of a play-it-out drill, and how to say it to a child.
+/// One judged move of a play-it-out drill.
 ///
-/// The sentence lives here rather than in the screen so it can be tested. What
-/// the drill says is most of what it is: the same verdict phrased as "wrong"
-/// instead of "that let the win go" teaches something different, and a child
-/// told "eighteen moves to go" would be told something untrue.
+/// What the drill says about it is the screen's: a `SpokenLine` per sentence
+/// of the table in `docs/PLAN-GOVOR-IZ-KLIPOVA.md` (phase 4b), drawn and
+/// played from the same tokens. This file holds only what the server said.
 library;
+
+import 'package:chess/chess.dart' as chess;
+
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 
 class DrillStep {
   const DrillStep({
@@ -84,73 +89,131 @@ class DrillStep {
 /// never counted; docs/PLAN-TRENER-ZAVRSNICA.md, D13.)
 const holdOutMoves = 8;
 
-/// What the drill says while a claimed draw is being held out.
-String holdOutText(int left) {
-  if (left <= 0) {
-    return 'Draw held for $holdOutMoves more moves — drill completed.';
-  }
-  return left == 1
-      ? 'Hold the draw for 1 more move.'
-      : 'Hold the draw for $left more moves.';
+/// What the drill says after one judged move: the lines, whether they are
+/// good news, and a note that is only drawn.
+class DrillVerdict {
+  const DrillVerdict({required this.lines, required this.good, this.note});
+
+  final List<SpokenLine> lines;
+  final bool good;
+
+  /// Drawn under the lines and never said — only where the table has no way
+  /// to say it.
+  final String? note;
 }
 
-/// What to tell the child after one judged move.
+/// The facts of a move given in coordinates, read off the position it was
+/// played in. Null when it is not legal there.
+MoveFacts? _factsOfUci(String fen, String uci) {
+  if (uci.length < 4) return null;
+  try {
+    return MoveWords.factsOf(fen, uci.substring(0, 2), uci.substring(2, 4),
+        promotion: uci.length > 4 ? uci[4].toLowerCase() : null);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// The position after [uci] is played in [fen], or null when it cannot be.
+String? _fenAfter(String fen, String uci) {
+  if (uci.length < 4) return null;
+  try {
+    final board = chess.Chess.fromFEN(fen);
+    final played = board.move({
+      'from': uci.substring(0, 2),
+      'to': uci.substring(2, 4),
+      'promotion': uci.length > 4 ? uci[4].toLowerCase() : 'q',
+    });
+    return played == false ? null : board.fen;
+  } catch (_) {
+    return null;
+  }
+}
+
+/// What the drill says after one judged move — the table of
+/// `docs/PLAN-GOVOR-IZ-KLIPOVA.md`, phase 4b. A move is said as a move, never
+/// as its notation; what the table has no row for is not said. [uci] is the
+/// move the reader played in [fenBefore]; [holdLeft] is the claimed draw's
+/// count after this move, or null when no claim stands.
 ///
-/// Never a number of moves left. DTZ counts half-moves to the next capture or
-/// pawn move rather than moves to mate, and after a conversion it starts again,
-/// so "eighteen moves to go" would be wrong twice over. What is true, and what
-/// a child can act on, is whether the result held and whether they are nearer
-/// than they were.
-String drillFeedbackText(DrillStep step) {
-  if (!step.held) {
-    if (step.goal == 'draw') {
-      return '${step.playedSan} loses the draw. Drill stops here.';
+/// Never a number of moves to the end. DTZ counts half-moves to the next
+/// capture or pawn move rather than moves to mate, and after a conversion it
+/// starts again, so „eighteen moves to go" would be wrong twice over. What is
+/// true, and what a reader can act on, is whether the result held — and, in a
+/// claimed draw, how many of the reader's own moves are left to hold.
+DrillVerdict drillVerdict(
+  DrillStep step, {
+  required String fenBefore,
+  required String uci,
+  required bool claimed,
+  required int? holdLeft,
+}) {
+  DrillVerdict one(SpeechToken t, {required bool good}) => DrillVerdict(
+        lines: [
+          SpokenLine([t])
+        ],
+        good: good,
+      );
+  if (claimed) return one(SpeechVocabulary.drawHeldCompleted, good: true);
+  final draw = step.goal == 'draw';
+  final facts = _factsOfUci(fenBefore, step.playedUci ?? uci);
+
+  // The move the drill ends on, and what it cost.
+  DrillVerdict ending(SpeechToken tail) {
+    if (facts == null) {
+      // The server judged a move this client cannot read: say so on the
+      // screen rather than say nothing.
+      return DrillVerdict(
+        lines: const [],
+        good: false,
+        note: '${step.playedSan} did not hold.',
+      );
     }
+    return DrillVerdict(
+      lines: [
+        SpokenLine([...MoveWords.bare(facts), tail])
+      ],
+      good: false,
+    );
+  }
+
+  if (!step.held) {
     // A win that is let go does not always land on a draw, and saying so when
     // it does not is a false statement about the position, not a rounding.
-    // Reported from a drill: after Kc3 the tables give White a win - Qa1+ is
-    // the only move that does it, skewering the king on c3 and the queen on
-    // e5 - and the screen said "ostaje remi". The verdict is in the answer the
-    // server already sends; it was simply not read.
-    return step.outcome == 'loss'
-        ? '${step.playedSan} lets the win go — the position is now lost.'
-        : '${step.playedSan} lets the win go — remains a draw.';
+    return ending(draw
+        ? SpeechVocabulary.losesDrawDrillStops
+        : (step.outcome == 'loss'
+            ? SpeechVocabulary.letsWinGoLost
+            : SpeechVocabulary.letsWinGoDraw));
+  }
+  final finished = step.finished;
+  if (finished == 'mate') {
+    return one(SpeechVocabulary.checkmateCompleted, good: true);
+  }
+  if (finished != null) {
+    // A draw by rule: held, when the draw was the task; when the win was the
+    // task, the win is what went — running the moves out is not a success.
+    return draw
+        ? one(SpeechVocabulary.drawHeldCompleted, good: true)
+        : ending(SpeechVocabulary.letsWinGoDraw);
   }
 
-  switch (step.finished) {
-    case 'mate':
-      return 'Checkmate! You played the endgame to the end.';
-    case 'stalemate':
-      return 'Stalemate — draw held.';
-    case 'insufficient':
-      return 'Insufficient material for mate — draw.';
-    case 'repetition':
-      // Named for what happened. A dead drawn rook ending repeats within a few
-      // moves, and calling that "fifty moves without a capture" points at a
-      // counter that has barely started.
-      return step.goal == 'draw'
-          ? 'Threefold repetition — draw held.'
-          : 'Threefold repetition makes it a draw. The win was there, but no progress was made.';
-    case 'fifty_moves':
-    case 'draw_rule':
-      // The one ending that looks like success and is not. A win the tables
-      // call a win is convertible inside the fifty moves, so running the count
-      // out means the moves were spent, not that the position was not winning.
-      return step.goal == 'draw'
-          ? 'Fifty moves without a capture — draw held.'
-          : 'Fifty moves without a capture or pawn move — draw by rule. The win was there, but too many moves were spent.';
-  }
-
-  final reply =
-      step.replySan == null ? '' : ' Opponent plays ${step.replySan}.';
-  if (step.goal == 'draw') return 'Correct — draw held.$reply';
-  if (step.closer == true) {
-    return 'Correct — win held and you moved closer.$reply';
-  }
-  if (step.closer == false) {
-    // Correct and worth saying so, because a child who shuffles will otherwise
-    // read "tačno" as "that was the move" and keep shuffling.
-    return 'Correct, win held — but you did not move closer.$reply';
-  }
-  return 'Correct — win held.$reply';
+  final left = holdLeft;
+  final lines = <SpokenLine>[
+    SpokenLine([
+      SpeechVocabulary.goodKeepGoing,
+      if (draw && left != null && left > 0) ...[
+        SpeechVocabulary.movesLeftToHold,
+        SpeechVocabulary.number(left.clamp(0, 99)),
+      ],
+    ]),
+  ];
+  // The opponent's reply, said as a move from the position it was played in.
+  final reply = step.replyUci;
+  final afterMine =
+      reply == null ? null : _fenAfter(fenBefore, step.playedUci ?? uci);
+  final replyFacts =
+      reply == null || afterMine == null ? null : _factsOfUci(afterMine, reply);
+  if (replyFacts != null) lines.add(MoveWords.line(replyFacts));
+  return DrillVerdict(lines: lines, good: true);
 }

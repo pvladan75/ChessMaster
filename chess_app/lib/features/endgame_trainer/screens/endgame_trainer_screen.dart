@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/services/mate_distance.dart';
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/app_settings_service.dart';
@@ -59,6 +62,7 @@ class EndgameTrainerScreen extends StatefulWidget {
     this.attemptApi,
     this.retry = false,
     this.retryIds,
+    this.speech,
   });
 
   final UserSession session;
@@ -95,6 +99,9 @@ class EndgameTrainerScreen extends StatefulWidget {
   /// list's „Try again" hands it one id (`docs/PLAN-NAPREDAK-VEZBI.md` §7).
   /// Null fetches the whole queue, as the hub's „Retry failed" does.
   final List<String>? retryIds;
+
+  /// Injected in tests. The app's one `SpeechService` otherwise.
+  final SpeechService? speech;
 
   @override
   State<EndgameTrainerScreen> createState() => _EndgameTrainerScreenState();
@@ -143,9 +150,18 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// claim is standing.
   int? _holdLeft;
   String? _error;
-  String? _feedback;
+  List<SpokenLine> _feedback = const [];
+
+  /// A sentence that is only drawn: a progress note or a refusal from the
+  /// server. The table of `docs/PLAN-GOVOR-IZ-KLIPOVA.md` has no row for it,
+  /// so it is never spoken.
+  String? _note;
+
+  /// Bumped whenever the panel starts again — a new position, a drill, the
+  /// same position asked a second time — so its task is said again even when
+  /// its words did not change.
+  int _panelSerial = 0;
   bool _feedbackIsGood = false;
-  String? _hintSquare;
   int _solved = 0;
   int _attempted = 0;
 
@@ -228,8 +244,58 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     // Leaving the trainer is the reader saying they are done listening. A
     // sentence that outlives the screen it belongs to is how someone decides
     // the whole feature is more trouble than it is worth.
-    SpeechService.instance.stop();
+    _stopSpeech();
     super.dispose();
+  }
+
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  /// Cuts the voice off — for what the reader does: answering, asking for the
+  /// solution, moving on, leaving. Guarded, because a voice that throws must
+  /// never be able to stop a move or the screen's own teardown.
+  void _stopSpeech() {
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
+  }
+
+  /// Says [line] through the one speech service. Forced, because the same
+  /// verdict twice in a row is two verdicts, and guarded for the reason above.
+  void _say(SpokenLine line) {
+    if (!mounted) return;
+    try {
+      unawaited(_speech.speakLine(line, force: true).catchError((Object _) {}));
+    } catch (_) {}
+  }
+
+  /// Draws and says the verdict. The panel draws each line's text and the
+  /// voice plays the same line, so there is no second list to keep in step.
+  /// [note] is drawn under it and never said.
+  void _tell(List<SpokenLine> lines, {required bool good, String? note}) {
+    setState(() {
+      _feedback = lines;
+      _note = note;
+      _feedbackIsGood = good;
+    });
+    lines.forEach(_say);
+  }
+
+  /// Draws a note that has no sentence in the table, and says nothing.
+  void _tellNote(String note, {bool good = false}) => _tell(
+        const [],
+        good: good,
+        note: note,
+      );
+
+  /// A new thing to look at: forget what was said, so the same sentence is
+  /// said again, and start the panel afresh. Call inside a `setState`.
+  void _freshPanel() {
+    _panelSerial++;
+    _feedback = const [];
+    _note = null;
+    try {
+      _speech.forget();
+    } catch (_) {}
   }
 
   /// The retry queue is fetched once and walked in order, one id per call.
@@ -265,11 +331,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     _boardSerial++;
     _puzzleSerial++;
+    // Moving on is the reader saying they are done with the last sentence.
+    _stopSpeech();
     setState(() {
       _loading = true;
       _error = null;
-      _feedback = null;
-      _hintSquare = null;
+      _freshPanel();
     });
 
     EndgamePuzzle? puzzle;
@@ -347,7 +414,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
   Future<void> _onMove(String from, String to, String promotion) async {
     // A move is an answer, and an answer ends whatever was still being said.
-    SpeechService.instance.stop();
+    _stopSpeech();
     final solve = _solve;
     final game = _game;
     if (solve == null || game == null || _boardLocked) {
@@ -390,10 +457,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     );
 
     if (verdict.alreadyFound) {
-      setState(() {
-        _feedback = 'You already found that move. Look for another.';
-        _feedbackIsGood = false;
-      });
+      _tell([
+        SpokenLine([SpeechVocabulary.alreadyFound])
+      ], good: false);
       _boardController.loadFen(game.fen);
       return;
     }
@@ -405,10 +471,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       // and the position being solved drifted apart. The mistake stays on the
       // record either way, so this costs nothing that was being measured.
       solve.retryAfterMistake();
-      setState(() {
-        _feedback = _wrongMoveText(solve.puzzle);
-        _feedbackIsGood = false;
-      });
+      _tell([_wrongMoveLine(solve.puzzle)], good: false);
       _boardController.loadFen(game.fen);
       return;
     }
@@ -426,17 +489,13 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         source: PuzzleSource.endgame,
         puzzleId: solve.puzzle.id,
         solved: solve.countsAsSolved,
-        hinted: solve.usedHint || _readouts > 0,
+        hinted: _readouts > 0,
       ));
     }
 
     _found.add(uci);
 
-    setState(() {
-      _hintSquare = null;
-      _feedbackIsGood = true;
-      _feedback = _successText(solve);
-    });
+    _tell([_rightMoveLine(solve)], good: true);
 
     // The verdict is said already; the reply follows when the server sends it.
     // Every found move asks, not only the first, so each has its own reply in
@@ -479,7 +538,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _showSolution() {
     final solve = _solve;
     if (solve == null || solve.isComplete || _drilling) return;
-    SpeechService.instance.stop();
+    _stopSpeech();
     final puzzle = solve.puzzle;
     if (!_countedThisPuzzle) {
       _countedThisPuzzle = true;
@@ -488,47 +547,80 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
         source: PuzzleSource.endgame,
         puzzleId: puzzle.id,
         solved: false,
-        hinted: solve.usedHint || _readouts > 0,
+        hinted: _readouts > 0,
       ));
     }
     solve.reveal();
     _boardSerial++;
     setState(() {
       _game = chess.Chess.fromFEN(puzzle.fen);
-      _hintSquare = null;
       _feedbackIsGood = false;
-      _feedback = _answerText(puzzle);
+      // The answer is the task line now, so there is no verdict under it.
+      _feedback = const [];
+      _note = null;
     });
     _boardController.loadFen(puzzle.fen);
   }
 
-  /// The shown answer, in the trainer's own register. Sorted, as the note of
+  /// The shown answer, which stands as the task line. Sorted, as the note of
   /// `Save for later` is, not in the server's order.
-  String _answerText(EndgamePuzzle puzzle) {
-    final moves = _allHoldingSan(puzzle);
+  ///
+  /// The line says every holding move as a move; [text] is what the screen
+  /// draws, and it differs from the line's own text in exactly one way: a list
+  /// of moves is drawn with commas, which the clips have no word for. A
+  /// single move is the line's own text.
+  ({SpokenLine line, String text})? _answerLine(EndgamePuzzle puzzle) {
     final draw = puzzle.mode == EndgameMode.draw;
-    if (moves.length == 1) {
-      return draw
-          ? 'The only move that holds the draw: ${moves.single}.'
-          : 'The only move that keeps the win: ${moves.single}.';
+    final moves = <({String san, List<SpeechToken> tokens})>[];
+    for (final uci in puzzle.winningMoves) {
+      if (uci.length < 4) continue;
+      final from = uci.substring(0, 2);
+      final to = uci.substring(2, 4);
+      final san = _sanFor(puzzle.fen, from, to, uci.length > 4 ? uci[4] : 'q');
+      final facts = MoveWords.factsOf(puzzle.fen, from, to,
+          promotion: uci.length > 4 ? uci[4].toLowerCase() : null);
+      if (san == null || facts == null) continue;
+      moves.add((san: san, tokens: MoveWords.bare(facts)));
     }
-    return draw
-        ? 'These moves hold the draw: ${moves.join(', ')}.'
-        : 'These moves keep the win: ${moves.join(', ')}.';
+    if (moves.isEmpty) return null;
+    moves.sort((a, b) => a.san.compareTo(b.san));
+    if (moves.length == 1) {
+      final line = SpokenLine([
+        draw
+            ? SpeechVocabulary.onlyMoveHoldsDrawIs
+            : SpeechVocabulary.onlyMoveKeepsWinIs,
+        ...moves.single.tokens,
+      ]);
+      return (line: line, text: line.text);
+    }
+    final head = draw
+        ? SpeechVocabulary.theseMovesHoldDraw
+        : SpeechVocabulary.theseMovesKeepWin;
+    final line = SpokenLine([head, for (final m in moves) ...m.tokens]);
+    // The commas are the screen's: the clips have no word for one, so the
+    // list is drawn with them and heard one move after another.
+    String said(List<SpeechToken> tokens) =>
+        tokens.map((t) => t.text).join(' ');
+    return (
+      line: line,
+      text: '${head.text} ${moves.map((m) => said(m.tokens)).join(', ')}.',
+    );
   }
 
   /// A wrong answer, said as firmly as its source allows: a tablebase knows,
   /// an engine estimates (docs/PLAN-TRENER-ZAVRSNICA.md, D9).
-  String _wrongMoveText(EndgamePuzzle puzzle) {
+  SpokenLine _wrongMoveLine(EndgamePuzzle puzzle) {
     final draw = puzzle.mode == EndgameMode.draw;
     if (!puzzle.isExact) {
-      return draw
-          ? 'The engine judges that this move loses the draw. Try another.'
-          : 'The engine judges that this move drops the win. Try another.';
+      return SpokenLine([
+        draw
+            ? SpeechVocabulary.engineLosesDraw
+            : SpeechVocabulary.engineDropsWin,
+      ]);
     }
-    return draw
-        ? 'That move loses the draw. Try another.'
-        : 'That move drops the win. Try another.';
+    return SpokenLine([
+      draw ? SpeechVocabulary.wrongLosesDraw : SpeechVocabulary.wrongDropsWin,
+    ]);
   }
 
   /// Pushes Analysis over the trainer with the position as a tree of moves
@@ -539,7 +631,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   Future<void> _openInAnalysis() async {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
-    SpeechService.instance.stop();
+    _stopSpeech();
     final fromDrill = _drilling;
     final tree = endgameAnalysisTree(
       EndgameTreeInput(
@@ -586,13 +678,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _startDrill() {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
-    _beginDrill(
-      puzzle.fen,
-      punishing: false,
-      intro: puzzle.mode == EndgameMode.draw
-          ? 'Opponent plays tablebase-best and will try to win. Hold the draw to the end.'
-          : 'Opponent defends tablebase-best. You must play the win to the end.',
-    );
+    _beginDrill(puzzle.fen, punishing: false);
   }
 
   /// The position one move later, with the mistake already on the board.
@@ -626,16 +712,11 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final puzzle = _solve?.puzzle;
     final fen = _positionAfterMistake();
     if (puzzle == null || fen == null) return;
-    _beginDrill(
-      fen,
-      punishing: true,
-      intro: '${puzzle.playedMove} was just played and the draw was lost. '
-          'Now the win is yours — play it to the end.',
-    );
+    _beginDrill(fen, punishing: true);
   }
 
-  void _beginDrill(String fen,
-      {required bool punishing, required String intro}) {
+  void _beginDrill(String fen, {required bool punishing}) {
+    _stopSpeech();
     _boardSerial++;
     _drillLog.start(fromGameMove: punishing);
     setState(() {
@@ -645,7 +726,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drillRetryFen = null;
       _drillMistakes = 0;
       _drillMoves = 0;
-      _hintSquare = null;
       _game = chess.Chess.fromFEN(fen);
       // Whoever has to move is whoever the exercise belongs to, and in the
       // punishment that is the other side of the board from the position's own
@@ -654,7 +734,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
           ? PlayerColor.white
           : PlayerColor.black;
       _feedbackIsGood = false;
-      _feedback = intro;
+      // The drill's task line says what it is; the long introduction that used
+      // to stand here has no row in the table.
+      _freshPanel();
     });
     _boardController.loadFen(fen);
   }
@@ -668,9 +750,10 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _game = chess.Chess.fromFEN(fen);
       _drillEnd = null;
       _drillRetryFen = null;
-      _feedbackIsGood = false;
-      _feedback = 'Restored to the position before that move. Try another.';
     });
+    _tell([
+      SpokenLine([SpeechVocabulary.restored])
+    ], good: false);
     _boardController.loadFen(fen);
   }
 
@@ -687,6 +770,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     // not to "find another one".
     final unfinished = _solve?.status == EndgameSolveStatus.solved &&
         _missing(puzzle).isNotEmpty;
+    _stopSpeech();
     _boardSerial++;
     setState(() {
       _drilling = false;
@@ -695,7 +779,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       _drillRetryFen = null;
       _drillMistakes = 0;
       _drillMoves = 0;
-      _feedback = null;
+      _freshPanel();
       _game = chess.Chess.fromFEN(puzzle.fen);
       _orientation = puzzle.whiteToMove ? PlayerColor.white : PlayerColor.black;
     });
@@ -712,7 +796,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// have to be consulted to answer the child at all.
   Future<void> _onDrillMove(String from, String to, String promotion) async {
     // Answering is an answer to the sentence too.
-    SpeechService.instance.stop();
+    _stopSpeech();
     final game = _game;
     if (game == null || _drillEnd != null) return;
 
@@ -731,7 +815,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() {
       _boardLocked = true;
       _feedbackIsGood = false;
-      _feedback = 'Checking tablebases…';
+      // A progress note: drawn, never said.
+      _feedback = const [];
+      _note = 'Checking tablebases…';
     });
 
     final result = await _api.judgeDrillMove(fen: fenBefore, move: uci);
@@ -741,38 +827,47 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       // Back to where it was. A move nobody judged must not be left standing
       // as though it had been — that is the whole difference this mode sells.
       _boardController.loadFen(fenBefore);
-      setState(() {
-        _boardLocked = false;
-        _feedbackIsGood = false;
-        _feedback = result.message ??
-            (result.outcome == DrillJudgeOutcome.unavailable
-                ? 'Tablebase is currently unavailable, so the move cannot be judged. '
-                    'Try again in a moment.'
-                : 'Unable to judge that move.');
-      });
+      setState(() => _boardLocked = false);
+      if (result.outcome == DrillJudgeOutcome.unavailable) {
+        _tell([
+          SpokenLine([SpeechVocabulary.tablebaseSilent])
+        ], good: false);
+      } else {
+        _tellNote(result.message ?? 'Unable to judge that move.');
+      }
       return;
     }
 
     final step = result.step!;
     _drillLog.played(fenBefore, step.playedUci ?? uci, replyUci: step.replyUci);
+
+    // The claim's count first, because the sentence says it: a claim held to
+    // the end closes the drill, and says so in its own words — the position
+    // was not proved dead, the reader held it.
+    var holdLeft = _holdLeft;
+    if (step.held && holdLeft != null) holdLeft -= 1;
+    final claimed = holdLeft != null && holdLeft <= 0 && step.held;
+    final verdict = drillVerdict(
+      step,
+      fenBefore: fenBefore,
+      uci: uci,
+      claimed: claimed,
+      holdLeft: holdLeft,
+    );
+
     setState(() {
       _game = chess.Chess.fromFEN(step.fen);
       _boardLocked = false;
       if (step.held) {
         _drillMoves++;
-        if (_holdLeft != null) _holdLeft = _holdLeft! - 1;
       } else {
         _drillMistakes++;
         _drillRetryFen = fenBefore;
       }
-      // A claim held to the end closes the drill, and says so in its own
-      // words: the position was not proved dead, the reader held it.
-      final claimed = _holdLeft != null && _holdLeft! <= 0 && step.held;
+      _holdLeft = claimed || !step.held ? null : holdLeft;
       _drillEnd = claimed ? 'draw' : (step.held ? step.finished : 'lost');
-      _feedbackIsGood = step.held;
-      _feedback = claimed ? holdOutText(0) : drillFeedbackText(step);
-      if (claimed || !step.held) _holdLeft = null;
     });
+    _tell(verdict.lines, good: verdict.good, note: verdict.note);
     _boardController.loadFen(step.fen);
     _refreshReadout();
   }
@@ -828,11 +923,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       }
     });
     if (readout == null) {
-      setState(() {
-        _feedbackIsGood = false;
-        _feedback = 'Tablebase is currently unavailable, so findings cannot '
-            'be read.';
-      });
+      _tell([
+        SpokenLine([SpeechVocabulary.tablebaseSilent])
+      ], good: false);
     }
     return readout;
   }
@@ -881,11 +974,9 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() => _reading = false);
 
     if (readout == null) {
-      setState(() {
-        _feedbackIsGood = false;
-        _feedback = 'Tablebase is currently unavailable, so the draw cannot '
-            'be concluded.';
-      });
+      _tell([
+        SpokenLine([SpeechVocabulary.tablebaseSilent])
+      ], good: false);
       return;
     }
     if (!readout.deadDraw) {
@@ -893,24 +984,22 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       // arguing about it the drill asks for the demonstration: hold it for a
       // few more moves and it closes. That answers the same complaint without
       // claiming anything about the position that is not true.
-      final dropping = readout.dropping;
-      final why = dropping.isEmpty
-          ? 'This is not a dead position yet.'
-          : 'This is not a dead position yet — ${dropping.first.san} loses the draw.';
-      setState(() {
-        _holdLeft = holdOutMoves;
-        _feedbackIsGood = false;
-        _feedback = '$why ${holdOutText(holdOutMoves)}';
-      });
+      setState(() => _holdLeft = holdOutMoves);
+      _tell([
+        SpokenLine([
+          SpeechVocabulary.movesLeftToHold,
+          SpeechVocabulary.number(holdOutMoves),
+        ])
+      ], good: false);
       return;
     }
     setState(() {
       _holdLeft = null;
       _drillEnd = 'draw';
-      _feedbackIsGood = true;
-      _feedback = 'Draw is concluded — no pawns left, and losing is only '
-          'possible by giving away a piece. Nothing left to hold.';
     });
+    _tell([
+      SpokenLine([SpeechVocabulary.drawNothingToHold])
+    ], good: true);
   }
 
   /// Whether this position has already been kept, so the button says so
@@ -950,11 +1039,12 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     setState(() {
       _keeping = false;
       _kept = ok;
-      _feedbackIsGood = ok;
-      _feedback = ok
-          ? EndgameApiService.keptMessage
-          : 'Could not save position right now.';
     });
+    // The result of saving has no row in the table: drawn, not said.
+    _tellNote(
+      ok ? EndgameApiService.keptMessage : 'Could not save position right now.',
+      good: ok,
+    );
   }
 
   /// Every accepted move in notation, for the note that is kept with it.
@@ -975,17 +1065,24 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   /// A child who found one of two drawing moves should learn that the other one
   /// also draws — that is the lesson of the position, and staying quiet about it
   /// implies their move was the only one.
-  String _successText(EndgameSolveSession solve) {
-    final held = solve.puzzle.mode == EndgameMode.draw
-        ? 'Correct — draw held.'
-        : 'Correct — win kept.';
+  ///
+  /// One line, not two: the verdict and the count are said together, so the
+  /// opponent's reply — which comes from the server a moment later — cannot
+  /// find the voice's single waiting place taken by the second half.
+  SpokenLine _rightMoveLine(EndgameSolveSession solve) {
+    final draw = solve.puzzle.mode == EndgameMode.draw;
     final left = _missing(solve.puzzle).length;
-    if (left == 0) {
-      return solve.puzzle.winningMoves.length == 1
-          ? '$held That was the only move.'
-          : '$held You found all moves that hold the result.';
-    }
-    return '$held ${movesLeftText(left)}';
+    return SpokenLine([
+      draw ? SpeechVocabulary.correctDrawHeld : SpeechVocabulary.correctWinKept,
+      if (left == 0)
+        solve.puzzle.winningMoves.length == 1
+            ? SpeechVocabulary.onlyMove
+            : SpeechVocabulary.foundEveryMove
+      else ...[
+        SpeechVocabulary.otherMovesToFind,
+        SpeechVocabulary.number(left.clamp(0, 99)),
+      ],
+    ]);
   }
 
   /// Accepted moves not yet produced by the user, in UCI.
@@ -1011,13 +1108,15 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
   void _huntForTheRest() {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
+    _stopSpeech();
     _boardSerial++;
     setState(() {
       _solve = EndgameSolveSession(puzzle, alreadyFound: Set.of(_found));
       _game = chess.Chess.fromFEN(puzzle.fen);
-      _feedback = 'Same position — find another move that holds the result.';
       _feedbackIsGood = false;
-      _hintSquare = null;
+      // Asked again: the task is said again, the long note that used to stand
+      // here has no row in the table.
+      _freshPanel();
     });
     _boardController.loadFen(puzzle.fen);
   }
@@ -1026,27 +1125,17 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     final puzzle = _solve?.puzzle;
     if (puzzle == null) return;
     final rest = _missingSan(puzzle);
-    setState(() {
-      _revealed = true;
-      _feedback = rest.isEmpty
+    setState(() => _revealed = true);
+    // The remaining moves are a list of notation, which the table has no words
+    // for: drawn, not said.
+    _tellNote(
+      rest.isEmpty
           ? 'No more moves that hold the result.'
           : (rest.length == 1
               ? '${rest.first} also holds.'
-              : 'Also holding: ${rest.join(', ')}.');
-      _feedbackIsGood = true;
-    });
-  }
-
-  void _showHint() {
-    final solve = _solve;
-    if (solve == null || solve.isComplete) return;
-    setState(() {
-      _hintSquare = solve.revealHint();
-      _feedback = _hintSquare == null
-          ? null
-          : 'Move leads to square ${_hintSquare!.toUpperCase()}.';
-      _feedbackIsGood = false;
-    });
+              : 'Also holding: ${rest.join(', ')}.'),
+      good: true,
+    );
   }
 
   /// The letters, and the button each of them presses.
@@ -1084,7 +1173,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       // Nothing to retry any more: a wrong answer puts the position back by
       // itself, so the button this key stood for no longer exists.
       LogicalKeyboardKey.keyR: null,
-      LogicalKeyboardKey.keyH: solve.isComplete ? null : _showHint,
       // The tables are a drill button; solving a position with the answer in
       // front of you is not solving it.
       LogicalKeyboardKey.keyT: null,
@@ -1133,14 +1221,20 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     if (solve == null) return const SizedBox.shrink();
 
     final wide = Breakpoints.isWide(context);
+    final task = _task(solve);
     final panel = EndgameInfoPanel(
-      title: _taskText(solve.puzzle),
-      // The story of the position, then what to do about it. Empty stays
-      // null: a blank line under the heading is not the same as no line.
-      subtitle: _subtitleText(solve),
+      key: ValueKey('panel-$_panelSerial'),
+      task: task.line,
+      taskText: task.text,
+      // The story of the position, under the task: drawn and said once.
+      detail: _storyLine(solve.puzzle),
       chips: _chips(solve.puzzle),
       message: _feedback,
+      note: _note,
       messageIsGood: _feedbackIsGood,
+      // A solved position's task only repeats the verdict that was just said.
+      autoSpeak: _drilling || solve.status != EndgameSolveStatus.solved,
+      speech: widget.speech,
     );
 
     // Beside the board and under what the screen is already saying, so one
@@ -1223,69 +1317,67 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
     );
   }
 
-  String _taskText(EndgamePuzzle puzzle) {
-    final onMove = puzzle.whiteToMove ? 'White' : 'Black';
+  /// The task line: the sentence the panel draws and says (D4), and what it
+  /// draws where that cannot be the line's own text. Always something to do,
+  /// except where the question has ended and the line says how.
+  ({SpokenLine line, String text}) _task(EndgameSolveSession solve) {
+    final puzzle = solve.puzzle;
+    final draw = puzzle.mode == EndgameMode.draw;
+    ({SpokenLine line, String text}) of(SpeechToken a, [SpeechToken? b]) {
+      final line = SpokenLine([a, if (b != null) b]);
+      return (line: line, text: line.text);
+    }
+
     if (_drilling) {
-      return _punishing
-          ? 'Punish the blunder — play the win to the end'
-          : (puzzle.mode == EndgameMode.draw
-              ? 'Play to the end — hold the draw'
-              : 'Play to the end — play the win');
+      return of(_punishing
+          ? SpeechVocabulary.punishBlunder
+          : (draw
+              ? SpeechVocabulary.playToEndDraw
+              : SpeechVocabulary.playToEndWin));
     }
-    // A solved position still said "Beli na potezu — zadržite dobitak", which
-    // is an instruction to play on a board that will not answer. Coming back
-    // from the drill lands exactly there, and it reads as a frozen board.
-    final solve = _solve;
-    if (solve != null && solve.status == EndgameSolveStatus.revealed) {
-      return puzzle.mode == EndgameMode.draw
-          ? 'Answer shown — hold the draw'
-          : 'Answer shown — keep the win';
-    }
-    if (solve != null && solve.isComplete) {
-      return puzzle.mode == EndgameMode.draw
-          ? 'Solved — draw held'
-          : 'Solved — win kept';
-    }
-    return puzzle.mode == EndgameMode.draw
-        ? '$onMove to move — hold the draw'
-        : '$onMove to move — keep the win';
-  }
-
-  String? _subtitleText(EndgameSolveSession solve) {
-    final parts =
-        [_storyText(solve.puzzle), _instructionText(solve)].whereType<String>();
-    return parts.isEmpty ? null : parts.join(' ');
-  }
-
-  /// What to do on the board, said plainly. In the drill it changes every move,
-  /// so it is only worth saying while there is a single question standing.
-  String? _instructionText(EndgameSolveSession solve) {
-    if (_drilling) return null;
+    // The answer shown stands as the task line itself: there is no separate
+    // „Answer shown" sentence.
     if (solve.status == EndgameSolveStatus.revealed) {
-      return solve.puzzle.canBePlayedOut
-          ? 'Board is locked while the answer is shown. "Play to the end" '
-              'continues this position, and "Next" brings a new one.'
-          : 'Board is locked while the answer is shown. "Next" brings a new '
-              'position.';
+      final answer = _answerLine(puzzle);
+      if (answer != null) return answer;
     }
-    // Solved means the board is closed, and saying nothing about that is how a
-    // deliberate lock reads as a broken one. Reported three times now, in three
-    // places; each time the board was right and silent. So it names the way
-    // out, and only the ways that are actually on the screen.
+    // A solved position still said „White to move", which is an instruction to
+    // play on a board that will not answer. Coming back from the drill lands
+    // exactly there, and it reads as a frozen board.
     if (solve.isComplete) {
-      final left = _missing(solve.puzzle).length;
-      return left > 0
-          // The count goes through the same sentence the verdict uses, so the
-          // cases agree without a second rule to keep in step.
-          ? 'Board is locked while position is solved. ${movesLeftText(left)} '
-              '"Find the rest" restores the position to look for them, and "Next" brings '
-              'a new position.'
-          : 'Board is locked while position is solved. "Play to the end" '
-              'continues this position, and "Next" brings a new one.';
+      return of(draw
+          ? SpeechVocabulary.solvedDrawHeld
+          : SpeechVocabulary.solvedWinKept);
     }
-    return solve.puzzle.mode == EndgameMode.draw
-        ? 'Play the move on the board that holds the draw.'
-        : 'Play the move on the board that keeps the win.';
+    return of(
+      puzzle.whiteToMove
+          ? SpeechVocabulary.whiteToMove
+          : SpeechVocabulary.blackToMove,
+      draw ? SpeechVocabulary.holdTheDraw : SpeechVocabulary.keepTheWin,
+    );
+  }
+
+  /// What actually happened here, when the position came from a real mistake:
+  /// „In the game, White played king d5 and dropped the win." It gives away
+  /// one move out of thirty-odd and buys the whole point of the position:
+  /// somebody stood here and chose wrong.
+  ///
+  /// The move is read off the position, so it is said as a move. A castling
+  /// move is said as its own sentence, with the side in it, in place of the
+  /// head and the tail: there is no „In the game, White played White castles".
+  SpokenLine? _storyLine(EndgamePuzzle puzzle) {
+    final san = puzzle.playedMove;
+    if (_drilling || san == null || san.isEmpty) return null;
+    final facts = MoveWords.factsOfSan(puzzle.fen, san);
+    if (facts == null) return null;
+    if (facts.castles != null) return SpokenLine(MoveWords.bare(facts));
+    return SpokenLine([
+      SpeechVocabulary.inTheGamePlayed(facts.side),
+      ...MoveWords.bare(facts),
+      puzzle.mode == EndgameMode.draw
+          ? SpeechVocabulary.andLostTheDraw
+          : SpeechVocabulary.andDroppedTheWin,
+    ]);
   }
 
   /// What actually happened here, when the position came from a real mistake.
@@ -1396,12 +1488,6 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       runSpacing: 8,
       alignment: WrapAlignment.center,
       children: [
-        if (!solve.isComplete)
-          OutlinedButton.icon(
-            onPressed: _showHint,
-            icon: const Icon(Icons.lightbulb_outline),
-            label: const Text('Hint'),
-          ),
         // While the question is open, and never in a drill, where
         // `Tablebase findings` is the answer. No key, as in tactics (D3).
         if (!solve.isComplete)

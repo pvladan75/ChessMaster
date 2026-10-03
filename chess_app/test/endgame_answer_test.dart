@@ -191,9 +191,12 @@ Map<String, dynamic> _bodyOf(http.Request r) =>
 
 void main() {
   group('1. where Show solution is offered', () {
-    testWidgets('while solving, beside Hint', (tester) async {
+    // Was „while solving, beside Hint": the Hint was deleted on the owner's word
+    // of 3.10.2026 (docs/PLAN-GOVOR-IZ-KLIPOVA.md, phase 4b), and Show solution
+    // is what is left to ask for help with.
+    testWidgets('while solving, with no Hint beside it', (tester) async {
       await _open(tester, _Server());
-      expect(find.text('Hint'), findsOneWidget);
+      expect(find.text('Hint'), findsNothing);
       expect(find.text('Show solution'), findsOneWidget);
     });
 
@@ -226,7 +229,11 @@ void main() {
         (tester) async {
       await _open(tester, _Server());
       await _tap(tester, 'Show solution');
-      expect(find.text('These moves keep the win: Kd2, Kf1, e8=N.'),
+      // Said as moves (phase 4b), drawn with commas by hand: the clips have no
+      // word for a comma. The shown answer is the task line itself.
+      expect(
+          find.text(
+              'These moves keep the win: king d2, king f1, pawn e8 promotes to knight.'),
           findsOneWidget);
       expect(_board(tester).isAllowedToMove, isFalse);
       expect(_placement(tester), _placementOf(_start));
@@ -240,8 +247,8 @@ void main() {
         (tester) async {
       await _open(tester, _Server(first: _payload(winning: const ['e1d2'])));
       await _tap(tester, 'Show solution');
-      expect(
-          find.text('The only move that keeps the win: Kd2.'), findsOneWidget);
+      expect(find.text('The only move that keeps the win is king d2.'),
+          findsOneWidget);
     });
   });
 
@@ -260,15 +267,6 @@ void main() {
       await _tap(tester, 'Next');
       expect(server.nextRequests, hasLength(2));
       expect(server.attempts, hasLength(1));
-    });
-
-    testWidgets('after a hint the record is hinted', (tester) async {
-      final server = _Server();
-      await _open(tester, server);
-      await _tap(tester, 'Hint');
-      await _tap(tester, 'Show solution');
-      expect(server.attempts, hasLength(1));
-      expect(server.attempts.single['hinted'], isTrue);
     });
 
     testWidgets('after a wrong move there is still one record', (tester) async {
@@ -296,7 +294,7 @@ void main() {
       expect(
           _bodyOf(server.playRequests.single), {'fen': _start, 'move': 'e1d2'});
       // Before the reply: said, and the board shows the reader's move.
-      expect(find.textContaining('Correct — win kept.'), findsOneWidget);
+      expect(find.textContaining('Correct. The win is kept.'), findsOneWidget);
       expect(_placement(tester), _placementOf(_afterKd2));
 
       server.release();
@@ -325,7 +323,7 @@ void main() {
       await _play(tester, 'e1', 'd2');
       await tester.pumpAndSettle();
       expect(server.playRequests, hasLength(1));
-      expect(find.textContaining('Correct — win kept.'), findsOneWidget);
+      expect(find.textContaining('Correct. The win is kept.'), findsOneWidget);
       expect(_placement(tester), _placementOf(_afterKd2));
       expect(find.textContaining('lets the win go'), findsNothing);
       expect(find.textContaining('drops the win'), findsNothing);
@@ -347,7 +345,7 @@ void main() {
           findsOneWidget);
 
       await _play(tester, 'e1', 'd2');
-      expect(find.textContaining('Correct — win kept.'), findsOneWidget);
+      expect(find.textContaining('Correct. The win is kept.'), findsOneWidget);
       await tester.pumpAndSettle();
       expect(server.playRequests, isEmpty);
     });
@@ -398,7 +396,7 @@ void main() {
     await _play(tester, 'e1', 'd2');
     await tester.pumpAndSettle();
     expect(server.playRequests, hasLength(1));
-    expect(find.textContaining('Correct — win kept.'), findsOneWidget);
+    expect(find.textContaining('Correct. The win is kept.'), findsOneWidget);
     expect(_placement(tester), _placementOf(_afterKd2));
     expect(find.textContaining('Tablebase is currently unavailable'),
         findsNothing);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
 
@@ -13,11 +15,16 @@ Widget harness({required double width, required double height}) => MaterialApp(
             builder: (context, constraints) => EndgameBoardLayout(
               wide: Breakpoints.isWide(context),
               constraints: constraints,
-              panel: const EndgameInfoPanel(
-                title: 'Beli na potezu — održite remi',
-                subtitle: 'Nađite potez koji drži remi.',
-                chips: ['KRPvKR', 'Težina: 6/10'],
-                message: 'Tačno — remi je održan.',
+              panel: EndgameInfoPanel(
+                task: SpokenLine([
+                  SpeechVocabulary.whiteToMove,
+                  SpeechVocabulary.holdTheDraw
+                ]),
+                detail: SpokenLine([SpeechVocabulary.playMoveHoldsDraw]),
+                chips: const ['KRPvKR', 'Difficulty: 6/10'],
+                message: [
+                  SpokenLine([SpeechVocabulary.correctDrawHeld])
+                ],
                 messageIsGood: true,
               ),
               reserveHeight: 200,
@@ -80,25 +87,67 @@ void main() {
   });
 
   testWidgets(
-      'the panel says all four of its parts, and none of the empty ones',
+      'the panel draws the lines it was given, and none of the empty ones',
       (tester) async {
     tester.view.physicalSize = const Size(400, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(const MaterialApp(
+    // Phase 4b: the panel takes `SpokenLine`s and draws each line's text, the
+    // first letter a capital and one full stop where the line has two.
+    final task = SpokenLine([
+      SpeechVocabulary.playedHere('black'),
+      SpeechVocabulary.piece('rook'),
+      SpeechVocabulary.square('d3'),
+      SpeechVocabulary.hereLostDraw,
+    ]);
+    Future<int> boxes({List<SpokenLine> message = const []}) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: EndgameInfoPanel(
+            task: task,
+            chips: const ['KRPPvKR'],
+            message: message,
+          ),
+        ),
+      ));
+      await tester.pumpAndSettle();
+      return find.byType(Container).evaluate().length;
+    }
+
+    final bare = await boxes();
+    expect(find.text('Black played rook d3 here and lost the draw.'),
+        findsOneWidget);
+    expect(find.text('KRPPvKR'), findsOneWidget);
+
+    // A panel with nothing to report shows no empty box where the verdict
+    // goes: with a verdict there is exactly one more.
+    final withVerdict = await boxes(message: [
+      SpokenLine([SpeechVocabulary.correct])
+    ]);
+    expect(withVerdict, bare + 1);
+    expect(find.text('Correct.'), findsOneWidget);
+  });
+
+  testWidgets(
+      'a line that begins with a move is drawn with a capital and one '
+      'full stop', (tester) async {
+    await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: EndgameInfoPanel(
-          title: 'Crni je ovde odigrao Rd3 i izgubio remi',
-          chips: ['KRPPvKR'],
+          task: SpokenLine([SpeechVocabulary.goForward]),
+          message: [
+            SpokenLine([
+              SpeechVocabulary.piece('king'),
+              SpeechVocabulary.square('d5'),
+              SpeechVocabulary.losesDrawDrillStops,
+            ])
+          ],
         ),
       ),
     ));
     await tester.pumpAndSettle();
-
-    expect(find.textContaining('Rd3'), findsOneWidget);
-    expect(find.text('KRPPvKR'), findsOneWidget);
-    // A panel with nothing to report shows no empty box where the verdict goes.
-    expect(find.byType(Container), findsNWidgets(2));
+    expect(find.text('King d5 loses the draw. The drill stops here.'),
+        findsOneWidget);
   });
 }

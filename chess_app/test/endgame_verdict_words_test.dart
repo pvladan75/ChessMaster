@@ -87,8 +87,10 @@ void main() {
     await tester.pumpAndSettle();
 
     // The whole message, so that anything said after the verdict is a red.
-    expect(
-        find.text('Correct — draw held. ${movesLeftText(1)}'), findsOneWidget);
+    // (Since phase 4b the sentence is the spoken table's: one line, the verdict
+    // and the count together, `movesLeftText` being superseded.)
+    expect(find.text('Correct. The draw is held. Other moves to find: 1.'),
+        findsOneWidget);
     expect(find.textContaining('must stay'), findsNothing);
   });
 }

@@ -139,6 +139,174 @@
       "carrier": "Incorrect. The assignment allows one attempt."
     },
     {
+      "id": "keep_the_win",
+      "kind": "phrase",
+      "text": "Keep the win.",
+      "carrier": "Keep the win."
+    },
+    {
+      "id": "hold_the_draw",
+      "kind": "phrase",
+      "text": "Hold the draw.",
+      "carrier": "Hold the draw."
+    },
+    {
+      "id": "correct_win_kept",
+      "kind": "phrase",
+      "text": "Correct. The win is kept.",
+      "carrier": "Correct. The win is kept."
+    },
+    {
+      "id": "correct_draw_held",
+      "kind": "phrase",
+      "text": "Correct. The draw is held.",
+      "carrier": "Correct. The draw is held."
+    },
+    {
+      "id": "only_move",
+      "kind": "phrase",
+      "text": "That was the only move.",
+      "carrier": "That was the only move."
+    },
+    {
+      "id": "found_every_move",
+      "kind": "phrase",
+      "text": "You found every move that holds.",
+      "carrier": "You found every move that holds."
+    },
+    {
+      "id": "wrong_drops_win",
+      "kind": "phrase",
+      "text": "That move drops the win. Try another.",
+      "carrier": "That move drops the win. Try another."
+    },
+    {
+      "id": "wrong_loses_draw",
+      "kind": "phrase",
+      "text": "That move loses the draw. Try another.",
+      "carrier": "That move loses the draw. Try another."
+    },
+    {
+      "id": "engine_drops_win",
+      "kind": "phrase",
+      "text": "The engine judges that this move drops the win. Try another.",
+      "carrier": "The engine judges that this move drops the win. Try another."
+    },
+    {
+      "id": "engine_loses_draw",
+      "kind": "phrase",
+      "text": "The engine judges that this move loses the draw. Try another.",
+      "carrier": "The engine judges that this move loses the draw. Try another."
+    },
+    {
+      "id": "already_found",
+      "kind": "phrase",
+      "text": "You already found that move. Look for another.",
+      "carrier": "You already found that move. Look for another."
+    },
+    {
+      "id": "restored",
+      "kind": "phrase",
+      "text": "Restored to the position before that move. Try another.",
+      "carrier": "Restored to the position before that move. Try another."
+    },
+    {
+      "id": "solved_win_kept",
+      "kind": "phrase",
+      "text": "Solved. The win is kept.",
+      "carrier": "Solved. The win is kept."
+    },
+    {
+      "id": "solved_draw_held",
+      "kind": "phrase",
+      "text": "Solved. The draw is held.",
+      "carrier": "Solved. The draw is held."
+    },
+    {
+      "id": "play_to_end_win",
+      "kind": "phrase",
+      "text": "Play to the end. Keep the win.",
+      "carrier": "Play to the end. Keep the win."
+    },
+    {
+      "id": "play_to_end_draw",
+      "kind": "phrase",
+      "text": "Play to the end. Hold the draw.",
+      "carrier": "Play to the end. Hold the draw."
+    },
+    {
+      "id": "punish_blunder",
+      "kind": "phrase",
+      "text": "Punish the blunder. Play the win to the end.",
+      "carrier": "Punish the blunder. Play the win to the end."
+    },
+    {
+      "id": "good_keep_going",
+      "kind": "phrase",
+      "text": "Good. Keep going.",
+      "carrier": "Good. Keep going."
+    },
+    {
+      "id": "draw_held_completed",
+      "kind": "phrase",
+      "text": "Draw held. Drill completed.",
+      "carrier": "Draw held. Drill completed."
+    },
+    {
+      "id": "checkmate_completed",
+      "kind": "phrase",
+      "text": "Checkmate. Drill completed.",
+      "carrier": "Checkmate. Drill completed."
+    },
+    {
+      "id": "draw_nothing_to_hold",
+      "kind": "phrase",
+      "text": "Draw. Nothing left to hold.",
+      "carrier": "Draw. Nothing left to hold."
+    },
+    {
+      "id": "tablebase_silent",
+      "kind": "phrase",
+      "text": "The tablebase is not answering. Try again in a moment.",
+      "carrier": "The tablebase is not answering. Try again in a moment."
+    },
+    {
+      "id": "play_move_holds_win",
+      "kind": "phrase",
+      "text": "Play the move that holds the win.",
+      "carrier": "Play the move that holds the win."
+    },
+    {
+      "id": "play_move_holds_draw",
+      "kind": "phrase",
+      "text": "Play the move that holds the draw.",
+      "carrier": "Play the move that holds the draw."
+    },
+    {
+      "id": "go_forward",
+      "kind": "phrase",
+      "text": "Go forward to the next mistake.",
+      "carrier": "Go forward to the next mistake."
+    },
+    {
+      "id": "correct",
+      "kind": "phrase",
+      "text": "Correct.",
+      "carrier": "Correct."
+    },
+    {
+      "id": "game_continues",
+      "kind": "phrase",
+      "text": "The game continues as played.",
+      "carrier": "The game continues as played."
+    },
+    {
+      "id": "last_mistake_game_over",
+      "kind": "phrase",
+      "text": "That was the last mistake. Game over.",
+      "carrier": "That was the last mistake. Game over."
+    },
+    {
       "id": "black_plays",
       "kind": "cut",
       "text": "Black plays",
@@ -184,6 +352,982 @@
       "text": "Mate in",
       "carrier": "Mate in 3.",
       "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "in_the_game_white_played",
+      "kind": "cut",
+      "text": "In the game, White played",
+      "carrier": "In the game, White played bishop e5 and dropped the win.",
+      "wordFrom": 1,
+      "wordTo": 5
+    },
+    {
+      "id": "in_the_game_black_played",
+      "kind": "cut",
+      "text": "In the game, Black played",
+      "carrier": "In the game, Black played bishop e5 and dropped the win.",
+      "wordFrom": 1,
+      "wordTo": 5
+    },
+    {
+      "id": "and_dropped_the_win",
+      "kind": "cut",
+      "text": "and dropped the win",
+      "carrier": "In the game, White played bishop e5 and dropped the win.",
+      "wordFrom": 8,
+      "wordTo": 11
+    },
+    {
+      "id": "and_lost_the_draw",
+      "kind": "cut",
+      "text": "and lost the draw",
+      "carrier": "In the game, White played bishop e5 and lost the draw.",
+      "wordFrom": 8,
+      "wordTo": 11
+    },
+    {
+      "id": "other_moves_to_find",
+      "kind": "cut",
+      "text": "Other moves to find:",
+      "carrier": "Other moves to find: 3.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
+      "id": "only_move_keeps_win_is",
+      "kind": "cut",
+      "text": "The only move that keeps the win is",
+      "carrier": "The only move that keeps the win is bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 8
+    },
+    {
+      "id": "only_move_holds_draw_is",
+      "kind": "cut",
+      "text": "The only move that holds the draw is",
+      "carrier": "The only move that holds the draw is bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 8
+    },
+    {
+      "id": "these_moves_keep_win",
+      "kind": "cut",
+      "text": "These moves keep the win:",
+      "carrier": "These moves keep the win: bishop e5, rook a1.",
+      "wordFrom": 1,
+      "wordTo": 5
+    },
+    {
+      "id": "these_moves_hold_draw",
+      "kind": "cut",
+      "text": "These moves hold the draw:",
+      "carrier": "These moves hold the draw: bishop e5, rook a1.",
+      "wordFrom": 1,
+      "wordTo": 5
+    },
+    {
+      "id": "moves_left_to_hold",
+      "kind": "cut",
+      "text": "Moves left to hold:",
+      "carrier": "Moves left to hold: 5.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
+      "id": "loses_draw_drill_stops",
+      "kind": "cut",
+      "text": "loses the draw. The drill stops here.",
+      "carrier": "Bishop e5 loses the draw. The drill stops here.",
+      "wordFrom": 3,
+      "wordTo": 9
+    },
+    {
+      "id": "lets_win_go_lost",
+      "kind": "cut",
+      "text": "lets the win go. The position is now lost.",
+      "carrier": "Bishop e5 lets the win go. The position is now lost.",
+      "wordFrom": 3,
+      "wordTo": 11
+    },
+    {
+      "id": "lets_win_go_draw",
+      "kind": "cut",
+      "text": "lets the win go. The position is now a draw.",
+      "carrier": "Bishop e5 lets the win go. The position is now a draw.",
+      "wordFrom": 3,
+      "wordTo": 12
+    },
+    {
+      "id": "white_played",
+      "kind": "cut",
+      "text": "White played",
+      "carrier": "White played bishop e5 here and let the win go.",
+      "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "black_played",
+      "kind": "cut",
+      "text": "Black played",
+      "carrier": "Black played bishop e5 here and let the win go.",
+      "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "here_let_win_go",
+      "kind": "cut",
+      "text": "here and let the win go",
+      "carrier": "White played bishop e5 here and let the win go.",
+      "wordFrom": 5,
+      "wordTo": 10
+    },
+    {
+      "id": "here_lost_draw",
+      "kind": "cut",
+      "text": "here and lost the draw",
+      "carrier": "White played bishop e5 here and lost the draw.",
+      "wordFrom": 5,
+      "wordTo": 9
+    },
+    {
+      "id": "also_lets_win_go",
+      "kind": "cut",
+      "text": "also lets the win go. Try another move.",
+      "carrier": "Bishop e5 also lets the win go. Try another move.",
+      "wordFrom": 3,
+      "wordTo": 10
+    },
+    {
+      "id": "does_not_hold_draw",
+      "kind": "cut",
+      "text": "does not hold the draw. Try another move.",
+      "carrier": "Bishop e5 does not hold the draw. Try another move.",
+      "wordFrom": 3,
+      "wordTo": 10
+    },
+    {
+      "id": "watch_refutation_of",
+      "kind": "cut",
+      "text": "Watch the refutation of",
+      "carrier": "Watch the refutation of bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
+      "id": "game_finished_found",
+      "kind": "cut",
+      "text": "Game finished. Found",
+      "carrier": "Game finished. Found 3 of 5.",
+      "wordFrom": 1,
+      "wordTo": 3
+    },
+    {
+      "id": "of",
+      "kind": "cut",
+      "text": "of",
+      "carrier": "Game finished. Found 3 of 5.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "nmid_0",
+      "kind": "cut",
+      "text": "0",
+      "carrier": "Found 0 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_1",
+      "kind": "cut",
+      "text": "1",
+      "carrier": "Found 1 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_2",
+      "kind": "cut",
+      "text": "2",
+      "carrier": "Found 2 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_3",
+      "kind": "cut",
+      "text": "3",
+      "carrier": "Found 3 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_4",
+      "kind": "cut",
+      "text": "4",
+      "carrier": "Found 4 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_5",
+      "kind": "cut",
+      "text": "5",
+      "carrier": "Found 5 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_6",
+      "kind": "cut",
+      "text": "6",
+      "carrier": "Found 6 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_7",
+      "kind": "cut",
+      "text": "7",
+      "carrier": "Found 7 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_8",
+      "kind": "cut",
+      "text": "8",
+      "carrier": "Found 8 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_9",
+      "kind": "cut",
+      "text": "9",
+      "carrier": "Found 9 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_10",
+      "kind": "cut",
+      "text": "10",
+      "carrier": "Found 10 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_11",
+      "kind": "cut",
+      "text": "11",
+      "carrier": "Found 11 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_12",
+      "kind": "cut",
+      "text": "12",
+      "carrier": "Found 12 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_13",
+      "kind": "cut",
+      "text": "13",
+      "carrier": "Found 13 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_14",
+      "kind": "cut",
+      "text": "14",
+      "carrier": "Found 14 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_15",
+      "kind": "cut",
+      "text": "15",
+      "carrier": "Found 15 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_16",
+      "kind": "cut",
+      "text": "16",
+      "carrier": "Found 16 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_17",
+      "kind": "cut",
+      "text": "17",
+      "carrier": "Found 17 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_18",
+      "kind": "cut",
+      "text": "18",
+      "carrier": "Found 18 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_19",
+      "kind": "cut",
+      "text": "19",
+      "carrier": "Found 19 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_20",
+      "kind": "cut",
+      "text": "20",
+      "carrier": "Found 20 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_21",
+      "kind": "cut",
+      "text": "21",
+      "carrier": "Found 21 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_22",
+      "kind": "cut",
+      "text": "22",
+      "carrier": "Found 22 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_23",
+      "kind": "cut",
+      "text": "23",
+      "carrier": "Found 23 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_24",
+      "kind": "cut",
+      "text": "24",
+      "carrier": "Found 24 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_25",
+      "kind": "cut",
+      "text": "25",
+      "carrier": "Found 25 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_26",
+      "kind": "cut",
+      "text": "26",
+      "carrier": "Found 26 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_27",
+      "kind": "cut",
+      "text": "27",
+      "carrier": "Found 27 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_28",
+      "kind": "cut",
+      "text": "28",
+      "carrier": "Found 28 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_29",
+      "kind": "cut",
+      "text": "29",
+      "carrier": "Found 29 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_30",
+      "kind": "cut",
+      "text": "30",
+      "carrier": "Found 30 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_31",
+      "kind": "cut",
+      "text": "31",
+      "carrier": "Found 31 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_32",
+      "kind": "cut",
+      "text": "32",
+      "carrier": "Found 32 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_33",
+      "kind": "cut",
+      "text": "33",
+      "carrier": "Found 33 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_34",
+      "kind": "cut",
+      "text": "34",
+      "carrier": "Found 34 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_35",
+      "kind": "cut",
+      "text": "35",
+      "carrier": "Found 35 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_36",
+      "kind": "cut",
+      "text": "36",
+      "carrier": "Found 36 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_37",
+      "kind": "cut",
+      "text": "37",
+      "carrier": "Found 37 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_38",
+      "kind": "cut",
+      "text": "38",
+      "carrier": "Found 38 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_39",
+      "kind": "cut",
+      "text": "39",
+      "carrier": "Found 39 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_40",
+      "kind": "cut",
+      "text": "40",
+      "carrier": "Found 40 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_41",
+      "kind": "cut",
+      "text": "41",
+      "carrier": "Found 41 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_42",
+      "kind": "cut",
+      "text": "42",
+      "carrier": "Found 42 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_43",
+      "kind": "cut",
+      "text": "43",
+      "carrier": "Found 43 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_44",
+      "kind": "cut",
+      "text": "44",
+      "carrier": "Found 44 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_45",
+      "kind": "cut",
+      "text": "45",
+      "carrier": "Found 45 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_46",
+      "kind": "cut",
+      "text": "46",
+      "carrier": "Found 46 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_47",
+      "kind": "cut",
+      "text": "47",
+      "carrier": "Found 47 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_48",
+      "kind": "cut",
+      "text": "48",
+      "carrier": "Found 48 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_49",
+      "kind": "cut",
+      "text": "49",
+      "carrier": "Found 49 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_50",
+      "kind": "cut",
+      "text": "50",
+      "carrier": "Found 50 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_51",
+      "kind": "cut",
+      "text": "51",
+      "carrier": "Found 51 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_52",
+      "kind": "cut",
+      "text": "52",
+      "carrier": "Found 52 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_53",
+      "kind": "cut",
+      "text": "53",
+      "carrier": "Found 53 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_54",
+      "kind": "cut",
+      "text": "54",
+      "carrier": "Found 54 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_55",
+      "kind": "cut",
+      "text": "55",
+      "carrier": "Found 55 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_56",
+      "kind": "cut",
+      "text": "56",
+      "carrier": "Found 56 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_57",
+      "kind": "cut",
+      "text": "57",
+      "carrier": "Found 57 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_58",
+      "kind": "cut",
+      "text": "58",
+      "carrier": "Found 58 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_59",
+      "kind": "cut",
+      "text": "59",
+      "carrier": "Found 59 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_60",
+      "kind": "cut",
+      "text": "60",
+      "carrier": "Found 60 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_61",
+      "kind": "cut",
+      "text": "61",
+      "carrier": "Found 61 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_62",
+      "kind": "cut",
+      "text": "62",
+      "carrier": "Found 62 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_63",
+      "kind": "cut",
+      "text": "63",
+      "carrier": "Found 63 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_64",
+      "kind": "cut",
+      "text": "64",
+      "carrier": "Found 64 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_65",
+      "kind": "cut",
+      "text": "65",
+      "carrier": "Found 65 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_66",
+      "kind": "cut",
+      "text": "66",
+      "carrier": "Found 66 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_67",
+      "kind": "cut",
+      "text": "67",
+      "carrier": "Found 67 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_68",
+      "kind": "cut",
+      "text": "68",
+      "carrier": "Found 68 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_69",
+      "kind": "cut",
+      "text": "69",
+      "carrier": "Found 69 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_70",
+      "kind": "cut",
+      "text": "70",
+      "carrier": "Found 70 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_71",
+      "kind": "cut",
+      "text": "71",
+      "carrier": "Found 71 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_72",
+      "kind": "cut",
+      "text": "72",
+      "carrier": "Found 72 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_73",
+      "kind": "cut",
+      "text": "73",
+      "carrier": "Found 73 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_74",
+      "kind": "cut",
+      "text": "74",
+      "carrier": "Found 74 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_75",
+      "kind": "cut",
+      "text": "75",
+      "carrier": "Found 75 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_76",
+      "kind": "cut",
+      "text": "76",
+      "carrier": "Found 76 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_77",
+      "kind": "cut",
+      "text": "77",
+      "carrier": "Found 77 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_78",
+      "kind": "cut",
+      "text": "78",
+      "carrier": "Found 78 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_79",
+      "kind": "cut",
+      "text": "79",
+      "carrier": "Found 79 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_80",
+      "kind": "cut",
+      "text": "80",
+      "carrier": "Found 80 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_81",
+      "kind": "cut",
+      "text": "81",
+      "carrier": "Found 81 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_82",
+      "kind": "cut",
+      "text": "82",
+      "carrier": "Found 82 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_83",
+      "kind": "cut",
+      "text": "83",
+      "carrier": "Found 83 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_84",
+      "kind": "cut",
+      "text": "84",
+      "carrier": "Found 84 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_85",
+      "kind": "cut",
+      "text": "85",
+      "carrier": "Found 85 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_86",
+      "kind": "cut",
+      "text": "86",
+      "carrier": "Found 86 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_87",
+      "kind": "cut",
+      "text": "87",
+      "carrier": "Found 87 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_88",
+      "kind": "cut",
+      "text": "88",
+      "carrier": "Found 88 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_89",
+      "kind": "cut",
+      "text": "89",
+      "carrier": "Found 89 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_90",
+      "kind": "cut",
+      "text": "90",
+      "carrier": "Found 90 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_91",
+      "kind": "cut",
+      "text": "91",
+      "carrier": "Found 91 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_92",
+      "kind": "cut",
+      "text": "92",
+      "carrier": "Found 92 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_93",
+      "kind": "cut",
+      "text": "93",
+      "carrier": "Found 93 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_94",
+      "kind": "cut",
+      "text": "94",
+      "carrier": "Found 94 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_95",
+      "kind": "cut",
+      "text": "95",
+      "carrier": "Found 95 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_96",
+      "kind": "cut",
+      "text": "96",
+      "carrier": "Found 96 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_97",
+      "kind": "cut",
+      "text": "97",
+      "carrier": "Found 97 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_98",
+      "kind": "cut",
+      "text": "98",
+      "carrier": "Found 98 of 5.",
+      "wordFrom": 2,
+      "wordTo": 2
+    },
+    {
+      "id": "nmid_99",
+      "kind": "cut",
+      "text": "99",
+      "carrier": "Found 99 of 5.",
+      "wordFrom": 2,
       "wordTo": 2
     },
     {

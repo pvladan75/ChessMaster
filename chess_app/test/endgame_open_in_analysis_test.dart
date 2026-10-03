@@ -288,7 +288,7 @@ void main() {
       expect(_board(tester).isAllowedToMove, allowed);
       expect(find.text('Solved: 1/1'), findsOneWidget);
       expect(find.text('Find the rest (1/3)'), findsOneWidget);
-      expect(find.text('Solved — draw held'), findsOneWidget);
+      expect(find.text('Solved. The draw is held.'), findsOneWidget);
     });
 
     testWidgets('2. Next asks for the same selection, past this position',

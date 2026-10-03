@@ -6,6 +6,9 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/services/app_settings_service.dart';
@@ -13,6 +16,7 @@ import 'package:chess_app/core/services/legal_moves.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
+import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/endgame_info_panel.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -60,6 +64,7 @@ class BlunderWalkScreen extends StatefulWidget {
     this.material,
     this.api,
     this.attemptApi,
+    this.speech,
   });
 
   final UserSession session;
@@ -76,6 +81,9 @@ class BlunderWalkScreen extends StatefulWidget {
   /// the attempt log this screen writes to per stop
   /// (docs/PLAN-NAPREDAK-VEZBI.md §4).
   final PuzzleAttemptApi? attemptApi;
+
+  /// Injected in tests. The app's one `SpeechService` otherwise.
+  final SpeechService? speech;
 
   @override
   State<BlunderWalkScreen> createState() => _BlunderWalkScreenState();
@@ -94,8 +102,15 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   PlayerColor _orientation = PlayerColor.white;
   bool _loading = true;
   String? _error;
-  String? _feedback;
+  List<SpokenLine> _feedback = const [];
+
+  /// A sentence that is only drawn, with no row in the table: never said.
+  String? _note;
   bool _feedbackIsGood = false;
+
+  /// Bumped whenever a new game opens, so its first task is said even when its
+  /// words are the last game's.
+  int _panelSerial = 0;
 
   /// Positions from the opening board to the wall, one per ply plus the start.
   /// Rebuilt whenever the wall moves, which is the only time it changes.
@@ -122,6 +137,9 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   int _refutationAt = 0;
   bool _fetchingRefutation = false;
 
+  /// The mistake the open punishment is for, which its task line names.
+  GameBlunder? _refutationOf;
+
   /// The move that lost the result, drawn from where it started to where it
   /// went. "White played Ng4" is a sentence to decode; the arrow is the same
   /// thing already decoded, which on a board is the form that costs nothing.
@@ -147,8 +165,47 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     // Leaving is one of the three things that stop a sentence. A voice still
     // explaining a position on a screen nobody is looking at is the surest way
     // to make someone switch the whole feature off.
-    SpeechService.instance.stop();
+    _stopSpeech();
     super.dispose();
+  }
+
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  /// Cuts the voice off, for what the reader does. Guarded: a voice that
+  /// throws must never stop a move or the screen's own teardown.
+  void _stopSpeech() {
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
+  }
+
+  /// Says [line], forced: the same verdict twice in a row is two verdicts.
+  void _say(SpokenLine line) {
+    if (!mounted) return;
+    try {
+      unawaited(_speech.speakLine(line, force: true).catchError((Object _) {}));
+    } catch (_) {}
+  }
+
+  /// Draws and says the verdict: the panel draws each line's text and the
+  /// voice plays the same line. [note] is drawn under it and never said.
+  void _tell(List<SpokenLine> lines, {required bool good, String? note}) {
+    setState(() {
+      _feedback = lines;
+      _note = note;
+      _feedbackIsGood = good;
+    });
+    lines.forEach(_say);
+  }
+
+  /// Forgets the verdict, and what was last said, so the same sentence is said
+  /// again when it comes round. Call inside a `setState`.
+  void _clearFeedback() {
+    _feedback = const [];
+    _note = null;
+    try {
+      _speech.forget();
+    } catch (_) {}
   }
 
   /// Points at the mistake standing on this board, for a few seconds.
@@ -206,10 +263,12 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       _recordStop(pending, found: false, skipped: true);
     }
 
+    // Moving on is the reader saying they are done with the last sentence.
+    _stopSpeech();
     setState(() {
       _loading = true;
       _error = null;
-      _feedback = null;
+      _clearFeedback();
       _leaveRefutation();
     });
 
@@ -246,7 +305,8 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
           ? PlayerColor.white
           : PlayerColor.black;
       _feedbackIsGood = false;
-      _feedback = null;
+      _clearFeedback();
+      _panelSerial++;
     });
     _rebuildLine();
     final first = walk.pending;
@@ -284,14 +344,14 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     // Reaching for the strip is how the reader says they would rather do this
     // themselves - including doing without the rest of the sentence.
     _stopPlayback();
-    SpeechService.instance.stop();
+    _stopSpeech();
     _clearMarks();
     setState(() {
       // Reaching for the game is leaving the punishment, and "Na grešku" is
       // offered while one is open.
       _leaveRefutation();
       walk.seek(index);
-      _feedback = null;
+      _clearFeedback();
     });
     _showCurrent();
     final here = walk.pending;
@@ -313,12 +373,11 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     if (!mounted) return;
 
     if (moves == null || moves.isEmpty) {
-      setState(() {
-        _fetchingRefutation = false;
-        _feedbackIsGood = false;
-        _feedback =
-            'Cannot show refutation right now — tablebase did not respond.';
-      });
+      setState(() => _fetchingRefutation = false);
+      // The tablebase is what answers, and it did not.
+      _tell([
+        SpokenLine([SpeechVocabulary.tablebaseSilent])
+      ], good: false);
       return;
     }
 
@@ -333,13 +392,12 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     setState(() {
       _fetchingRefutation = false;
       _refutation = fens;
+      _refutationOf = blunder;
       _refutationAt = 0;
       _feedbackIsGood = false;
-      // The move goes at the end, after a noun, rather than inside the verb
-      // phrase. "Ovako se Qxb2 kažnjava" reads passably and hears badly: spoken
-      // out, the notation lands in the middle of a construction the listener is
-      // still waiting to have finished.
-      _feedback = 'This is how ${blunder.played} is punished.';
+      // The task line says what is playing ('Watch the refutation of king d5.');
+      // there is no verdict under it.
+      _clearFeedback();
     });
     _boardController.loadFen(fens.first);
 
@@ -351,7 +409,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       // Let the sentence finish first. A board that moves under a verdict
       // still being read leaves the listener hearing about a position that is
       // no longer on the screen.
-      if (SpeechService.instance.isSpeaking) return;
+      if (_speech.isSpeaking) return;
       if (_refutationAt + 1 >= _refutation!.length) {
         _stopPlayback();
         return;
@@ -387,11 +445,14 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     setState(() {
       _keeping = false;
       if (ok) _kept.add(blunder.ply);
-      _feedbackIsGood = ok;
-      _feedback = ok
-          ? EndgameApiService.keptMessage
-          : 'Currently unable to save position.';
     });
+    // Said as a message and not as a line of the panel: saving is not part of
+    // the lesson, and the message cannot take the screen down.
+    if (ok) {
+      AppFeedback.success(context, EndgameApiService.keptMessage);
+    } else {
+      AppFeedback.error(context, 'Currently unable to save position.');
+    }
   }
 
   /// Puts the game back where it was before the punishment was shown.
@@ -399,7 +460,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     _stopPlayback();
     setState(() {
       _leaveRefutation();
-      _feedback = null;
+      _clearFeedback();
     });
     _showCurrent();
   }
@@ -416,6 +477,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   /// Call inside a setState.
   void _leaveRefutation() {
     _refutation = null;
+    _refutationOf = null;
     _refutationAt = 0;
     _fetchingRefutation = false;
   }
@@ -431,7 +493,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
         _stopPlayback();
         return;
       }
-      if (SpeechService.instance.isSpeaking) return;
+      if (_speech.isSpeaking) return;
       setState(walk.forward);
       _showCurrent();
       played++;
@@ -452,22 +514,24 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     if (walk == null) return;
     final here = walk.pending;
     if (here != null) {
-      setState(() => _feedback = null);
+      setState(_clearFeedback);
       _markMistake(here);
       return;
     }
     if (walk.isFinished) {
+      // The task line is the end ('Game finished. Found 3 of 5.'); the verdict
+      // under it is cleared so the two do not say it twice.
       setState(() {
         _feedbackIsGood = true;
-        _feedback = 'Game over — no more moves. Found '
-            '${walk.solvedCount} of ${walk.totalCount}.';
+        _feedback = const [];
+        _note = null;
       });
     }
   }
 
   /// A move from the reader, which answers whatever was being said.
   Future<void> _onMove(String from, String to, String promotion) async {
-    SpeechService.instance.stop();
+    _stopSpeech();
     final walk = _walk;
     final blunder = walk?.pending;
     if (walk == null || blunder == null) return;
@@ -487,12 +551,22 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
 
     final verdict = walk.submit(uci, san: san);
     if (!verdict.correct) {
-      setState(() {
-        _feedbackIsGood = false;
-        _feedback = blunder.lostAWin
-            ? '$san also lets the win go. Try another move.'
-            : '$san does not hold the draw. Try another move.';
-      });
+      // The move, said as a move, and what it costs.
+      final facts = MoveWords.factsOf(blunder.fen, from, to,
+          promotion: isPromotion ? piece : null);
+      _tell(
+        facts == null
+            ? const []
+            : [
+                SpokenLine([
+                  ...MoveWords.bare(facts),
+                  blunder.lostAWin
+                      ? SpeechVocabulary.alsoLetsWinGo
+                      : SpeechVocabulary.doesNotHoldDraw,
+                ])
+              ],
+        good: false,
+      );
       _showCurrent();
       return;
     }
@@ -517,41 +591,33 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     final walk = _walk!;
     _recordStop(blunder, found: found != null);
 
-    final verdict = found == null
-        ? 'Holding moves were: ${blunder.shouldPlay.join(', ')}.'
-        : (blunder.shouldPlay.length == 1
-            ? 'Correct — $found was the only move.'
-            : 'Correct. Also holding was: '
-                '${blunder.shouldPlay.where((m) => m != found).join(', ')}.');
-
-    // The verdict alone. A sentence about what the holding moves had in
-    // common followed it until 30.9.2026, when the owner had it taken out
-    // everywhere as often wrong: true of the moves, it was said as a rule, and
-    // with one move holding every property of that move became one — Rd2+ is
-    // the only move, so "The Rook must stay on rank 2", which is not why it
-    // holds.
-    final taught = verdict;
-
     // The last answer opens the game to its end rather than to the next stop,
     // so it is worth saying which of the two just happened - and if there is
     // nothing left to open, saying that instead.
     final last = walk.answeredCount == walk.totalCount;
+    // The cursor stands on the mistake, which is itself a move of the game: one
+    // move left is that one, and after it there is nothing. (It read `<= 0`,
+    // which no game can reach - the branch was dead.)
     final movesLeft = walk.game.moves.length - walk.cursor;
     // The arrow pointed at a mistake that is now behind us.
     _clearMarks();
-    setState(() {
-      _feedbackIsGood = found != null;
-      if (!last) {
-        _feedback = '$taught The game continues as played.';
-      } else if (movesLeft <= 0) {
-        _feedback = '$taught That was the last mistake and the last move — '
-            'game over.';
-      } else {
-        _feedback =
-            '$taught That was the last mistake — the rest of the game is '
-            'unlocked, walk through it on the strip.';
-      }
-    });
+    // One line: the verdict and where the game goes from here. A reveal has
+    // no „Correct" to say, and the holding moves it names are a list of
+    // notation the table has no words for - drawn, not said.
+    _tell(
+      [
+        SpokenLine([
+          if (found != null) SpeechVocabulary.correct,
+          last && movesLeft <= 1
+              ? SpeechVocabulary.lastMistakeGameOver
+              : SpeechVocabulary.gameContinues,
+        ])
+      ],
+      good: found != null,
+      note: found == null
+          ? 'Holding moves were: ${blunder.shouldPlay.join(', ')}.'
+          : null,
+    );
     // The wall has moved, so the line the strip walks is longer now.
     _rebuildLine();
     _playForward();
@@ -577,12 +643,22 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
     if (walk == null) return const SizedBox.shrink();
 
     final wide = Breakpoints.isWide(context);
+    final task = _task(walk);
     final panel = EndgameInfoPanel(
-      title: _taskText(walk),
-      subtitle: _hintText(walk),
+      key: ValueKey('panel-$_panelSerial'),
+      task: task,
+      detail: _detail(walk),
       chips: _chips(walk),
       message: _feedback,
+      note: _note,
       messageIsGood: _feedbackIsGood,
+      // 'The game continues as played.' as a task only repeats the verdict that
+      // was just said.
+      autoSpeak: !(walk.pending == null &&
+          walk.nextStop == null &&
+          !walk.isFinished &&
+          _refutation == null),
+      speech: widget.speech,
     );
 
     final cursor = LinearMoveCursor(
@@ -683,57 +759,68 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
   }
 
   /// The heading is always something to do, never a description of where you
-  /// happen to be standing.
-  String _taskText(BlunderWalk walk) {
-    if (_refutation != null) return 'Refutation plays out automatically';
-    final here = walk.pending;
-    if (here != null) {
-      final who = here.side == 'white' ? 'White' : 'Black';
-      return here.lostAWin
-          ? '$who played ${here.played} here and let the win go'
-          : '$who played ${here.played} here and lost the draw';
-    }
-    if (walk.nextStop != null) return 'Go forward to the next mistake';
-    return walk.isFinished
-        ? 'Game finished — found ${walk.solvedCount} of ${walk.totalCount}'
-        : 'All mistakes solved — rest of the game is unlocked';
-  }
-
-  /// And the instruction under it names the thing to press or the thing to do
-  /// on the board, because "you are between two mistakes" is a fact and not an
-  /// instruction.
-  String? _hintText(BlunderWalk walk) {
-    // Reported from the desktop build, and the second time the same lesson has
-    // had to be learned here: the reader could not pick up a piece and thought
-    // the board had frozen. It had not - a punishment is being shown and there
-    // is nothing to play - but nothing on the screen said so, and a mode you
-    // are in without knowing it is indistinguishable from a bug.
-    if (_refutation != null) {
-      return 'The board cannot be played here — you are watching the refutation. '
-          'The "Back to game" button returns to the walk.';
+  /// happen to be standing. Said and drawn from the same line (D4).
+  SpokenLine _task(BlunderWalk walk) {
+    final watching = _refutationOf;
+    if (_refutation != null && watching != null) {
+      final facts = _factsOfPlayed(watching);
+      return SpokenLine([
+        SpeechVocabulary.watchRefutationOf,
+        if (facts != null) ...MoveWords.bare(facts),
+      ]);
     }
     final here = walk.pending;
     if (here != null) {
-      return here.lostAWin
-          ? 'Play the move that holds the win on the board.'
-          : 'Play the move that holds the draw on the board.';
+      // The move is said as a move, read off the position it was played in.
+      final facts = _factsOfPlayed(here);
+      return SpokenLine([
+        SpeechVocabulary.playedHere(here.side == 'white' ? 'white' : 'black'),
+        if (facts != null) ...MoveWords.bare(facts),
+        here.lostAWin
+            ? SpeechVocabulary.hereLetWinGo
+            : SpeechVocabulary.hereLostDraw,
+      ]);
     }
-    final next = walk.nextStop;
-    if (next != null) {
-      final away = next.ply - walk.cursor;
-      // And why the board does not answer here. A piece that lifts and falls
-      // back with nothing said reads as a broken board rather than as a locked
-      // one, which is how this got reported.
-      return 'The board is only played at mistakes. $away more ${_moveWord(away)} '
-          'forward — with the arrow below the board or the "To mistake" button.';
+    if (walk.nextStop != null) return SpokenLine([SpeechVocabulary.goForward]);
+    if (walk.isFinished) {
+      return SpokenLine([
+        SpeechVocabulary.gameFinishedFound,
+        SpeechVocabulary.numberInside(walk.solvedCount.clamp(0, 99)),
+        SpeechVocabulary.ofToken,
+        SpeechVocabulary.number(walk.totalCount.clamp(0, 99)),
+      ]);
     }
-    return walk.isFinished
-        ? null
-        : 'Walk through the rest of the game with the strip below the board.';
+    // Every mistake answered and the game not yet at its end: the rest of it
+    // is open to walk. The table has no row of its own for this, and the line
+    // that says where the game goes from here is the closest.
+    return SpokenLine([SpeechVocabulary.gameContinues]);
   }
 
-  /// One move, two or more moves.
-  String _moveWord(int n) => n == 1 ? 'move' : 'moves';
+  /// What to do on the board, under the task — only at a mistake.
+  SpokenLine? _detail(BlunderWalk walk) {
+    final here = walk.pending;
+    if (_refutation != null || here == null) return null;
+    return SpokenLine([
+      here.lostAWin
+          ? SpeechVocabulary.playMoveHoldsWin
+          : SpeechVocabulary.playMoveHoldsDraw,
+    ]);
+  }
+
+  /// The mistake's move as facts, from its coordinates, falling back on its
+  /// notation. Null when neither can be read in its position.
+  MoveFacts? _factsOfPlayed(GameBlunder blunder) {
+    final uci = blunder.playedUci;
+    try {
+      if (uci.length >= 4) {
+        final facts = MoveWords.factsOf(
+            blunder.fen, uci.substring(0, 2), uci.substring(2, 4),
+            promotion: uci.length > 4 ? uci[4].toLowerCase() : null);
+        if (facts != null) return facts;
+      }
+    } catch (_) {}
+    return MoveWords.factsOfSan(blunder.fen, blunder.played);
+  }
 
   List<String> _chips(BlunderWalk walk) {
     final blunder = walk.pending;

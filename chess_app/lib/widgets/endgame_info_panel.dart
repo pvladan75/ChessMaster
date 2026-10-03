@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 
 /// Everything the endgame screens have to say, in one place and in one order.
 ///
@@ -21,30 +25,59 @@ import 'package:chess_app/theme/app_colors.dart';
 /// The board is the thing being looked at, so its caption belongs after it; and
 /// text that appears and disappears above a board pushes the board down as it
 /// changes, which is worse than a caption a glance further away.
+///
+/// **Every sentence on it is a [SpokenLine]** (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`,
+/// phase 4b): what is drawn is the line's text, and what is heard is the same
+/// line played from the shipped clips, so the two cannot differ. Nothing here
+/// reaches the device voice.
 class EndgameInfoPanel extends StatefulWidget {
   const EndgameInfoPanel({
     super.key,
-    required this.title,
-    this.subtitle,
+    required this.task,
+    this.taskText,
+    this.detail,
     this.chips = const [],
-    this.message,
+    this.message = const [],
+    this.note,
     this.messageIsGood = false,
+    this.autoSpeak = true,
+    this.speech,
   });
 
-  /// What to do now, in a sentence, and always phrased as something to do.
-  final String title;
+  /// What to do now, in a sentence, and always phrased as something to do. It
+  /// carries the speaker, and is said when it appears and whenever it changes.
+  final SpokenLine task;
 
-  /// The same instruction spelled out, when it needs to be.
-  final String? subtitle;
+  /// What the task line draws, where that cannot be [SpokenLine.text]: a list
+  /// of moves is drawn with commas, which the clips have no word for. Null
+  /// draws the line's own text, which is every other sentence on the screen.
+  final String? taskText;
+
+  /// A second sentence under the task — the story of the position, or what to
+  /// do on the board. Said once, right after the task, when it appears.
+  final SpokenLine? detail;
 
   /// Which game, which ending, how far along. Context rather than instruction,
   /// so it sits above the ask instead of between the ask and the answer.
   final List<String> chips;
 
-  /// The verdict on the last move, or a note about what just happened.
-  final String? message;
+  /// The verdict on the last move. Drawn here and said by the screen, which
+  /// knows when the answer was given; the panel never says it twice.
+  final List<SpokenLine> message;
+
+  /// A note that is only drawn: "Checking tablebases…", a refusal from the
+  /// server. Not a sentence of the table, so never spoken.
+  final String? note;
 
   final bool messageIsGood;
+
+  /// Say the task (and the detail) when they appear. Off where the task only
+  /// repeats the verdict that was just said, so the verdict is not followed by
+  /// its own echo.
+  final bool autoSpeak;
+
+  /// Injectable for tests; the app's one `SpeechService` otherwise.
+  final SpeechService? speech;
 
   /// Beside the board on an expanded window.
   static const double sideWidth = 280;
@@ -53,56 +86,48 @@ class EndgameInfoPanel extends StatefulWidget {
   State<EndgameInfoPanel> createState() => _EndgameInfoPanelState();
 }
 
-/// The panel is also where the app speaks from.
-///
-/// Here rather than in the two screens that use it, because the panel already
-/// holds the rule about what is worth reading and in what order - and because
-/// a screen that sets its feedback in six places would have to remember to
-/// speak in all six. What is on the panel is what is said; there is no second
-/// list to keep in step.
+/// The panel is also where the task is said from — by [SpeakableInfo], which
+/// owns the speaker and the rule that it is never a no-op — and where the line
+/// under it is said right after.
 class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
   @override
   void initState() {
     super.initState();
-    _say();
+    _sayDetail();
   }
 
   @override
   void didUpdateWidget(EndgameInfoPanel old) {
     super.didUpdateWidget(old);
-    if (old.message != widget.message ||
-        old.title != widget.title ||
-        old.subtitle != widget.subtitle) {
-      _say();
-    }
+    if (old.detail?.text != widget.detail?.text) _sayDetail();
   }
 
-  /// The verdict when there is one, the task when there is not.
-  ///
-  /// Both at once would mean hearing the question again after every answer,
-  /// which is the thing that makes spoken interfaces tiring: the verdict is
-  /// the new information, and the task is still on the screen for the eyes.
-  void _say() {
-    final message = widget.message;
-    if (message != null && message.trim().isNotEmpty) {
-      SpeechService.instance.speak(message);
-      return;
-    }
-    final subtitle = widget.subtitle;
-    SpeechService.instance.speak(
-      subtitle == null || subtitle.isEmpty
-          ? widget.title
-          : '${widget.title}. $subtitle',
-    );
+  /// After the frame, so the task — said from [SpeakableInfo]'s `initState`,
+  /// which runs during this frame's build — is the first thing the voice
+  /// hears and the detail is queued behind it. Forced, because the same
+  /// sentence two positions in a row is two sentences.
+  void _sayDetail() {
+    final detail = widget.detail;
+    if (detail == null || !widget.autoSpeak) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      try {
+        unawaited(
+            _speech.speakLine(detail, force: true).catchError((Object _) {}));
+      } catch (_) {}
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = widget.title;
-    final subtitle = widget.subtitle;
+    final task = widget.task;
+    final detail = widget.detail;
     final chips = widget.chips;
     final message = widget.message;
+    final note = widget.note;
     final messageIsGood = widget.messageIsGood;
     return Container(
       width: double.infinity,
@@ -126,12 +151,19 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
             ),
             const SizedBox(height: 10),
           ],
-          Text(title, style: theme.textTheme.titleMedium),
-          if (subtitle != null) ...[
+          SpeakableInfo(
+            text: widget.taskText ?? task.text,
+            line: task,
+            autoSpeak: widget.autoSpeak,
+            compact: true,
+            speech: widget.speech,
+            style: theme.textTheme.titleMedium,
+          ),
+          if (detail != null) ...[
             const SizedBox(height: AppSpacing.xs),
-            Text(subtitle, style: theme.textTheme.bodySmall),
+            Text(detail.text, style: theme.textTheme.bodySmall),
           ],
-          if (message != null) ...[
+          if (message.isNotEmpty || note != null) ...[
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -143,7 +175,13 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
                     .withValues(alpha: 0.15),
                 borderRadius: AppRadii.roundedSm,
               ),
-              child: Text(message),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final line in message) Text(line.text),
+                  if (note != null) Text(note),
+                ],
+              ),
             ),
           ],
         ],

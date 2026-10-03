@@ -91,6 +91,44 @@ class MoveWords {
     return SpokenLine(tokens);
   }
 
+  /// A move to be said **inside** a sentence, after words of the sentence's
+  /// own: the tokens of [line] without its first, the „White plays" head, so
+  /// „In the game, White played" + king d5 reads as one sentence. A castling
+  /// move has no head to drop — its one token is the whole sentence, side
+  /// included — so it is returned whole.
+  ///
+  /// „Check" and „Checkmate" are left out: each is a sentence of its own in the
+  /// carrier it was cut from, and in the middle of another sentence („In the
+  /// game, White played rook d3. Check. and dropped the win.") it breaks it.
+  /// A move said **as a move** keeps them, through [line].
+  static List<SpeechToken> bare(MoveFacts f) {
+    final tokens = line(f).tokens;
+    if (f.castles != null) return tokens;
+    return [
+      for (final t in tokens.skip(1))
+        if (t.id != 'check' && t.id != 'checkmate') t,
+    ];
+  }
+
+  /// The facts of [san] played in [fenBefore], or null when it is not a legal
+  /// move there. For a move a server or a stored game hands over as notation
+  /// rather than as squares.
+  static MoveFacts? factsOfSan(String fenBefore, String san) {
+    try {
+      final game = chess.Chess.fromFEN(fenBefore);
+      if (!game.move(san)) return null;
+      final played = game.history.last.move;
+      return factsOf(
+        fenBefore,
+        played.fromAlgebraic,
+        played.toAlgebraic,
+        promotion: played.promotion?.name,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// The same move as the opponent's *other* defence, said before it is
   /// drawn: „Now suppose Black plays pawn d4." Castling has no such form —
   /// its sentence carries the side in its own words — so a castling move is

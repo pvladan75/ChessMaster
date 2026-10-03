@@ -62,7 +62,7 @@ void main() {
   final tokens = SpeechVocabulary.tokens;
 
   test('the vocabulary is what it was designed to be', () {
-    expect(tokens.length, 284);
+    expect(tokens.length, 434);
     expect(tokens.map((t) => t.id).toSet().length, tokens.length,
         reason: 'ids are unique');
     for (final f in kFiles.split('')) {
@@ -128,7 +128,8 @@ void main() {
       expect(clip!.sampleRate, kSpeechSampleRate, reason: t.id);
       expect(clip.channels, kSpeechChannels, reason: t.id);
       expect(clip.bitsPerSample, kSpeechBitsPerSample, reason: t.id);
-      expect(clip.seconds, greaterThan(0.1), reason: '${t.id} is empty');
+      // „of" is 88 ms of voice, measured: the shortest word in the alphabet.
+      expect(clip.seconds, greaterThan(0.05), reason: '${t.id} is empty');
       expect(clip.seconds, lessThan(4.5), reason: '${t.id} is too long');
       final edges = _silentEdges(clip);
       expect(edges.head, lessThan(clip.seconds),
@@ -137,7 +138,11 @@ void main() {
       expect(edges.head, lessThanOrEqualTo(headLimit),
           reason: '${t.id}: ${(edges.head * 1000).round()} ms of silence at '
               'the head — cut in the wrong place or not trimmed');
-      expect(edges.tail, lessThanOrEqualTo(0.06),
+      // A cut head that ends on a colon („Other moves to find:") carries half
+      // of the pause the voice makes after it — measured 80–159 ms on
+      // 3.10.2026 — and that pause belongs to the clip, as a head's does.
+      final tailLimit = t.kind == SpeechTokenKind.phrase ? 0.06 : 0.2;
+      expect(edges.tail, lessThanOrEqualTo(tailLimit),
           reason: '${t.id}: ${(edges.tail * 1000).round()} ms of silence at '
               'the tail');
     }

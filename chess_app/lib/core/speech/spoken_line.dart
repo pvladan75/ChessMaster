@@ -15,17 +15,21 @@ class SpokenLine {
 
   /// The tokens' texts joined with spaces. A phrase carries its own
   /// punctuation and is never given a second one; a run of cut tokens ends
-  /// with a full stop, also before a following phrase. „Check" is the one cut
-  /// token that is a sentence of its own in its carrier („Black plays bishop
-  /// e5. Check."), so it closes the run before it and is closed itself.
+  /// with a full stop, also before a following phrase, and a cut token whose
+  /// text already ends in one („lets the win go. The position is now lost.")
+  /// closes the run without a second. „Check" is the one cut token that is a
+  /// sentence of its own in its carrier („Black plays bishop e5. Check."), so
+  /// it closes the run before it and is closed itself. Every sentence starts
+  /// with a capital, because a run may open with a move („king d5 loses the
+  /// draw") and the clip for „king" is the same clip either way.
   late final String text = _text();
 
   String _text() {
     final sentences = <String>[];
     final run = <String>[];
-    void closeRun() {
+    void closeRun({bool stop = true}) {
       if (run.isEmpty) return;
-      sentences.add('${run.join(' ')}.');
+      sentences.add(stop ? '${run.join(' ')}.' : run.join(' '));
       run.clear();
     }
 
@@ -38,10 +42,13 @@ class SpokenLine {
         sentences.add('${token.text}.');
       } else {
         run.add(token.text);
+        if (token.text.endsWith('.')) closeRun(stop: false);
       }
     }
     closeRun();
-    return sentences.join(' ');
+    return sentences
+        .map((s) => '${s[0].toUpperCase()}${s.substring(1)}')
+        .join(' ');
   }
 
   @override

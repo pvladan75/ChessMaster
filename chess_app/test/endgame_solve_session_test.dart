@@ -164,18 +164,16 @@ void main() {
       expect(session.mistakes, 2);
     });
 
-    test('a retried or hinted solve does not count as solved unaided', () {
+    // Was „a retried or hinted solve": the Hint was deleted on the owner's word of
+    // 3.10.2026 (docs/PLAN-GOVOR-IZ-KLIPOVA.md, phase 4b), so only the retry is
+    // left to be unaided or not.
+    test('a retried solve does not count as solved unaided', () {
       final retried = EndgameSolveSession(twoWaysToDraw());
       retried.submit('a1a2');
       retried.retryAfterMistake();
       retried.submit('a1f1');
       expect(retried.status, EndgameSolveStatus.solved);
       expect(retried.countsAsSolved, isFalse);
-
-      final hinted = EndgameSolveSession(twoWaysToDraw());
-      expect(hinted.revealHint(), 'f1'); // the square, not the move
-      hinted.submit('a1f1');
-      expect(hinted.countsAsSolved, isFalse);
     });
 
     test('a promotion is recognised however the suffix is written', () {
@@ -209,15 +207,6 @@ void main() {
       expect(fresh.alreadyFound, isFalse);
       expect(second.isComplete, isTrue);
       expect(second.foundMove, 'a1e1');
-    });
-
-    test('the hint points at a move not yet found', () {
-      final first = EndgameSolveSession(twoWaysToDraw());
-      expect(first.revealHint(), 'f1');
-
-      final second =
-          EndgameSolveSession(twoWaysToDraw(), alreadyFound: {'a1f1'});
-      expect(second.revealHint(), 'e1');
     });
 
     test('nothing is accepted once the attempt is over', () {

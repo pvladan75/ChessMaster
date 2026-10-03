@@ -195,10 +195,6 @@ class EndgameVerdict {
 ///
 /// Board logic stays outside, as in [TacticsSolveSession]: the caller owns the
 /// position and only reports what happened.
-/// How many other moves also hold the result.
-String movesLeftText(int left) =>
-    left == 1 ? 'There is 1 other move.' : 'There are $left other moves.';
-
 class EndgameSolveSession {
   /// [alreadyFound] holds moves the user has already produced for this position
   /// in an earlier attempt. They are still correct - they are simply not what
@@ -211,14 +207,12 @@ class EndgameSolveSession {
   final Set<String> _alreadyFound;
 
   EndgameSolveStatus _status = EndgameSolveStatus.solving;
-  bool _usedHint = false;
   int _mistakes = 0;
   String? _firstWrongSan;
   String? _foundMove;
 
   EndgameSolveStatus get status => _status;
   bool get isComplete => _status != EndgameSolveStatus.solving;
-  bool get usedHint => _usedHint;
   int get mistakes => _mistakes;
 
   /// The first move the user tried that does not hold the result. Kept for the
@@ -250,22 +244,6 @@ class EndgameSolveSession {
 
   /// The move that solved this attempt, once it has.
   String? get foundMove => _foundMove;
-
-  /// One square, not the move: enough to unstick a child without answering for
-  /// them. Marks the attempt as hinted so scoring can tell.
-  ///
-  /// Deliberately the destination and not the origin, unlike tactics. In an
-  /// endgame the piece to move is usually obvious — there are three of them —
-  /// and the question is *where*.
-  String? revealHint() {
-    // Points at one still to be found, not at one already in hand.
-    final target = remainingMoves.isNotEmpty
-        ? remainingMoves.first
-        : (puzzle.winningMoves.isNotEmpty ? puzzle.winningMoves.first : null);
-    if (target == null) return null;
-    _usedHint = true;
-    return target.substring(2, 4);
-  }
 
   EndgameVerdict submit(String uci, {String? san}) {
     if (isComplete) return const EndgameVerdict(correct: false);
@@ -305,8 +283,8 @@ class EndgameSolveSession {
     }
   }
 
-  /// Solved unaided. A hinted or retried solve teaches something but is not
+  /// Solved unaided. A retried solve teaches something but is not
   /// evidence the child can find the move alone, so it must not raise a rating.
   bool get countsAsSolved =>
-      _status == EndgameSolveStatus.solved && !_usedHint && _mistakes == 0;
+      _status == EndgameSolveStatus.solved && _mistakes == 0;
 }

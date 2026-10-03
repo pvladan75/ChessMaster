@@ -148,7 +148,8 @@ void main() {
         .toSet();
     final group =
         kShortcutGroups.singleWhere((g) => g.title == 'Endgame trainer');
-    expect(group.shortcuts, hasLength(5));
+    // Four since 3.10.2026: the Hint, and H with it, went on the owner's word.
+    expect(group.shortcuts, hasLength(4));
     for (final shortcut in group.shortcuts) {
       final named = shortcut.what.split(RegExp(r'[,.]')).first.trim();
       expect(labels, contains(named),

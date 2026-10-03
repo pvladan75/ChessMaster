@@ -179,6 +179,17 @@ void main() {
       );
     });
 
+    test(
+        'a cut token that ends a sentence closes the run with its own stop, '
+        'and a run that opens with a move gets its capital', () {
+      final line = SpokenLine([
+        SpeechVocabulary.piece('king'),
+        SpeechVocabulary.square('d5'),
+        SpeechVocabulary.losesDrawDrillStops,
+      ]);
+      expect(line.text, 'King d5 loses the draw. The drill stops here.');
+    });
+
     test('every legal shape of move names only tokens with a clip', () {
       for (final side in ['white', 'black']) {
         for (final piece in kPieces) {

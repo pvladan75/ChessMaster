@@ -108,10 +108,13 @@ void main() {
     // A release build paints no overflow stripes, so this is the only cheap
     // place to catch a row that outgrows the phone.
     expect(tester.takeException(), isNull);
-    expect(find.textContaining('Black played Rd3 here'), findsOneWidget);
-    expect(
-        find.textContaining('Play the move that holds the draw on the board'),
+    // Said and drawn as the task table of docs/PLAN-GOVOR-IZ-KLIPOVA.md has it
+    // (phase 4b): the move as a move, and one short instruction under it. The
+    // old „Black played Rd3 here and lost the draw" and its long instruction
+    // are superseded.
+    expect(find.text('Black played rook d3 here and lost the draw.'),
         findsOneWidget);
+    expect(find.text('Play the move that holds the draw.'), findsOneWidget);
     expect(find.textContaining('Seger, Ruediger (2416)'), findsOneWidget);
     expect(find.text('Mistakes: 0/2'), findsOneWidget);
   });
@@ -322,9 +325,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Back to game'), findsOneWidget);
     // And it says so, rather than leaving a board that will not answer. Being
-    // in a mode without knowing it is indistinguishable from a bug.
-    expect(
-        find.textContaining('The board cannot be played here'), findsOneWidget);
+    // in a mode without knowing it is indistinguishable from a bug. The task
+    // line is what says it now (phase 4b): the long 'The board cannot be
+    // played here' sentence has no row in the table.
+    expect(find.textContaining('Watch the refutation of'), findsOneWidget);
 
     // Straight on to the next game, without closing the punishment first.
     await tester.tap(find.text('Skip'));
