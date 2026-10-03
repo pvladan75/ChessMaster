@@ -28,41 +28,19 @@ import 'package:chess_app/widgets/speakable_info.dart';
 ///
 /// The seam that makes pumping the real thing possible: a `SpeakableInfo`
 /// inside a screen takes no injected service, it reads `SpeechService.instance`.
-/// `init` accepts an engine, so the singleton can be pointed at a fake one and
-/// the screens stay exactly as they ship.
-class _Engine implements TtsEngine {
-  final List<String> said = [];
-  int stops = 0;
-
-  @override
-  Future<List<String>> languages() async => const ['en-US'];
-
-  @override
-  Future<void> setLanguage(String language) async {}
-
-  @override
-  Future<void> setSpeechRate(double rate) async {}
-
-  @override
-  Future<void> speak(String text) async {
-    said.add(text);
-  }
-
-  @override
-  Future<void> stop() async => stops += 1;
-}
+/// `init` accepts a clip voice, so the singleton can be pointed at a fake one
+/// and the screens stay exactly as they ship.
 
 /// The clips' voice, which only remembers the lines it was asked to play.
 ///
 /// Phase 4c of `docs/PLAN-GOVOR-IZ-KLIPOVA.md` moved both repertoire screens
 /// from the device voice to the clips, so what these cases listen to is the
-/// `SpokenLine`s a screen hands over — token ids, not strings — and the device
-/// voice is kept only to say it was never asked.
+/// `SpokenLine`s a screen hands over — token ids, not strings. The device
+/// voice itself went on 3.10.2026.
 class _Clips extends ClipVoice {
-  _Clips({this.failOnSpeak = false, required this.device});
+  _Clips({this.failOnSpeak = false});
 
   final bool failOnSpeak;
-  final _Engine device;
   final List<SpokenLine> lines = [];
 
   List<String> get said =>
@@ -87,12 +65,9 @@ Future<_Clips> _speech({
   required bool enabled,
   bool failOnSpeak = false,
 }) async {
-  final device = _Engine();
-  final clips = _Clips(failOnSpeak: failOnSpeak, device: device);
+  final clips = _Clips(failOnSpeak: failOnSpeak);
   await SpeechService.instance.init(
     enabled: enabled,
-    rate: 0.5,
-    engine: device,
     clipVoice: clips,
   );
   // A sentence said once in an earlier test is not said again, so the dedup
@@ -267,7 +242,6 @@ void main() {
     expect(shown, 'What do you play with Black?');
     expect(clips.said, ['what_play_black']);
     expect(clips.lines.single.text, shown);
-    expect(clips.device.said, isEmpty);
   });
 
   testWidgets('the verdict is spoken as it is written', (tester) async {
@@ -330,7 +304,6 @@ void main() {
     // spoken too. Both sentences are wanted; only one of them is this test's.
     expect(clips.said, contains('what_play_black'));
     expect(clips.lines.map((l) => l.text), contains(_shown(tester, panel)));
-    expect(clips.device.said, isEmpty);
   });
 
   testWidgets('izgradnja reads the sentence saying what just happened',
@@ -420,7 +393,6 @@ void main() {
 
     // Off is the default, so this is the screen most readers see.
     expect(clips.said, isEmpty);
-    expect(clips.device.said, isEmpty);
     expect(find.text('What do you play with Black?'), findsOneWidget);
   });
 

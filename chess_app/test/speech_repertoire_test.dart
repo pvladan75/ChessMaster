@@ -39,22 +39,6 @@ import 'package:chess_app/widgets/speakable_info.dart';
 
 // ── fakes ────────────────────────────────────────────────────────────────
 
-/// The device voice, which only remembers what it was told.
-class _Tts implements TtsEngine {
-  final List<String> said = [];
-
-  @override
-  Future<List<String>> languages() async => const ['en-US'];
-  @override
-  Future<void> setLanguage(String language) async {}
-  @override
-  Future<void> setSpeechRate(double rate) async {}
-  @override
-  Future<void> speak(String text) async => said.add(text);
-  @override
-  Future<void> stop() async {}
-}
-
 /// A clip voice that records the lines it was asked to speak.
 class _FakeClipVoice extends ClipVoice {
   _FakeClipVoice();
@@ -79,7 +63,7 @@ class _FakeClipVoice extends ClipVoice {
 
 /// The service, counting the stops it is asked for.
 class _CountingSpeech extends SpeechService {
-  _CountingSpeech(super.engine) : super.forSubclass();
+  _CountingSpeech() : super.forSubclass();
 
   int stopCalls = 0;
 
@@ -91,22 +75,20 @@ class _CountingSpeech extends SpeechService {
 }
 
 class _Rig {
-  _Rig(this.speech, this.voice, this.tts);
+  _Rig(this.speech, this.voice);
 
   final _CountingSpeech speech;
   final _FakeClipVoice voice;
-  final _Tts tts;
 }
 
 Future<_Rig> _rig({bool enabled = true}) async {
-  final tts = _Tts();
   final voice = _FakeClipVoice();
-  final speech = _CountingSpeech(tts);
-  await speech.init(enabled: enabled, rate: 0.5, engine: tts, clipVoice: voice);
+  final speech = _CountingSpeech();
+  await speech.init(enabled: enabled, clipVoice: voice);
   final settings = AppSettingsService.instance;
   await settings.init();
   await settings.setSpeechEnabled(enabled);
-  return _Rig(speech, voice, tts);
+  return _Rig(speech, voice);
 }
 
 /// A judge with nothing behind it: the build screen must draw its question
@@ -540,7 +522,6 @@ void main() {
       expect(rig.voice.said, [_qBlack]);
       expect(rig.voice.lines.single.text, 'What do you play with Black?');
       expect(find.text('What do you play with Black?'), findsOneWidget);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 
@@ -811,7 +792,6 @@ void main() {
       expect(rig.voice.lines.single.text, 'What do you play with Black?');
       expect(find.text('What do you play with Black?'), findsOneWidget);
       expect(find.textContaining('Play the move you chose'), findsNothing);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 
@@ -1203,7 +1183,6 @@ void main() {
       await _pumpBuild(tester, rig, api);
       await _play(tester, 'b8', 'c6');
       expect(rig.voice.lines, isEmpty);
-      expect(rig.tts.said, isEmpty);
       expect(find.text('What do you play with Black?'), findsOneWidget);
       expect(
           find.text('Knight c6 is in your repertoire. '
@@ -1217,7 +1196,6 @@ void main() {
       await _pumpDrill(tester, rig, drill);
       await _play(tester, 'b8', 'c6');
       expect(rig.voice.lines, isEmpty);
-      expect(rig.tts.said, isEmpty);
       expect(find.text('Correct. White plays knight f3. Returns tomorrow.'),
           findsOneWidget);
       expect(find.text('What do you play with Black?'), findsNothing,
@@ -1291,7 +1269,6 @@ void main() {
       await tester.tap(find.text('Ask engine'));
       await tester.pumpAndSettle();
       expect(rig.voice.lines, isNotEmpty);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
 
       rig = await _rig();
@@ -1303,7 +1280,6 @@ void main() {
       await _play(tester, 'b8', 'c6');
       await _walkOn(tester);
       expect(rig.voice.lines, isNotEmpty);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 

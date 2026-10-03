@@ -52,7 +52,6 @@ dependencies:
   # Spoken feedback, so the eyes can stay on the board. Android and Windows
   # both go through the platform's own voices, which is why the app has to ask
   # what is installed rather than assume Serbian is.
-  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

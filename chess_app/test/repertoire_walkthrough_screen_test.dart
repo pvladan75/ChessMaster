@@ -358,8 +358,7 @@ void main() {
 
     expect(speakable.text, isNotEmpty);
     // Phase 4d: the voice plays the same tokens the card draws.
-    expect(speakable.line, isNotNull);
-    expect(speakable.line!.text, speakable.text);
+    expect(speakable.line.text, speakable.text);
     for (final part in speakable.text.split(' ')) {
       expect(shown.any((line) => line.contains(part)), isTrue,
           reason: 'spoken but not shown anywhere on the card: $part');

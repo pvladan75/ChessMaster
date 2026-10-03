@@ -47,14 +47,12 @@ void main() async {
   // first route is resolved.
   await SessionService.instance.init();
   await GameSessionService.instance.init();
-  // Not awaited. Asking the platform what voices it has takes a moment on a
-  // cold start, and nothing on the first screen speaks; making the app wait for
-  // an answer it does not need yet would only delay the board.
+  // Not awaited. Reading the clips out of the bundle takes a moment on a cold
+  // start, and nothing on the first screen speaks; making the app wait for
+  // them would only delay the board.
   final settings = AppSettingsService.instance;
   unawaited(SpeechService.instance.init(
     enabled: settings.speechEnabled,
-    rate: settings.speechRate,
-    preferred: settings.speechLanguage.isEmpty ? null : settings.speechLanguage,
     clipVoice: ClipVoice(),
   ));
 

@@ -24,34 +24,33 @@ import 'package:chess_app/theme/app_typography.dart';
 ///   guarded: a machine with no voice, or a plugin that throws on `stop`, must
 ///   not be able to break the panel it was decorating. Same rule as
 ///   `AppFeedback`, for the same reason.
-/// * **The button is never a no-op.** `SpeechService.speak` returns silently
-///   when speech is off, so a speaker that only called it would do nothing at
-///   all on the setting most readers start with. Pressing it with speech off
+/// * **The button is never a no-op.** `SpeechService.speakLine` returns
+///   silently when speech is off, so a speaker that only called it would do
+///   nothing at all on the setting most readers start with. Pressing it with speech off
 ///   turns speech on and then speaks — which is also the in-screen switch the
 ///   owner asked for.
 class SpeakableInfo extends StatefulWidget {
   const SpeakableInfo({
     super.key,
     required this.text,
+    required this.line,
     this.style,
     this.autoSpeak = false,
     this.child,
     this.hideButtonWhenOff = false,
     this.settings,
     this.speech,
-    this.line,
     this.compact = false,
   });
 
-  /// The sentence, both shown and spoken.
+  /// The sentence as drawn.
   final String text;
 
-  /// The same sentence as a [SpokenLine], when it is one
-  /// (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`): it is then played from the shipped
-  /// clips through `SpeechService.speakLine` instead of being handed to the
-  /// device voice as a string. [text] stays what is drawn, and the caller
-  /// passes `line.text`, so the two cannot differ.
-  final SpokenLine? line;
+  /// The same sentence as a [SpokenLine] (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`),
+  /// played from the shipped clips through `SpeechService.speakLine`. [text]
+  /// is what is drawn, and the caller passes `line.text` (or its own drawing
+  /// of it, the commas of a list), so the two cannot differ in words.
+  final SpokenLine line;
 
   /// A speaker with no padding, for a header only as tall as its text.
   final bool compact;
@@ -161,12 +160,7 @@ class _SpeakableInfoState extends State<SpeakableInfo> {
   /// reader's decision and it is made by pressing the speaker.
   Future<void> _say({bool force = false}) async {
     try {
-      final line = widget.line;
-      if (line != null) {
-        await _speech.speakLine(line, force: force);
-      } else {
-        await _speech.speak(widget.text, force: force);
-      }
+      await _speech.speakLine(widget.line, force: force);
     } catch (_) {
       // A machine without a voice is a fact about the machine. The sentence is
       // on screen either way, which is the whole reason this is decoration.

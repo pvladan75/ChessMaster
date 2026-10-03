@@ -46,30 +46,6 @@ final _session = UserSession(
 
 // ── fakes ────────────────────────────────────────────────────────────────
 
-/// The device voice, which only remembers what it was told.
-class _Tts implements TtsEngine {
-  _Tts({this.hold});
-
-  /// When set, a `String` utterance does not finish until this completes.
-  final Completer<void>? hold;
-  final List<String> said = [];
-
-  @override
-  Future<List<String>> languages() async => const ['en-US'];
-  @override
-  Future<void> setLanguage(String language) async {}
-  @override
-  Future<void> setSpeechRate(double rate) async {}
-  @override
-  Future<void> speak(String text) async {
-    said.add(text);
-    await hold?.future;
-  }
-
-  @override
-  Future<void> stop() async {}
-}
-
 /// A clip voice that records the lines it was asked to speak.
 class _FakeClipVoice extends ClipVoice {
   _FakeClipVoice();
@@ -104,7 +80,7 @@ class _FakeClipVoice extends ClipVoice {
 
 /// The service, counting the stops it is asked for.
 class _CountingSpeech extends SpeechService {
-  _CountingSpeech(super.engine) : super.forSubclass();
+  _CountingSpeech() : super.forSubclass();
 
   int stopCalls = 0;
 
@@ -159,24 +135,22 @@ class _Bundle extends AssetBundle {
 }
 
 class _Rig {
-  _Rig(this.speech, this.voice, this.tts);
+  _Rig(this.speech, this.voice);
 
   final _CountingSpeech speech;
   final _FakeClipVoice voice;
-  final _Tts tts;
 }
 
 /// A service on a fake device voice and a fake clip voice, switched [enabled],
 /// with the setting the speaker button reads set to match.
 Future<_Rig> _rig({bool enabled = true}) async {
-  final tts = _Tts();
   final voice = _FakeClipVoice();
-  final speech = _CountingSpeech(tts);
-  await speech.init(enabled: enabled, rate: 0.5, engine: tts, clipVoice: voice);
+  final speech = _CountingSpeech();
+  await speech.init(enabled: enabled, clipVoice: voice);
   final settings = AppSettingsService.instance;
   await settings.init();
   await settings.setSpeechEnabled(enabled);
-  return _Rig(speech, voice, tts);
+  return _Rig(speech, voice);
 }
 
 // ── the server and the puzzles ───────────────────────────────────────────
@@ -668,57 +642,13 @@ void main() {
 
   // ── 6. one queue ───────────────────────────────────────────────────────
 
-  group('one queue for the two voices (D9)', () {
-    test('a String asked while a line plays waits for it', () async {
-      final tts = _Tts();
-      final voice = _FakeClipVoice()..hold = Completer<void>();
-      final speech = SpeechService.forSubclass(tts);
-      await speech.init(
-          enabled: true, rate: 0.5, engine: tts, clipVoice: voice);
-
-      unawaited(speech.speakLine(SpokenLine([SpeechVocabulary.checkmate])));
-      await Future<void>.delayed(Duration.zero);
-      expect(speech.speaking, isTrue);
-      unawaited(speech.speak('The device voice has something to say'));
-      await Future<void>.delayed(Duration.zero);
-      expect(tts.said, isEmpty, reason: 'it waits for the line');
-
-      voice.hold!.complete();
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-      expect(tts.said, ['The device voice has something to say']);
-      await speech.stop();
-    });
-
-    test('a line asked while a String is read waits for it', () async {
-      final hold = Completer<void>();
-      final tts = _Tts(hold: hold);
-      final voice = _FakeClipVoice();
-      final speech = SpeechService.forSubclass(tts);
-      await speech.init(
-          enabled: true, rate: 0.5, engine: tts, clipVoice: voice);
-
-      unawaited(speech.speak('The device voice is first'));
-      await Future<void>.delayed(Duration.zero);
-      expect(speech.speaking, isTrue);
-      unawaited(speech.speakLine(SpokenLine([SpeechVocabulary.checkmate])));
-      await Future<void>.delayed(Duration.zero);
-      expect(voice.lines, isEmpty, reason: 'it waits for the sentence');
-
-      hold.complete();
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-      expect(voice.said, ['checkmate']);
-      await speech.stop();
-    });
-
+  group('one queue (D9) — the device voice went on 3.10.2026, the queue stayed',
+      () {
     test('the same line twice in a row is spoken once, unless forced',
         () async {
-      final tts = _Tts();
       final voice = _FakeClipVoice();
-      final speech = SpeechService.forSubclass(tts);
-      await speech.init(
-          enabled: true, rate: 0.5, engine: tts, clipVoice: voice);
+      final speech = SpeechService.forSubclass();
+      await speech.init(enabled: true, clipVoice: voice);
       final line = SpokenLine([SpeechVocabulary.puzzleSolved]);
 
       await speech.speakLine(line);
@@ -732,11 +662,9 @@ void main() {
     });
 
     test('stop cuts a line off and covers both voices', () async {
-      final tts = _Tts();
       final voice = _FakeClipVoice();
-      final speech = SpeechService.forSubclass(tts);
-      await speech.init(
-          enabled: true, rate: 0.5, engine: tts, clipVoice: voice);
+      final speech = SpeechService.forSubclass();
+      await speech.init(enabled: true, clipVoice: voice);
       await speech.stop();
       expect(voice.stops, 1);
     });
@@ -768,14 +696,10 @@ void main() {
         'its square and nothing elsewhere', (tester) async {
       final player = _RecordingPlayer();
       final voice = ClipVoice(player: player);
-      final speech = SpeechService.forSubclass(_Tts());
+      final speech = SpeechService.forSubclass();
       await tester.runAsync(() async {
         await speech.init(
-            enabled: true,
-            rate: 0.5,
-            engine: _Tts(),
-            clipVoice: voice,
-            clipBundle: rootBundle);
+            enabled: true, clipVoice: voice, clipBundle: rootBundle);
         await AppSettingsService.instance.init();
         await AppSettingsService.instance.setSpeechEnabled(true);
       });
@@ -842,13 +766,10 @@ void main() {
 
   group('a clip missing from the bundle (D10)', () {
     test('sets failed, and the reason names the token', () async {
-      final tts = _Tts();
       final voice = _FakeClipVoiceLoading();
-      final speech = SpeechService.forSubclass(tts);
+      final speech = SpeechService.forSubclass();
       await speech.init(
           enabled: true,
-          rate: 0.5,
-          engine: tts,
           clipVoice: voice,
           clipBundle: _Bundle(missing: 'sq_e5'));
       expect(speech.state, SpeechState.failed);
@@ -859,11 +780,9 @@ void main() {
     });
 
     test('a bundle with every clip is ready', () async {
-      final speech = SpeechService.forSubclass(_Tts());
+      final speech = SpeechService.forSubclass();
       await speech.init(
           enabled: true,
-          rate: 0.5,
-          engine: _Tts(),
           clipVoice: ClipVoice(player: _RecordingPlayer()),
           clipBundle: _Bundle());
       expect(speech.state, SpeechState.ready);
@@ -871,11 +790,9 @@ void main() {
     });
 
     test('a clip that is not a WAVE file names its token too', () async {
-      final speech = SpeechService.forSubclass(_Tts());
+      final speech = SpeechService.forSubclass();
       await speech.init(
           enabled: true,
-          rate: 0.5,
-          engine: _Tts(),
           clipVoice: ClipVoice(player: _RecordingPlayer()),
           clipBundle: _JunkBundle('n_7'));
       expect(speech.state, SpeechState.failed);
@@ -886,8 +803,6 @@ void main() {
       final speech = SpeechService.instance;
       await speech.init(
           enabled: true,
-          rate: 0.5,
-          engine: _Tts(),
           clipVoice: ClipVoice(player: _RecordingPlayer()),
           clipBundle: _Bundle(missing: 'file_c'));
       expect(speech.state, SpeechState.failed);
@@ -908,8 +823,6 @@ void main() {
       // Leave the singleton as the other files expect to find it.
       await speech.init(
           enabled: false,
-          rate: 0.5,
-          engine: _Tts(),
           clipVoice: ClipVoice(player: _RecordingPlayer()),
           clipBundle: _Bundle());
       await tester.pumpWidget(const SizedBox());

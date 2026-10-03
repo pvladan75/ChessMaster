@@ -1915,7 +1915,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         const SizedBox(height: AppSpacing.sm),
         SpeakableInfo(
           text: _note!.text,
-          line: _note,
+          line: _note!,
           speech: widget.speech,
           autoSpeak: true,
           child: Text(_note!.text,
@@ -2379,7 +2379,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
               const SizedBox(height: 10),
               SpeakableInfo(
                 text: _note!.text,
-                line: _note,
+                line: _note!,
                 speech: widget.speech,
                 child: Text(
                   _note!.text,

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chess_app/core/build_info.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/core/user_manual.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/routing/app_routes.dart';
@@ -55,15 +57,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // Whoever opens this screen is usually here because of the voice, and may
-    // have installed one since the app started. Asking again costs a moment
-    // and saves a restart.
-    SpeechService.instance.refresh();
-  }
-
   /// Turning speech on has to reach two places: what is remembered, and what
   /// is running. Writing only the setting left the voice silent until a
   /// restart, which reads as the switch not working.
@@ -72,25 +65,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await SpeechService.instance.setEnabled(enabled);
   }
 
-  Future<void> _setSpeechLanguage(String language) async {
-    await _settings.setSpeechLanguage(language);
-    await SpeechService.instance.setLanguage(language);
-  }
-
-  Future<void> _setSpeechRate(double rate) async {
-    await _settings.setSpeechRate(rate);
-    await SpeechService.instance.setRate(rate);
-  }
-
-  /// Everything that can be read wrongly, in one sentence.
-  ///
-  /// Not a greeting: the parts of a chess sentence that a voice gets wrong are
-  /// the file names, the ordinals and the notation, so the test button says all
-  /// three. If the files come out sounding English, the voice chosen is an
-  /// English one - which the list says, and which this makes audible.
-  static const _speechSample =
-      'Files are read as follows: a, b, c, d, e, f, g, h. '
-      'Mistake was made on move 8, after Rd8.';
+  /// What the test button says: a move with a square in it and a verdict,
+  /// the two shapes the clips are stitched from.
+  static final _speechSample = SpokenLine([
+    SpeechVocabulary.whitePlays,
+    SpeechVocabulary.piece('rook'),
+    SpeechVocabulary.square('a8'),
+    SpeechVocabulary.checkmate,
+  ]);
 
   /// The FEN the previews are drawn from.
   ///
@@ -445,7 +427,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return AnimatedBuilder(
       animation: speech,
       builder: (context, _) {
-        final languages = speech.availableLanguages;
         return Card(
           shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
           child: Padding(
@@ -459,15 +440,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: TextStyle(fontWeight: FontWeight.w500)),
                   subtitle: Text(
                     'Messages from the info panel are read aloud so your eyes '
-                    'can stay on the board.',
+                    'can stay on the board. The voice ships with the app.',
                     style: AppText.caption
                         .copyWith(color: context.colors.textMuted),
                   ),
                   value: _settings.speechEnabled,
                   onChanged: _setSpeechEnabled,
                 ),
-                if (speech.state == SpeechState.noVoice ||
-                    speech.state == SpeechState.failed) ...[
+                // A broken clip bundle is a broken build, and it is said with
+                // the token's name (D10 of PLAN-GOVOR-IZ-KLIPOVA.md) rather
+                // than found one sentence at a time.
+                if (speech.state == SpeechState.failed) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,93 +460,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          speech.state == SpeechState.failed
-                              ? (speech.failureReason ??
-                                  'This device does not have speech synthesis, so reading '
-                                      'is not available.')
-                              : 'No installed voice found for this language. On Windows: '
-                                  'Settings → Time & Language → Speech → Add voices. '
-                                  'On Android: Settings → Accessibility → Text-to-speech.',
+                          speech.failureReason ??
+                              'The speech clips could not be loaded, so '
+                                  'reading is not available.',
                           style: AppText.caption
                               .copyWith(color: context.colors.textMuted),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: speech.refresh,
-                      icon: const Icon(Icons.refresh, size: 16),
-                      label: const Text('Check for voices again'),
-                    ),
-                  ),
                 ],
-                if (languages.isNotEmpty) ...[
-                  const Divider(height: 24),
-                  const Text('Speech language:',
-                      style: TextStyle(fontWeight: FontWeight.w500)),
-                  const SizedBox(height: AppSpacing.sm),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    // Only a value the list actually holds. A DropdownButton
-                    // whose value is missing from its items does not fall back
-                    // to the hint - it asserts, and takes the screen with it.
-                    value: languages.contains(speech.language)
-                        ? speech.language
-                        : null,
-                    hint: const Text('Choose a voice'),
-                    items: [
-                      for (final language in languages)
-                        DropdownMenuItem(
-                          value: language,
-                          child: Text(SpeechService.fitsAppLanguage(language)
-                              ? '$language · supported'
-                              : language),
-                        ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) _setSpeechLanguage(value);
-                    },
-                  ),
-                  Text(
-                    'This list shows the voices installed on your device. '
-                    'Voices will pronounce text using their own phonetics.',
-                    style: AppText.caption
-                        .copyWith(color: context.colors.textMuted),
-                  ),
-                ],
-                const Divider(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Text('Speech rate:',
-                          style: TextStyle(fontWeight: FontWeight.w500)),
-                    ),
-                    Text(
-                      _settings.speechRate.toStringAsFixed(2),
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: context.colors.accent),
-                    ),
-                  ],
-                ),
-                AppSlider(
-                  value: _settings.speechRate.clamp(0.2, 1.0),
-                  min: 0.2,
-                  max: 1.0,
-                  divisions: 8,
-                  label: _settings.speechRate.toStringAsFixed(2),
-                  activeColor: context.colors.accent,
-                  onChanged: _setSpeechRate,
-                ),
+                const SizedBox(height: AppSpacing.sm),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: ElevatedButton.icon(
                     onPressed: _settings.speechEnabled
-                        ? () => speech.speak(_speechSample, force: true)
+                        ? () => speech.speakLine(_speechSample, force: true)
                         : null,
                     icon: const Icon(Icons.volume_up, size: 16),
                     label: const Text('Test'),

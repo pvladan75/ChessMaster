@@ -79,8 +79,6 @@ class AppSettingsService extends ChangeNotifier {
   int _dailyTarget = 10;
 
   bool _speechEnabled = false;
-  double _speechRate = 0.5;
-  String _speechLanguage = '';
 
   /// The language a position study's comments are written in, as a
   /// `TutorialLanguage` code; empty is English. Chosen in „Study this
@@ -202,8 +200,6 @@ class AppSettingsService extends ChangeNotifier {
   bool get showEngineArrows => _showEngineArrows;
 
   bool get speechEnabled => _speechEnabled;
-  double get speechRate => _speechRate;
-  String get speechLanguage => _speechLanguage;
   String get studyLanguage => _studyLanguage;
 
   /// When true, moves no longer get an auto-generated tactical comment —
@@ -261,8 +257,9 @@ class AppSettingsService extends ChangeNotifier {
     _showStatisticsArrows = prefs.getBool('app_arrow_statistics') ?? true;
     _showEngineArrows = prefs.getBool('app_arrow_engine') ?? true;
     _speechEnabled = prefs.getBool('app_speech_enabled') ?? false;
-    _speechRate = (prefs.getDouble('app_speech_rate') ?? 0.5).clamp(0.2, 1.0);
-    _speechLanguage = prefs.getString('app_speech_language') ?? '';
+    // `app_speech_rate` and `app_speech_language` were the device voice's,
+    // deleted 3.10.2026 with it; a stored value is left where it is and read
+    // by nobody.
     _studyLanguage = prefs.getString('app_study_language') ?? '';
     notifyListeners();
   }
@@ -428,20 +425,6 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('app_speech_enabled', _speechEnabled);
-  }
-
-  Future<void> setSpeechRate(double rate) async {
-    _speechRate = rate.clamp(0.2, 1.0);
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('app_speech_rate', _speechRate);
-  }
-
-  Future<void> setSpeechLanguage(String language) async {
-    _speechLanguage = language;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_speech_language', _speechLanguage);
   }
 
   Future<void> setStudyLanguage(String language) async {

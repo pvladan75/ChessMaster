@@ -37,22 +37,6 @@ UserSession _session() => UserSession(
 
 // ── fakes ────────────────────────────────────────────────────────────────
 
-/// The device voice, which only remembers what it was told.
-class _Tts implements TtsEngine {
-  final List<String> said = [];
-
-  @override
-  Future<List<String>> languages() async => const ['en-US'];
-  @override
-  Future<void> setLanguage(String language) async {}
-  @override
-  Future<void> setSpeechRate(double rate) async {}
-  @override
-  Future<void> speak(String text) async => said.add(text);
-  @override
-  Future<void> stop() async {}
-}
-
 /// A clip voice that records the lines it was asked to speak.
 class _FakeClipVoice extends ClipVoice {
   _FakeClipVoice();
@@ -82,7 +66,7 @@ class _FakeClipVoice extends ClipVoice {
 
 /// The service, counting the stops it is asked for.
 class _CountingSpeech extends SpeechService {
-  _CountingSpeech(super.engine) : super.forSubclass();
+  _CountingSpeech() : super.forSubclass();
 
   int stopCalls = 0;
   int forgetCalls = 0;
@@ -101,22 +85,20 @@ class _CountingSpeech extends SpeechService {
 }
 
 class _Rig {
-  _Rig(this.speech, this.voice, this.tts);
+  _Rig(this.speech, this.voice);
 
   final _CountingSpeech speech;
   final _FakeClipVoice voice;
-  final _Tts tts;
 }
 
 Future<_Rig> _rig({bool enabled = true}) async {
-  final tts = _Tts();
   final voice = _FakeClipVoice();
-  final speech = _CountingSpeech(tts);
-  await speech.init(enabled: enabled, rate: 0.5, engine: tts, clipVoice: voice);
+  final speech = _CountingSpeech();
+  await speech.init(enabled: enabled, clipVoice: voice);
   final settings = AppSettingsService.instance;
   await settings.init();
   await settings.setSpeechEnabled(enabled);
-  return _Rig(speech, voice, tts);
+  return _Rig(speech, voice);
 }
 
 /// Serves one position, answers the drill from a queue, and reads the tables
@@ -345,7 +327,6 @@ void main() {
           findsOneWidget);
       // No dash in anything drawn: the old „to move — keep the win".
       expect(find.textContaining('—'), findsNothing);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 
@@ -873,7 +854,6 @@ void main() {
           findsOneWidget);
       expect(find.text('Play the move that holds the draw.'), findsOneWidget);
       expect(find.textContaining('—'), findsNothing);
-      expect(rig.tts.said, isEmpty);
       await _leaveWalk(tester);
     });
 
@@ -1109,7 +1089,6 @@ void main() {
       await _play(tester, 'a1', 'e1');
       await _tap(tester, 'Next');
       expect(rig.voice.lines, isNotEmpty);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 
@@ -1120,7 +1099,6 @@ void main() {
       await _play(tester, 'f3', 'b3');
       await tester.pump(const Duration(milliseconds: 900));
       expect(rig.voice.lines, isNotEmpty);
-      expect(rig.tts.said, isEmpty);
       await _leaveWalk(tester);
     });
 

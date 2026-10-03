@@ -34,22 +34,6 @@ import 'package:chess_app/widgets/speakable_info.dart';
 
 // ── fakes ────────────────────────────────────────────────────────────────
 
-/// The device voice, which only remembers what it was told.
-class _Tts implements TtsEngine {
-  final List<String> said = [];
-
-  @override
-  Future<List<String>> languages() async => const ['en-US'];
-  @override
-  Future<void> setLanguage(String language) async {}
-  @override
-  Future<void> setSpeechRate(double rate) async {}
-  @override
-  Future<void> speak(String text) async => said.add(text);
-  @override
-  Future<void> stop() async {}
-}
-
 /// A clip voice that records the lines it was asked to speak.
 class _FakeClipVoice extends ClipVoice {
   _FakeClipVoice();
@@ -74,7 +58,7 @@ class _FakeClipVoice extends ClipVoice {
 
 /// The service, counting the stops it is asked for.
 class _CountingSpeech extends SpeechService {
-  _CountingSpeech(super.engine) : super.forSubclass();
+  _CountingSpeech() : super.forSubclass();
 
   int stopCalls = 0;
 
@@ -86,22 +70,20 @@ class _CountingSpeech extends SpeechService {
 }
 
 class _Rig {
-  _Rig(this.speech, this.voice, this.tts);
+  _Rig(this.speech, this.voice);
 
   final _CountingSpeech speech;
   final _FakeClipVoice voice;
-  final _Tts tts;
 }
 
 Future<_Rig> _rig({bool enabled = true}) async {
-  final tts = _Tts();
   final voice = _FakeClipVoice();
-  final speech = _CountingSpeech(tts);
-  await speech.init(enabled: enabled, rate: 0.5, engine: tts, clipVoice: voice);
+  final speech = _CountingSpeech();
+  await speech.init(enabled: enabled, clipVoice: voice);
   final settings = AppSettingsService.instance;
   await settings.init();
   await settings.setSpeechEnabled(enabled);
-  return _Rig(speech, voice, tts);
+  return _Rig(speech, voice);
 }
 
 /// The walkthrough's server: a tree, and the notes the student has written.
@@ -445,7 +427,6 @@ void main() {
           findsOneWidget);
       expect(find.text('Watch f7.'), findsOneWidget);
       expect(rig.voice.lines.single.text, isNot(contains('f7')));
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 
@@ -552,7 +533,6 @@ void main() {
         await _next(tester);
       }
       expect(rig.voice.lines, isNotEmpty);
-      expect(rig.tts.said, isEmpty);
       await _leave(tester);
     });
 

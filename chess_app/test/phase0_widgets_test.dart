@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:chess_app/core/speech/clip_voice.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/widgets/action_banner.dart';
@@ -14,41 +17,39 @@ import 'package:chess_app/widgets/speakable_info.dart';
 /// below are the ones a batch would quietly drop: a control that does nothing
 /// when speech is off, a bar that carries its meaning in colour alone, an
 /// engine failure taking down the panel it was decorating.
-class _Engine implements TtsEngine {
-  _Engine({this.failOnSpeak = false});
+/// The clips' voice, which only remembers what it was asked to play. The
+/// device voice this file once faked went on 3.10.2026.
+class _Voice extends ClipVoice {
+  _Voice({this.failOnSpeak = false});
 
   final bool failOnSpeak;
   final List<String> said = [];
   int stops = 0;
 
   @override
-  Future<List<String>> languages() async => const ['en-US'];
+  Future<void> load(AssetBundle bundle) async {}
 
   @override
-  Future<void> setLanguage(String language) async {}
-
-  @override
-  Future<void> setSpeechRate(double rate) async {}
-
-  @override
-  Future<void> speak(String text) async {
+  Future<void> speak(SpokenLine line) async {
     if (failOnSpeak) throw StateError('nema glasa');
-    said.add(text);
+    said.add(line.tokens.map((t) => t.id).join(' '));
   }
 
   @override
   Future<void> stop() async => stops += 1;
 }
 
-Future<(SpeechService, _Engine)> _speech({
+Future<(SpeechService, _Voice)> _speech({
   required bool enabled,
   bool failOnSpeak = false,
 }) async {
-  final engine = _Engine(failOnSpeak: failOnSpeak);
-  final service = SpeechService.forTesting(engine);
-  await service.init(enabled: enabled, rate: 0.5, engine: engine);
-  return (service, engine);
+  final voice = _Voice(failOnSpeak: failOnSpeak);
+  final service = SpeechService.forTesting();
+  await service.init(enabled: enabled, clipVoice: voice);
+  return (service, voice);
 }
+
+final _correct = SpokenLine([SpeechVocabulary.correct]);
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -133,12 +134,13 @@ void main() {
       final settings = AppSettingsService.instance;
       await settings.init();
       await settings.setSpeechEnabled(false);
-      final (service, engine) = await _speech(enabled: false);
+      final (service, voice) = await _speech(enabled: false);
 
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: SpeakableInfo(
             text: 'Odigrajte potez koji ste izabrali.',
+            line: _correct,
             settings: settings,
             speech: service,
           ),
@@ -149,10 +151,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(settings.speechEnabled, isTrue);
-      expect(engine.said, contains('Odigrajte potez koji ste izabrali.'));
+      expect(voice.said, contains('correct'));
     });
 
-    testWidgets('an engine that throws does not take the panel with it',
+    testWidgets('a voice that throws does not take the panel with it',
         (tester) async {
       final settings = AppSettingsService.instance;
       await settings.init();
@@ -163,6 +165,7 @@ void main() {
         home: Scaffold(
           body: SpeakableInfo(
             text: 'Nešto što treba reći',
+            line: _correct,
             autoSpeak: true,
             settings: settings,
             speech: service,
@@ -182,12 +185,13 @@ void main() {
       final settings = AppSettingsService.instance;
       await settings.init();
       await settings.setSpeechEnabled(true);
-      final (service, engine) = await _speech(enabled: true);
+      final (service, voice) = await _speech(enabled: true);
 
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: SpeakableInfo(
             text: 'Tiho',
+            line: _correct,
             settings: settings,
             speech: service,
           ),
@@ -195,7 +199,7 @@ void main() {
       ));
       await tester.pump();
 
-      expect(engine.said, isEmpty);
+      expect(voice.said, isEmpty);
     });
   });
 
@@ -204,11 +208,11 @@ void main() {
       final settings = AppSettingsService.instance;
       await settings.init();
       await settings.setSpeechEnabled(true);
-      final (service, engine) = await _speech(enabled: true);
+      final (service, voice) = await _speech(enabled: true);
       // Something has to be being said for stopping to mean anything: the
       // service deliberately never calls `stop` on an engine that has not
       // spoken, because on Windows that is the one call that must not be made.
-      await service.speak('duga rečenica koja se upravo izgovara');
+      await service.speakLine(_correct);
 
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
@@ -224,7 +228,7 @@ void main() {
       expect(settings.speechEnabled, isFalse);
       // And it goes quiet now, rather than finishing the sentence somebody has
       // just asked it to stop saying.
-      expect(engine.stops, greaterThan(0));
+      expect(voice.stops, greaterThan(0));
     });
   });
 }
