@@ -452,6 +452,9 @@ void main() {
         // the supposition 600 ms later — and from here the voice is held.
         await _move(tester, 'a3', 'a4');
         await tester.pump(const Duration(milliseconds: 100));
+        // „Correct." alone: the line is over and the board goes back, so
+        // „Keep going." would be wrong here (the owner, 3.10.2026, [265.7]).
+        expect(rig.voice.said.last, 'correct');
         final hold = Completer<void>();
         rig.voice.hold = hold;
         await tester.pump(const Duration(milliseconds: 700));

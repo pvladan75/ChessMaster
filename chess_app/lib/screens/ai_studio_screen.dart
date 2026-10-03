@@ -1988,7 +1988,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
             });
 
             _showSnackBar('Great! Now solve the opponent\'s other defense.');
-            _sayToken(SpeechVocabulary.correctKeepGoing);
+            // „Correct." and not „Keep going.": the line is over and the board
+            // is about to go back to the fork (the owner's live pass of
+            // 3.10.2026, [265.7]).
+            _sayToken(SpeechVocabulary.correct);
 
             // Reset board to the EXACT branching FEN (post-user-move position),
             // say which other defence is coming, and only then play it: the
