@@ -62,7 +62,7 @@ void main() {
   final tokens = SpeechVocabulary.tokens;
 
   test('the vocabulary is what it was designed to be', () {
-    expect(tokens.length, 434);
+    expect(tokens.length, 470);
     expect(tokens.map((t) => t.id).toSet().length, tokens.length,
         reason: 'ids are unique');
     for (final f in kFiles.split('')) {
@@ -86,7 +86,8 @@ void main() {
             reason: '${t.id} asks for words outside its carrier');
       } else {
         expect(t.carrier, t.text);
-        expect(t.text, endsWith('.'), reason: '${t.id} is a sentence');
+        expect(t.text, matches(RegExp(r'[.?]$')),
+            reason: '${t.id} is a sentence');
       }
     }
   });
@@ -140,8 +141,10 @@ void main() {
               'the head — cut in the wrong place or not trimmed');
       // A cut head that ends on a colon („Other moves to find:") carries half
       // of the pause the voice makes after it — measured 80–159 ms on
-      // 3.10.2026 — and that pause belongs to the clip, as a head's does.
-      final tailLimit = t.kind == SpeechTokenKind.phrase ? 0.06 : 0.2;
+      // 3.10.2026 — and that pause belongs to the clip, as a head's does. A
+      // cut that ends a sentence inside its carrier („is in your repertoire.")
+      // carries half of a sentence pause: 211 ms, measured the same day.
+      final tailLimit = t.kind == SpeechTokenKind.phrase ? 0.06 : 0.25;
       expect(edges.tail, lessThanOrEqualTo(tailLimit),
           reason: '${t.id}: ${(edges.tail * 1000).round()} ms of silence at '
               'the tail');

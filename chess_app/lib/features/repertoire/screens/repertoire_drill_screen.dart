@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:chess/chess.dart' as chess;
 import 'package:flutter/material.dart';
 // `hide Color`: the board package re-exports the chess package, whose `Color`
@@ -14,6 +16,10 @@ import 'package:chess_app/move_tree.dart' show ChessArrow;
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
@@ -65,6 +71,7 @@ class RepertoireDrillScreen extends StatefulWidget {
     this.api,
     this.onBuildHere,
     this.ids,
+    this.speech,
   });
 
   final String name;
@@ -103,6 +110,11 @@ class RepertoireDrillScreen extends StatefulWidget {
   final void Function(String fen)? onBuildHere;
 
   final List<int>? ids;
+
+  /// The voice the screen's sentences are said through, the one speech
+  /// service unless a test hands over its own
+  /// (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`, phase 4c).
+  final SpeechService? speech;
 
   @override
   State<RepertoireDrillScreen> createState() => _RepertoireDrillScreenState();
@@ -244,15 +256,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// with every position scored would push the schedule out on the strength of
   /// moves nobody had to remember cold — the same rule that keeps the line
   /// walk's prefix ungraded, and the reason this is safe to press twice.
-  /// The verdict on the previous answer, carried into the next question.
-  ///
-  /// Walking on by itself takes the graded panel off the screen after a beat,
-  /// and that panel is where the schedule is reported. A drill that quietly
-  /// stops saying when a position comes back has lost the one thing it is
-  /// keeping — so the sentence follows the walk instead of being replaced by
-  /// it. Cleared as soon as there is a real verdict again.
-  String? _lastVerdict;
-
   /// True once this line has been walked on past the position that was due.
   ///
   /// Everything below the question is a position the schedule did not ask for,
@@ -272,6 +275,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   DrillAnswer? _answer;
   String? _playedSan;
 
+  /// The opponent's reply as a move said in words, read off the board it was
+  /// played on, for the verdict line.
+  MoveFacts? _replyFacts;
+
   /// What the opponent replied, once it has been played on the board.
   String? _replySan;
 
@@ -290,6 +297,19 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     super.initState();
     _loadNext();
     _loadToday();
+  }
+
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  @override
+  void dispose() {
+    // A sentence that outlives its screen is how somebody decides the whole
+    // feature is more trouble than it is worth. Guarded: a voice that throws
+    // must not be able to stop the screen's own teardown.
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
+    super.dispose();
   }
 
   /// What has been practised since this reader's day started.
@@ -475,10 +495,10 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixNoteMild = false;
       _prefixArrow = null;
       _walkedOn = false;
-      _lastVerdict = null;
       _answer = null;
       _playedSan = null;
       _replySan = null;
+      _replyFacts = null;
       _replyCovered = true;
       _revealed = null;
       _lineFen = null;
@@ -606,6 +626,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _answer = null;
       _playedSan = null;
       _replySan = null;
+      _replyFacts = null;
       _replyCovered = true;
       _revealed = null;
       _lineFen = null;
@@ -617,7 +638,6 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       _prefixNoteMild = false;
       _prefixArrow = null;
       _walkedOn = false;
-      _lastVerdict = null;
       _played.clear();
     });
 
@@ -858,7 +878,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
   /// Continues the line from a position the drill walked into, rather than
   /// jumping somewhere else. Landing in an unprepared position is the point of
   /// the uncovered replies, so it stays on the board and offers the way out.
-  void _continueAt(String fen, {String? verdict}) {
+  void _continueAt(String fen) {
     // The two moves that got here go into the line, or the breadcrumb would
     // name a position two moves behind the board.
     final mine = _playedSan;
@@ -867,13 +887,13 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       // Past the position the schedule asked for. Everything answered from
       // here on is written down only if it was due in its own right.
       _walkedOn = true;
-      _lastVerdict = verdict;
       if (mine != null) _played.add(mine);
       if (reply != null) _played.add(reply);
       _fen = fen;
       _answer = null;
       _playedSan = null;
       _replySan = null;
+      _replyFacts = null;
       _replyCovered = true;
       _revealed = null;
       _lineFen = null;
@@ -955,6 +975,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     final afterOwn = _fenAfter(fen, shown) ?? fen;
     var boardFen = afterOwn;
     String? replySan;
+    MoveFacts? replyFacts;
     if (graded.reply != null) {
       final replyBoard = chess.Chess.fromFEN(afterOwn);
       final played = replyBoard.move({
@@ -965,6 +986,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       });
       if (played != false) {
         replySan = replyBoard.getHistory().last.toString();
+        replyFacts = _factsOfUci(afterOwn, graded.reply!);
         boardFen = replyBoard.fen;
       }
     }
@@ -972,8 +994,8 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     setState(() {
       _busy = false;
       _answer = graded;
-      _lastVerdict = null;
       _replySan = replySan;
+      _replyFacts = replyFacts;
       _replyCovered = graded.replyCovered;
       _lineFen = boardFen;
     });
@@ -1012,17 +1034,9 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 1400));
     if (!mounted || _sparring || _lineFen != boardFen) return;
 
-    final back = _whenBack(graded);
-    _continueAt(
-      boardFen,
-      verdict: [
-        graded.outcome == 'primary'
-            ? 'Correct — ${_playedSan ?? ''}'
-            : 'Also yours — ${_playedSan ?? ''}',
-        if (_replySan != null) 'opponent $_replySan',
-        if (back.isNotEmpty) back.trim().replaceAll('.', '').toLowerCase(),
-      ].join(' · '),
-    );
+    // Nothing is carried over: the verdict was said when its panel was drawn,
+    // and the next question speaks for itself.
+    _continueAt(boardFen);
   }
 
   /// Whether this answer carries the line on by itself.
@@ -1111,7 +1125,7 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
             icon: const Icon(Icons.account_tree_outlined),
             tooltip: 'Choose branch',
           ),
-          const SpeechToggleButton(),
+          SpeechToggleButton(speech: widget.speech),
           const BoardViewMenu(arrows: true),
           // Bounded and scaled down because the speaker button above pushed
           // this bar one pixel over the edge of a 360 dp phone — measured, by
@@ -1357,48 +1371,39 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     }
 
     if (graded == null) {
+      final question = SpokenLine(
+          [SpeechVocabulary.whatDoYouPlay(_forWhite ? 'white' : 'black')]);
+      final reveal = _revealLine();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildLine(context),
-          if (_lastVerdict != null) ...[
-            SpeakableInfo(
-              text: _lastVerdict!,
-              autoSpeak: true,
-              child: Text(_lastVerdict!,
-                  style:
-                      AppText.micro.copyWith(color: context.colors.textMuted)),
-            ),
-            const SizedBox(height: AppSpacing.xxs),
-          ],
           SpeakableInfo(
             autoSpeak: true,
-            text:
-                '${_forWhite ? 'What do you play as White?' : 'What do you play as Black?'} ${_revealed == null ? 'Play the move you chose for this position.' : 'Your move is ${_revealed!.san}. Play it.'}',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    _forWhite
-                        ? 'What do you play as White?'
-                        : 'What do you play as Black?',
-                    style: AppText.bodyBold),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  _revealed == null
-                      ? 'Play the move you chose for this position.'
-                      : 'Your move is ${_revealed!.san}. Play it.',
-                  style: AppText.caption.copyWith(
-                    color: _revealed == null
-                        ? context.colors.textMuted
-                        : context.colors.warning,
-                  ),
-                ),
-              ],
-            ),
+            text: question.text,
+            line: question,
+            speech: widget.speech,
+            child: Text(question.text, style: AppText.bodyBold),
           ),
-          // Outside the spoken block on purpose: the voice says the question
-          // and the line under it, and a speaker that visually encloses a
+          // What Show reveals is a sentence of its own, said when it appears:
+          // the question above is not said again, and nothing is said that is
+          // not drawn.
+          if (reveal != null) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            SpeakableInfo(
+              autoSpeak: true,
+              compact: true,
+              text: reveal.text,
+              line: reveal,
+              speech: widget.speech,
+              child: Text(
+                reveal.text,
+                style: AppText.caption.copyWith(color: context.colors.warning),
+              ),
+            ),
+          ],
+          // Outside the spoken block on purpose: the rehearsal's notes are
+          // drawn and never said, and a speaker that visually encloses a
           // sentence it never reads is the drift this widget exists to avoid.
           if (_prefixNote != null) ...[
             const SizedBox(height: AppSpacing.xxs),
@@ -1415,81 +1420,100 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
       );
     }
 
-    final ({Color color, IconData icon, String title, String detail}) face =
-        switch (graded.outcome) {
+    // One line, drawn and said together when the panel appears: the verdict,
+    // the opponent's reply, when the position comes back. The icon and the
+    // colour carry the outcome for the eye; the words are the line's own.
+    final line = _verdictLine(graded);
+    final ({Color color, IconData icon}) face = switch (graded.outcome) {
       'primary' => (
           color: context.colors.success,
           icon: Icons.check_circle_outline,
-          title: 'Correct — ${_playedSan ?? ''}',
-          detail: _whenBack(graded),
         ),
-      'alternate' => (
-          color: context.colors.info,
-          icon: Icons.alt_route,
-          title: 'Also yours — ${_playedSan ?? ''}',
-          detail: graded.primary == null
-              ? _whenBack(graded)
-              : 'Your main move is ${graded.primary!.san}. ${_whenBack(graded)}',
-        ),
+      'alternate' => (color: context.colors.info, icon: Icons.alt_route),
       'unprepared' => (
           color: context.colors.textMuted,
           icon: Icons.help_outline,
-          title: 'You have not covered this position',
-          detail: 'No move of yours here, so no rating. '
-              'Open build to decide what you play.',
         ),
-      _ => (
-          color: context.colors.danger,
-          icon: Icons.close,
-          title: 'Incorrect — ${_playedSan ?? ''}',
-          detail: graded.primary == null
-              ? _whenBack(graded)
-              : 'Your move is ${graded.primary!.san}. ${_whenBack(graded)}',
-        ),
+      _ => (color: context.colors.danger, icon: Icons.close),
     };
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(face.icon, size: 18, color: face.color),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(face.title,
-                  style: AppText.bodyBold.copyWith(color: face.color)),
-            ),
-          ],
-        ),
-        if (face.detail.isNotEmpty) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Text(face.detail,
-              style:
-                  AppText.caption.copyWith(color: context.colors.textPrimary)),
-        ],
-        if (graded.practice) ...[
-          const SizedBox(height: 6),
-          Text(
-            'Drill ahead of schedule — rating is not recorded, so the schedule '
-            'for this position has not moved.',
-            style: AppText.caption.copyWith(color: context.colors.textMuted),
+    return SpeakableInfo(
+      autoSpeak: true,
+      text: line.text,
+      line: line,
+      speech: widget.speech,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(face.icon, size: 18, color: face.color),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(line.text,
+                style: AppText.bodyBold.copyWith(color: face.color)),
           ),
         ],
-        if (_replySan != null) ...[
-          const SizedBox(height: 6),
-          Text(
-            _replyCovered
-                ? 'Opponent replied $_replySan.'
-                : 'Opponent replied $_replySan — you have not covered this.',
-            style: AppText.caption.copyWith(
-              color: _replyCovered
-                  ? context.colors.textMuted
-                  : context.colors.warning,
-            ),
-          ),
-        ],
-      ],
+      ),
     );
+  }
+
+  /// The sentence Show reveals: the student's own move, said as a move.
+  SpokenLine? _revealLine() {
+    final move = _revealed;
+    final fen = _fen;
+    if (move == null || fen == null) return null;
+    final facts = _factsOfUci(fen, move.uci);
+    if (facts == null) return null;
+    return SpokenLine([
+      SpeechVocabulary.yourMoveIs,
+      ...MoveWords.bare(facts),
+      SpeechVocabulary.playIt,
+    ]);
+  }
+
+  /// The verdict on an answer, as one line (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`,
+  /// phase 4c): how it was judged, the move that was wanted, what the opponent
+  /// replied, when the position comes back, and — ahead of schedule — that the
+  /// rating was not recorded.
+  SpokenLine _verdictLine(DrillAnswer graded) {
+    final fen = _fen;
+    final wanted = graded.primary;
+    final wantedFacts =
+        wanted == null || fen == null ? null : _factsOfUci(fen, wanted.uci);
+    final reply = _replyFacts;
+    final tokens = <SpeechToken>[];
+
+    // The reply, and that the student never covered it when that is so.
+    void addReply() {
+      if (reply == null) return;
+      tokens.addAll(MoveWords.line(reply).tokens);
+      if (!_replyCovered) tokens.add(SpeechVocabulary.notCoveredReply);
+    }
+
+    switch (graded.outcome) {
+      case 'primary':
+        tokens.add(SpeechVocabulary.correct);
+        addReply();
+        tokens.addAll(_returns(graded.intervalDays));
+      case 'alternate':
+        tokens
+          ..add(SpeechVocabulary.alsoYours)
+          ..add(SpeechVocabulary.yourMainMoveIs);
+        if (wantedFacts != null) tokens.addAll(MoveWords.bare(wantedFacts));
+        addReply();
+        tokens.addAll(_returns(graded.intervalDays));
+      case 'unprepared':
+        tokens.add(SpeechVocabulary.notCoveredPosition);
+      default:
+        tokens.add(SpeechVocabulary.incorrect);
+        tokens.add(SpeechVocabulary.yourMoveIs);
+        if (wantedFacts != null) tokens.addAll(MoveWords.bare(wantedFacts));
+        tokens.addAll(_returns(graded.intervalDays));
+    }
+    if (graded.practice) tokens.add(SpeechVocabulary.aheadOfSchedule);
+    return SpokenLine(tokens);
   }
 
   /// When the soonest position comes back, in words. Empty when nothing is
@@ -1518,19 +1542,39 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     return 'Next returns in $days days. ';
   }
 
-  /// When the position comes back, in words rather than in a number of days.
-  String _whenBack(DrillAnswer graded) {
-    final days = graded.intervalDays;
-    if (days == null) return '';
-    if (days == 0) return 'Returns in a few minutes.';
-    if (days == 1) return 'Returns tomorrow.';
-    if (days < 7) return 'Returns in $days days.';
+  /// When the position comes back, as the tokens that say it — the same
+  /// rounding as ever: minutes, tomorrow, days, weeks, months. Nothing when
+  /// nothing was scheduled, and nothing for an interval past the numbers the
+  /// clips have (99 months).
+  List<SpeechToken> _returns(int? days) {
+    if (days == null) return const [];
+    if (days <= 0) return [SpeechVocabulary.returnsMinutes];
+    if (days == 1) return [SpeechVocabulary.returnsTomorrow];
+    if (days < 7) {
+      return [
+        SpeechVocabulary.returnsIn,
+        SpeechVocabulary.numberInside(days),
+        SpeechVocabulary.daysTail,
+      ];
+    }
     if (days < 30) {
       final weeks = (days / 7).round();
-      return weeks == 1 ? 'Returns in a week.' : 'Returns in $weeks weeks.';
+      return weeks == 1
+          ? [SpeechVocabulary.returnsWeek]
+          : [
+              SpeechVocabulary.returnsIn,
+              SpeechVocabulary.numberInside(weeks),
+              SpeechVocabulary.weeksTail,
+            ];
     }
     final months = (days / 30).round();
-    return months == 1 ? 'Returns in a month.' : 'Returns in $months months.';
+    if (months == 1) return [SpeechVocabulary.returnsMonth];
+    if (months > 99) return const [];
+    return [
+      SpeechVocabulary.returnsIn,
+      SpeechVocabulary.numberInside(months),
+      SpeechVocabulary.monthsTail,
+    ];
   }
 
   Widget _buildControls(BuildContext context) {
@@ -1618,6 +1662,37 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
     );
   }
 
+  /// What the screen says when there is nothing to ask: whether nothing is
+  /// built or nothing is due, in a branch or after a road the student chose.
+  SpokenLine _emptyLine({required bool nothingBuilt}) {
+    final viaFen = _viaFen;
+    final viaUci = _viaUci;
+    final facts =
+        viaFen == null || viaUci == null ? null : _factsOfUci(viaFen, viaUci);
+    if (facts != null) {
+      return nothingBuilt
+          ? SpokenLine([
+              SpeechVocabulary.nothingToDrillAfter,
+              ...MoveWords.bare(facts),
+              SpeechVocabulary.yetTail,
+            ])
+          : SpokenLine([
+              SpeechVocabulary.nothingDueAfter,
+              ...MoveWords.bare(facts),
+            ]);
+    }
+    final inBranch = _branchFen != null;
+    return SpokenLine([
+      nothingBuilt
+          ? (inBranch
+              ? SpeechVocabulary.nothingToDrillBranch
+              : SpeechVocabulary.nothingToDrillYet)
+          : (inBranch
+              ? SpeechVocabulary.nothingDueBranch
+              : SpeechVocabulary.nothingDue),
+    ]);
+  }
+
   Widget _buildEmpty(BuildContext context) {
     // Two different empty states, and only one of them is good news. In a
     // branch the same two questions are asked about that branch alone, which is
@@ -1640,21 +1715,14 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
                 size: 40),
             const SizedBox(height: AppSpacing.md),
             Builder(builder: (context) {
-              final text = via != null
-                  ? (nothingBuilt
-                      ? 'Nothing to drill after move $via yet.'
-                      : 'Nothing due after move $via.')
-                  : nothingBuilt
-                      ? (inBranch
-                          ? 'Nothing to drill in this branch.'
-                          : 'Nothing to drill yet.')
-                      : (inBranch
-                          ? 'Nothing due in this branch.'
-                          : 'Nothing due.');
+              final line = _emptyLine(nothingBuilt: nothingBuilt);
               return SpeakableInfo(
-                text: text,
+                autoSpeak: true,
+                text: line.text,
+                line: line,
+                speech: widget.speech,
                 child: Text(
-                  text,
+                  line.text,
                   style: AppText.bodyBold,
                   textAlign: TextAlign.center,
                 ),
@@ -1734,6 +1802,18 @@ class _RepertoireDrillScreenState extends State<RepertoireDrillScreen> {
         ),
       ),
     );
+  }
+}
+
+/// The facts of a move given in coordinates, read off the position it is
+/// played in. Null when it is not legal there.
+MoveFacts? _factsOfUci(String fen, String uci) {
+  if (uci.length < 4) return null;
+  try {
+    return MoveWords.factsOf(fen, uci.substring(0, 2), uci.substring(2, 4),
+        promotion: uci.length > 4 ? uci[4].toLowerCase() : null);
+  } catch (_) {
+    return null;
   }
 }
 

@@ -17,7 +17,7 @@ class SpokenLine {
   /// punctuation and is never given a second one; a run of cut tokens ends
   /// with a full stop, also before a following phrase, and a cut token whose
   /// text already ends in one („lets the win go. The position is now lost.")
-  /// closes the run without a second. „Check" is the one cut token that is a
+  /// or in a question mark closes the run without a second. „Check" is the one cut token that is a
   /// sentence of its own in its carrier („Black plays bishop e5. Check."), so
   /// it closes the run before it and is closed itself. Every sentence starts
   /// with a capital, because a run may open with a move („king d5 loses the
@@ -41,8 +41,14 @@ class SpokenLine {
         closeRun();
         sentences.add('${token.text}.');
       } else {
+        // A cut token that starts with a capital („Returns in", „White plays")
+        // starts a sentence, so the run before it — a bare move, usually — is
+        // closed first: „Your move is knight c6. Returns in 3 days."
+        if (_startsSentence(token.text)) closeRun();
         run.add(token.text);
-        if (token.text.endsWith('.')) closeRun(stop: false);
+        if (token.text.endsWith('.') || token.text.endsWith('?')) {
+          closeRun(stop: false);
+        }
       }
     }
     closeRun();
@@ -50,6 +56,9 @@ class SpokenLine {
         .map((s) => '${s[0].toUpperCase()}${s.substring(1)}')
         .join(' ');
   }
+
+  static bool _startsSentence(String text) =>
+      text.isNotEmpty && text[0] != text[0].toLowerCase();
 
   @override
   bool operator ==(Object other) {

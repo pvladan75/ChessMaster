@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:chess/chess.dart' as chess;
@@ -6,6 +7,9 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/models/move_cursor.dart';
 import 'package:chess_app/core/services/eval_parsing.dart';
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
@@ -25,6 +29,7 @@ import 'package:chess_app/features/repertoire/services/repertoire_api_service.da
 import 'package:chess_app/features/repertoire/services/repertoire_layout.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
@@ -101,6 +106,7 @@ class RepertoireBuildScreen extends StatefulWidget {
     this.onDrillHere,
     this.openingLookup,
     this.id,
+    this.speech,
   });
 
   final String name;
@@ -149,6 +155,11 @@ class RepertoireBuildScreen extends StatefulWidget {
   /// Stockfish by default — injected in tests, which have no engine binary.
   final Future<List<AnalysisLine>> Function(String fen, int depth, int multiPV)?
       analyse;
+
+  /// The voice the screen's sentences are said through, the one speech
+  /// service unless a test hands over its own
+  /// (`docs/PLAN-GOVOR-IZ-KLIPOVA.md`, phase 4c).
+  final SpeechService? speech;
 
   @override
   State<RepertoireBuildScreen> createState() => _RepertoireBuildScreenState();
@@ -238,7 +249,10 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   bool _judging = false;
 
   bool _busy = false;
-  String? _note;
+
+  /// What the screen last said about what just happened — drawn from its own
+  /// tokens, so the sentence heard and the sentence shown are one.
+  SpokenLine? _note;
 
   /// The engine's opinion, when it has been asked for one, and the position it
   /// was asked about — an answer that arrives for a board nobody is looking at
@@ -267,6 +281,19 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     _resume();
   }
 
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  @override
+  void dispose() {
+    // A sentence that outlives its screen is how somebody decides the whole
+    // feature is more trouble than it is worth. Guarded: a voice that throws
+    // must not be able to stop the screen's own teardown.
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
+    super.dispose();
+  }
+
   /// Picks the walk back up where it was, rather than starting again.
   ///
   /// A server that does not answer falls back to the root. It has to be the
@@ -284,8 +311,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _enqueue(widget.rootFen, const []);
       setState(() {
         _resuming = false;
-        _note = 'Could not read your progress — starting from '
-            'the repertoire opening position.';
+        _note = SpokenLine([SpeechVocabulary.progressNotRead]);
       });
     } else {
       for (final node in walk.open) {
@@ -965,7 +991,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     setState(() => _busy = false);
     if (!kept.saved) {
       _boardController.loadFen(fen);
-      setState(() => _note = 'Move was not saved — server did not respond.');
+      setState(() => _note = SpokenLine([SpeechVocabulary.moveNotSaved]));
       return;
     }
 
@@ -986,15 +1012,40 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     }
     if (!mounted) return;
     setState(() {
-      _note = top == null
-          ? '$san is in your repertoire. The book has no reply here — play '
-              'the opponent move you want to prepare.'
-          : '$san is in your repertoire, with the most played reply, '
-              '${top.san}.';
+      _note = _keptNote(fen: fen, san: san, after: after, top: top);
     });
     _judgeInBackground(fen: fen, uci: uci, san: san);
     await _loadTree();
     _refreshCounts();
+  }
+
+  /// What is said when a move of the student's has been kept: the move, that
+  /// it is in the repertoire, and the book's most played reply to it or that
+  /// the book has none. Null only when a move the server kept cannot be
+  /// replayed here, in which case there is nothing true to say.
+  SpokenLine? _keptNote({
+    required String fen,
+    required String san,
+    required String after,
+    required ({String uci, String san, String fen})? top,
+  }) {
+    final mine = MoveWords.factsOfSan(fen, san);
+    if (mine == null) return null;
+    if (top == null) {
+      return SpokenLine([
+        ...MoveWords.bare(mine),
+        SpeechVocabulary.isInYourRepertoire,
+        SpeechVocabulary.bookNoReply,
+      ]);
+    }
+    final reply = MoveWords.factsOfSan(after, top.san);
+    if (reply == null) return null;
+    return SpokenLine([
+      ...MoveWords.bare(mine),
+      SpeechVocabulary.isInYourRepertoire,
+      SpeechVocabulary.mostPlayedReplyIs,
+      ...MoveWords.bare(reply),
+    ]);
   }
 
   /// An opponent move: entered, and the board goes to the position after it,
@@ -1023,8 +1074,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     setState(() => _busy = false);
     if (!entered) {
       _boardController.loadFen(fen);
-      setState(() =>
-          _note = 'Opponent move was not saved — server did not respond.');
+      setState(
+          () => _note = SpokenLine([SpeechVocabulary.opponentMoveNotSaved]));
       return;
     }
     await _show(_Pending(
@@ -1244,7 +1295,9 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       _thinking = false;
       _lines = lines;
       _linesFen = fen;
-      _note = lines.isEmpty ? 'Engine did not respond in time.' : null;
+      _note = lines.isEmpty
+          ? SpokenLine([SpeechVocabulary.engineNoResponse])
+          : null;
     });
 
     if (lines.isNotEmpty) await _saveNote(fen, lines.first);
@@ -1436,7 +1489,7 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
     setState(() {
       _busy = false;
       if (!done) {
-        _note = 'Opponent move was not removed — server did not respond.';
+        _note = SpokenLine([SpeechVocabulary.opponentMoveNotRemoved]);
       }
     });
     if (!done) return false;
@@ -1861,9 +1914,11 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
       if (_note != null) ...[
         const SizedBox(height: AppSpacing.sm),
         SpeakableInfo(
-          text: _note!,
+          text: _note!.text,
+          line: _note,
+          speech: widget.speech,
           autoSpeak: true,
-          child: Text(_note!,
+          child: Text(_note!.text,
               style: AppText.caption.copyWith(color: context.colors.textMuted)),
         ),
       ],
@@ -1927,16 +1982,14 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         // That is the intent — the instruction is spoken when it turns into a
         // different instruction.
         Builder(builder: (context) {
-          final question = _standingAfter != null
-              ? 'After ${_standingAfter!.san} — which opponent moves do you prepare?'
-              : (_forWhite
-                  ? 'What do you play with White?'
-                  : 'What do you play with Black?');
+          final question = _questionLine();
           return SpeakableInfo(
             autoSpeak: true,
-            text: question,
+            text: question.text,
+            line: question,
+            speech: widget.speech,
             child: Text(
-              question,
+              question.text,
               style:
                   AppText.bodyBold.copyWith(color: context.colors.textPrimary),
             ),
@@ -1956,6 +2009,25 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
         ],
       ],
     );
+  }
+
+  /// What the board asks: for the student's move in a position, or, standing
+  /// after one of their own moves, which opponent moves to prepare.
+  SpokenLine _questionLine() {
+    final mine = _standingAfter;
+    final from = _node?.fen;
+    if (mine != null && from != null) {
+      final facts = MoveWords.factsOfSan(from, mine.san);
+      if (facts != null) {
+        return SpokenLine([
+          SpeechVocabulary.afterHead,
+          ...MoveWords.bare(facts),
+          SpeechVocabulary.whichOpponentMoves,
+        ]);
+      }
+    }
+    return SpokenLine(
+        [SpeechVocabulary.whatDoYouPlay(_forWhite ? 'white' : 'black')]);
   }
 
   /// How far the repertoire has got: what has been decided, and nothing about
@@ -2282,9 +2354,8 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
   }
 
   Widget _buildDone() {
-    // Written once, shown and spoken from the same string.
-    const done =
-        'You have answered all positions reachable by this repertoire.';
+    // Written once, shown and spoken from the same line.
+    final done = SpokenLine([SpeechVocabulary.answeredEveryPosition]);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -2294,26 +2365,24 @@ class _RepertoireBuildScreenState extends State<RepertoireBuildScreen> {
             const Icon(Icons.check_circle_outline, size: 40),
             const SizedBox(height: AppSpacing.md),
             SpeakableInfo(
-              text: done,
+              text: done.text,
+              line: done,
+              speech: widget.speech,
+              autoSpeak: true,
               child: Text(
-                done,
+                done.text,
                 style: AppText.bodyBold,
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Everything is saved. The repertoire goes deeper when you play '
-              'more opponent moves.',
-              style: AppText.caption.copyWith(color: context.colors.textMuted),
-              textAlign: TextAlign.center,
-            ),
             if (_note != null) ...[
               const SizedBox(height: 10),
               SpeakableInfo(
-                text: _note!,
+                text: _note!.text,
+                line: _note,
+                speech: widget.speech,
                 child: Text(
-                  _note!,
+                  _note!.text,
                   style: AppText.caption.copyWith(color: context.colors.accent),
                   textAlign: TextAlign.center,
                 ),

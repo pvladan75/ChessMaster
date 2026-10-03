@@ -20,6 +20,15 @@ import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
+// SUPERSEDED in phase 4c of `docs/PLAN-GOVOR-IZ-KLIPOVA.md`, openly: this screen
+// speaks and draws the clips' own sentences now (`test/speech_repertoire_test.dart`
+// holds the token ids). What changed here is the words and nothing else —
+// „After Nc6 — which opponent moves do you prepare?" is „After knight c6 which
+// opponent moves do you prepare?", „Move was not saved — server did not
+// respond." is „The move was not saved. The server did not respond.", the
+// progress note and the finished sentence are the clips' own, and the
+// „Everything is saved…" line under the finished sentence is deleted.
+
 /// 1.e4 c5 2.d4 cxd4 3.c3 dxc3 4.Nxc3 — the Smith-Morra accepted, Black to
 /// move. The position the whole design conversation was about.
 const smithMorra = 'rnbqkbnr/pp1ppppp/8/8/4P3/2N5/PP3PPP/R1BQKBNR b KQkq - 0 4';
@@ -407,8 +416,10 @@ void main() {
       expect(find.text('What do you play with Black?'), findsOneWidget);
       expect(find.text('4...Nc6 5.Nf3'), findsOneWidget);
       expect(
-          find.textContaining(
-              'Nc6 is in your repertoire, with the most played reply, Nf3.'),
+          // SUPERSEDED: „Nc6 is in your repertoire, with the most played reply,
+          // Nf3." — the same two facts, in the words the clips have.
+          find.text('Knight c6 is in your repertoire. '
+              'The most played reply is knight f3.'),
           findsOneWidget);
     });
 
@@ -418,7 +429,7 @@ void main() {
 
       await play(tester, 'b8', 'c6');
 
-      expect(find.text('After Nc6 — which opponent moves do you prepare?'),
+      expect(find.text('After knight c6 which opponent moves do you prepare?'),
           findsOneWidget);
       expect(find.textContaining('The book has no reply here'), findsOneWidget);
     });
@@ -456,7 +467,7 @@ void main() {
 
       await play(tester, 'b8', 'c6');
 
-      expect(find.textContaining('Move was not saved'), findsOneWidget);
+      expect(find.textContaining('The move was not saved.'), findsOneWidget);
       expect(find.text('What do you play with Black?'), findsOneWidget);
       expect(api.attempts, isEmpty);
     });
@@ -469,7 +480,7 @@ void main() {
       expect(api.kept[keyOf(smithMorra)]!.length, 1);
       expect(judge.judged, 0,
           reason: 'a decision that exists is not re-judged');
-      expect(find.text('After Nc6 — which opponent moves do you prepare?'),
+      expect(find.text('After knight c6 which opponent moves do you prepare?'),
           findsOneWidget);
     });
   });
@@ -812,7 +823,7 @@ void main() {
       await pump(tester, size: const Size(500, 1400), explore: _dryForWhite);
 
       await play(tester, 'b8', 'c6');
-      expect(find.text('After Nc6 — which opponent moves do you prepare?'),
+      expect(find.text('After knight c6 which opponent moves do you prepare?'),
           findsOneWidget);
 
       await tester.ensureVisible(find.text('Ask engine'));
@@ -903,7 +914,8 @@ void main() {
 
       expect(api.frontierCalls, 1);
       expect(find.text('What do you play with Black?'), findsOneWidget);
-      expect(find.textContaining('starting from'), findsOneWidget);
+      expect(find.textContaining('Starting from the opening position'),
+          findsOneWidget);
     });
 
     testWidgets(
@@ -944,9 +956,7 @@ void main() {
     testWidgets('an empty queue is not a dead end', (tester) async {
       await pump(tester, walk: const RepertoireFrontier(decided: 4, open: []));
 
-      expect(
-          find.text('You have answered all positions reachable by this '
-              'repertoire.'),
+      expect(find.text('You have answered every position in this repertoire.'),
           findsOneWidget);
       await tester.tap(find.text('Open repertoire'));
       await tester.pumpAndSettle();

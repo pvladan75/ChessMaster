@@ -283,7 +283,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(api.written, isEmpty);
-      expect(find.textContaining('Engine did not respond'), findsOneWidget);
+      // SUPERSEDED: „Engine did not respond in time." — the clips' own
+      // sentence (phase 4c of `docs/PLAN-GOVOR-IZ-KLIPOVA.md`).
+      expect(find.textContaining('The engine did not respond in time.'),
+          findsOneWidget);
     });
   });
 }

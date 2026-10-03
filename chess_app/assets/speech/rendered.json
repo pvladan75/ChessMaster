@@ -349,6 +349,167 @@
     "wordTo": null,
     "voice": "en-US-AndrewNeural"
   },
+  "what_play_white": {
+    "kind": "phrase",
+    "carrier": "What do you play with White?",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "what_play_black": {
+    "kind": "phrase",
+    "carrier": "What do you play with Black?",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "book_no_reply": {
+    "kind": "phrase",
+    "carrier": "The book has no reply here. Play the opponent move you want to prepare.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "answered_every_position": {
+    "kind": "phrase",
+    "carrier": "You have answered every position in this repertoire.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "move_not_saved": {
+    "kind": "phrase",
+    "carrier": "The move was not saved. The server did not respond.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "opponent_move_not_saved": {
+    "kind": "phrase",
+    "carrier": "The opponent move was not saved. The server did not respond.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "opponent_move_not_removed": {
+    "kind": "phrase",
+    "carrier": "The opponent move was not removed. The server did not respond.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "engine_no_response": {
+    "kind": "phrase",
+    "carrier": "The engine did not respond in time.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "progress_not_read": {
+    "kind": "phrase",
+    "carrier": "Could not read your progress. Starting from the opening position.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "play_it": {
+    "kind": "phrase",
+    "carrier": "Play it.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "also_yours": {
+    "kind": "phrase",
+    "carrier": "Also yours.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "incorrect": {
+    "kind": "phrase",
+    "carrier": "Incorrect.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "not_covered_position": {
+    "kind": "phrase",
+    "carrier": "You have not covered this position. Open build to decide what you play.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "not_covered_reply": {
+    "kind": "phrase",
+    "carrier": "You have not covered this reply.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "ahead_of_schedule": {
+    "kind": "phrase",
+    "carrier": "Ahead of schedule. The rating is not recorded.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "returns_tomorrow": {
+    "kind": "phrase",
+    "carrier": "Returns tomorrow.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "returns_minutes": {
+    "kind": "phrase",
+    "carrier": "Returns in a few minutes.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "returns_week": {
+    "kind": "phrase",
+    "carrier": "Returns in a week.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "returns_month": {
+    "kind": "phrase",
+    "carrier": "Returns in a month.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nothing_due": {
+    "kind": "phrase",
+    "carrier": "Nothing due.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nothing_to_drill_yet": {
+    "kind": "phrase",
+    "carrier": "Nothing to drill yet.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nothing_due_branch": {
+    "kind": "phrase",
+    "carrier": "Nothing due in this branch.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nothing_to_drill_branch": {
+    "kind": "phrase",
+    "carrier": "Nothing to drill in this branch.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
   "black_plays": {
     "kind": "cut",
     "carrier": "Black plays bishop e5.",
@@ -543,6 +704,97 @@
     "carrier": "Game finished. Found 3 of 5.",
     "wordFrom": 5,
     "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "after_head": {
+    "kind": "cut",
+    "carrier": "After bishop e5, which opponent moves do you prepare?",
+    "wordFrom": 1,
+    "wordTo": 1,
+    "voice": "en-US-AndrewNeural"
+  },
+  "which_opponent_moves": {
+    "kind": "cut",
+    "carrier": "After bishop e5, which opponent moves do you prepare?",
+    "wordFrom": 4,
+    "wordTo": 9,
+    "voice": "en-US-AndrewNeural"
+  },
+  "is_in_your_repertoire": {
+    "kind": "cut",
+    "carrier": "Bishop e5 is in your repertoire. The most played reply is knight c6.",
+    "wordFrom": 3,
+    "wordTo": 6,
+    "voice": "en-US-AndrewNeural"
+  },
+  "most_played_reply_is": {
+    "kind": "cut",
+    "carrier": "Bishop e5 is in your repertoire. The most played reply is knight c6.",
+    "wordFrom": 7,
+    "wordTo": 11,
+    "voice": "en-US-AndrewNeural"
+  },
+  "your_move_is": {
+    "kind": "cut",
+    "carrier": "Your move is bishop e5. Play it.",
+    "wordFrom": 1,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "your_main_move_is": {
+    "kind": "cut",
+    "carrier": "Your main move is bishop e5.",
+    "wordFrom": 1,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "returns_in": {
+    "kind": "cut",
+    "carrier": "Returns in 3 weeks.",
+    "wordFrom": 1,
+    "wordTo": 2,
+    "voice": "en-US-AndrewNeural"
+  },
+  "days_tail": {
+    "kind": "cut",
+    "carrier": "Returns in 3 more days.",
+    "wordFrom": 5,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "weeks_tail": {
+    "kind": "cut",
+    "carrier": "Returns in 3 weeks.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "months_tail": {
+    "kind": "cut",
+    "carrier": "Returns in 3 months.",
+    "wordFrom": 4,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nothing_due_after": {
+    "kind": "cut",
+    "carrier": "Nothing due after bishop e5.",
+    "wordFrom": 1,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nothing_to_drill_after": {
+    "kind": "cut",
+    "carrier": "Nothing to drill after bishop e5 yet.",
+    "wordFrom": 1,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "yet_tail": {
+    "kind": "cut",
+    "carrier": "Nothing to drill after bishop e5 yet.",
+    "wordFrom": 7,
+    "wordTo": 7,
     "voice": "en-US-AndrewNeural"
   },
   "nmid_0": {

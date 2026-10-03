@@ -98,7 +98,7 @@ class SpeechToken {
 /// Words of a carrier the way the renderer counts them: split on spaces,
 /// punctuation stripped, so „e5. Check." is two words.
 int wordCountOf(String carrier) => carrier
-    .replaceAll(RegExp(r'[.,]'), '')
+    .replaceAll(RegExp(r'[.,?]'), '')
     .trim()
     .split(RegExp(r'\s+'))
     .where((w) => w.isNotEmpty)
@@ -245,6 +245,47 @@ class SpeechVocabulary {
   /// 0–99 inside a sentence („Found 3 of 5"), cut from that position.
   static SpeechToken numberInside(int n) => _must('nmid_$n');
 
+  // The repertoire, build and drill (phase 4c).
+  static SpeechToken whatDoYouPlay(String side) => _must('what_play_$side');
+  static SpeechToken get afterHead => _must('after_head');
+  static SpeechToken get whichOpponentMoves => _must('which_opponent_moves');
+  static SpeechToken get isInYourRepertoire => _must('is_in_your_repertoire');
+  static SpeechToken get mostPlayedReplyIs => _must('most_played_reply_is');
+  static SpeechToken get bookNoReply => _must('book_no_reply');
+  static SpeechToken get answeredEveryPosition =>
+      _must('answered_every_position');
+  static SpeechToken get moveNotSaved => _must('move_not_saved');
+  static SpeechToken get opponentMoveNotSaved =>
+      _must('opponent_move_not_saved');
+  static SpeechToken get opponentMoveNotRemoved =>
+      _must('opponent_move_not_removed');
+  static SpeechToken get engineNoResponse => _must('engine_no_response');
+  static SpeechToken get progressNotRead => _must('progress_not_read');
+  static SpeechToken get yourMoveIs => _must('your_move_is');
+  static SpeechToken get playIt => _must('play_it');
+  static SpeechToken get alsoYours => _must('also_yours');
+  static SpeechToken get yourMainMoveIs => _must('your_main_move_is');
+  static SpeechToken get incorrect => _must('incorrect');
+  static SpeechToken get notCoveredPosition => _must('not_covered_position');
+  static SpeechToken get notCoveredReply => _must('not_covered_reply');
+  static SpeechToken get aheadOfSchedule => _must('ahead_of_schedule');
+  static SpeechToken get returnsTomorrow => _must('returns_tomorrow');
+  static SpeechToken get returnsMinutes => _must('returns_minutes');
+  static SpeechToken get returnsWeek => _must('returns_week');
+  static SpeechToken get returnsMonth => _must('returns_month');
+  static SpeechToken get returnsIn => _must('returns_in');
+  static SpeechToken get daysTail => _must('days_tail');
+  static SpeechToken get weeksTail => _must('weeks_tail');
+  static SpeechToken get monthsTail => _must('months_tail');
+  static SpeechToken get nothingDue => _must('nothing_due');
+  static SpeechToken get nothingToDrillYet => _must('nothing_to_drill_yet');
+  static SpeechToken get nothingDueBranch => _must('nothing_due_branch');
+  static SpeechToken get nothingToDrillBranch =>
+      _must('nothing_to_drill_branch');
+  static SpeechToken get nothingDueAfter => _must('nothing_due_after');
+  static SpeechToken get nothingToDrillAfter => _must('nothing_to_drill_after');
+  static SpeechToken get yetTail => _must('yet_tail');
+
   /// 0–99, as a whole number („twenty-one" is one clip), cut from „Mate in N."
   static SpeechToken number(int n) => _must('n_$n');
 
@@ -316,6 +357,38 @@ class SpeechVocabulary {
     phrase('correct', 'Correct.');
     phrase('game_continues', 'The game continues as played.');
     phrase('last_mistake_game_over', 'That was the last mistake. Game over.');
+    // The repertoire, build and drill (phase 4c, 3.10.2026).
+    phrase('what_play_white', 'What do you play with White?');
+    phrase('what_play_black', 'What do you play with Black?');
+    phrase('book_no_reply',
+        'The book has no reply here. Play the opponent move you want to prepare.');
+    phrase('answered_every_position',
+        'You have answered every position in this repertoire.');
+    phrase('move_not_saved',
+        'The move was not saved. The server did not respond.');
+    phrase('opponent_move_not_saved',
+        'The opponent move was not saved. The server did not respond.');
+    phrase('opponent_move_not_removed',
+        'The opponent move was not removed. The server did not respond.');
+    phrase('engine_no_response', 'The engine did not respond in time.');
+    phrase('progress_not_read',
+        'Could not read your progress. Starting from the opening position.');
+    phrase('play_it', 'Play it.');
+    phrase('also_yours', 'Also yours.');
+    phrase('incorrect', 'Incorrect.');
+    phrase('not_covered_position',
+        'You have not covered this position. Open build to decide what you play.');
+    phrase('not_covered_reply', 'You have not covered this reply.');
+    phrase(
+        'ahead_of_schedule', 'Ahead of schedule. The rating is not recorded.');
+    phrase('returns_tomorrow', 'Returns tomorrow.');
+    phrase('returns_minutes', 'Returns in a few minutes.');
+    phrase('returns_week', 'Returns in a week.');
+    phrase('returns_month', 'Returns in a month.');
+    phrase('nothing_due', 'Nothing due.');
+    phrase('nothing_to_drill_yet', 'Nothing to drill yet.');
+    phrase('nothing_due_branch', 'Nothing due in this branch.');
+    phrase('nothing_to_drill_branch', 'Nothing to drill in this branch.');
 
     // The frame of a move sentence (D12).
     const frame = 'Black plays bishop e5.';
@@ -371,6 +444,39 @@ class SpeechVocabulary {
     cut('game_finished_found', 'Game finished. Found',
         'Game finished. Found 3 of 5.', 1, 3);
     cut('of', 'of', 'Game finished. Found 3 of 5.', 5, 5);
+    // The repertoire (phase 4c): heads before a move, tails after one, and
+    // the tails after a number inside „Returns in N days."
+    cut('after_head', 'After',
+        'After bishop e5, which opponent moves do you prepare?', 1, 1);
+    cut('which_opponent_moves', 'which opponent moves do you prepare?',
+        'After bishop e5, which opponent moves do you prepare?', 4, 9);
+    cut(
+        'is_in_your_repertoire',
+        'is in your repertoire.',
+        'Bishop e5 is in your repertoire. The most played reply is knight c6.',
+        3,
+        6);
+    cut(
+        'most_played_reply_is',
+        'The most played reply is',
+        'Bishop e5 is in your repertoire. The most played reply is knight c6.',
+        7,
+        11);
+    cut('your_move_is', 'Your move is', 'Your move is bishop e5. Play it.', 1,
+        3);
+    cut('your_main_move_is', 'Your main move is',
+        'Your main move is bishop e5.', 1, 4);
+    // The SDK hears „3 days" as one word and splits „3 weeks" and „3 more
+    // days" (measured 3.10.2026), so the head and the days are cut from those.
+    cut('returns_in', 'Returns in', 'Returns in 3 weeks.', 1, 2);
+    cut('days_tail', 'days.', 'Returns in 3 more days.', 5, 5);
+    cut('weeks_tail', 'weeks.', 'Returns in 3 weeks.', 4, 4);
+    cut('months_tail', 'months.', 'Returns in 3 months.', 4, 4);
+    cut('nothing_due_after', 'Nothing due after',
+        'Nothing due after bishop e5.', 1, 3);
+    cut('nothing_to_drill_after', 'Nothing to drill after',
+        'Nothing to drill after bishop e5 yet.', 1, 4);
+    cut('yet_tail', 'yet.', 'Nothing to drill after bishop e5 yet.', 7, 7);
     // A number inside a sentence („Found 3 of 5") is cut from that position;
     // the plain numbers end a sentence („Mate in 3.").
     for (var n = 0; n <= 99; n++) {

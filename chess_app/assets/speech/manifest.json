@@ -307,6 +307,144 @@
       "carrier": "That was the last mistake. Game over."
     },
     {
+      "id": "what_play_white",
+      "kind": "phrase",
+      "text": "What do you play with White?",
+      "carrier": "What do you play with White?"
+    },
+    {
+      "id": "what_play_black",
+      "kind": "phrase",
+      "text": "What do you play with Black?",
+      "carrier": "What do you play with Black?"
+    },
+    {
+      "id": "book_no_reply",
+      "kind": "phrase",
+      "text": "The book has no reply here. Play the opponent move you want to prepare.",
+      "carrier": "The book has no reply here. Play the opponent move you want to prepare."
+    },
+    {
+      "id": "answered_every_position",
+      "kind": "phrase",
+      "text": "You have answered every position in this repertoire.",
+      "carrier": "You have answered every position in this repertoire."
+    },
+    {
+      "id": "move_not_saved",
+      "kind": "phrase",
+      "text": "The move was not saved. The server did not respond.",
+      "carrier": "The move was not saved. The server did not respond."
+    },
+    {
+      "id": "opponent_move_not_saved",
+      "kind": "phrase",
+      "text": "The opponent move was not saved. The server did not respond.",
+      "carrier": "The opponent move was not saved. The server did not respond."
+    },
+    {
+      "id": "opponent_move_not_removed",
+      "kind": "phrase",
+      "text": "The opponent move was not removed. The server did not respond.",
+      "carrier": "The opponent move was not removed. The server did not respond."
+    },
+    {
+      "id": "engine_no_response",
+      "kind": "phrase",
+      "text": "The engine did not respond in time.",
+      "carrier": "The engine did not respond in time."
+    },
+    {
+      "id": "progress_not_read",
+      "kind": "phrase",
+      "text": "Could not read your progress. Starting from the opening position.",
+      "carrier": "Could not read your progress. Starting from the opening position."
+    },
+    {
+      "id": "play_it",
+      "kind": "phrase",
+      "text": "Play it.",
+      "carrier": "Play it."
+    },
+    {
+      "id": "also_yours",
+      "kind": "phrase",
+      "text": "Also yours.",
+      "carrier": "Also yours."
+    },
+    {
+      "id": "incorrect",
+      "kind": "phrase",
+      "text": "Incorrect.",
+      "carrier": "Incorrect."
+    },
+    {
+      "id": "not_covered_position",
+      "kind": "phrase",
+      "text": "You have not covered this position. Open build to decide what you play.",
+      "carrier": "You have not covered this position. Open build to decide what you play."
+    },
+    {
+      "id": "not_covered_reply",
+      "kind": "phrase",
+      "text": "You have not covered this reply.",
+      "carrier": "You have not covered this reply."
+    },
+    {
+      "id": "ahead_of_schedule",
+      "kind": "phrase",
+      "text": "Ahead of schedule. The rating is not recorded.",
+      "carrier": "Ahead of schedule. The rating is not recorded."
+    },
+    {
+      "id": "returns_tomorrow",
+      "kind": "phrase",
+      "text": "Returns tomorrow.",
+      "carrier": "Returns tomorrow."
+    },
+    {
+      "id": "returns_minutes",
+      "kind": "phrase",
+      "text": "Returns in a few minutes.",
+      "carrier": "Returns in a few minutes."
+    },
+    {
+      "id": "returns_week",
+      "kind": "phrase",
+      "text": "Returns in a week.",
+      "carrier": "Returns in a week."
+    },
+    {
+      "id": "returns_month",
+      "kind": "phrase",
+      "text": "Returns in a month.",
+      "carrier": "Returns in a month."
+    },
+    {
+      "id": "nothing_due",
+      "kind": "phrase",
+      "text": "Nothing due.",
+      "carrier": "Nothing due."
+    },
+    {
+      "id": "nothing_to_drill_yet",
+      "kind": "phrase",
+      "text": "Nothing to drill yet.",
+      "carrier": "Nothing to drill yet."
+    },
+    {
+      "id": "nothing_due_branch",
+      "kind": "phrase",
+      "text": "Nothing due in this branch.",
+      "carrier": "Nothing due in this branch."
+    },
+    {
+      "id": "nothing_to_drill_branch",
+      "kind": "phrase",
+      "text": "Nothing to drill in this branch.",
+      "carrier": "Nothing to drill in this branch."
+    },
+    {
       "id": "black_plays",
       "kind": "cut",
       "text": "Black plays",
@@ -529,6 +667,110 @@
       "carrier": "Game finished. Found 3 of 5.",
       "wordFrom": 5,
       "wordTo": 5
+    },
+    {
+      "id": "after_head",
+      "kind": "cut",
+      "text": "After",
+      "carrier": "After bishop e5, which opponent moves do you prepare?",
+      "wordFrom": 1,
+      "wordTo": 1
+    },
+    {
+      "id": "which_opponent_moves",
+      "kind": "cut",
+      "text": "which opponent moves do you prepare?",
+      "carrier": "After bishop e5, which opponent moves do you prepare?",
+      "wordFrom": 4,
+      "wordTo": 9
+    },
+    {
+      "id": "is_in_your_repertoire",
+      "kind": "cut",
+      "text": "is in your repertoire.",
+      "carrier": "Bishop e5 is in your repertoire. The most played reply is knight c6.",
+      "wordFrom": 3,
+      "wordTo": 6
+    },
+    {
+      "id": "most_played_reply_is",
+      "kind": "cut",
+      "text": "The most played reply is",
+      "carrier": "Bishop e5 is in your repertoire. The most played reply is knight c6.",
+      "wordFrom": 7,
+      "wordTo": 11
+    },
+    {
+      "id": "your_move_is",
+      "kind": "cut",
+      "text": "Your move is",
+      "carrier": "Your move is bishop e5. Play it.",
+      "wordFrom": 1,
+      "wordTo": 3
+    },
+    {
+      "id": "your_main_move_is",
+      "kind": "cut",
+      "text": "Your main move is",
+      "carrier": "Your main move is bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
+      "id": "returns_in",
+      "kind": "cut",
+      "text": "Returns in",
+      "carrier": "Returns in 3 weeks.",
+      "wordFrom": 1,
+      "wordTo": 2
+    },
+    {
+      "id": "days_tail",
+      "kind": "cut",
+      "text": "days.",
+      "carrier": "Returns in 3 more days.",
+      "wordFrom": 5,
+      "wordTo": 5
+    },
+    {
+      "id": "weeks_tail",
+      "kind": "cut",
+      "text": "weeks.",
+      "carrier": "Returns in 3 weeks.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "months_tail",
+      "kind": "cut",
+      "text": "months.",
+      "carrier": "Returns in 3 months.",
+      "wordFrom": 4,
+      "wordTo": 4
+    },
+    {
+      "id": "nothing_due_after",
+      "kind": "cut",
+      "text": "Nothing due after",
+      "carrier": "Nothing due after bishop e5.",
+      "wordFrom": 1,
+      "wordTo": 3
+    },
+    {
+      "id": "nothing_to_drill_after",
+      "kind": "cut",
+      "text": "Nothing to drill after",
+      "carrier": "Nothing to drill after bishop e5 yet.",
+      "wordFrom": 1,
+      "wordTo": 4
+    },
+    {
+      "id": "yet_tail",
+      "kind": "cut",
+      "text": "yet.",
+      "carrier": "Nothing to drill after bishop e5 yet.",
+      "wordFrom": 7,
+      "wordTo": 7
     },
     {
       "id": "nmid_0",

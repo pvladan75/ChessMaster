@@ -435,7 +435,9 @@ void main() {
     expect(tester.takeException(), isNull);
     // The breadcrumb names the board, not the position behind it.
     expect(find.text('1.e4 e6 2.d4 d5 3.e5 c5'), findsOneWidget);
-    expect(find.text('After c5 — which opponent moves do you prepare?'),
+    // SUPERSEDED: „After c5 — which opponent moves do you prepare?" — the move
+    // is said as a move now (phase 4c of `docs/PLAN-GOVOR-IZ-KLIPOVA.md`).
+    expect(find.text('After pawn c5 which opponent moves do you prepare?'),
         findsOneWidget);
     // No button back to the position already on the board: the strip under
     // it is the way back.

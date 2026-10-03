@@ -239,7 +239,7 @@ void main() {
     final api = _FakeApi();
     await pump(tester, api);
 
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
     // The move the student decided on is nowhere on the screen until they ask
     // for it or play something.
     expect(find.textContaining('Nc6'), findsNothing);
@@ -257,11 +257,15 @@ void main() {
     expect(find.textContaining('Returns in 6 days'), findsOneWidget);
     expect(api.lastRevealedFlag, false);
 
-    // And then it walks on by itself, carrying the verdict with it: the panel
-    // that named the schedule is gone, and the sentence it was named in is not.
+    // And then it walks on by itself. SUPERSEDED (phase 4c of
+    // `docs/PLAN-GOVOR-IZ-KLIPOVA.md`): the verdict used to be carried into the
+    // next question as „Correct — Nc6 · opponent f3 · returns in 6 days". It
+    // was said when its panel was drawn, once, and a sentence that is said
+    // twice is how a voice becomes noise; the next question speaks for itself.
     await walkOn(tester);
-    expect(find.text('What do you play as Black?'), findsOneWidget);
-    expect(find.textContaining('returns in 6 days'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
+    expect(find.textContaining('6 days'), findsNothing);
+    expect(find.textContaining('Correct'), findsNothing);
   });
 
   testWidgets('good chess that is not their decision is still a miss',
@@ -274,7 +278,9 @@ void main() {
     await play(tester, 'g8', 'f6');
 
     expect(find.textContaining('Incorrect'), findsOneWidget);
-    expect(find.textContaining('Your move is Nc6'), findsOneWidget);
+    // SUPERSEDED: „Your move is Nc6" — the move is now said as a move, which
+    // is the one way the voice and the screen both say it.
+    expect(find.textContaining('Your move is knight c6'), findsOneWidget);
   });
 
   testWidgets('asking to be shown marks the answer as recognised',
@@ -284,7 +290,8 @@ void main() {
 
     await tester.tap(find.text('Show'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Your move is Nc6'), findsOneWidget);
+    // SUPERSEDED: „Your move is Nc6. Play it." — said as a move now.
+    expect(find.text('Your move is knight c6. Play it.'), findsOneWidget);
     expect(api.reveals, 1);
 
     await play(tester, 'b8', 'c6');
@@ -300,14 +307,18 @@ void main() {
 
     await play(tester, 'b8', 'c6');
 
-    expect(find.textContaining('Opponent replied a3'), findsOneWidget);
-    expect(find.textContaining('you have not covered this'), findsOneWidget);
+    // SUPERSEDED: „Opponent replied a3 — you have not covered this." — the
+    // reply is a move said as a move, and the second half is its own sentence.
+    expect(find.textContaining('White plays pawn a3'), findsOneWidget);
+    expect(find.textContaining('You have not covered this reply.'),
+        findsOneWidget);
 
     // And it stops there. Being surprised is the door back into building, and
     // walking past that sentence into a position with no answer to give would
     // be the worst moment to hurry.
     await walkOn(tester);
-    expect(find.textContaining('you have not covered this'), findsOneWidget);
+    expect(find.textContaining('You have not covered this reply.'),
+        findsOneWidget);
     expect(find.text('Continue line'), findsOneWidget);
   });
 
@@ -323,7 +334,7 @@ void main() {
         reason: 'ništa se ne traži od korisnika — šetnja ide sama');
 
     await walkOn(tester);
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
 
     // And what it asks next was not what the schedule asked for, so it goes up
     // saying "write this down only if it really was due".
@@ -473,7 +484,7 @@ void main() {
     await play(tester, 'c5', 'd4');
 
     // And now the question, at the end of the line rather than on its own.
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3'), findsOneWidget);
     // Nothing along the way was graded.
     expect(api.graded, 0, reason: 'ponavljanje je ocenjeno');
@@ -727,7 +738,8 @@ void main() {
     await tester.tap(find.text('Drill e5'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Nothing due after move e5'), findsOneWidget);
+    // SUPERSEDED: „Nothing due after move e5." — the move said as a move.
+    expect(find.text('Nothing due after pawn e5.'), findsOneWidget);
     expect(find.text('Nothing due.'), findsNothing);
     expect(find.text('Back to queue'), findsOneWidget);
 
@@ -780,7 +792,7 @@ void main() {
     await tester.tap(find.text('Skip rehearsal'));
     await tester.pumpAndSettle();
 
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
     expect(find.text('1.e4 c5 2.d4 cxd4 3.c3'), findsOneWidget);
   });
 
@@ -806,7 +818,7 @@ void main() {
 
     expect(api.lineCalls, 1);
     expect(api.loads, 1);
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
     expect(find.textContaining('without rehearsal'), findsOneWidget);
   });
 
@@ -896,12 +908,17 @@ void main() {
     await tester.tap(find.text('Drill anyway'));
     await tester.pumpAndSettle();
     expect(api.lastAhead, true);
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
 
     await play(tester, 'b8', 'c6');
 
     expect(api.lastPractice, true);
-    expect(find.textContaining('rating is not recorded'), findsOneWidget);
+    // SUPERSEDED: the long „Drill ahead of schedule — rating is not recorded,
+    // so the schedule for this position has not moved." is the shorter
+    // sentence the clips have, appended to the verdict line.
+    expect(
+        find.textContaining('Ahead of schedule. The rating is not recorded.'),
+        findsOneWidget);
     // And no promise of a return date, because nothing was stored.
     expect(find.textContaining('Returns in'), findsNothing);
 
@@ -1053,7 +1070,7 @@ void main() {
       final api = _FakeApi();
       await pump(tester, api, size: size);
       expectBoardBeside(tester, size);
-      expectOnScreen(tester, size, find.text('What do you play as Black?'));
+      expectOnScreen(tester, size, find.text('What do you play with Black?'));
 
       // The board is still played where it now stands.
       await play(tester, 'b8', 'c6');

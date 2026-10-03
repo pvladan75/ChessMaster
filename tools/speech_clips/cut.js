@@ -6,7 +6,7 @@
 /// Words the way the Dart vocabulary counts them (`wordCountOf`): split on
 /// spaces, punctuation stripped.
 function wordCount(carrier) {
-  return carrier.replace(/[.,]/g, '').trim().split(/\s+/).filter(Boolean).length;
+  return carrier.replace(/[.,?]/g, '').trim().split(/\s+/).filter(Boolean).length;
 }
 
 /// The frame range of words [a..b] (1-based, inclusive) of a carrier whose

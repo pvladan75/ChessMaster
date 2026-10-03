@@ -190,6 +190,20 @@ void main() {
       expect(line.text, 'King d5 loses the draw. The drill stops here.');
     });
 
+    test('a cut token that starts with a capital closes the run before it', () {
+      final line = SpokenLine([
+        SpeechVocabulary.incorrect,
+        SpeechVocabulary.yourMoveIs,
+        SpeechVocabulary.piece('knight'),
+        SpeechVocabulary.square('c6'),
+        SpeechVocabulary.returnsIn,
+        SpeechVocabulary.numberInside(3),
+        SpeechVocabulary.daysTail,
+      ]);
+      expect(
+          line.text, 'Incorrect. Your move is knight c6. Returns in 3 days.');
+    });
+
     test('every legal shape of move names only tokens with a clip', () {
       for (final side in ['white', 'black']) {
         for (final piece in kPieces) {

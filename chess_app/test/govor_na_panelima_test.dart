@@ -7,7 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
-import 'package:chess_app/core/services/speech_text.dart';
+import 'package:chess_app/core/speech/clip_voice.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_judge_service.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_build_screen.dart';
 import 'package:chess_app/features/repertoire/screens/repertoire_drill_screen.dart';
@@ -30,9 +31,6 @@ import 'package:chess_app/widgets/speakable_info.dart';
 /// `init` accepts an engine, so the singleton can be pointed at a fake one and
 /// the screens stay exactly as they ship.
 class _Engine implements TtsEngine {
-  _Engine({this.failOnSpeak = false});
-
-  final bool failOnSpeak;
   final List<String> said = [];
   int stops = 0;
 
@@ -47,7 +45,6 @@ class _Engine implements TtsEngine {
 
   @override
   Future<void> speak(String text) async {
-    if (failOnSpeak) throw StateError('nema glasa');
     said.add(text);
   }
 
@@ -55,17 +52,48 @@ class _Engine implements TtsEngine {
   Future<void> stop() async => stops += 1;
 }
 
-/// Points the singleton the panels read at a fake engine, and sets the setting
-/// they check.
-Future<_Engine> _speech({
+/// The clips' voice, which only remembers the lines it was asked to play.
+///
+/// Phase 4c of `docs/PLAN-GOVOR-IZ-KLIPOVA.md` moved both repertoire screens
+/// from the device voice to the clips, so what these cases listen to is the
+/// `SpokenLine`s a screen hands over — token ids, not strings — and the device
+/// voice is kept only to say it was never asked.
+class _Clips extends ClipVoice {
+  _Clips({this.failOnSpeak = false, required this.device});
+
+  final bool failOnSpeak;
+  final _Engine device;
+  final List<SpokenLine> lines = [];
+
+  List<String> get said =>
+      [for (final l in lines) l.tokens.map((t) => t.id).join(' ')];
+
+  @override
+  Future<void> load(AssetBundle bundle) async {}
+
+  @override
+  Future<void> speak(SpokenLine line) async {
+    if (failOnSpeak) throw StateError('nema glasa');
+    lines.add(line);
+  }
+
+  @override
+  Future<void> stop() async {}
+}
+
+/// Points the singleton the panels read at a fake clip voice, and sets the
+/// setting they check.
+Future<_Clips> _speech({
   required bool enabled,
   bool failOnSpeak = false,
 }) async {
-  final engine = _Engine(failOnSpeak: failOnSpeak);
+  final device = _Engine();
+  final clips = _Clips(failOnSpeak: failOnSpeak, device: device);
   await SpeechService.instance.init(
     enabled: enabled,
     rate: 0.5,
-    engine: engine,
+    engine: device,
+    clipVoice: clips,
   );
   // A sentence said once in an earlier test is not said again, so the dedup
   // has to be cleared or the next pump is silent for the wrong reason.
@@ -73,7 +101,7 @@ Future<_Engine> _speech({
   final settings = AppSettingsService.instance;
   await settings.init();
   await settings.setSpeechEnabled(enabled);
-  return engine;
+  return clips;
 }
 
 const _smithMorra =
@@ -224,7 +252,7 @@ void main() {
 
   testWidgets('the drill asks its question out loud, word for word',
       (tester) async {
-    final engine = await _speech(enabled: true);
+    final clips = await _speech(enabled: true);
     await pumpDrill(tester);
 
     final panel = find.byType(SpeakableInfo);
@@ -232,28 +260,41 @@ void main() {
     final shown = _shown(tester, panel);
     // What is drawn, asserted first: the voice is then judged against the
     // screen rather than against a sentence typed into this file.
-    expect(shown, contains('What do you play as Black?'));
-    expect(
-      shown,
-      contains('Play the move you chose for this position.'),
-    );
-    expect(engine.said, [speakable(shown)]);
+    //
+    // SUPERSEDED: „What do you play as Black? Play the move you chose for this
+    // position." — one sentence now, from the clips, and the second one is
+    // deleted rather than said.
+    expect(shown, 'What do you play with Black?');
+    expect(clips.said, ['what_play_black']);
+    expect(clips.lines.single.text, shown);
+    expect(clips.device.said, isEmpty);
   });
 
   testWidgets('the verdict is spoken as it is written', (tester) async {
-    final engine = await _speech(enabled: true);
+    final clips = await _speech(enabled: true);
     await pumpDrill(tester);
 
     await play(tester, 'b8', 'c6');
-    // The walk-on beat: the verdict is what the line leaves behind it.
+
+    // SUPERSEDED: the verdict used to be spoken only as „Correct — Nc6 ·
+    // opponent f3 · returns in 6 days", the line it left behind it once the
+    // walk had moved on. It is one line now, said when its panel is drawn, and
+    // the panel is the only one on the screen until the walk moves on.
+    final verdict = find.byType(SpeakableInfo);
+    expect(verdict, findsOneWidget);
+    final shown = _shown(tester, verdict);
+    expect(shown, startsWith('Correct. White plays knight f3'));
+    expect(clips.said, [
+      'what_play_black',
+      'correct white_plays piece_knight sq_f3 returns_in nmid_6 days_tail',
+    ]);
+    expect(clips.lines.last.text, shown);
+
+    // The walk-on beat: the next question speaks, and nothing is carried over.
     await tester.pump(const Duration(milliseconds: 1500));
     await tester.pumpAndSettle();
-
-    // Two panels now: the verdict, then the next question under it.
-    final verdict = find.byType(SpeakableInfo).first;
-    final shown = _shown(tester, verdict);
-    expect(shown, startsWith('Correct — Nc6'));
-    expect(engine.said, contains(speakable(shown)));
+    expect(clips.said.last, 'what_play_black');
+    expect(clips.said, hasLength(3));
   });
 
   testWidgets('izgradnja reads the question it is asking', (tester) async {
@@ -261,7 +302,7 @@ void main() {
     // Phase 2 wrapped this screen's banner, note and finished sentence and
     // missed the one panel that asks the reader for something — which is the
     // rule the whole feature is built on.
-    final engine = await _speech(enabled: true);
+    final clips = await _speech(enabled: true);
     tester.view.physicalSize = const Size(1200, 2000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -287,7 +328,9 @@ void main() {
     // `contains`, not equality: this screen also writes a note saying it could
     // not read where the reader had got to, and since 4.9.2026 that note is
     // spoken too. Both sentences are wanted; only one of them is this test's.
-    expect(engine.said, contains(speakable(_shown(tester, panel))));
+    expect(clips.said, contains('what_play_black'));
+    expect(clips.lines.map((l) => l.text), contains(_shown(tester, panel)));
+    expect(clips.device.said, isEmpty);
   });
 
   testWidgets('izgradnja reads the sentence saying what just happened',
@@ -299,7 +342,7 @@ void main() {
     // speak. Every one of those messages goes through this one `_note`, so the
     // note reached here — the server did not answer about where the reader had
     // got to — is the same panel the findings were about.
-    final engine = await _speech(enabled: true);
+    final clips = await _speech(enabled: true);
     tester.view.physicalSize = const Size(1200, 2000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -317,28 +360,36 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    // SUPERSEDED: „Could not read your progress — starting from the repertoire
+    // opening position." — the clips' own sentence.
     final note = find.textContaining('Could not read your progress');
     expect(note, findsOneWidget, reason: 'poruka mora da se vidi');
     final panel = find.ancestor(of: note, matching: find.byType(SpeakableInfo));
     expect(panel, findsOneWidget,
         reason: 'poruka o tome šta se upravo desilo mora da može da se čuje');
-    expect(engine.said, contains(speakable(_shown(tester, panel))));
+    expect(clips.said, contains('progress_not_read'));
+    expect(clips.lines.map((l) => l.text), contains(_shown(tester, panel)));
   });
 
-  testWidgets('nothing due says so, and only when asked', (tester) async {
-    final engine = await _speech(enabled: true);
+  testWidgets('nothing due says so on arrival, and again when asked',
+      (tester) async {
+    // SUPERSEDED: „says so, and only when asked" — the screen said nothing by
+    // itself and the speaker beside it said it. Phase 4c of
+    // `docs/PLAN-GOVOR-IZ-KLIPOVA.md` speaks it when it appears, like every
+    // other sentence the table lists, and the speaker still says it again.
+    final clips = await _speech(enabled: true);
     await pumpDrill(tester, item: null, positions: 0);
 
     final panel = find.byType(SpeakableInfo);
     expect(panel, findsOneWidget);
     final shown = _shown(tester, panel);
     expect(shown, 'Nothing to drill yet.');
-    expect(engine.said, isEmpty);
+    expect(clips.said, ['nothing_to_drill_yet']);
 
     await tester
         .tap(find.descendant(of: panel, matching: find.byType(IconButton)));
     await tester.pumpAndSettle();
-    expect(engine.said, [speakable(shown)]);
+    expect(clips.said, ['nothing_to_drill_yet', 'nothing_to_drill_yet']);
   });
 
   testWidgets('turning speech on reads the question already on screen',
@@ -347,40 +398,42 @@ void main() {
     // was built or when its words changed, and the app-bar switch is neither.
     // So the drill stayed silent on the question in front of the reader and
     // the first thing spoken was the verdict at the end of the line.
-    final engine = await _speech(enabled: false);
+    final clips = await _speech(enabled: false);
     await pumpDrill(tester);
-    expect(engine.said, isEmpty);
+    expect(clips.said, isEmpty);
 
     final panel = find.byType(SpeakableInfo);
     final shown = _shown(tester, panel);
-    expect(shown, contains('What do you play as Black?'));
+    expect(shown, 'What do you play with Black?');
 
     // The app-bar switch, used the way item 92 tells the reader to use it.
     await tester.tap(find.byType(SpeechToggleButton));
     await tester.pumpAndSettle();
 
-    expect(engine.said, [speakable(shown)]);
+    expect(clips.said, ['what_play_black']);
+    expect(clips.lines.single.text, shown);
   });
 
   testWidgets('with speech off the drill says nothing at all', (tester) async {
-    final engine = await _speech(enabled: false);
+    final clips = await _speech(enabled: false);
     await pumpDrill(tester);
 
     // Off is the default, so this is the screen most readers see.
-    expect(engine.said, isEmpty);
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(clips.said, isEmpty);
+    expect(clips.device.said, isEmpty);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
   });
 
   testWidgets('a machine with no voice still draws the whole drill',
       (tester) async {
-    final engine = await _speech(enabled: true, failOnSpeak: true);
+    final clips = await _speech(enabled: true, failOnSpeak: true);
     await pumpDrill(tester);
 
-    // The engine was reached and refused; the panel it was decorating is still
+    // The voice was reached and refused; the panel it was decorating is still
     // there, and nothing was thrown at the framework.
-    expect(engine.said, isEmpty);
+    expect(clips.said, isEmpty);
     expect(tester.takeException(), isNull);
-    expect(find.text('What do you play as Black?'), findsOneWidget);
+    expect(find.text('What do you play with Black?'), findsOneWidget);
     expect(find.byType(SpeechToggleButton), findsOneWidget);
   });
 
