@@ -1367,7 +1367,13 @@ verdict in the panel and the engine there only once the puzzle is over
 twelve in `ai_studio_screen.dart` gone with the rewrite). **A gate that pumps
 `ThemeData.dark()` measures a different button**: green while „Next" was half
 under a 900 × 700 window in the app's own theme — a layout gate pumps the
-app's theme with real fonts (`test/support/render_look.dart`).
+app's theme with real fonts (`test/support/render_look.dart`). Then its
+phases 2 and 3, the tactics trainer and My mistakes on the same layout
+(→ **5678**, measured once on master after both merges; analyze the same 10):
+the tactics counter that said „found 0" after a solve (`floor` of an odd
+cursor), and every move in My mistakes in SAN (`sanOfUci`, beside
+`uciOfSan`). **A render finds what a text assertion cannot**: the gate held
+„O-O" and was green while the panel broke it at its hyphen.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
