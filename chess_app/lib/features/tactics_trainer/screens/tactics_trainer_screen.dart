@@ -845,24 +845,35 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     final session = _session;
     if (puzzle == null || session == null) return const SizedBox.shrink();
 
+    final result = _lastResult;
+    final feedback = _feedback ?? const <SpokenLine>[];
+
+    // Once the puzzle is over the task line no longer asks for a move: „White
+    // to move. Find the best move." over a board that will not answer reads
+    // as a frozen board (the endgame trainer's rule, the owner's word of
+    // 3.10.2026). It says how the puzzle ended — the verdict's last line,
+    // „Solved." or „Not solved." — and is not said again, because `_finish`
+    // has just said it. Any line before it stays in the box.
+    final over = session.isComplete && feedback.isNotEmpty;
+
     // The sentence the task line draws is the sentence it speaks (D4): one
     // SpokenLine, read for both.
-    final task = SpokenLine([
-      _userSide == PlayerColor.white
-          ? SpeechVocabulary.whiteToMove
-          : SpeechVocabulary.blackToMove,
-      SpeechVocabulary.findBestMove,
-    ]);
-
-    final result = _lastResult;
-    final lines = _feedback ?? const <SpokenLine>[];
+    final task = over
+        ? feedback.last
+        : SpokenLine([
+            _userSide == PlayerColor.white
+                ? SpeechVocabulary.whiteToMove
+                : SpeechVocabulary.blackToMove,
+            SpeechVocabulary.findBestMove,
+          ]);
+    final lines = over ? feedback.sublist(0, feedback.length - 1) : feedback;
 
     return TrainerInfoPanel(
       // A new puzzle is a new panel: it says its task again (D4), which a
       // panel kept across puzzles would not.
       key: ValueKey('task-$_taskSerial'),
       task: task,
-      autoSpeak: true,
+      autoSpeak: !over,
       speech: widget.speech,
       chips: [
         'Rating ${puzzle.rating}',

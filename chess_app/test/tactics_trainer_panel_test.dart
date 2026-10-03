@@ -291,5 +291,18 @@ void main() {
       expect(find.text('Next puzzle'), findsNothing, reason: 'one word (R6)');
       await _leave(tester);
     });
+
+    testWidgets(
+        'once it is over the task line no longer asks for a move: it says '
+        'how the puzzle ended, once', (tester) async {
+      await _pump(tester, await _speech(), _window);
+      await _move(tester, 'a1', 'a8');
+      // „White to move. Find the best move." over a board that will not
+      // answer reads as a frozen board — the endgame trainer's rule.
+      expect(find.text(_task), findsNothing);
+      expect(_inPanel(find.text('Solved.')), findsOneWidget,
+          reason: 'the ending, said once — as the task line, not twice');
+      await _leave(tester);
+    });
   });
 }
