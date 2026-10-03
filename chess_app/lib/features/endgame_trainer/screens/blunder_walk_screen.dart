@@ -17,7 +17,7 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
-import 'package:chess_app/widgets/endgame_info_panel.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
@@ -644,7 +644,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
 
     final wide = Breakpoints.isWide(context);
     final task = _task(walk);
-    final panel = EndgameInfoPanel(
+    final panel = TrainerInfoPanel(
       key: ValueKey('panel-$_panelSerial'),
       task: task,
       detail: _detail(walk),
@@ -728,7 +728,7 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
       builder: (context, constraints) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: EndgameBoardLayout(
+          child: TrainerBoardLayout(
             wide: wide,
             constraints: constraints,
             panel: panel,

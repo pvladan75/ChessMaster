@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:chess_app/core/speech/spoken_line.dart';
 import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/theme/breakpoints.dart';
-import 'package:chess_app/widgets/endgame_info_panel.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 
 const _boardKey = Key('board');
 
@@ -12,10 +12,10 @@ Widget harness({required double width, required double height}) => MaterialApp(
       home: Scaffold(
         body: Builder(
           builder: (context) => LayoutBuilder(
-            builder: (context, constraints) => EndgameBoardLayout(
+            builder: (context, constraints) => TrainerBoardLayout(
               wide: Breakpoints.isWide(context),
               constraints: constraints,
-              panel: EndgameInfoPanel(
+              panel: TrainerInfoPanel(
                 task: SpokenLine([
                   SpeechVocabulary.whiteToMove,
                   SpeechVocabulary.holdTheDraw
@@ -55,7 +55,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final board = tester.getRect(find.byKey(_boardKey));
-    final panel = tester.getRect(find.byType(EndgameInfoPanel));
+    final panel = tester.getRect(find.byType(TrainerInfoPanel));
 
     // Beside, not above or below: the whole point is that the board and what
     // is being said about it are in view together.
@@ -80,7 +80,7 @@ void main() {
     // Narrow means the layout renders the board column alone; the screen puts
     // the panel under it, which is why there is none in the tree here.
     expect(tester.takeException(), isNull);
-    expect(find.byType(EndgameInfoPanel), findsNothing);
+    expect(find.byType(TrainerInfoPanel), findsNothing);
     expect(tester.getSize(find.byKey(_boardKey)).width, 360 - 24);
     // Square, and bounded by the tighter axis either way.
     expect(tester.getSize(find.byKey(_boardKey)).height, 360 - 24);
@@ -104,7 +104,7 @@ void main() {
     Future<int> boxes({List<SpokenLine> message = const []}) async {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
-          body: EndgameInfoPanel(
+          body: TrainerInfoPanel(
             task: task,
             chips: const ['KRPPvKR'],
             message: message,
@@ -134,7 +134,7 @@ void main() {
       'full stop', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
-        body: EndgameInfoPanel(
+        body: TrainerInfoPanel(
           task: SpokenLine([SpeechVocabulary.goForward]),
           message: [
             SpokenLine([

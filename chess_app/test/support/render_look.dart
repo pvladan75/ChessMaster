@@ -58,6 +58,11 @@ ThemeData robotoTheme(ThemeData t) {
         OutlinedButtonThemeData(style: b(t.outlinedButtonTheme.style)),
     textButtonTheme: TextButtonThemeData(style: b(t.textButtonTheme.style)),
     chipTheme: t.chipTheme.copyWith(labelStyle: f(t.chipTheme.labelStyle)),
+    dialogTheme: t.dialogTheme.copyWith(
+      titleTextStyle: f(t.dialogTheme.titleTextStyle ?? t.textTheme.titleLarge),
+      contentTextStyle:
+          f(t.dialogTheme.contentTextStyle ?? t.textTheme.bodyMedium),
+    ),
     tabBarTheme: t.tabBarTheme.copyWith(
       labelStyle: f(t.tabBarTheme.labelStyle),
       unselectedLabelStyle: f(t.tabBarTheme.unselectedLabelStyle),

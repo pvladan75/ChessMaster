@@ -197,7 +197,17 @@ helper and looks at it before calling the phase done — on the owner's window
 and on the phone. A phase is not done on a green gate alone (the 27.9 and 2.10
 lessons: the gate's own fixture fit; the real content did not).
 
-### Phase 0 — the shared pieces `[lead]`
+### Phase 0 — the shared pieces `[lead]` — built 3.10.2026
+
+**Done:** the two classes renamed and moved to
+`APP/widgets/trainer_board_layout.dart` with their test
+(`T/trainer_board_layout_test.dart`) and the source path that
+`T/speech_endgames_test.dart` reads; nothing else in them changed. Full suite
+5605 passed, 1 skipped — the baseline measured in a fresh worktree of
+`865a15b0` the same day gave 5604 and one failure, which was the checkout and
+not the code (`speech_clips_test` compared `manifest.json` byte for byte, and a
+fresh Windows clone writes it with CRLF; the test now compares the text, proved
+red on wrong content). `flutter analyze`: the same 22 infos.
 
 - `TrainerBoardLayout` / `TrainerInfoPanel` as §4.1, every reader moved, the
   old file gone (grep `EndgameBoardLayout`, `EndgameInfoPanel` and

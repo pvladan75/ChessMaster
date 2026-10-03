@@ -7,7 +7,10 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/speakable_info.dart';
 
-/// Everything the endgame screens have to say, in one place and in one order.
+/// Everything a board screen has to say, in one place and in one order — the
+/// panel of rules R2 and R3 in `docs/PLAN-EKRANI.md`. Built for the endgame
+/// trainer and the blunder walk, and named for every board screen since
+/// 3.10.2026.
 ///
 /// It used to be two places: the task and the context above the board, the
 /// verdict below it. On a desktop window that meant looking over the board and
@@ -30,8 +33,8 @@ import 'package:chess_app/widgets/speakable_info.dart';
 /// phase 4b): what is drawn is the line's text, and what is heard is the same
 /// line played from the shipped clips, so the two cannot differ. Nothing here
 /// reaches the device voice.
-class EndgameInfoPanel extends StatefulWidget {
-  const EndgameInfoPanel({
+class TrainerInfoPanel extends StatefulWidget {
+  const TrainerInfoPanel({
     super.key,
     required this.task,
     this.taskText,
@@ -83,13 +86,13 @@ class EndgameInfoPanel extends StatefulWidget {
   static const double sideWidth = 280;
 
   @override
-  State<EndgameInfoPanel> createState() => _EndgameInfoPanelState();
+  State<TrainerInfoPanel> createState() => _TrainerInfoPanelState();
 }
 
 /// The panel is also where the task is said from — by [SpeakableInfo], which
 /// owns the speaker and the rule that it is never a no-op — and where the line
 /// under it is said right after.
-class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
+class _TrainerInfoPanelState extends State<TrainerInfoPanel> {
   SpeechService get _speech => widget.speech ?? SpeechService.instance;
 
   @override
@@ -99,7 +102,7 @@ class _EndgameInfoPanelState extends State<EndgameInfoPanel> {
   }
 
   @override
-  void didUpdateWidget(EndgameInfoPanel old) {
+  void didUpdateWidget(TrainerInfoPanel old) {
     super.didUpdateWidget(old);
     if (old.detail?.text != widget.detail?.text) _sayDetail();
   }
@@ -215,8 +218,8 @@ class _Chip extends StatelessWidget {
 /// monitor left the panel marooned at the far edge with a hand's width of empty
 /// board between them - the two things you have to read together, as far apart
 /// as the window allowed.
-class EndgameBoardLayout extends StatelessWidget {
-  const EndgameBoardLayout({
+class TrainerBoardLayout extends StatelessWidget {
+  const TrainerBoardLayout({
     super.key,
     required this.wide,
     required this.constraints,
@@ -245,7 +248,7 @@ class EndgameBoardLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final aside = wide ? EndgameInfoPanel.sideWidth + _gap : 0.0;
+    final aside = wide ? TrainerInfoPanel.sideWidth + _gap : 0.0;
     // The board is square, so the tighter axis bounds it. Both are needed: a
     // short wide window and a tall narrow one fail in opposite directions, and
     // a release build paints no warning when either does.
@@ -267,7 +270,7 @@ class EndgameBoardLayout extends StatelessWidget {
         children: [
           SizedBox(width: columnWidth, child: builder(boardSize)),
           const SizedBox(width: _gap),
-          SizedBox(width: EndgameInfoPanel.sideWidth, child: panel),
+          SizedBox(width: TrainerInfoPanel.sideWidth, child: panel),
         ],
       ),
     );

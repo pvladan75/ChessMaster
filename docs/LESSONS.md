@@ -10299,3 +10299,28 @@ doc comment, caught because the script asserted on a sentence in that
 comment afterwards. And **an assertion that a word is gone is an assertion
 about the word's neighbours too**: „no `device` left" tripped on
 `devicePixelRatio`, and the fix is a word boundary, not a shorter check.
+
+## 3.10.2026 — PLAN-EKRANI, phase 0: the board layout named for every screen (app 5605, unchanged)
+
+Arithmetic: a rename moves no test — `endgame_info_panel_test.dart` became
+`trainer_board_layout_test.dart` with the same cases, so 5605 passed and 1
+skipped, as `CLAUDE.md` quotes. **The baseline did not say that.** Measured in
+a fresh worktree of `865a15b0` before the change, it gave 5604 and one
+failure: `speech_clips_test`'s „manifest.json is the vocabulary" compared the
+file byte for byte with the text the vocabulary generates. The generator writes
+LF; a fresh Windows clone writes the file CRLF (`.gitattributes`, `text=auto`
+with `core.autocrlf`). The main tree passed only because the tool had rewritten
+the file there, and CI is Linux. **A test that compares a checked-out text
+file byte for byte is a test of the checkout** — rule 8's machine, by another
+door. The test now compares the text with `\r\n` folded, proved red on a
+changed voice name in the same CRLF worktree. And **the baseline earns its
+cost when it disagrees with the documented number**: the documented 5605 was
+true of one working tree, not of the repository.
+
+The pictures the plan was decided from were made by rendering real screens
+with real fonts (`test/support/render_look.dart`). A button and an app-bar
+title take their whole text style from the theme rather than merging with the
+ambient one, so a style with no family draws as boxes in a test even where
+the body text is Roboto; naming the family in the theme's button, app-bar,
+chip, tab and dialog styles fixed every label but a `RichText` with no root
+style, which takes nothing from the theme at all.

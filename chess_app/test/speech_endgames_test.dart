@@ -1106,7 +1106,7 @@ void main() {
       for (final path in [
         'lib/features/endgame_trainer/screens/endgame_trainer_screen.dart',
         'lib/features/endgame_trainer/screens/blunder_walk_screen.dart',
-        'lib/widgets/endgame_info_panel.dart',
+        'lib/widgets/trainer_board_layout.dart',
       ]) {
         final code = _code(path);
         expect(code, isNot(contains('.speak(')), reason: path);

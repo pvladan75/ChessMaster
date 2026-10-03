@@ -22,7 +22,7 @@ import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
-import 'package:chess_app/widgets/endgame_info_panel.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import 'package:chess_app/features/analysis_studio/services/open_game_in_analysis.dart';
@@ -1222,7 +1222,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
 
     final wide = Breakpoints.isWide(context);
     final task = _task(solve);
-    final panel = EndgameInfoPanel(
+    final panel = TrainerInfoPanel(
       key: ValueKey('panel-$_panelSerial'),
       task: task.line,
       taskText: task.text,
@@ -1292,7 +1292,7 @@ class _EndgameTrainerScreenState extends State<EndgameTrainerScreen> {
       builder: (context, constraints) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: EndgameBoardLayout(
+          child: TrainerBoardLayout(
             wide: wide,
             constraints: constraints,
             panel: aside,
