@@ -198,11 +198,30 @@ neizgovorena. Priručnik više ne pominje `Hint` za taktiku. Kapija
 provera uživo [265.8], [265.9]. Sledeći modul: završnice i `EndgameInfoPanel`
 (tabela reči pre gradnje).
 
-**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4a: **5515** (1
-preskočen; 5499 pre nje, +17 kapija, −1 obrisan slučaj sa hintom), upisano u
-`CLAUDE.md` i `LESSONS.md`; vlasnikova provera uživo [265.1]–[265.7]; pa faza 4 — tabela
-reči za sledeći modul (taktika, pa završnice i `EndgameInfoPanel`, pa
-repertoar, pa šetnja), svaka odobrena pre gradnje; `flutter_tts` se briše tek
+**Faza 4b, završnice i šetnja kroz greške, 3.10.2026** (implementer na
+odobrenu tabelu, lead ocenio): trener završnica i `BlunderWalkScreen` govore
+iz klipova kroz `EndgameInfoPanel` (zadatak, priča „In the game, White played
+*potez* and dropped the win.", presude, odgovor protivnika kao potez, „Show
+solution" kao potezi, kraj šetnje „Game finished. Found 3 of 5."); **`Hint`
+obrisan i u završnicama na vlasnikovu reč**, dugi tekstovi skraćeni na
+izgovorene rečenice (spisak izbačenih rečenica je u izveštaju implementera,
+tabela u planu); panel prvi put ima zvučnik (`SpeakableInfo` na zadatku).
+150 novih klipova (434 ukupno, 13,2 MB) — `nmid_N` za broj unutar rečenice,
+`MoveWords.bare` za potez unutar rečenice (bez „Check"), `factsOfSan` za
+notaciju sa servera. Dve granice kapije klipova pomerene po merenju (rep
+isečka sa dvotačkom do 159 ms; „of" 88 ms). Grana „That was the last
+mistake. Game over." bila je mrtva na masteru (`movesLeft <= 0`, a kursor
+stoji na samoj grešci) — sad `<= 1`, sa slučajem. Lead-ova ispravka pri
+ocenjivanju: dupla tačka i veliko slovo prešli iz panela u `SpokenLine`
+(jedno pravilo, jedan dom). Kapija `speech_endgames_test` 44 slučaja, 13 + 2
+mutacije crvene; analyze istih 22; priručnik bez `Hint` za završnice; provera
+uživo [265.10]–[265.13]. Sledeći modul: repertoar (gradnja i vežba), pa
+šetnja („Your note" odluka), pa brisanje `flutter_tts`.
+
+**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4b: **5557** (1
+preskočen; 5515 pre nje), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova
+provera uživo [265.1]–[265.13]; pa faza 4 — tabela reči za sledeći modul
+(repertoar, pa šetnja), svaka odobrena pre gradnje; `flutter_tts` se briše tek
 na kraju.
 
 ## Teme u domaćem: čip radi ono što piše — 1.10.2026, komitovano na `master` i gurnuto; provera uživo [263.2]

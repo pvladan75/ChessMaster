@@ -370,11 +370,55 @@ the gate waits the reply's and the solution's beats explicitly. The manual's
 tactics sentence no longer names the Hint; the endgame trainer keeps its
 own. Live items [265.8]–[265.9].
 
+### Phase 4b — the endgame trainer and the blunder walk `[implementer]` — built 3.10.2026
+
+The owner approved the table in chat on 3.10.2026 („Idemo tako, Hint izbaci
+i u završnicama, skrati tekstove"): **the Hint is deleted here too** (the
+button, the H key, `_hintSquare`, `revealHint` / `usedHint` in the endgame
+model), and the long explanations are cut to the spoken sentences. Both
+screens draw everything through `EndgameInfoPanel`, which now takes a task
+line, a detail line, verdict lines and a drawn-only note, and carries a
+`SpeakableInfo` on the task — the panel had no speaker before. The table, as
+built:
+
+| When | Spoken, and drawn |
+|---|---|
+| A position appears (trainer) | „White to move. Keep the win." / „Hold the draw.", then the story: „In the game, White played *move* and dropped the win." / „…and lost the draw." |
+| A right move with more to find | „Correct. The win is kept. Other moves to find: 2." — one line, because the service holds one queued line and the server's reply must not find the slot taken |
+| The last move that holds | „Correct. The draw is held. You found every move that holds." / „…That was the only move." |
+| A wrong move | „That move drops the win. Try another." / „…loses the draw…"; judged by the engine: „The engine judges that this move…"; a repeat: „You already found that move. Look for another." |
+| Back after a wrong move in the drill | „Restored to the position before that move. Try another." |
+| Show solution | „The only move that keeps the win is *move*." / „These moves keep the win: *move*, *move*." — the one drawn text that is not the line's own: the clips have no word for a comma |
+| Play to the end | „Play to the end. Keep the win." / „…Hold the draw."; the opponent's reply as a move; „Good. Keep going. Moves left to hold: 7."; the end: „Checkmate. Drill completed." / „Draw held. Drill completed."; a move that lets it go: the move, then „lets the win go. The position is now lost." / „…now a draw." / „loses the draw. The drill stops here." |
+| Conclude draw | „Draw. Nothing left to hold." — or, not a dead position yet, „Moves left to hold: 8." |
+| The tablebase does not answer | „The tablebase is not answering. Try again in a moment." (every site, the walk's refutation included) |
+| The blunder walk, at a mistake | „White played *move* here and let the win go." / „…and lost the draw.", then „Play the move that holds the win." / „…the draw." |
+| The walk's verdicts | „Correct. The game continues as played." / „Correct. That was the last mistake. Game over." — the latter reachable for the first time: the branch compared `movesLeft` with 0 and the cursor stands on the mistake itself, so it was dead on master; it is `<= 1` now, with a case. A wrong move: the move, then „also lets the win go. Try another move." / „does not hold the draw. Try another move."; „Watch the refutation of *move*." |
+| The walk's end | „Game finished. Found 3 of 5." — the number inside a sentence is its own set of clips (`nmid_N`, cut from „Found N of 5."), because a number cut from the end of „Mate in N." falls |
+| Drawn, never spoken | „Checking tablebases…", the server's own refusal, „Holding moves were: …" on the walk's reveal, the keep-for-later result, „*SAN* did not hold." when the client cannot read a move the server judged |
+
+Fifty tokens and the hundred inside-numbers (434 clips, 13.2 MB). A move
+inside a sentence is said by `MoveWords.bare`, which drops „Check" and
+„Checkmate" — inside „In the game, White played rook d3 and dropped the win"
+a check would be a sentence of its own in the middle — and `factsOfSan` turns
+the notation a server hands over into facts. Two of the clip gate's bounds
+moved on measurement: a cut head that ends on a colon keeps half of the pause
+after it (80–159 ms), and „of" is 88 ms of voice, under the old floor for an
+empty clip. Gate `test/speech_endgames_test.dart`, 44 cases; thirteen
+mutations by the worker and two by the lead, each red on named cases. The one
+grading change: the worker had repaired a doubled full stop in the panel
+(„…The drill stops here..", a cut token that ends a sentence followed by the
+stop that closes a run) and capitalised the first letter there; both rules
+are `SpokenLine`'s now, so every screen gets them, and the panel's copy is
+deleted. The manual's endgame sentence no longer names the Hint, and the Keyboard
+Shortcuts page no longer lists H — the full run found that row, which no
+grep of the label had. Live items [265.10]–[265.13].
+
 ### Phase 4 — the other modules, one table each `[briefed after phase 3]`
 
-In the order of what already speaks: the tactics trainer; the endgame trainer
-and the blunder walk (`EndgameInfoPanel`); the repertoire build and drill;
-the walkthrough. Each gets its own table in the shape of D3, approved before
+In the order of what already speaks: the tactics trainer (4a, built); the
+endgame trainer and the blunder walk (4b, built); the repertoire build and
+drill; the walkthrough. Each gets its own table in the shape of D3, approved before
 it is built, because the owner has said the words on the screens are not
 final and settling them is a walk through the app, module by module.
 

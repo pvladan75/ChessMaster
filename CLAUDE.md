@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5515 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5557 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1320,7 +1320,18 @@ the tactics trainer (→ **5515**, a full run the same day: 17 cases in, one
 hinted-solve case out): the setup move and the task on arrival, verdicts,
 replies and the shown solution as moves, **the Hint deleted on the owner's
 word**, and the device voice never asked anything on that screen. **A drawn
-sentence is never left unsaid** — the one grading change.
+sentence is never left unsaid** — the one grading change. Then phase 4b, the
+endgame trainer and the blunder walk (→ **5557**, a full run the same day with
+nothing else running; analyze the same 22): the task, the story from the game,
+verdicts, the reply and the shown solution as moves, the walk's end as „Game
+finished. Found 3 of 5.", **the Hint deleted here too on the owner's word**
+and the long explanations cut to the spoken sentences. The worker had
+repaired a doubled full stop where it showed, in the panel; **a rule repaired
+where its symptom shows is a second home for it**, so it moved into
+`SpokenLine`. The gate's case for „Game over" found that sentence
+unreachable since the walk was written, and the full run found the Keyboard
+Shortcuts page still offering H — **a deleted button is grepped by its key
+as well as its label.**
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

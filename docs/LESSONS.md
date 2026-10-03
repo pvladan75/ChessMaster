@@ -10235,3 +10235,23 @@ never left unsaid** — the worker left „Solved with help.“ drawn and silent
 Show solution because the table listed only the moves; the rule outranks the
 table. And **`pumpAndSettle` does not wait out a `Future.delayed`**: a screen
 that beats before a reply needs the gate to wait that beat by name.
+
+Phase 4b, the endgame trainer and the blunder walk: 5515 → **5557** (+44
+in `speech_endgames_test`, one pure case in `spoken_line_test`, the rest the
+rewritten endgame cases and the Hint's deleted ones). Three things. **A rule
+repaired where its symptom shows is a second home for it** — the worker
+collapsed `..` and capitalised the first letter in the panel's drawing, and
+every later screen would have needed the same two lines; both moved into
+`SpokenLine`, where the sentence is made. **A branch no input can reach is
+found when a case is written for its sentence**: „That was the last mistake.
+Game over." compared the moves left with 0, and the cursor stands on the
+mistake itself, so the count was never below 1 — dead since the walk was
+written, and the gate's case for the sentence is what found it. And
+**a mutation's restore must restore the mutation, not the file**: `git
+checkout` on a file that also carries the day's edit undoes the edit, which
+the next targeted run reports as green on the old code. Keep a copy beside
+the mutation and restore from that.
+And the full run found the Keyboard Shortcuts page still offering H for the
+Hint: the grep for the deleted label ran over the screen, the tests and
+`site/`, and the page that lists keys is in `lib/screens/` — **a deleted
+button is grepped by its key as well as its label.**

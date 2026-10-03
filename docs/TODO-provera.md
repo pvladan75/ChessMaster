@@ -4555,6 +4555,34 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Prvi red je potez sa najmanjim „mate in N"; uzimanje ili potez pešakom nije iznad bržeg mata; potezi koji gube stoje na dnu, onaj koji najduže drži prvi među njima („mated in N" najveće); remi potez nema broj. Kod sedam figura ispod liste piše „…DTZ is shown: … not to mate."
    Potrebno: Windows ili telefon; server (restartovan posle izmene — nodemon to radi sam); internet.
 
+52. [ ] **Završnice govore iz klipova: zadatak, priča iz partije, presude, odgovor protivnika kao potez.** [265.10]
+   O čemu se radi: Faza 4b plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026): trener završnica govori iz ugrađenih klipova kroz isti panel koji crta tekst — „White to move. Keep the win.", pa „In the game, White played *potez* and dropped the win.", presude („Correct. The win is kept. Other moves to find: 2."), „Play to the end" sa odgovorom protivnika kao potezom i „Good. Keep going. Moves left to hold: 7.", kraj „Checkmate. Drill completed.". Nacrtano i izgovoreno su ista rečenica; potez unutar rečenice se kaže bez „Check".
+   Gde: `Practise` → `Endgames from real games` → `Win` → (izaberi vrste) → `Start`; zvučnik na zadatku uključuje govor.
+   Uradi: Reši jednu poziciju pogrešnim pa tačnim potezom, pa `Play to the end` do kraja; pa jednu sa `Show solution`; pa jednu `Hold a draw` sa `Conclude draw`.
+   Treba da vidiš: Svaka rečenica koju panel nacrta se i čuje, i obrnuto; potez protivnika se kaže kao „Black plays king e4."; „Show solution" kaže poteze redom i crta ih sa zarezima; nigde dupla tačka ni rečenica malim slovom; nema spojeva koji zvuče kao dva glasa.
+   Potrebno: Windows i telefon; server; internet.
+
+53. [ ] **Šetnja kroz greške govori iz klipova, i „Game over" se čuje na poslednjoj grešci.** [265.11]
+   O čemu se radi: Ista faza: na grešci „White played *potez* here and let the win go." pa „Play the move that holds the win."; tačno: „Correct. The game continues as played."; pogrešno: potez pa „also lets the win go. Try another move."; `Show` crta „Holding moves were: …" bez govora; kraj „Game finished. Found 3 of 5.". Rečenica „That was the last mistake. Game over." je do sada bila nedostižna (grana je poredila sa nulom, a kursor stoji na samoj grešci) — sad se čuje kad je odgovorena greška poslednji potez partije.
+   Gde: `Practise` → `Endgames from real games` → `Game blunders` → partija.
+   Uradi: Prođi partiju sa bar dve greške do kraja; pa nađi partiju čija je poslednja greška ujedno poslednji potez.
+   Treba da vidiš: Rečenice iznad, svaka i nacrtana i izgovorena; posle presude zadatak „Go forward to the next mistake." se crta ali se ne ponavlja glasom; na poslednjoj grešci koja je i poslednji potez čuje se „Game over".
+   Potrebno: Windows ili telefon; server; internet.
+
+54. [ ] **Dugmeta `Hint` više nema ni u završnicama, a dugi tekstovi su skraćeni.** [265.12]
+   O čemu se radi: Na tvoju reč od 3.10.2026 („Hint izbaci i u završnicama, skrati tekstove") trener završnica nema `Hint` ni prečicu H; objašnjenja zaključane table, uvodi u vežbu („Opponent plays tablebase-best…"), „you moved closer" i slična su izbačeni — ostaju samo rečenice koje se izgovaraju. Ovo zamenjuje drugu polovinu stavke [265.9] („u završnicama `Hint` i dalje postoji").
+   Gde: `Practise` → `Endgames from real games` → bilo koja pozicija.
+   Uradi: Pogledaj dugmad ispod table i panel iznad nje; pritisni H.
+   Treba da vidiš: Nema `Hint`; H ne radi ništa; u panelu zadatak, priča i presuda — bez pasusa objašnjenja; ništa što nedostaje ti ne treba da bi znao šta se od tebe traži.
+   Potrebno: Windows.
+
+55. [ ] **Panel završnica ima zvučnik, i glas uređaja se tu više ne pita ništa.** [265.13]
+   O čemu se radi: `EndgameInfoPanel` do sada nije imao zvučnik (govorio je sam, glasom uređaja); sad nosi isti zvučnik kao zagonetke. Sa isključenim govorom panel ćuti, a sa uključenim ne ponavlja presudu kad se zadatak ponovo nacrta.
+   Gde: `Practise` → `Endgames from real games`, Settings za govor.
+   Uradi: Isključi govor, reši potez — tišina; uključi zvučnikom na zadatku — čuje se zadatak jednom; reši potez — presuda jednom, zadatak se ne ponavlja.
+   Treba da vidiš: Tačno jedan izgovor po rečenici; glas je Andrew iz klipova, ne glas uređaja (telefon: proveri da nije sistemski glas).
+   Potrebno: Windows i telefon.
+
 ### Practise — AI Studio i zagonetke
 
 1. [ ] **AI Studio ima prekidače za strelice motora.** [93.11]
