@@ -50,3 +50,24 @@ String? uciOfSan(String fen, String san) {
   }
   return null;
 }
+
+/// [uci] (`e2e4`, `e7e8q`) from [fen] as SAN (`e4`, `e8=Q`, `O-O`, `exd5`);
+/// null when no legal move is spelled so, or [fen] cannot be read — the
+/// inverse of [uciOfSan], for a screen that names a move a person reads
+/// („The best move was O-O", not „e1g1").
+///
+/// A promotion needs its piece: `e7e8` alone is no legal move, as in UCI.
+String? sanOfUci(String fen, String uci) {
+  final chess.Chess board;
+  try {
+    board = chess.Chess.fromFEN(fen);
+  } catch (_) {
+    return null;
+  }
+  for (final move in legalMoves(board)) {
+    if ('${move['from']}${move['to']}${move['promotion'] ?? ''}' == uci) {
+      return move['san'] as String?;
+    }
+  }
+  return null;
+}
