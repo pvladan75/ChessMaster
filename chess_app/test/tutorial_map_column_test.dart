@@ -2,13 +2,19 @@
 // `docs/PLAN-MAPA-DELOVA.md`.
 //
 // **Widths from the band, not round numbers.** The board is
-// `min(W − 496, H − 120)` of the body (the formula this phase leaves alone),
-// and the map gets its own column when the board pane has room beyond the
-// board for it and the gap: 380 + 12 (`AppSpacing.md` is 12 — the plan wrote
-// 16 and was wrong). At the owner's body height of 736 the board is 616, so the
-// column appears from W = 1504, and 1503 is one pixel short. Every case asks
-// that the board is exactly the formula's size, so no window buys the map a
-// column with the board.
+// `min(W − 526, H − 152)` of the body — REWRITTEN by phase 4 of
+// `docs/PLAN-MOTOR-I-PANELI.md`: it was `min(W − 496, H − 120)`, and the 120
+// was a guess that left the move strip 20 px below a 1536 × 792 window. 152 is
+// the 24 of padding and the two rows under the board as measured (56 + 72);
+// the 30 is the evaluation bar's place beside the board (D5). The map gets its
+// own column when the board pane has room beyond the board and that place for
+// it and the gap: 380 + 12 (`AppSpacing.md` is 12 — the plan wrote 16 and was
+// wrong). At the owner's body height of 736 the board is 584, so the column
+// appears from W = 1502, and 1501 is one pixel short. Every case asks that the
+// board is exactly the formula's size, so no window buys the map a column with
+// the board.
+
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -72,14 +78,14 @@ void main() {
 
   /// The board's formula, as the screen writes it.
   double formula(Size body) {
-    final pane = body.width - 460 - 12 * 3;
-    return pane.clamp(280.0, (body.height - 120).clamp(280.0, double.infinity));
+    final pane = body.width - 460 - 12 * 3 - 30;
+    return math.max(280.0, math.min(pane, body.height - 24 - 128));
   }
 
   final cases = <({Size body, bool column, String why})>[
     (body: const Size(1536, 736), column: true, why: "the owner's window"),
-    (body: const Size(1504, 736), column: true, why: 'the narrowest with it'),
-    (body: const Size(1503, 736), column: false, why: 'one pixel short'),
+    (body: const Size(1502, 736), column: true, why: 'the narrowest with it'),
+    (body: const Size(1501, 736), column: false, why: 'one pixel short'),
     (body: const Size(1366, 768 - bar), column: false, why: '1366 × 768'),
     (body: const Size(900, 700 - bar), column: false, why: '900 × 700'),
   ];
@@ -106,12 +112,13 @@ void main() {
     });
   }
 
-  testWidgets('at the owner\'s window the board is 616', (tester) async {
+  testWidgets('at the owner\'s window the board is 584', (tester) async {
     // The number the plan was written from, held so a change to the formula
-    // cannot quietly move the band this file stands on.
-    expect(formula(const Size(1536, 736)), 616);
+    // cannot quietly move the band this file stands on. (616 until phase 4 of
+    // `docs/PLAN-MOTOR-I-PANELI.md` put the move strip back on the screen.)
+    expect(formula(const Size(1536, 736)), 584);
     await open(tester, const Size(1536, 736));
-    expect(boardSide(tester), 616);
+    expect(boardSide(tester), 584);
   });
 
   testWidgets('a 60-character title is whole in the bar at 1536',

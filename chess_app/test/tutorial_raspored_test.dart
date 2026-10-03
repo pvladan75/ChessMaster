@@ -286,10 +286,14 @@ void main() {
         reason: 'this window is meant to leave slack; nothing is proved '
             'about centring without it',
       );
+      // REWRITTEN by phase 4 of `docs/PLAN-MOTOR-I-PANELI.md`: the board has
+      // the evaluation bar's place (30 px) on its left whether the bar is
+      // drawn or not, so what is centred is the board together with it.
       expect(
-        boardRect.left - paneRect.left,
+        (boardRect.left - 30) - paneRect.left,
         closeTo(paneRect.right - boardRect.right, 1),
-        reason: 'the board sits off to one side of its pane',
+        reason: 'the board and its evaluation slot sit off to one side of '
+            'their pane',
       );
 
       await close(tester);
