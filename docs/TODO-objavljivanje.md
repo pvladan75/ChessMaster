@@ -214,6 +214,23 @@ Publika ID tokena se ne menja preimenovanjem paketa.
 - [ ] Popuniti **Data safety** formu u Play Console-u prema onome što piše u
       politici (email, glas, snimci, rezultati vežbi).
 
+- [ ] **Brisanje naloga: veb adresa za Play, i jedan red politike** (4.10.2026).
+      Brisanje u aplikaciji postoji od 4.10.2026 (`Settings` → `Delete
+      account`, `POST /me/delete`). Ostaje:
+      - **Play Console → Data safety → „Account deletion URL".** Google traži
+        adresu na kojoj se brisanje može zatražiti i bez instalirane
+        aplikacije. Vlasnikova odluka od 3.10.2026: stranica kasnije; do tada
+        je dovoljna stranica sajta koja kaže kako se nalog briše u aplikaciji
+        i na koju adresu se piše ako aplikacije nema. Stranica ne postoji.
+      - **Politika, odeljak 6: „Podaci o pretplati — koliko nalažu poreski
+        propisi".** Server danas briše red pretplate zajedno sa nalogom
+        (`subscriptions.user_id … ON DELETE CASCADE`), dakle **ne čuva ga**.
+        Naplata još nije uživo, pa nema šta da se izgubi, ali pre prve prave
+        kupovine jedno od dvoga mora da se promeni: tekst, ili kaskada.
+        Odluka je vlasnikova i advokatova.
+      - **Pretplata kupljena kroz Play se ne otkazuje brisanjem naloga.**
+        Dijalog to danas ne kaže, jer naplate nema; kad je bude, mora da kaže.
+
 ## 3a. Sajt — nije marketing, nego preduslov
 
 Lako ga je odložiti kao „kad stignemo", ali **korak 3 zavisi od njega**: Play

@@ -155,6 +155,11 @@ class SessionService extends ChangeNotifier {
     await AccountLocalState.syncTo(_current.id);
   }
 
+  /// The [expire] reason for an account its holder has just deleted from this
+  /// device. Its own word, because the sign-in screen says something else to
+  /// somebody who asked for it than to somebody who found their account gone.
+  static const String accountDeletedReason = 'account-deleted';
+
   /// Ends the session because the server no longer accepts it.
   ///
   /// The same clearing as [signOut] plus the reason, which is the whole point:
@@ -180,10 +185,12 @@ class SessionService extends ChangeNotifier {
     // keeps three refusals arriving together from being three trips, and an
     // await in front of it would let all three through.
     //
-    // An account that is gone takes its remembered address and password with
-    // it — there is nobody left for them to sign in as. An expired session
-    // keeps both: the same person is expected back.
-    if (reason == 'account-gone' && !ended.isGuest) {
+    // An account that is gone — found gone, or deleted here a moment ago —
+    // takes its remembered address and password with it: there is nobody left
+    // for them to sign in as. An expired session keeps both: the same person
+    // is expected back.
+    final gone = reason == 'account-gone' || reason == accountDeletedReason;
+    if (gone && !ended.isGuest) {
       await SavedSignIns.instance.forget(ended.email);
     }
 

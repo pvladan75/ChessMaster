@@ -10539,3 +10539,66 @@ controller does not have; red, but red at loading. Rewritten as a real
 `playMove` that may not open a part, it was caught by the one case it was
 meant for. Eight of eight on the studio, five of five on Preparation, each by
 its own case.
+
+## 4.10.2026 — an account deleted by its holder
+
+`Settings` → `Delete account` → `POST /me/delete`
+(`services/accountDeletion.js`, `routes/account.js`,
+`lib/widgets/delete_account_dialog.dart`). The owner's four decisions of
+3.10.2026: the files go with the account; the password confirms it, or the
+typed word `DELETE` for an account made through Google; it happens at once;
+the web address Google Play asks for is a publishing item, not this work.
+
+Arithmetic: app 5766 + 10 (`delete_account_test`) = 5776. Backend 2050 + 14
+(`account_deletion.test.js`) = 2064 without a database; 2214 + 14 + 7
+(`account_deletion_db.test.js`) = 2235 with one. Baselines measured first:
+the backend in place with `.env` aside, the app in a detached worktree of
+`master` (5766, 1 skipped).
+
+**The rows were already the schema's work.** Every table that names a user
+does so through a key that cascades (three set null), and no user-ish column
+lacks a key. That is a claim about the whole schema and stays true only while
+every new table keeps it, so the gate asks the schema itself on a real
+database: every foreign key cascades or nulls; every column named like a user
+is a key to `users`; every column named like a file is in a list with a word
+beside it saying whether the deletion removes it. A new table that breaks any
+of the three fails a test that names it.
+
+**A cascade deletes rows, never files.** `saved_lessons` and
+`session_recordings` are deleted by hand, first, `RETURNING` their file
+columns — the statement that removes a row is the one that says which file it
+was — and a tutorial the account only *taught* (`trainer_id`) is among them,
+because it cascades too. The service returns rows and the route turns them
+into paths, since the path helpers import `middleware/auth`.
+
+**A socket is asked about its account once, at the handshake.** A deleted
+account's sockets would have gone on hearing a room; `realtime.disconnectUser`
+closes them, and the app's other devices leave on their next request through
+the `account-gone` path that already existed.
+
+**The 401 is taken.** The app reads a 401 as a session that ended, so a
+mistyped password is a 400 with a code.
+
+Mutations: 22 of 23 on the server caught by the right case on the first
+round, 13 of 13 in the app after two assertions were added (the field locked
+while the request is out; the standing forgotten). The one server survivor
+was the lead's fixture: „a film name that climbs out of exports/" put its
+target in the temp folder, which on this machine is drive C while `exports/`
+is on D — `path.relative` across drives is an absolute path, and joined under
+`exports/` it names nothing. **A path that cannot be reached by climbing
+cannot fail**; the target stands beside `exports/` now and both path
+mutations fall on it. And one real fault on the first run: the film-name
+guard refused `/` and not `\`, written through a script that ate a backslash
+— caught only because the case for it was already there.
+
+**`pg_ctl start` piped into anything never returns**: the server it starts
+inherits the pipe. The command hung, and stopping it took the cluster down
+with it. Start it with its output redirected to a file.
+
+Not covered by any test: the row lock (`FOR UPDATE`) against a tutorial saved
+in the same instant — a race no case drives.
+
+Open, and said to the owner: the policy's „subscription data is kept as tax
+law requires" against a `subscriptions` row that cascades; a Play
+subscription is not cancelled by deleting the account; no web page for a
+deletion request yet (`docs/TODO-objavljivanje.md`, section 3).

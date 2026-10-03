@@ -24,6 +24,7 @@ class AccountStanding {
     required this.parentConsentRequired,
     required this.parentConsentGiven,
     required this.parentEmailOnFile,
+    required this.deletionAsksPassword,
   });
 
   /// Whether anybody has ever asked. `false` is a real answer and not an
@@ -51,6 +52,11 @@ class AccountStanding {
   /// different things from the person reading the screen.
   final bool parentEmailOnFile;
 
+  /// What deleting the account will ask for: the password, or — for an
+  /// account made through Google, which has none — the typed word. The
+  /// server's answer, so the dialog draws the field the server will check.
+  final bool deletionAsksPassword;
+
   factory AccountStanding.fromJson(Map<String, dynamic> json) {
     final consent = json['parentConsent'];
     final parent =
@@ -64,6 +70,7 @@ class AccountStanding {
       parentConsentRequired: parent['required'] == true,
       parentConsentGiven: parent['given'] == true,
       parentEmailOnFile: parent['parentEmailOnFile'] == true,
+      deletionAsksPassword: json['deletionConfirmedBy'] != 'word',
     );
   }
 }
@@ -137,6 +144,24 @@ class AccountStandingService extends ChangeNotifier {
       return res.error ?? 'Could not save address.';
     }
     await refresh();
+    return null;
+  }
+
+  /// Deletes the signed-in account on the server, for good. Returns an error
+  /// to show, or null once it is gone.
+  ///
+  /// Exactly one of [password] and [confirmWord] is sent — whichever the
+  /// standing said the server will ask for. Only the request: ending the
+  /// session on this device is the caller's next step, because the caller
+  /// knows what has to leave the screen first.
+  Future<String?> deleteAccount({String? password, String? confirmWord}) async {
+    final res = await _send(() => _post('$backendUrl/me/delete', {
+          if (password != null) 'password': password,
+          if (confirmWord != null) 'confirm': confirmWord,
+        }));
+    if (res.body == null || res.body!['deleted'] != true) {
+      return res.error ?? 'Could not delete the account. Nothing was deleted.';
+    }
     return null;
   }
 

@@ -16,6 +16,7 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/widgets/account_stats_card.dart';
 import 'package:chess_app/widgets/adaptive_card_grid.dart';
+import 'package:chess_app/widgets/delete_account_dialog.dart';
 import 'package:chess_app/widgets/engine_settings_dialog.dart';
 import 'package:chess_app/widgets/parent_email_dialog.dart';
 import 'package:chess_app/theme/app_colors.dart';
@@ -404,6 +405,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  /// The way out for good, last in the account's section: the account and
+  /// everything in it, deleted on the server (the owner's decision of
+  /// 3.10.2026, and what both app stores ask of an app with accounts). The
+  /// dialog confirms and does it; nothing here happens on the tap itself.
+  Widget _deleteAccountCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.roundedMd),
+        child: ListTile(
+          key: const Key('open-delete-account'),
+          leading: Icon(Icons.delete_outline, color: context.colors.danger),
+          title: const Text('Delete account'),
+          subtitle: const Text(
+              'Removes your account and everything in it, for good.'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => showDeleteAccountDialog(context),
+        ),
+      ),
+    );
+  }
+
   /// Done first, then said — and a store that would not let go is said too,
   /// because a „Forget" that left the password behind must not read as done.
   Future<void> _forgetSavedSignIn(String email) async {
@@ -692,6 +715,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _birthYearCard(context),
                       _parentEmailCard(context),
                       _savedSignInCard(context),
+                      _deleteAccountCard(context),
                     ],
                   ]),
                   _section(context, 'APPEARANCE', [_appearanceCard(context)]),

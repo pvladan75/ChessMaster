@@ -46,6 +46,25 @@ function filmOfFilename(name) {
   return { kind: match[1], id: Number(match[2]), renderedAt: new Date(Number(match[3])) };
 }
 
+const EXPORT_LINK = /^\/recordings\/export-download\/([^?]+)/;
+
+/// The film a recording's stored `video_url` names, as a file name in the
+/// exports directory — or null for a link that is not an export at all. A
+/// name, never a path: a stored link is data, not an instruction to open (or
+/// delete) whatever it names.
+function exportNameOf(videoUrl) {
+  const match = EXPORT_LINK.exec(typeof videoUrl === 'string' ? videoUrl : '');
+  if (!match) return null;
+  let name;
+  try {
+    name = decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+  if (name === '' || /[\\/]/.test(name) || name.includes('..')) return null;
+  return name;
+}
+
 /// Characters no Windows file name may hold, and control characters.
 // eslint-disable-next-line no-control-regex
 const FORBIDDEN = /[<>:"/\\|?*\u0000-\u001f\u007f]/g;
@@ -119,6 +138,7 @@ async function downloadNameOf(pool, filename) {
 module.exports = {
   filmFilename,
   filmOfFilename,
+  exportNameOf,
   cleanTitle,
   downloadNameFor,
   downloadNameOf,

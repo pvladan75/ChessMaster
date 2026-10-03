@@ -116,10 +116,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     // gone and nothing says the session ran out.
     final reason = SessionService.instance.expiryReason;
     if (reason != null) {
-      _expiryNotice = reason == 'account-gone'
-          ? 'This account no longer exists on the server. Sign in with another '
-              'account.'
-          : 'Session expired. Please sign in again.';
+      _expiryNotice = switch (reason) {
+        SessionService.accountDeletedReason => 'Your account has been deleted.',
+        'account-gone' =>
+          'This account no longer exists on the server. Sign in with another '
+              'account.',
+        _ => 'Session expired. Please sign in again.',
+      };
       // After the frame, not during it: acknowledging notifies, the router
       // listens, and a router rebuilt in the middle of this build is how one
       // message becomes a loop.

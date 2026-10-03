@@ -10953,6 +10953,79 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Kartica ima prekidač, tekst i `Test`, ništa drugo; `Test` govori Andrewovim glasom iz klipova; nigde u aplikaciji sistemski glas telefona ili Windowsa; Windows bez instaliranih glasova govori isto kao sa njima.
    Potrebno: Windows i telefon.
 
+17. [ ] **Brisanje naloga lozinkom: nalog nestaje i aplikacija ide na prijavu.** [268.1]
+    O čemu se radi: `Delete account` u Podešavanjima (tvoje odluke od 3.10.2026):
+    nalog sa lozinkom je potvrđuje lozinkom, briše se odmah, i sa njim sve
+    njegovo — tutorijali i njihovi filmovi, snimci i njihov zvuk, zadaci,
+    partije, repertoari, domaći i napredak. Napravi probni nalog za ovo; ne
+    briši svoj.
+    Gde: `Settings` (zupčanik) → `ACCOUNT` → `Delete account` (poslednji red).
+    Uradi: Registruj probni nalog mejlom i lozinkom, prijavi se sa `Remember
+    me`, sačuvaj jedan tutorijal i jednu analizu. Otvori `Delete account`,
+    pročitaj tekst, upiši lozinku i pritisni `Delete account`. Posle toga
+    pokušaj da se prijaviš istim mejlom i lozinkom.
+    Treba da vidiš: Dugme je sivo dok je polje prazno. Posle brisanja si na
+    ekranu za prijavu sa porukom `Your account has been deleted.`; polje za
+    mejl ne nudi obrisanu adresu, a u Windows Credential Manager-u nema njene
+    lozinke. Prijava istim podacima ne uspeva (`Invalid email or password`).
+    Potrebno: Windows; server; probni nalog sa lozinkom.
+
+18. [ ] **Pogrešna lozinka ne briše ništa.** [268.2]
+    O čemu se radi: Server proverava lozinku pre brisanja; odbijanje ostavlja
+    dijalog otvoren i nalog ceo. Posle deset pokušaja za petnaest minuta server
+    odbija dalje pokušaje.
+    Gde: `Settings` → `ACCOUNT` → `Delete account`.
+    Uradi: Upiši pogrešnu lozinku i pritisni `Delete account`. Zatim `Cancel`
+    i pogledaj da li je sve na nalogu i dalje tu.
+    Treba da vidiš: Pod poljem piše `Wrong password.`, dijalog ostaje, dugme se
+    može ponovo pritisnuti; posle `Cancel` si i dalje prijavljen i tutorijali
+    su na mestu.
+    Potrebno: Windows ili telefon; server; nalog sa lozinkom.
+
+19. [ ] **Google nalog se briše kucanjem reči DELETE.** [268.3]
+    O čemu se radi: Nalog napravljen kroz Google nema lozinku, pa dijalog traži
+    reč `DELETE`, tačno tako napisanu. Server kaže aplikaciji koje polje da
+    nacrta.
+    Gde: `Settings` → `ACCOUNT` → `Delete account`.
+    Uradi: Prijavi se probnim Google nalogom. Otvori `Delete account`; upiši
+    `delete` malim slovima, pa `DELETE`, i pritisni dugme.
+    Treba da vidiš: Polje se zove `Type DELETE to confirm` i tekst se vidi dok
+    kucaš; uz `delete` je dugme sivo, uz `DELETE` radi. Posle brisanja si na
+    prijavi sa `Your account has been deleted.`. Nova prijava istim Google
+    nalogom pravi nov, prazan nalog (pita godinu rođenja).
+    Potrebno: telefon ili Windows; server; probni Google nalog.
+
+20. [ ] **Drugi uređaj obrisanog naloga se sam odjavi, a učenik više ne vidi trenerovo.** [268.4]
+    O čemu se radi: Brisanje zatvara sve veze tog naloga i završava njegovu
+    sesiju uživo; drugi uređaj na sledećem zahtevu saznaje da naloga nema. Ono
+    što je obrisani nalog poslao drugima (domaći, podeljeni snimci) odlazi sa
+    njim.
+    Gde: dva uređaja na istom probnom nalogu trenera; treći nalog kao njegov
+    učenik sa jednim domaćim i jednim podeljenim snimkom.
+    Uradi: Na telefonu ostani prijavljen kao probni trener (može i u sesiji sa
+    učenikom). Na Windowsu obriši taj nalog. Pogledaj telefon, pa učenikov
+    `Home`.
+    Treba da vidiš: Učenik u sesiji dobija kraj sesije. Telefon na sledećoj
+    radnji ide na prijavu sa `This account no longer exists on the server.`.
+    Kod učenika nema više domaćeg ni snimka tog trenera, a ostalo njegovo je
+    netaknuto.
+    Potrebno: Windows i telefon; server; probni trener i učenik.
+
+21. [ ] **Fajlovi obrisanog naloga su nestali sa servera, tuđi nisu.** [268.5]
+    O čemu se radi: Kaskada briše redove, a ne fajlove, pa server posle
+    brisanja uklanja baš one fajlove koje su obrisani redovi imenovali: glas
+    tutorijala (`uploads/narration`), zvuk snimka (`uploads/lessons`) i filmove
+    (`exports`). Ništa se ne čisti „metlom".
+    Gde: `chess_backend/uploads/narration`, `chess_backend/uploads/lessons`,
+    `chess_backend/exports`; log servera.
+    Uradi: Na probnom nalogu snimi jedan snimak u `Preparation`, snimi glas
+    preko jednog tutorijala i izvezi mu video. Zapiši imena novih fajlova u
+    ta tri foldera (najnoviji po datumu). Obriši nalog, pa pogledaj foldere.
+    Treba da vidiš: Ta tri fajla više ne postoje; broj ostalih fajlova je isti
+    kao pre. U logu je red `[NALOG] Korisnik N je obrisao svoj nalog
+    (tutorijala: …, snimaka: …, sesija uživo: …)` i nijedan `Could not delete`.
+    Potrebno: Windows; server; probni nalog.
+
 ### Podešavanja i izgled — Cela aplikacija
 
 1. [ ] **Reč „studio” se sreće samo u imenu „Tutorial studio”** [131.5]

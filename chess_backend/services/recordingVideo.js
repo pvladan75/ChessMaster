@@ -13,24 +13,14 @@
 const fs = require('fs');
 const path = require('path');
 const { signDownloadToken } = require('../middleware/auth');
-
-const EXPORT_LINK = /^\/recordings\/export-download\/([^?]+)/;
+const { exportNameOf } = require('./filmName');
 
 /// A link for [userId] to the latest render of [row], or null when there is
 /// none on disk — never rendered, aged out, or a stored link that is not an
 /// export at all.
 function latestVideoFor(row, userId, exportsDir) {
-  const match = EXPORT_LINK.exec((row && row.video_url) || '');
-  if (!match) return null;
-  let name;
-  try {
-    name = decodeURIComponent(match[1]);
-  } catch {
-    return null;
-  }
-  // A name, never a path: a stored link is data, not an instruction to open
-  // whatever it names.
-  if (name !== path.basename(name) || name.includes('..')) return null;
+  const name = exportNameOf(row && row.video_url);
+  if (!name) return null;
   if (!fs.existsSync(path.join(exportsDir, name))) return null;
   return `/recordings/export-download/${encodeURIComponent(name)}`
     + `?token=${encodeURIComponent(signDownloadToken(userId, name))}`;

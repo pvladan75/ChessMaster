@@ -95,6 +95,25 @@ function emitToUser(userId, event, payload) {
   return true;
 }
 
+/// Closes every socket [userId] holds — an account that has just been deleted
+/// must not go on hearing a room, and a socket is not asked about its account
+/// again after the handshake. Each socket's own `disconnect` handler takes its
+/// seat and its presence with it. Returns how many were closed.
+function disconnectUser(userId) {
+  if (!io) {
+    throw new Error('realtime.init(io) was never called');
+  }
+  let closed = 0;
+  for (const socketId of socketIdsOf(userId)) {
+    const socket = io.sockets.sockets.get(socketId);
+    if (!socket) continue;
+    socket.disconnect(true);
+    closed += 1;
+  }
+  goOffline(userId);
+  return closed;
+}
+
 /// What else has to forget a room when it ends. `server.js` keeps the seated
 /// roster and the voice roster in its own memory, so it registers here rather
 /// than this module reaching back into it.
@@ -139,6 +158,7 @@ module.exports = {
   socketIdOf,
   socketIdsOf,
   emitToUser,
+  disconnectUser,
   onRoomClosed,
   closeRoom,
 };

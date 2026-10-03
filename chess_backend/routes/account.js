@@ -32,6 +32,13 @@ const {
 } = require('../services/parentConsentService');
 const mailService = require('../services/mailService');
 const { notify } = require('../services/notifications');
+const path = require('path');
+const accountDeletion = require('../services/accountDeletion');
+const realtime = require('../services/realtime');
+const narrationUpload = require('../services/narrationUpload');
+const lessonRecording = require('../services/lessonRecording');
+const { exportNameOf } = require('../services/filmName');
+const { EXPORTS_DIR } = require('../services/retentionService');
 
 /// What is known, and what is still missing.
 ///
@@ -42,7 +49,8 @@ const { notify } = require('../services/notifications');
 router.get('/me/standing', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT birth_year, parent_email, parent_consent_at, parent_consent_version
+      `SELECT birth_year, parent_email, parent_consent_at, parent_consent_version,
+              password_hash
          FROM users WHERE id = $1`,
       [req.user.id],
     );
@@ -70,6 +78,10 @@ router.get('/me/standing', authenticateToken, async (req, res) => {
         version: row.parent_consent_version ?? null,
         parentEmailOnFile: Boolean(row.parent_email),
       },
+      // What `POST /me/delete` will ask this account for, so the app draws
+      // the right field before anything is sent: an account made through
+      // Google has no password to type.
+      deletionConfirmedBy: accountDeletion.confirmationKind(row.password_hash),
     });
   } catch (err) {
     logger.error({ err }, '[NALOG] Stanje naloga nije moglo da se pročita:');
@@ -277,6 +289,76 @@ router.post('/me/parent-email', authenticateToken, parentEmailLimiter, async (re
   } catch (err) {
     logger.error({ err }, '[NALOG] Email roditelja nije mogao da se upiše:');
     res.status(500).json({ error: 'Failed to save parent address.' });
+  }
+});
+
+/// Everything that follows the rows of a deleted account: the people still
+/// sitting in its sessions are told, its files are removed, its sockets are
+/// closed. **Never throws, and no step can stop the next** — the account is
+/// already gone, and that is the fact the caller reports. A file that cannot
+/// be removed is logged by `removeQuietly`; it is a voice left behind, which
+/// somebody has to know.
+function afterDeletion(userId, gone) {
+  const step = (what, fn) => {
+    try {
+      fn();
+    } catch (err) {
+      logger.error({ err }, `[NALOG] Posle brisanja naloga ${userId} nije uspelo: ${what}`);
+    }
+  };
+  for (const code of gone.rooms) {
+    step(`kraj sesije ${code}`, () => realtime.closeRoom(code, { reason: 'ended' }));
+  }
+  const film = (name) => narrationUpload.removeQuietly(path.join(EXPORTS_DIR, path.basename(String(name))));
+  for (const lesson of gone.lessons) {
+    step('snimak glasa tutorijala', () => narrationUpload.removeNarrationFile(lesson.narration_filename));
+    if (lesson.video_filename) step('film tutorijala', () => film(lesson.video_filename));
+  }
+  for (const recording of gone.recordings) {
+    step('zvuk snimka', () => narrationUpload.removeQuietly(lessonRecording.soundOf(recording)));
+    const exported = exportNameOf(recording.video_url);
+    if (exported) step('film snimka', () => film(exported));
+  }
+  step('zatvaranje veza', () => realtime.disconnectUser(userId));
+}
+
+// The password is checked here, so the route is a place to guess one from a
+// borrowed phone. Ten tries in fifteen minutes leaves room for a typo.
+const deleteLimiter = accountLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: 'Too many attempts to delete the account. Please try again later.',
+});
+
+/// Deletes the caller's own account, for good (`services/accountDeletion.js`).
+///
+/// A POST rather than a DELETE because it carries a body — the password, or
+/// the typed word — and a body on DELETE is something proxies are free to
+/// drop. There is no id in the path: the only account this route can reach is
+/// the one the token names.
+router.post('/me/delete', authenticateToken, deleteLimiter, async (req, res) => {
+  try {
+    const row = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (row.rowCount === 0) {
+      return res.status(404).json({ error: 'Account does not exist.' });
+    }
+    const problem = await accountDeletion.confirmationProblem(row.rows[0].password_hash, req.body);
+    if (problem) return res.status(problem.status).json(problem.body);
+
+    const gone = await accountDeletion.deleteAccount(pool, req.user.id);
+    if (!gone) {
+      return res.status(404).json({ error: 'Account does not exist.' });
+    }
+    afterDeletion(req.user.id, gone);
+    logger.info(
+      `[NALOG] Korisnik ${req.user.id} je obrisao svoj nalog `
+      + `(tutorijala: ${gone.lessons.length}, snimaka: ${gone.recordings.length}, `
+      + `sesija uživo: ${gone.rooms.length})`,
+    );
+    return res.json({ deleted: true });
+  } catch (err) {
+    logger.error({ err }, '[NALOG] Nalog nije mogao da se obriše:');
+    return res.status(500).json({ error: 'Could not delete the account. Nothing was deleted.' });
   }
 });
 

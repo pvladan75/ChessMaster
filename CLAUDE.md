@@ -21,9 +21,9 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5766 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5776 tests, 1 skipped, rest green (measured 4.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 10 known infos — read the list
-cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
+cd chess_backend && npm test          # node --test, 2064 without TEST_DATABASE_URL, 2235 with it (both measured 4.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
 ```
 
@@ -1385,6 +1385,22 @@ tab on a window and a phone, and its move strip back on a 1536 × 792 window
 (the board 616 → 584, measured rows instead of a guessed 120). **A debug
 override is reset inside the test body**: the framework checks its debug
 variables before any tearDown runs.
+Then an account deleted by its holder, on the owner's decisions of 3.10.2026
+(→ **5776**, a full run with nothing else running; backend → **2064 / 2235**,
+both measured; analyze the same 10): `Settings` → `Delete account`, confirmed
+by the password or, for an account made through Google, by the typed word
+`DELETE`; at once; and **the account's files go with it**
+(`POST /me/delete`, `services/accountDeletion.js`). The rows are the schema's
+work — every table already cascaded — so the gate asks the **schema** on a real
+database rather than a list somebody keeps: every foreign key cascades or
+nulls, every column that names a user is a key, every column that names a file
+is one the deletion knows. **A cascade deletes rows, never files**, so the two
+tables whose rows name files are deleted by hand first, `RETURNING` what they
+named. One mutation survived on the lead's own fixture: the file „outside
+exports/" stood in the temp folder, which on Windows is another drive, and
+**a path that cannot be reached by climbing cannot fail** — it stands beside
+`exports/` now. And `pg_ctl start` piped into `tail` never returns, because
+the server inherits the pipe; stopping that command stopped the cluster too.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
@@ -1549,9 +1565,10 @@ deploy script picks them up automatically.
 
 **`chess_backend/uploads/` is the only copy of every recording made.** It is
 gitignored, it is never deleted by cleanup code, and it must never be committed.
-The one thing that removes a file from it is its owner deleting that recording
-(`DELETE /recordings/:id`, the owner's decision of 22.9.2026) — one file, the
-one the deleted row named, never a sweep.
+Two things remove a file from it, and both are its owner's own act: deleting
+that recording (`DELETE /recordings/:id`, the owner's decision of 22.9.2026),
+and deleting the whole account (`POST /me/delete`, the owner's decision of
+3.10.2026) — in both, only the files the deleted rows named, never a sweep.
 Rendered MP4 exports are different: they are reproducible, so they age out on a
 retention timer.
 
