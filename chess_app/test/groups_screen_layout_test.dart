@@ -32,6 +32,20 @@ class _Api extends GroupApiService {
   };
 
   final List<int> asked = [];
+  final List<int> deleted = [];
+  final List<(int, String)> renamed = [];
+
+  @override
+  Future<String?> remove(int groupId) async {
+    deleted.add(groupId);
+    return null;
+  }
+
+  @override
+  Future<String?> rename(int groupId, String name) async {
+    renamed.add((groupId, name));
+    return null;
+  }
 
   @override
   Future<List<StudentGroup>> list() async => [
@@ -130,6 +144,34 @@ void main() {
       expect(find.text('Ana Petrović'), findsNothing,
           reason: 'one group at a time');
       expect(api.asked.last, 2);
+    });
+  });
+
+  group('on a window, the actions of the pane (grading, 3.10.2026)', () {
+    testWidgets(
+        'Delete group asks, deletes the chosen group, and the pane moves on',
+        (tester) async {
+      final api = await _pump(tester, _window);
+      await tester.tap(_button<TextButton>('Delete group'));
+      await tester.pumpAndSettle();
+      expect(api.deleted, isEmpty, reason: 'asked first');
+      await tester.tap(find.descendant(
+          of: find.byType(AlertDialog), matching: find.text('Delete')));
+      await tester.pumpAndSettle();
+      expect(api.deleted, [1]);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('Rename asks for the name and sends it for the chosen group',
+        (tester) async {
+      final api = await _pump(tester, _window);
+      await tester.tap(_button<TextButton>('Rename'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'Sreda 17h');
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+      expect(api.renamed, [(1, 'Sreda 17h')]);
+      expect(find.text('Sreda 17h'), findsWidgets);
     });
   });
 
