@@ -21,6 +21,7 @@ import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.da
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 import 'package:chess_app/core/services/legal_moves.dart';
+import 'package:chess_app/core/services/position_lookups.dart';
 import 'package:chess_app/widgets/bar_word_menu.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
@@ -36,9 +37,7 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/widgets/board_overlay_painter.dart';
 import 'package:chess_app/features/analysis_studio/services/position_info_service.dart';
-import 'package:chess_app/features/analysis_studio/services/syzygy_tablebase_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
-import 'package:chess_app/features/analysis_studio/services/opening_explorer_service.dart';
 import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
 import 'package:chess_app/features/analysis_studio/services/opening_book_service.dart';
 import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service.dart';
@@ -109,6 +108,10 @@ class AnalysisStudioScreen extends StatefulWidget {
   final LessonApiService? lessonApi;
   final ExerciseApiService? exerciseApi;
 
+  /// The tablebase and the book for the board; built (and disposed) by the
+  /// screen when null, so a test can pass its own over a fake client.
+  final PositionLookups? lookups;
+
   const AnalysisStudioScreen({
     super.key,
     required this.userSession,
@@ -120,6 +123,7 @@ class AnalysisStudioScreen extends StatefulWidget {
     this.reviewRunner,
     this.lessonApi,
     this.exerciseApi,
+    this.lookups,
   });
 
   @override
@@ -199,19 +203,10 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   // view's post-hoc display filter can cap its slider there instead of
   // offering a range that would silently do nothing above that value.
 
-  // Syzygy tablebase state
-  final SyzygyTablebaseService _syzygyService = SyzygyTablebaseService.instance;
-  SyzygyResult? _syzygyResult;
-  bool _syzygyLoading = false;
-  int _syzygyRequestId = 0;
-
-  // Opening explorer state
-  final OpeningExplorerService _openingExplorerService =
-      OpeningExplorerService.instance;
-  OpeningExplorerResult? _openingExplorerResult;
-  String? _openingExplorerReason;
-  bool _openingExplorerLoading = false;
-  int _openingExplorerRequestId = 0;
+  // The tablebase and the opening explorer: one home, shared with the other
+  // screens that draw the same panels.
+  late final PositionLookups _lookups = widget.lookups ?? PositionLookups();
+  late final bool _ownsLookups = widget.lookups == null;
 
   // The tactical and positional findings are not shown on this screen
   // (22.9.2026), and since 28.9.2026 it does not ask for them either: what
@@ -239,6 +234,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     _initEngine();
     _reviewRunner.attachBoard(this);
     _stockfishService.held.addListener(_onEngineHeldChanged);
+    _syncLookupPanels();
+    _lookups.addListener(_onLookupsChanged);
     AppSettingsService.instance.addListener(_onAppSettingsChanged);
     OpeningBookService.instance.ensureLoaded().then((_) {
       if (mounted) setState(() {});
@@ -269,7 +266,22 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   /// while the screen is showing, not only after a page opened on top of it
   /// has closed. Both are read during build.
   void _onAppSettingsChanged() {
+    if (!mounted) return;
+    _syncLookupPanels();
+    setState(() {});
+  }
+
+  void _onLookupsChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// Tells the look-ups which panels are drawn, so a hidden one asks nothing.
+  void _syncLookupPanels() {
+    final settings = AppSettingsService.instance;
+    _lookups.show(
+      tablebase: settings.isPanelVisible('syzygy'),
+      explorer: settings.isPanelVisible('opening_explorer'),
+    );
   }
 
   @override
@@ -326,6 +338,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     _stockfishService.held.removeListener(_onEngineHeldChanged);
     _reviewRunner.detachBoard(this);
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
+    _lookups.removeListener(_onLookupsChanged);
+    if (_ownsLookups) _lookups.dispose();
     // A debounced write would be lost with this screen, so force it out first.
     if (_ownsDraft) {
       unawaited(AnalysisDraftService.instance.flush(
@@ -788,8 +802,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     // corrupted each other (Stockfish would log "Unknown command: 'sstop'" or a
     // mangled FEN and silently drop the request). Only kick off the lookups
     // that attach() doesn't cover.
-    _fetchSyzygyIfEligible();
-    _fetchOpeningExplorerIfEligible();
+    _lookups.lookUp(_currentNode.fen);
   }
 
   void _attachEngine() {
@@ -842,67 +855,6 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     );
   }
 
-  Future<void> _fetchSyzygyIfEligible() async {
-    final fen = _currentNode.fen;
-    final phaseInfo = PositionInfoService.analyzeFen(fen);
-    final reqId = ++_syzygyRequestId;
-
-    if (!phaseInfo.isSyzygyReady) {
-      if (_syzygyResult != null || _syzygyLoading) {
-        setState(() {
-          _syzygyResult = null;
-          _syzygyLoading = false;
-        });
-      }
-      return;
-    }
-
-    setState(() {
-      _syzygyLoading = true;
-      _syzygyResult = null;
-    });
-
-    final result = await _syzygyService.lookup(fen, mateDistance: true);
-    if (!mounted || reqId != _syzygyRequestId) return;
-
-    setState(() {
-      _syzygyResult = result;
-      _syzygyLoading = false;
-    });
-  }
-
-  Future<void> _fetchOpeningExplorerIfEligible() async {
-    final reqId = ++_openingExplorerRequestId;
-
-    setState(() {
-      _openingExplorerLoading = true;
-      _openingExplorerResult = null;
-      _openingExplorerReason = null;
-    });
-
-    final lookup = await _openingExplorerService.lookup(_currentNode.fen);
-    if (!mounted || reqId != _openingExplorerRequestId) return;
-
-    if (!lookup.isAvailable) {
-      setState(() {
-        _openingExplorerReason = lookup.reason;
-        _openingExplorerResult = null;
-        _openingExplorerLoading = false;
-      });
-      return;
-    }
-
-    final result = lookup.result;
-    AppLogger.log(
-        '[OpeningExplorer] 📊 Result: ${result == null ? "empty" : "${result.moves.length} moves, ${result.total} games"}');
-
-    setState(() {
-      _openingExplorerResult = result;
-      _openingExplorerReason = null;
-      _openingExplorerLoading = false;
-    });
-  }
-
   void _playUciMove(String uci) {
     if (uci.length < 4) return;
     final from = uci.substring(0, 2);
@@ -931,8 +883,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
   void _triggerEngineAnalysis() {
     AppLogger.log(
         '[AnalysisStudio] ⚡ _triggerEngineAnalysis fired | showEval: $_showEvaluation | showEvalBar: $_showEvalBar | Current FEN: ${_currentNode.fen}');
-    _fetchSyzygyIfEligible();
-    _fetchOpeningExplorerIfEligible();
+    _lookups.lookUp(_currentNode.fen);
     if (_showEvaluation || _showEvalBar) {
       // Validate FEN before sending to engine
       try {
@@ -1196,7 +1147,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
         node: node,
         analyzer: _studyAnalyzer,
         depth: AppSettingsService.instance.analysisDepth,
-        tablebase: _syzygyService.lookup,
+        tablebase: _lookups.tablebaseLookup,
         ask: ask,
         language: language,
       );
@@ -1244,7 +1195,7 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
       builder: (ctx) => PositionStudyDialog(
         startNode: start,
         analyzer: _studyAnalyzer,
-        tablebase: _syzygyService.lookup,
+        tablebase: _lookups.tablebaseLookup,
         ask: ask,
         noWordsReason: ask == null ? 'Sign in to have comments written.' : null,
         onHold: () => _stockfishService.hold(_studyHold),
@@ -1934,11 +1885,8 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
     return Builder(
       builder: (ctx) {
         final phaseInfo = PositionInfoService.analyzeFen(_currentNode.fen);
-        final bookEntry =
-            OpeningBookService.instance.lookupByFen(_currentNode.fen);
-        final displayOpeningName = (!phaseInfo.isEndgame && bookEntry != null)
-            ? '${bookEntry.eco} · ${bookEntry.name}'
-            : phaseInfo.openingName;
+        final displayOpeningName =
+            PositionLookups.openingName(_currentNode.fen);
         return Column(
           children: [
             Container(
@@ -1981,15 +1929,15 @@ class _AnalysisStudioScreenState extends State<AnalysisStudioScreen>
             if (AppSettingsService.instance.isPanelVisible('syzygy'))
               SyzygyPanelWidget(
                 isEligible: phaseInfo.isSyzygyReady,
-                isLoading: _syzygyLoading,
-                result: _syzygyResult,
+                isLoading: _lookups.tablebaseLoading,
+                result: _lookups.tablebase,
                 onMoveSelected: _playUciMove,
               ),
             if (AppSettingsService.instance.isPanelVisible('opening_explorer'))
               OpeningExplorerPanelWidget(
-                isLoading: _openingExplorerLoading,
-                result: _openingExplorerResult,
-                reason: _openingExplorerReason,
+                isLoading: _lookups.explorerLoading,
+                result: _lookups.explorer,
+                reason: _lookups.explorerReason,
                 openingName: displayOpeningName,
                 onMoveSelected: _playUciMove,
               ),
