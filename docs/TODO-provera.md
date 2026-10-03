@@ -2509,6 +2509,13 @@ odlazi na kraj spiska u alatu.
    smanjuje tablu, a stablo dobija prostor.
    Potrebno: Windows; server; repertoar sa bar jednim tvojim potezom.
 
+79. [ ] **Izgradnja repertoara govori iz klipova: pitanje, potez u repertoaru, kraj, greške servera.** [265.14]
+   O čemu se radi: Faza 4c plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026): ekran izgradnje govori iz ugrađenih klipova — „What do you play with White?" (kad se pitanje promeni), „After *potez* which opponent moves do you prepare?" kad stojiš na svom potezu, „*Potez* is in your repertoire. The most played reply is *potez*." (ili „…The book has no reply here. Play the opponent move you want to prepare."), na kraju „You have answered every position in this repertoire."; red „Everything is saved…" ispod je obrisan; greške servera i motora su kratke fraze. Nacrtano i izgovoreno su ista rečenica, bez crte i bez zareza.
+   Gde: `Practise` → repertoar → `Build`.
+   Uradi: Odigraj svoj potez, pa stani na njega i izaberi odgovor protivnika; dođi do kraja repertoara.
+   Treba da vidiš: Svaka rečenica koju panel nacrta se i čuje, jednom; potez unutar rečenice se kaže bez „Check"; glas je Andrew iz klipova.
+   Potrebno: Windows i telefon; server.
+
 ### Practise — Repertoar — drill
 
 1. [ ] **Dril igra samo poteze koji su uneti u stablo.** [166.9]
@@ -3410,6 +3417,27 @@ odlazi na kraj spiska u alatu.
    pet-šest poteza.
    Treba da vidiš: Linija iznad table se ne seče niti prelazi ivicu ekrana.
    Potrebno: telefon; server; release build.
+
+77. [ ] **Drill govori iz klipova: pitanje bez drugog reda, presuda kao jedna rečenica, odgovor protivnika kao potez.** [265.15]
+   O čemu se radi: Ista faza: pitanje je samo „What do you play with White?" (red „Play the move you chose for this position." je obrisan); posle `Show` „Your move is *potez*. Play it."; presuda se kaže kad se nacrta: „Correct." / „Also yours. Your main move is *potez*." / „Incorrect. Your move is *potez*." / „You have not covered this position. Open build to decide what you play.", pa odgovor protivnika kao potez (ili potez pa „You have not covered this reply."), pa „Returns tomorrow." i sl.; vežba pre roka dodaje „Ahead of schedule. The rating is not recorded."; sažeta presuda „Correct — e4 · opponent c5 · returns tomorrow" kad linija ide dalje je obrisana — sledeće pitanje govori. Netačan odgovor ne nosi odgovor protivnika (tabela ga nije navela) — reci ako ga hoćeš.
+   Gde: `Practise` → repertoar → `Drill`.
+   Uradi: Odgovori tačno, pa alternativom, pa netačno; jednom `Show`; jednom pozicija koju nisi pokrio.
+   Treba da vidiš: Jedna rečenica po presudi, i nacrtana i izgovorena, bez ponavljanja kad linija ide dalje; tačke između rečenica („Your move is knight c6. Returns in 3 days.").
+   Potrebno: Windows i telefon; server; repertoar sa bar jednom linijom i dospelim pozicijama.
+
+78. [ ] **„Returns in 3 days" — broj iz sredine druge rečenice, za uho.** [265.16]
+   O čemu se radi: Broj u „Returns in 3 days." je isti klip kao u „Found 3 of 5." (isečen iz sredine te rečenice), a „days." je isečeno iz „Returns in 3 more days." jer Azure čuje „3 days" kao jednu reč. Ako broj zvuči kao da je iz druge rečenice, treće sto klipova se seče iz „Returns in N days."; dok ne čuješ, ne.
+   Gde: `Practise` → repertoar → `Drill`, posle tačnog odgovora na poziciju čiji rok nije sutra.
+   Uradi: Slušaj „Returns in N days / weeks / months." bar tri puta sa različitim brojevima.
+   Treba da vidiš: Broj se uklapa u rečenicu — ista visina i tempo kao reči oko njega, bez „skoka"; ako skače, prijavi.
+   Potrebno: Windows i telefon; server.
+
+79. [ ] **„Nothing due" i srodne rečenice se čuju pri dolasku, i glas uređaja se u repertoaru više ne pita ništa.** [265.17]
+   O čemu se radi: Šest rečenica „Nothing due." / „Nothing to drill yet." / „…in this branch." / „Nothing due after *potez*." / „Nothing to drill after *potez* yet." sad se izgovore kad se ekran otvori (ranije samo na zvučnik); objašnjenje ispod ostaje samo nacrtano. Na oba ekrana glas uređaja se više ne koristi (slučaj to drži), i odlazak sa ekrana prekida govor.
+   Gde: `Practise` → repertoar → `Drill` kad ništa nije dospelo; pa `Build`.
+   Uradi: Otvori drill bez dospelih pozicija; uključi/isključi govor zvučnikom; izađi usred rečenice.
+   Treba da vidiš: Rečenica se čuje jednom pri dolasku, zvučnik je ponovo pušta; sa isključenim govorom tišina; izlazak prekida glas; nigde sistemski glas telefona.
+   Potrebno: Windows i telefon; server.
 
 ### Practise — Repertoar — pokrivenost
 

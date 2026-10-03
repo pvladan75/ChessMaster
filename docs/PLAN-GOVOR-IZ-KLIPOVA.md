@@ -414,11 +414,51 @@ deleted. The manual's endgame sentence no longer names the Hint, and the Keyboar
 Shortcuts page no longer lists H — the full run found that row, which no
 grep of the label had. Live items [265.10]–[265.13].
 
+### Phase 4c — the repertoire, build and drill `[implementer]` — built 3.10.2026
+
+The owner approved the table in chat on 3.10.2026 („Idemo tako, napravi
+to"). The walkthrough is not in it. The table, as built:
+
+| When | Spoken, and drawn |
+|---|---|
+| Build: a position asks for your move | „What do you play with White?" / „…with Black?" — said when it becomes a different question |
+| Build: standing on your move, choosing replies | „After bishop e5 which opponent moves do you prepare?" — no comma: the drawn text is the line's own |
+| Build: your move saved | „Bishop e5 is in your repertoire. The most played reply is knight c6." / „…The book has no reply here. Play the opponent move you want to prepare." |
+| Build: everything answered | „You have answered every position in this repertoire." — the drawn line under it is gone |
+| Build: the server or the engine did not answer | „The move was not saved. The server did not respond." / „The opponent move was not saved…" / „…not removed…" / „The engine did not respond in time." / „Could not read your progress. Starting from the opening position." |
+| Drill: a position asks | the same question clip as build; „Play the move you chose for this position." is gone |
+| Drill: after Reveal | „Your move is bishop e5. Play it." |
+| Drill: the verdict, one line, said when the panel is drawn | „Correct." / „Also yours. Your main move is *move*." / „Incorrect. Your move is *move*." / „You have not covered this position. Open build to decide what you play."; then the reply as a move („White plays knight f3."), or the reply and „You have not covered this reply."; then „Returns tomorrow." / „Returns in a few minutes." / „Returns in 3 days." / „…in a week." / „…in 3 weeks." / „…in a month." / „…in 3 months."; ahead of schedule, „Ahead of schedule. The rating is not recorded." at the end. An incorrect answer carries no reply, as the table listed none — the worker's reading, recorded here for the live pass |
+| Drill: the line walks on | nothing new; the condensed „Correct — e4 · opponent c5 · returns tomorrow" is deleted and the next question speaks |
+| Drill: nothing to do | „Nothing due." / „Nothing to drill yet." / „Nothing due in this branch." / „Nothing to drill in this branch." / „Nothing due after bishop e5." / „Nothing to drill after bishop e5 yet." — spoken on arrival now; before, only the speaker played them |
+| Drawn, never spoken | build's principle line, comment, engine lines and book table; drill's rehearsal texts, the numbered line above the board, the explanation under „nothing due" |
+
+Thirty-six tokens (470 clips, 15.3 MB; 5 new carriers, 127 characters). Two
+measured facts shaped the carriers: Azure's SDK reports „3 days" as **one
+word** and „3 weeks", „3 months", „3 more days" as separate ones, so „Returns
+in" is cut from the weeks carrier and „days." from „Returns in 3 more days.";
+and „is in your repertoire." ends a sentence inside its carrier and keeps
+211 ms of the pause, so the cut-tail bound is 250 ms. The question mark is
+the first sentence end that is not a full stop: the word counter (both
+homes), `SpokenLine` and the clip gate take it. „Returns in 3 days" reuses
+the inside-sentence numbers cut from „Found N of 5." — a number in a new
+neighbourhood, for the owner's ear ([265.16]).
+
+Gate `test/speech_repertoire_test.dart`, 38 cases; 24 mutations by the
+worker (one survivor, D14, given its case and re-run red) and one by the
+lead. The grading change is in `SpokenLine`, found by the worker and left to
+the lead: a bare move followed by a sentence head drew as one sentence
+(„Your move is knight c6 Returns in 3 days."), because a run closed only on
+a phrase or a token that ends one. **A cut token that starts with a capital
+starts a sentence**, so the run before it closes first — a rule for every
+screen, proved on `spoken_line_test` by mutation. The manual quotes none of
+the deleted sentences. Live items [265.14]–[265.17].
+
 ### Phase 4 — the other modules, one table each `[briefed after phase 3]`
 
 In the order of what already speaks: the tactics trainer (4a, built); the
 endgame trainer and the blunder walk (4b, built); the repertoire build and
-drill; the walkthrough. Each gets its own table in the shape of D3, approved before
+drill (4c, built); the walkthrough. Each gets its own table in the shape of D3, approved before
 it is built, because the owner has said the words on the screens are not
 final and settling them is a walk through the app, module by module.
 

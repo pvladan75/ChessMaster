@@ -218,11 +218,32 @@ mutacije crvene; analyze istih 22; priručnik bez `Hint` za završnice; provera
 uživo [265.10]–[265.13]. Sledeći modul: repertoar (gradnja i vežba), pa
 šetnja („Your note" odluka), pa brisanje `flutter_tts`.
 
-**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4b: **5557** (1
-preskočen; 5515 pre nje), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova
-provera uživo [265.1]–[265.13]; pa faza 4 — tabela reči za sledeći modul
-(repertoar, pa šetnja), svaka odobrena pre gradnje; `flutter_tts` se briše tek
-na kraju.
+**Faza 4c, repertoar — izgradnja i drill, 3.10.2026** (implementer na
+odobrenu tabelu, lead ocenio; šetnja nije u njoj): pitanje „What do you play
+with White?" (isti klip na oba ekrana), „After *potez* which opponent moves
+do you prepare?", „*Potez* is in your repertoire. The most played reply is
+*potez*.", presuda drila kao jedna linija izgovorena kad se nacrta
+(„Correct." / „Also yours. Your main move is…" / „Incorrect. Your move is…" /
+„You have not covered this position…", pa odgovor kao potez, pa „Returns in
+3 days." i sl.), šest „Nothing due" rečenica izgovorenih pri dolasku,
+greške servera i motora kao fraze; sažeta presuda „Correct — e4 · opponent c5
+· returns tomorrow" i drugi red pitanja obrisani. 36 novih klipova (470
+ukupno, 15,3 MB). Izmereno: SDK čuje „3 days" kao jednu reč (a „3 weeks" i
+„3 more days" kao dve/tri), pa su nosači tako birani; „is in your
+repertoire." nosi 211 ms pauze, granica repa 250 ms; upitnik je prvi kraj
+rečenice bez tačke (brojač reči u oba doma, `SpokenLine`, kapija klipova).
+Lead-ova ispravka pri ocenjivanju: `SpokenLine` zatvara niz pred isečkom koji
+počinje velikim slovom („Your move is knight c6. Returns in 3 days." umesto
+bez tačke) — implementer je to izmerio i ostavio lead-u. Kapija
+`speech_repertoire_test` 38 slučajeva, 24 + 1 mutacija crvene; analyze istih
+22; priručnik ne pominje nijednu obrisanu rečenicu; provera uživo
+[265.14]–[265.17]. Sledeće: šetnja („Your note" odluka), pa brisanje
+`flutter_tts` i `speak(String)`.
+
+**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4c: **5596** (1
+preskočen; 5557 pre nje), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova
+provera uživo [265.1]–[265.17]; pa faza 4 — tabela reči za šetnju („Your
+note" odluka), odobrena pre gradnje; pa brisanje `flutter_tts`.
 
 ## Teme u domaćem: čip radi ono što piše — 1.10.2026, komitovano na `master` i gurnuto; provera uživo [263.2]
 

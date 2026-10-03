@@ -10255,3 +10255,19 @@ And the full run found the Keyboard Shortcuts page still offering H for the
 Hint: the grep for the deleted label ran over the screen, the tests and
 `site/`, and the page that lists keys is in `lib/screens/` — **a deleted
 button is grepped by its key as well as its label.**
+
+Phase 4c, the repertoire build and drill: 5557 → **5596** (+38 in
+`speech_repertoire_test`, +2 pure cases in `spoken_line_test`, the rest the
+rewritten repertoire cases). **The instrument decides the carrier, again**:
+Azure's SDK reports „3 days" as one word and „3 weeks" as two, so the carrier
+for „days." is „Returns in 3 more days." — measured with a six-sentence probe
+before the renderer was asked, and written in the vocabulary beside the
+token. **A rule proved for one shape of line is not proved for the next**: a
+run of cut tokens closed only on a phrase or on a token that ends a sentence,
+which every line of phases 1–4b satisfied; the first line with a bare move
+followed by a sentence head drew „knight c6 Returns in 3 days". The worker
+measured it on the real code, named the fix and left it to the lead, as the
+brief asks — and the fix is a general rule (a capital starts a sentence),
+not the special case the table would have suggested. And **a survivor given
+its case is a catch, not a workaround**: the worker's D14 (the bar's switch
+bypassing the seam) survived, got the case it lacked, and went red.

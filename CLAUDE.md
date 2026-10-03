@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5557 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5596 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1331,7 +1331,16 @@ where its symptom shows is a second home for it**, so it moved into
 `SpokenLine`. The gate's case for „Game over" found that sentence
 unreachable since the walk was written, and the full run found the Keyboard
 Shortcuts page still offering H — **a deleted button is grepped by its key
-as well as its label.**
+as well as its label.** Then phase 4c, the repertoire build and drill
+(→ **5596**, a full run the same day with nothing else running; analyze
+the same 22): the question, the saved move with the book's reply, the
+drill's verdict as one line said when it is drawn, the reply as a move,
+„Returns in 3 days", the six „nothing due" sentences. Azure's SDK hears
+„3 days" as one word and „3 more days" as three, so **the instrument decides
+the carrier**; and the first line with a bare move before a sentence head
+drew as one sentence — **a rule proved for one shape of line is not proved
+for the next** — so `SpokenLine` closes a run before a cut token that starts
+with a capital.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,
