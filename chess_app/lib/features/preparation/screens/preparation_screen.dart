@@ -43,6 +43,10 @@ import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/core/services/board_engine.dart';
+import 'package:chess_app/core/services/position_lookups.dart';
+import 'package:chess_app/features/analysis_studio/widgets/analysis_panels.dart';
+import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
+import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
 import 'package:chess_app/features/preparation/services/preparation_layout.dart';
 import 'package:chess_app/features/tutorial_studio/services/lesson_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart'
@@ -101,6 +105,7 @@ class PreparationScreen extends StatefulWidget {
     this.initialFen,
     this.initialTree,
     this.engine,
+    this.lookups,
     this.positionLibrary,
     this.lessonApi,
     this.scannerApi,
@@ -124,6 +129,10 @@ class PreparationScreen extends StatefulWidget {
   /// The engine's glue. Injected by a test, which has no engine to ask and
   /// needs to see what was asked of one; built by the screen otherwise.
   final BoardEngine? engine;
+
+  /// The tablebase and the opening explorer. Injected by a test; built (and
+  /// disposed) by the screen otherwise.
+  final PositionLookups? lookups;
 
   // The seams of phase 2 of `docs/PLAN-PRIPREMA.md`, fixed by the lead so
   // the gate (`test/preparation_material_test.dart`) compiles. Each is built
@@ -167,6 +176,12 @@ class _PreparationScreenState extends State<PreparationScreen>
   final ChessBoardController _boardController = ChessBoardController();
   final BoardAnnotationController _annotation = BoardAnnotationController();
   late final BoardEngine _engine = widget.engine ?? BoardEngine();
+  late final PositionLookups _lookups = widget.lookups ?? PositionLookups();
+  late final bool _ownsLookups = widget.lookups == null;
+
+  /// Whether the engine's panel was drawn at the last settings change, so
+  /// that unticking it switches the engine off.
+  bool _engineShown = false;
   late final TabController _phoneTabs = TabController(length: 4, vsync: this);
   late final LessonApiService _lessonApi =
       widget.lessonApi ?? LessonApiService(authToken: widget.userSession.token);
@@ -232,12 +247,36 @@ class _PreparationScreenState extends State<PreparationScreen>
     }
     _boardController.loadFen(_currentNode.fen);
     _engine.init();
+    _engineShown = writingPanelShown(PanelScope.preparation, 'engine_analysis');
+    _syncLookupPanels();
+    _lookups.lookUp(_currentNode.fen);
+    _lookups.addListener(_onLookupsChanged);
     AppSettingsService.instance.addListener(_onAppSettingsChanged);
     _phoneTabs.addListener(_onPhoneTabChanged);
   }
 
   void _onAppSettingsChanged() {
+    if (!mounted) return;
+    _syncLookupPanels();
+    final engineShown =
+        writingPanelShown(PanelScope.preparation, 'engine_analysis');
+    // Unticking the engine's panel switches the engine off: nothing on the
+    // screen would show what it is doing any more.
+    if (_engineShown && !engineShown && _engine.isOn) _engine.reset();
+    _engineShown = engineShown;
+    setState(() {});
+  }
+
+  void _onLookupsChanged() {
     if (mounted) setState(() {});
+  }
+
+  /// Tells the look-ups which panels are drawn, so a hidden one asks nothing.
+  void _syncLookupPanels() {
+    _lookups.show(
+      tablebase: writingPanelShown(PanelScope.preparation, 'syzygy'),
+      explorer: writingPanelShown(PanelScope.preparation, 'opening_explorer'),
+    );
   }
 
   void _onPhoneTabChanged() {
@@ -295,6 +334,8 @@ class _PreparationScreenState extends State<PreparationScreen>
     _phoneTabs.removeListener(_onPhoneTabChanged);
     _phoneTabs.dispose();
     AppSettingsService.instance.removeListener(_onAppSettingsChanged);
+    _lookups.removeListener(_onLookupsChanged);
+    if (_ownsLookups) _lookups.dispose();
     _engine.detach();
     // A take still open at this point was neither stopped nor discarded — the
     // pop guard makes that rare — and it is closed rather than left holding
@@ -317,6 +358,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(node.fen);
+    _lookups.lookUp(node.fen);
     _stampMoveLanded(node);
   }
 
@@ -403,6 +445,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(played.fen);
+    _lookups.lookUp(played.fen);
     _stampMovePlayed(_currentNode, from, to);
   }
 
@@ -438,7 +481,10 @@ class _PreparationScreenState extends State<PreparationScreen>
     // A deleted variation that took the cursor with it: the cursor lands on
     // the move already in the tree, exactly as the strip or the keyboard
     // would land it there.
-    if (cursorMoved) _stampMoveLanded(parent);
+    if (cursorMoved) {
+      _lookups.lookUp(parent.fen);
+      _stampMoveLanded(parent);
+    }
   }
 
   void _moveVariation(AnalysisNode node, {required bool earlier}) {
@@ -475,6 +521,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(root.fen);
+    _lookups.lookUp(root.fen);
     _stampInit();
   }
 
@@ -508,6 +555,7 @@ class _PreparationScreenState extends State<PreparationScreen>
       _annotation.cancelPending();
     });
     _engine.triggerAnalysis(read.root.fen);
+    _lookups.lookUp(read.root.fen);
     _stampInit();
     if (read.rejectedMoves > 0) {
       final n = read.rejectedMoves;
@@ -1637,7 +1685,13 @@ class _PreparationScreenState extends State<PreparationScreen>
             ? PlayerColor.black
             : PlayerColor.white;
       }),
-      trailing: const [BoardViewMenu(arrows: true, boardSize: true)],
+      trailing: [
+        BoardViewMenu(
+          arrows: true,
+          boardSize: true,
+          trailing: (c) => writingPanelMenuEntries(c, PanelScope.preparation),
+        ),
+      ],
     );
   }
 
@@ -1775,6 +1829,63 @@ class _PreparationScreenState extends State<PreparationScreen>
     );
   }
 
+  /// A move tapped in a panel is the trainer's move, played on the board (D3).
+  void _playUciMove(String uci) {
+    if (uci.length < 4) return;
+    _playMove(uci.substring(0, 2), uci.substring(2, 4),
+        uci.length > 4 ? uci.substring(4, 5) : '');
+  }
+
+  /// The ticked panels, stacked: the engine, then the opening explorer under
+  /// the opening's name, then the tablebase (D1, D7). Empty when none is
+  /// ticked.
+  List<Widget> _panelStack() {
+    final fen = _currentNode.fen;
+    final name = PositionLookups.openingName(fen);
+    return [
+      if (writingPanelShown(PanelScope.preparation, 'engine_analysis'))
+        _enginePanel(),
+      if (writingPanelShown(PanelScope.preparation, 'opening_explorer'))
+        OpeningExplorerPanelWidget(
+          isLoading: _lookups.explorerLoading,
+          result: _lookups.explorer,
+          reason: _lookups.explorerReason,
+          openingName: name,
+          onMoveSelected: _playUciMove,
+        ),
+      if (writingPanelShown(PanelScope.preparation, 'syzygy'))
+        SyzygyPanelWidget(
+          isEligible: _lookups.tablebaseEligible,
+          isLoading: _lookups.tablebaseLoading,
+          result: _lookups.tablebase,
+          onMoveSelected: _playUciMove,
+        ),
+    ];
+  }
+
+  Widget _panelStackColumn() {
+    final panels = _panelStack();
+    if (panels.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: Text(
+          'No panel is switched on. Tick one in the board menu (the ▦ '
+          'button under the board).',
+          style: AppText.body.copyWith(color: context.colors.textMuted),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < panels.length; i++) ...[
+          if (i > 0) const SizedBox(height: AppSpacing.sm),
+          panels[i],
+        ],
+      ],
+    );
+  }
+
   Future<void> _openEngineSettingsDialog() async {
     if (!mounted) return;
     await showEngineSettingsDialog(
@@ -1829,38 +1940,46 @@ class _PreparationScreenState extends State<PreparationScreen>
           key: key,
           child: SingleChildScrollView(child: child),
         );
-    final commentAndEngine = layout.commentBesideEngine
+    final anyPanel = _panelStack().isNotEmpty;
+    final commentAndEngine = !anyPanel
         ? SizedBox(
-            height: PreparationLayout.underTreeBeside,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: boxed(_commentPanel())),
-                const SizedBox(width: PreparationLayout.gap),
-                Expanded(
-                  child:
-                      boxed(_enginePanel(), key: const Key('prep-engine-box')),
-                ),
-              ],
-            ),
+            height: layout.commentBesideEngine
+                ? PreparationLayout.underTreeBeside
+                : PreparationLayout.commentAlone,
+            child: boxed(_commentPanel()),
           )
-        : SizedBox(
-            height: PreparationLayout.underTreeStacked,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: PreparationLayout.commentAlone,
-                  child: boxed(_commentPanel()),
+        : layout.commentBesideEngine
+            ? SizedBox(
+                height: PreparationLayout.underTreeBeside,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: boxed(_commentPanel())),
+                    const SizedBox(width: PreparationLayout.gap),
+                    Expanded(
+                      child: boxed(_panelStackColumn(),
+                          key: const Key('prep-engine-box')),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: PreparationLayout.gap),
-                Expanded(
-                  child:
-                      boxed(_enginePanel(), key: const Key('prep-engine-box')),
+              )
+            : SizedBox(
+                height: PreparationLayout.underTreeStacked,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      height: PreparationLayout.commentAlone,
+                      child: boxed(_commentPanel()),
+                    ),
+                    const SizedBox(height: PreparationLayout.gap),
+                    Expanded(
+                      child: boxed(_panelStackColumn(),
+                          key: const Key('prep-engine-box')),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
+              );
 
     // The pane is as tall as the body lets it be, and the tree takes what the
     // comment and the engine leave: nothing here is behind a tab, and nothing
@@ -1970,7 +2089,7 @@ class _PreparationScreenState extends State<PreparationScreen>
     return switch (_phoneTabs.index) {
       0 => _treeWidget(startOnGraph: false),
       1 => _commentPanel(),
-      2 => _enginePanel(),
+      2 => _panelStackColumn(),
       _ => _libraryContent(shrinkWrap: true),
     };
   }
