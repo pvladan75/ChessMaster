@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chess/chess.dart' as chess_lib;
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/move_motif.dart' show sanOfUci;
 import 'package:chess_app/features/archive/models/mistake_item.dart';
 import 'package:chess_app/features/archive/models/mistake_recurrence.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
@@ -13,6 +14,7 @@ import 'package:chess_app/widgets/app_feedback.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 
 class MistakeDrillScreen extends StatefulWidget {
   const MistakeDrillScreen({super.key});
@@ -147,12 +149,14 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
   void _onMove(String fromStr, String toStr, String? promotion) {
     if (_revealed) return;
 
-    final moveUci = '$fromStr$toStr${promotion ?? ""}';
+    // The board reports an ordinary move with no piece, or an empty one.
+    final piece = (promotion == null || promotion.isEmpty) ? null : promotion;
+    final moveUci = '$fromStr$toStr${piece ?? ""}';
     bool moved = false;
     try {
-      if (promotion != null) {
+      if (piece != null) {
         _board.makeMoveWithPromotion(
-            from: fromStr, to: toStr, pieceToPromoteTo: promotion);
+            from: fromStr, to: toStr, pieceToPromoteTo: piece);
       } else {
         _board.makeMove(from: fromStr, to: toStr);
       }
@@ -234,218 +238,127 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
 
   Widget _buildBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_current == null) return _buildDone();
+    final item = _current;
+    if (item == null) return _buildDone();
 
-    Widget board(double boardSize) => BoardWithCoordinates(
-          size: boardSize,
-          orientation: _orientation,
-          builder: (size) => ChessBoardWithOverlay(
-            controller: _board,
-            boardOrientation: _orientation,
-            boardSize: size,
-            isAllowedToMove: !_revealed,
-            isDrawingMode: false,
-            drawingStartSquare: null,
-            arrows: const [],
-            engineArrows: const [],
-            onMove: _onMove,
-            onSquareTapForDrawing: (_) {},
-          ),
-        );
+    return TrainerScreenLayout(
+      board: (side) => BoardWithCoordinates(
+        size: side,
+        orientation: _orientation,
+        builder: (size) => ChessBoardWithOverlay(
+          controller: _board,
+          boardOrientation: _orientation,
+          boardSize: size,
+          isAllowedToMove: !_revealed,
+          isDrawingMode: false,
+          drawingStartSquare: null,
+          arrows: const [],
+          engineArrows: const [],
+          onMove: _onMove,
+          onSquareTapForDrawing: (_) {},
+        ),
+      ),
+      panel: _buildPanel(item),
+      controls: _buildControls(item),
+      // The grades are a label and a row of four buttons, a line more than
+      // the endgame trainer's single row of controls.
+      wideReserve: 150,
+    );
+  }
 
-    if (LandscapeBoardLayout.applies(context)) {
-      return LandscapeBoardLayout(
-        board: board,
-        panels: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+  /// The game it came from and how far along the drill is, the task, and
+  /// once an answer is given the verdict (rules R1–R3 of
+  /// `docs/PLAN-EKRANI.md`). The task is drawn and not spoken: the drill has
+  /// no clips for it.
+  Widget _buildPanel(MistakeItem item) {
+    // From the side the board faces, which was set from the position before
+    // the mistake: after an answer the board's own turn has moved on, and the
+    // task would say the other side was to move.
+    final toMove = _orientation == PlayerColor.white ? 'White' : 'Black';
+    final verdict = _revealed ? _verdict(item) : null;
+
+    return TrainerInfoPanel(
+      // A new mistake is a new panel, so nothing of the last one's verdict
+      // is carried across.
+      key: ValueKey('mistake-panel-${item.id}'),
+      taskText: '$toMove to move. Recall the better move.',
+      chips: _chips(item),
+      messageText: verdict?.lines,
+      messageIcon: verdict?.icon,
+      messageIsGood: verdict?.good ?? false,
+      children: [
+        Wrap(
+          spacing: AppSpacing.sm,
           children: [
-            _buildPrompt(),
-            if (_revealed) ...[
-              const SizedBox(height: AppSpacing.sm),
-              _buildAnswerReveal(),
-            ],
+            TextButton.icon(
+              key: const Key('mistake-open-game'),
+              onPressed: _openingGame ? null : _openGameInAnalysis,
+              icon: const Icon(Icons.open_in_new, size: 18),
+              label: const Text('Open this game in Analysis'),
+            ),
+            TextButton.icon(
+              key: const Key('mistake-remove'),
+              onPressed: _grading ? null : _remove,
+              icon: Icon(Icons.delete_outline,
+                  size: 18, color: context.colors.danger),
+              label: const Text('Remove from drill'),
+            ),
           ],
         ),
-        footer: [
-          const SizedBox(height: AppSpacing.sm),
-          _revealed ? _buildGradeButtons() : _buildRevealButton(),
-        ],
-      );
+      ],
+    );
+  }
+
+  List<String> _chips(MistakeItem item) {
+    final played = item.playedAt;
+    return [
+      item.opponent != null ? 'vs ${item.opponent}' : 'Puzzle',
+      '${played.day}.${played.month}.${played.year}.',
+      if (item.opening != null) item.opening!,
+      if (item.result != null) item.result!,
+      if (item.subjectColor != null)
+        item.subjectColor == 'w' ? 'White' : 'Black',
+      '${_completed + 1}/${_completed + _queue.length + 1}',
+    ];
+  }
+
+  /// A move of this mistake's position in SAN; the UCI string only for a move
+  /// the position does not allow, which stored data can hold.
+  String _san(MistakeItem item, String uci) =>
+      sanOfUci(item.fenBefore, uci) ?? uci;
+
+  bool _recalled(MistakeItem item) => _playerMoveUci == item.bestUci;
+
+  ({List<String> lines, IconData icon, bool good}) _verdict(MistakeItem item) {
+    final good = _recalled(item);
+    final best = _san(item, item.bestUci!);
+    final playedInGame = _san(item, item.playedUci);
+    final tried = _playerMoveUci;
+    final String sentence;
+    if (good) {
+      sentence = 'Well done! You played the best move.';
+    } else if (tried == null) {
+      sentence = 'The best move was $best. In the game you played '
+          '$playedInGame.';
+    } else {
+      sentence = 'Incorrect. The best move was $best, and you tried '
+          '${_san(item, tried)}. In the game you played $playedInGame.';
     }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final heightBased = (constraints.maxHeight - 260).clamp(200.0, 520.0);
-        final widthBased = (constraints.maxWidth - 24).clamp(180.0, 520.0);
-        final boardSize = heightBased < widthBased ? heightBased : widthBased;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildPrompt(),
-              const SizedBox(height: 10),
-              Center(child: board(boardSize)),
-              const SizedBox(height: AppSpacing.md),
-              if (_revealed) _buildAnswerReveal(),
-              const SizedBox(height: AppSpacing.sm),
-              _revealed ? _buildGradeButtons() : _buildRevealButton(),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildPrompt() {
-    final item = _current!;
-    final toMove =
-        _board.game.turn == chess_lib.Color.WHITE ? 'White' : 'Black';
-
-    return Card(
-      color: context.colors.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.opponent != null ? 'vs ${item.opponent}' : 'Puzzle',
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(
-                  '${_completed + 1}/${_completed + _queue.length + 1}',
-                  style: AppText.bodyLarge
-                      .copyWith(color: context.colors.textSecondary),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                Text(
-                    '${item.playedAt.day}.${item.playedAt.month}.${item.playedAt.year}.',
-                    style: TextStyle(
-                        fontSize: 12.5, color: context.colors.textSecondary)),
-                if (item.opening != null)
-                  Text('·',
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.colors.textSecondary)),
-                if (item.opening != null)
-                  Text(item.opening!,
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.colors.textSecondary)),
-                if (item.result != null)
-                  Text('·',
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.colors.textSecondary)),
-                if (item.result != null)
-                  Text(item.result!,
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.colors.textSecondary)),
-                if (item.subjectColor != null)
-                  Text('·',
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.colors.textSecondary)),
-                if (item.subjectColor != null)
-                  Text(item.subjectColor == 'w' ? 'White' : 'Black',
-                      style: TextStyle(
-                          fontSize: 12.5, color: context.colors.textSecondary)),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              '$toMove to move. Recall the better move.',
-              style:
-                  TextStyle(fontSize: 12.5, color: context.colors.textPrimary),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                TextButton.icon(
-                  key: const Key('mistake-open-game'),
-                  onPressed: _openingGame ? null : _openGameInAnalysis,
-                  icon: const Icon(Icons.open_in_new, size: 18),
-                  label: const Text('Open this game in Analysis'),
-                ),
-                TextButton.icon(
-                  key: const Key('mistake-remove'),
-                  onPressed: _grading ? null : _remove,
-                  icon: Icon(Icons.delete_outline,
-                      size: 18, color: context.colors.danger),
-                  label: const Text('Remove from drill'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnswerReveal() {
-    final item = _current!;
-    final isCorrect = _playerMoveUci == item.bestUci;
-    final color = isCorrect ? context.colors.success : context.colors.danger;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(isCorrect ? Icons.check_circle : Icons.cancel,
-                  color: color, size: 20),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  isCorrect
-                      ? 'Well done! You played the best move.'
-                      : 'Incorrect. The best move was ${item.bestUci}, and you tried ${_playerMoveUci ?? 'nothing'}. '
-                          'In the game you played ${item.playedUci}.',
-                  style: AppText.bodyBold.copyWith(color: color),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          if (item.kind == 'engine') ...[
-            Text(
-              'Loss: ${item.swingCp != null ? "${item.swingCp} cp" : "?"}',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textPrimary),
-            ),
-            if (item.theme != null)
-              Text(
-                'Theme: ${item.theme}',
-                style: AppText.caption
-                    .copyWith(color: context.colors.textSecondary),
-              ),
-          ] else if (item.kind == 'tablebase') ...[
-            Text(
-              'Tablebase: ${_wdlString(item.wdlBefore)} -> ${_wdlString(item.wdlAfter)}',
-              style:
-                  AppText.caption.copyWith(color: context.colors.textPrimary),
-            ),
-          ],
-        ],
-      ),
+    return (
+      lines: [
+        sentence,
+        if (item.kind == 'engine') ...[
+          'Loss: ${item.swingCp != null ? "${item.swingCp} cp" : "?"}',
+          if (item.theme != null) 'Theme: ${item.theme}',
+        ] else if (item.kind == 'tablebase')
+          'Tablebase: ${_wdlString(item.wdlBefore)} -> ${_wdlString(item.wdlAfter)}',
+      ],
+      // Shapes, not colours: a tick, a cross, and an „i" for an answer that
+      // was shown and not recalled.
+      icon: good
+          ? Icons.check_circle
+          : (tried == null ? Icons.info_outline : Icons.cancel),
+      good: good,
     );
   }
 
@@ -456,30 +369,36 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
     return 'Draw';
   }
 
-  Widget _buildRevealButton() {
-    return ElevatedButton.icon(
-      onPressed: _reveal,
-      icon: const Icon(Icons.visibility),
-      label: const Text('Show answer'),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-      ),
-    );
+  Widget _buildControls(MistakeItem item) {
+    if (!_revealed) {
+      return Center(
+        child: FilledButton.icon(
+          onPressed: _reveal,
+          icon: const Icon(Icons.visibility),
+          label: const Text('Show answer'),
+        ),
+      );
+    }
+    return _buildGradeButtons(item);
   }
 
-  Widget _buildGradeButtons() {
-    final colors = {
-      ReviewGrade.again: context.colors.danger,
-      ReviewGrade.hard: context.colors.warning,
-      ReviewGrade.good: context.colors.accent,
-      ReviewGrade.easy: context.colors.success,
-    };
+  /// The grade the reader most likely wants is the one filled button — rule
+  /// R4 for a row of four peer choices, read by the lead and one condition in
+  /// one place: after a right answer „Good", after a wrong or a shown one
+  /// „Again". The other three are outlined, in the order of the scale.
+  ReviewGrade _likelyGrade(MistakeItem item) =>
+      _recalled(item) ? ReviewGrade.good : ReviewGrade.again;
+
+  Widget _buildGradeButtons(MistakeItem item) {
+    final likely = _likelyGrade(item);
 
     return Column(
       children: [
         Text(
           'How well did you recall it?',
-          style: TextStyle(fontSize: 12.5, color: context.colors.textSecondary),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: context.colors.textSecondary,
+              ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
@@ -488,22 +407,24 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
           alignment: WrapAlignment.center,
           children: [
             for (final grade in ReviewGrade.values)
-              ElevatedButton(
-                onPressed: _grading ? null : () => _grade(grade),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors[grade],
-                  foregroundColor: context.colors.canvas,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: AppSpacing.md),
+              if (grade == likely)
+                FilledButton(
+                  onPressed: _grading ? null : () => _grade(grade),
+                  child: Text(grade.label),
+                )
+              else
+                OutlinedButton(
+                  onPressed: _grading ? null : () => _grade(grade),
+                  child: Text(grade.label),
                 ),
-                child: Text(grade.label),
-              ),
           ],
         ),
       ],
     );
   }
 
+  /// The end of the drill: one main action, [FilledButton] for „Back", and
+  /// „Refresh" outlined beside it.
   Widget _buildDone() {
     final nothingDue = _completed == 0;
 
@@ -544,7 +465,7 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
                       icon: const Icon(Icons.refresh),
                       label: const Text('Refresh'),
                     ),
-                    ElevatedButton.icon(
+                    FilledButton.icon(
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Back'),
