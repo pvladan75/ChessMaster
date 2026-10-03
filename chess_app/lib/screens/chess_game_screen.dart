@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/rendering.dart' show RenderProxyBox;
 import 'package:chess_app/widgets/confirm_delete.dart';
 import 'package:chess_app/features/tutorial_studio/widgets/tutorial_row_actions.dart';
 import 'package:chess_app/features/position_scanner/services/scanner_api_service.dart';
@@ -11,7 +12,6 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:math';
-import 'package:chess_app/services/fen_legality.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:chess/chess.dart' as chess;
@@ -245,7 +245,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// raw `http` calls out of this file and onto it; the editor batch needs a
   /// seam a test can fake, and this file is 4,346 lines long.
   late LessonApiService _lessonApi;
-  final TextEditingController fenPasteController = TextEditingController();
   final TextEditingController commentController = TextEditingController();
 
   /// Holds back the comment broadcast until the trainer stops typing.
@@ -437,7 +436,6 @@ class _ChessGamePageState extends State<ChessGamePage> {
     _agoraService.leaveChannel();
     _commentBroadcast?.cancel();
     commentController.dispose();
-    fenPasteController.dispose();
     super.dispose();
   }
 
@@ -593,6 +591,10 @@ class _ChessGamePageState extends State<ChessGamePage> {
       'isMuted': nextMute,
     });
   }
+
+  /// The evaluation bar's own height (`HorizontalEvalBarWidget`), which the
+  /// window's board is sized around.
+  static const double _evalBarHeight = 18;
 
   /// The three ready answers, and nothing else.
   ///
@@ -844,44 +846,93 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// A Wrap rather than a Row: two labelled buttons do not fit side by side in
   /// a 300 dp sidebar on a phone, and a Row that does not fit is clipped with
   /// nothing painted to say so in a release build.
+  ///
+  /// Quiet words (PLAN-EKRANI phase 4, R4): the room's one filled slab, the
+  /// violet „Draw arrows", is gone, and so are the outlined pair — what is
+  /// drawn is told by the words and their icons, which the owner can read.
   Widget _buildArrowEditButtons() {
     return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        OutlinedButton.icon(
-          onPressed: () {
-            // Do the thing, then say it: the message must not be able to take
-            // down the edit it reports on.
-            final undone = _annotation.undoLastArrow(moveTree.current.arrows);
-            _annotation.cancelPending();
-            setState(() {});
-            if (undone) _publishArrows();
-            if (undone) {
-              _showSuccess('Last arrow undone.');
-            } else {
-              _showError('No arrow to undo.');
-            }
-          },
-          icon: const Icon(Icons.undo, size: 16),
-          label: const Text('Undo arrow', style: AppText.body),
-        ),
-        OutlinedButton.icon(
-          onPressed: () {
-            // Only when there was something to clear. Clearing an empty
-            // move used to record an `arrow_drawn` event and broadcast it,
-            // which puts a beat in a lesson's timeline for a press that
-            // changed nothing.
-            final cleared = _annotation.clearArrows(moveTree.current.arrows);
-            _annotation.cancelPending();
-            setState(() {});
-            if (cleared) _publishArrows();
-          },
-          icon: const Icon(Icons.layers_clear, size: 16),
-          label: const Text('Clear all arrows', style: AppText.body),
-        ),
-      ],
+      spacing: 4,
+      runSpacing: 0,
+      children: _arrowEditActions(),
     );
+  }
+
+  /// „Draw arrows" ↔ „Done drawing". Outlined, the one button of the arrow
+  /// controls that keeps an edge: its state is read by its word and its icon
+  /// (a gesture, a tick), never by a colour alone.
+  Widget _buildDrawArrowsToggle() {
+    return OutlinedButton.icon(
+      onPressed: () {
+        setState(_toggleDrawingMode);
+      },
+      style: OutlinedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        foregroundColor: _annotation.isDrawing
+            ? context.colors.accent
+            : context.colors.textPrimary,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      ),
+      icon: Icon(_annotation.isDrawing ? Icons.check : Icons.gesture, size: 16),
+      label: Text(_annotation.isDrawing ? 'Done drawing' : 'Draw arrows',
+          style: AppText.body),
+    );
+  }
+
+  /// A quiet room action: a text button at the density the Moves column can
+  /// afford, with the padding a word needs and no more.
+  Widget _quietAction({
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    Key? key,
+  }) {
+    return TextButton.icon(
+      key: key,
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      ),
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: AppText.body),
+    );
+  }
+
+  List<Widget> _arrowEditActions() {
+    return [
+      _quietAction(
+        icon: Icons.undo,
+        label: 'Undo arrow',
+        onPressed: () {
+          // Do the thing, then say it: the message must not be able to take
+          // down the edit it reports on.
+          final undone = _annotation.undoLastArrow(moveTree.current.arrows);
+          _annotation.cancelPending();
+          setState(() {});
+          if (undone) _publishArrows();
+          if (undone) {
+            _showSuccess('Last arrow undone.');
+          } else {
+            _showError('No arrow to undo.');
+          }
+        },
+      ),
+      _quietAction(
+        icon: Icons.layers_clear,
+        label: 'Clear all arrows',
+        onPressed: () {
+          // Only when there was something to clear. Clearing an empty
+          // move used to record an `arrow_drawn` event and broadcast it,
+          // which puts a beat in a lesson's timeline for a press that
+          // changed nothing.
+          final cleared = _annotation.clearArrows(moveTree.current.arrows);
+          _annotation.cancelPending();
+          setState(() {});
+          if (cleared) _publishArrows();
+        },
+      ),
+    ];
   }
 
   Widget _buildColorButton(ArrowColor arrow) {
@@ -2283,11 +2334,12 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// `onPgnLoaded` is not passed, and that is what decides the tabs: importing
   /// a game into a live room is not this screen's job, so the tabs that would
   /// hand one over are not drawn.
-  void _showBoardSetupDialog() {
+  void _showBoardSetupDialog([BoardSetupTab? tab]) {
     showDialog(
       context: context,
       builder: (ctx) => AnalysisBoardSetupDialog(
         initialFen: controller.getFen(),
+        initialTab: tab,
         onPositionSet: (generatedFen) {
           loadLessonPosition(generatedFen, null);
           _showSuccess('Setup position loaded onto board!');
@@ -2464,82 +2516,179 @@ class _ChessGamePageState extends State<ChessGamePage> {
   /// line that had just been pushed sideways. It was all still there; it just
   /// could not be reached. This is the view that reaches it.
   Widget _buildMoveTreeSection() {
-    final node = moveTree.current;
-    final onMove = node.parent != null;
-    final mayEdit = canDriveSharedBoard;
-
+    // Sideways (and nothing else): the tree, its two edits and the comment,
+    // inline in the panels' column. The window and the upright phone compose
+    // the same pieces themselves.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Move tree',
-          style: AppText.bodyLargeBold,
-        ),
-        const SizedBox(height: 6),
         // A fixed height, because this sits inside a scrolling column and the
         // tree's own scroll view has no height of its own to offer.
-        SizedBox(
-          height: 150,
-          child: MoveHistoryView(
-            moveTree: moveTree,
-            currentNode: node,
-            onSelectNode: mayEdit ? _selectNode : (_) {},
-          ),
-        ),
+        _buildTreeBox(height: 150),
         const SizedBox(height: 6),
-        if (mayEdit)
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
+        _buildTreeActions(),
+        const SizedBox(height: AppSpacing.md),
+        ..._buildCommentBlock(),
+        const Divider(height: 24),
+      ],
+    );
+  }
+
+  /// The tree itself. [height] is null where the column hands it the room it
+  /// has left (the window), a number where it sits in a scrolling column.
+  Widget _buildTreeBox({double? height}) {
+    final tree = MoveHistoryView(
+      moveTree: moveTree,
+      currentNode: moveTree.current,
+      onSelectNode: canDriveSharedBoard ? _selectNode : (_) {},
+    );
+    return height == null ? tree : SizedBox(height: height, child: tree);
+  }
+
+  /// „To main line" and „Delete variation": quiet words, side by side where
+  /// the column is wide enough and wrapped where it is not.
+  Widget _buildTreeActions() {
+    if (!canDriveSharedBoard) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 4,
+      runSpacing: 0,
+      children: _treeActionButtons(),
+    );
+  }
+
+  List<Widget> _treeActionButtons() {
+    final onMove = moveTree.current.parent != null;
+    return [
+      _quietAction(
+        onPressed: onMove ? _promoteCurrentLine : null,
+        icon: Icons.vertical_align_top,
+        label: 'To main line',
+      ),
+      _quietAction(
+        onPressed: onMove ? _deleteCurrentSubtree : null,
+        icon: Icons.delete_outline,
+        label: 'Delete variation',
+      ),
+    ];
+  }
+
+  Widget _buildInsertEvalAction() {
+    return _quietAction(
+      onPressed:
+          moveTree.current.parent != null ? _insertEvalIntoComment : null,
+      icon: Icons.speed,
+      label: 'Insert evaluation into comment',
+    );
+  }
+
+  /// The comment of the move the cursor stands on: its heading, its field and,
+  /// where this seat may edit, „Insert evaluation into comment". One list so
+  /// the Moves column and the phone's sheet draw the same thing.
+  ///
+  /// The field carries `room-comment-field` and the screen's one
+  /// [commentController], so what is typed in the sheet is the move's comment
+  /// and not the sheet's.
+  List<Widget> _buildCommentBlock({bool autofocus = false}) {
+    final node = moveTree.current;
+    final onMove = node.parent != null;
+    final mayEdit = canDriveSharedBoard;
+    return [
+      Text(
+        onMove
+            ? 'Comment for move ${formatMoveWithNumber(node, moveTree.root)}'
+            : 'Comment (select a move)',
+        style: AppText.bodyLargeBold,
+      ),
+      const SizedBox(height: 6),
+      TextField(
+        key: const Key('room-comment-field'),
+        controller: commentController,
+        enabled: mayEdit && onMove,
+        autofocus: autofocus,
+        minLines: 2,
+        maxLines: 5,
+        onChanged: _setCurrentComment,
+        decoration: const InputDecoration(
+          hintText: 'Explanation, plan, position evaluation...',
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        ),
+        style: AppText.body,
+      ),
+      if (mayEdit)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: _buildInsertEvalAction(),
+        ),
+    ];
+  }
+
+  /// „Comment…" on a phone held upright: the field on its own, above the
+  /// keyboard, instead of two screens of column under the board. A move's
+  /// comment stays readable without a tap — the tree draws it.
+  Future<void> _openCommentSheet() {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => Padding(
+        // Whatever the keyboard covers is not the sheet's to use.
+        padding: EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg,
+            AppSpacing.lg, MediaQuery.viewInsetsOf(sheetContext).bottom),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              OutlinedButton.icon(
-                onPressed: onMove ? _promoteCurrentLine : null,
-                icon: const Icon(Icons.vertical_align_top, size: 16),
-                label: const Text('To main line', style: AppText.body),
-              ),
-              OutlinedButton.icon(
-                onPressed: onMove ? _deleteCurrentSubtree : null,
-                icon: const Icon(Icons.delete_outline, size: 16),
-                label: const Text('Delete variation', style: AppText.body),
-              ),
+              ..._buildCommentBlock(autofocus: true),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          onMove
-              ? 'Comment for move ${formatMoveWithNumber(node, moveTree.root)}'
-              : 'Comment (select a move)',
-          style: AppText.bodyLargeBold,
         ),
+      ),
+    );
+  }
+
+  /// The arrow controls on a window: their heading, the switch, the colours
+  /// while drawing and the two edits.
+  List<Widget> _buildArrowSection() {
+    return [
+      const Text(
+        'Arrow drawing (Trainer)',
+        style: AppText.bodyLargeBold,
+      ),
+      const SizedBox(height: AppSpacing.xs),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: _buildDrawArrowsToggle(),
+      ),
+      if (_annotation.isDrawing) ...[
         const SizedBox(height: 6),
-        TextField(
-          controller: commentController,
-          enabled: mayEdit && onMove,
-          minLines: 2,
-          maxLines: 5,
-          onChanged: _setCurrentComment,
-          decoration: const InputDecoration(
-            hintText: 'Explanation, plan, position evaluation...',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        _buildColorButtonRow(),
+      ],
+      _buildArrowEditButtons(),
+    ];
+  }
+
+  /// What a seat that does not lead sees where the leader's arrow controls
+  /// would be: whether the board is theirs to move.
+  Widget _buildBoardLockNotice() {
+    final locked = !canDriveSharedBoard;
+    final color = locked ? context.colors.warning : context.colors.success;
+    return Row(
+      children: [
+        Icon(locked ? Icons.lock : Icons.lock_open, color: color, size: 16),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            locked
+                ? 'Board is locked by the trainer.'
+                : 'You may move on the board.',
+            style: AppText.bodyLarge.copyWith(color: color),
           ),
-          style: AppText.body,
         ),
-        if (mayEdit) ...[
-          const SizedBox(height: 6),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: OutlinedButton.icon(
-              onPressed: onMove ? _insertEvalIntoComment : null,
-              icon: const Icon(Icons.speed, size: 16),
-              label: const Text('Insert evaluation into comment',
-                  style: AppText.body),
-            ),
-          ),
-        ],
-        const Divider(height: 24),
       ],
     );
   }
@@ -2574,23 +2723,31 @@ class _ChessGamePageState extends State<ChessGamePage> {
     // inline left (lessons) sidebar, which stays in the Drawer.
     final isLandscape = media.orientation == Orientation.landscape;
 
-    // Sizing of ChessBoard, for the wide and the upright layouts. A landscape
-    // board is sized by [LandscapeBoardLayout] from the room it is given.
-    // Sirina koju u „wide" rasporedu pojedu dve bocne kolone: leva (lekcije)
-    // i desna (kontrole), obe fiksnih 300, plus razdelnik i disanje oko table.
-    const sideColumns = 300.0 + 300.0 + 20.0;
-
-    final boardSize = (isWide
-            // Tabla se meri po prostoru koji joj je stvarno ostao, ne po celom
-            // prozoru. Ranije je bilo `media.size.width * 0.42`, sto je iznad
-            // praga od 840 uvek trazilo vise nego sto srednja kolona ima:
-            // 0.42W > W - 620 vazi za svako W ispod ~1069, pa je studio na
-            // svakoj sirini izmedju 840 i tog broja prelivao. U release gradnji
-            // se to ne vidi - tabla se prosto isece s desne strane.
-            ? min(media.size.height * 0.62,
-                max(240.0, media.size.width - sideColumns) * 0.96)
-            : min(media.size.height * 0.65, media.size.width * 0.9)) *
+    // Sizing of the board on a phone held upright. A window sizes its board
+    // from the height its own column has (below), and a landscape board is
+    // sized by [LandscapeBoardLayout] from the room it is given.
+    final boardSize = min(media.size.height * 0.65, media.size.width * 0.9) *
         AppSettingsService.instance.boardSizeScale;
+
+    // One quiet word of the Board column: left, the column's full width, and
+    // a target a thumb can hit. PLAN-EKRANI phase 4 — nothing here is filled.
+    Widget boardAction({
+      Key? key,
+      required IconData icon,
+      required String label,
+      required VoidCallback onPressed,
+    }) {
+      return TextButton.icon(
+        key: key,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          minimumSize: const Size.fromHeight(40),
+        ),
+      );
+    }
 
     // Left Sidebar Content (Lessons Management)
     Widget buildLeftSidebar() {
@@ -2603,7 +2760,11 @@ class _ChessGamePageState extends State<ChessGamePage> {
         child: SizedBox(
           width: 300,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            // Close to the top: this column ends right at the fold of a
+            // 1200 x 800 window (`room_prepared_line_test`), and the quiet
+            // list is taller than the four rows of buttons it replaced.
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -2611,150 +2772,73 @@ class _ChessGamePageState extends State<ChessGamePage> {
                   'Board',
                   style: AppText.headline,
                 ),
-                const SizedBox(height: AppSpacing.lg),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _showBoardSetupDialog,
-                    icon: const Icon(Icons.dashboard_customize, size: 16),
-                    label: const Text('Set up position'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: context.colors.accent,
-                      foregroundColor: context.colors.canvas,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                // **Paired rather than stacked, and that is not decoration.**
-                // This panel scrolls, and the tutorial list underneath it was
-                // already sitting 13 px above the fold of a 1200 × 800 window —
-                // two more full-width buttons put it off the screen entirely,
-                // which `part_titles_shown_test` caught by tapping a row it
-                // could no longer reach. Import ↔ export and „this board" ↔
-                // „the whole line" are the two pairs, so the panel gains a
-                // reading and loses no height.
-                Row(
+                const SizedBox(height: AppSpacing.xs),
+                // The Board column's actions as one quiet list of words,
+                // named as Preparation and Analysis name them. A seat that
+                // does not lead keeps only what saves: loading a position into
+                // the room is the leader's, and so is the FEN door, which is
+                // „Paste FEN…" now rather than a field.
+                Column(
+                  key: const Key('room-board-actions'),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
+                    if (isLeader) ...[
+                      boardAction(
+                        icon: Icons.dashboard_customize,
+                        label: 'Set up position…',
+                        onPressed: () =>
+                            _showBoardSetupDialog(BoardSetupTab.manual),
+                      ),
+                      boardAction(
+                        icon: Icons.edit_note,
+                        label: 'Paste FEN…',
+                        onPressed: () =>
+                            _showBoardSetupDialog(BoardSetupTab.fen),
+                      ),
+                      boardAction(
+                        icon: Icons.file_open,
+                        label: 'Import PGN…',
                         onPressed: _showPgnImportDialog,
-                        icon: const Icon(Icons.file_open, size: 16),
-                        label: const Text('Import PGN'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.colors.brand,
-                          foregroundColor: context.colors.canvas,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xs),
-                        ),
                       ),
+                    ],
+                    boardAction(
+                      key: const Key('prep-export-pgn'),
+                      icon: Icons.share,
+                      label: 'Export PGN',
+                      onPressed: _exportPreparationPgn,
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        key: const Key('prep-export-pgn'),
-                        onPressed: _exportPreparationPgn,
-                        icon: const Icon(Icons.share, size: 16),
-                        label: const Text('Export PGN'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: context.colors.info,
-                          foregroundColor: context.colors.canvas,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xs),
-                        ),
+                    // „Save position" keeps this board; „Save analysis" keeps
+                    // the whole line. Until now the tree left the room only as
+                    // something a student is given — a lesson step, an
+                    // exercise — so a trainer preparing alone had nothing that
+                    // simply kept the work.
+                    boardAction(
+                      icon: Icons.save,
+                      label: 'Save position',
+                      onPressed: _showSaveDialog,
+                    ),
+                    boardAction(
+                      key: const Key('prep-save-analysis'),
+                      icon: Icons.bookmark_add_outlined,
+                      label: 'Save analysis',
+                      onPressed: _savePreparationAnalysis,
+                    ),
+                    if (_mayTeach)
+                      MakeExerciseButton(
+                        api: ExerciseApiService(
+                            authToken: widget.userSession.token),
+                        moveTree: moveTree,
+                        availableUserLabels: _availableUserLabels,
+                        onSaved: (_) => _showSuccess('Exercise saved.'),
                       ),
-                    ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                // „Save position" keeps this board; „Save analysis" keeps the
-                // whole line. Until now the tree left the room only as
-                // something a student is given — a lesson step, an exercise —
-                // so a trainer preparing alone had nothing that simply kept
-                // the work.
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _showSaveDialog,
-                        icon: const Icon(Icons.save, size: 16),
-                        label: const Text('Save position'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xs),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        key: const Key('prep-save-analysis'),
-                        onPressed: _savePreparationAnalysis,
-                        icon: const Icon(Icons.bookmark_add_outlined, size: 16),
-                        label: const Text('Save analysis'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.xs),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                if (_mayTeach)
-                  MakeExerciseButton(
-                    api:
-                        ExerciseApiService(authToken: widget.userSession.token),
-                    moveTree: moveTree,
-                    availableUserLabels: _availableUserLabels,
-                    onSaved: (_) => _showSuccess('Exercise saved.'),
-                  ),
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: fenPasteController,
-                        decoration: const InputDecoration(
-                          hintText: 'Paste FEN string...',
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: AppSpacing.sm),
-                        ),
-                        style: AppText.body,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    IconButton(
-                      icon: Icon(Icons.input, color: context.colors.brand),
-                      onPressed: () {
-                        // Drugi ulaz za poziciju, mimo dijaloga za postavljanje
-                        // — pa mu treba ista provera. Zalepljen FEN bez kralja
-                        // je isto sto i rucno postavljen bez kralja: motor ga ne
-                        // prezivljava.
-                        final fen = fenPasteController.text.trim();
-                        if (fen.isEmpty) {
-                          _showError('Please paste a valid FEN.');
-                          return;
-                        }
-                        final razlog = fenIllegalReason(fen);
-                        if (razlog != null) {
-                          _showError(razlog);
-                          return;
-                        }
-                        loadLessonPosition(fen, null);
-                        fenPasteController.clear();
-                      },
-                      tooltip: 'Load FEN',
-                    )
-                  ],
-                ),
-                const Divider(height: 24),
+                const Divider(height: 12),
                 const Text(
                   'Library',
                   style: AppText.headline,
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                const SizedBox(height: AppSpacing.sm),
                 // The shared list (phase 3b), narrowed to what can go on a
                 // board. Chips, search and the label filter are its own; this
                 // screen only fetches, puts a row on the board and acts on it.
@@ -2794,6 +2878,71 @@ class _ChessGamePageState extends State<ChessGamePage> {
       );
     }
 
+    // The Moves column on a window (PLAN-EKRANI phase 4, B). The engine is at
+    // its top, then the tree, which takes what the column leaves and never
+    // less than 150, then its edits, the comment and the arrows. The column
+    // scrolls only when what it holds is taller than the window.
+    Widget buildWindowMovesColumn() {
+      // Material, not a coloured Container: the engine panel hosts a
+      // SwitchListTile — see the sideways column below.
+      return SizedBox(
+        width: 300,
+        child: Material(
+          color: Theme.of(context).cardColor,
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_mayUseEngine) ...[
+                        _buildStockfishAnalysisWidget(),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                      const Text('Moves', style: AppText.headline),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                  ),
+                ),
+              ),
+              // Fills what is left of the viewport, or is as tall as its
+              // contents when those are taller: the tree is the part that
+              // gives, down to its floor.
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: _FloorHeight(floor: 150, child: _buildTreeBox()),
+                      ),
+                      _buildTreeActions(),
+                      const SizedBox(height: AppSpacing.sm),
+                      ..._buildCommentBlock(),
+                      const Divider(height: 16),
+                      if (isLeader)
+                        ..._buildArrowSection()
+                      else
+                        _buildBoardLockNotice(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // The Moves column held sideways, where the engine is already in the
+    // panels above it: the tree, the comment and the arrows as they were,
+    // with quieter buttons.
     Widget buildRightSidebar() {
       // Material, not a coloured Container: the sidebar hosts a SwitchListTile,
       // and a ColoredBox between a ListTile and its nearest Material hides the
@@ -2801,7 +2950,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
       // asserts on exactly that, every frame, which is enough to drown the UI
       // thread in error output on desktop.
       return SizedBox(
-        width: isWide ? 300 : double.infinity,
+        width: double.infinity,
         child: Material(
           color: Theme.of(context).cardColor,
           child: SingleChildScrollView(
@@ -2818,78 +2967,58 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 _buildMoveTreeSection(),
                 if (isLeader) ...[
                   const Divider(height: 12),
-                  const Text(
-                    'Arrow drawing (Trainer)',
-                    style: AppText.bodyLargeBold,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            setState(_toggleDrawingMode);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _annotation.isDrawing
-                                ? context.colors.accent
-                                : context.colors.brand.withValues(alpha: 0.3),
-                            foregroundColor: _annotation.isDrawing
-                                ? context.colors.canvas
-                                : context.colors.textPrimary,
-                          ),
-                          icon: Icon(_annotation.isDrawing
-                              ? Icons.check
-                              : Icons.gesture),
-                          label: Text(_annotation.isDrawing
-                              ? 'Done drawing'
-                              : 'Draw arrows'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_annotation.isDrawing) ...[
-                    const SizedBox(height: 10),
-                    _buildColorButtonRow(),
-                  ],
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildArrowEditButtons(),
-                ] else ...[
-                  if (!isAllowedToMove)
-                    Row(
-                      children: [
-                        Icon(Icons.lock,
-                            color: context.colors.warning, size: 16),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Board is locked by the trainer.',
-                            style: AppText.bodyLarge
-                                .copyWith(color: context.colors.warning),
-                          ),
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                      children: [
-                        Icon(Icons.lock_open,
-                            color: context.colors.success, size: 16),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'You may move on the board.',
-                            style: AppText.bodyLarge
-                                .copyWith(color: context.colors.success),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
+                  ..._buildArrowSection(),
+                ] else
+                  _buildBoardLockNotice(),
               ],
             ),
           ),
         ),
+      );
+    }
+
+    // A phone held upright: under the board the strip, the student's answers,
+    // the tree, one wrap of the words that act on it, and the engine last.
+    // The comment is not in this column — „Comment…" opens it on its own.
+    Widget buildPhoneColumn() {
+      final onMove = moveTree.current.parent != null;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          buildNavigationControls(),
+          if (_isStudentSeat) _buildStudentStrip(),
+          const SizedBox(height: AppSpacing.sm),
+          _buildTreeBox(height: 100),
+          if (canDriveSharedBoard || isLeader)
+            Wrap(
+              spacing: 4,
+              runSpacing: 0,
+              children: [
+                if (canDriveSharedBoard) ...[
+                  ..._treeActionButtons(),
+                  _quietAction(
+                    onPressed: onMove ? _openCommentSheet : null,
+                    icon: Icons.mode_comment_outlined,
+                    label: 'Comment…',
+                  ),
+                ],
+                if (isLeader) ...[
+                  _buildDrawArrowsToggle(),
+                  ..._arrowEditActions(),
+                ],
+              ],
+            ),
+          if (isLeader && _annotation.isDrawing) ...[
+            const SizedBox(height: 6),
+            _buildColorButtonRow(),
+          ],
+          if (!isLeader) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _buildBoardLockNotice(),
+          ],
+          const SizedBox(height: AppSpacing.sm),
+          _buildStockfishAnalysisWidget(),
+        ],
       );
     }
 
@@ -3021,47 +3150,70 @@ class _ChessGamePageState extends State<ChessGamePage> {
                       buildLeftSidebar(),
                       const VerticalDivider(width: 1, thickness: 1),
                       Expanded(
-                        child: Center(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (_showEvalBar && _mayUseEngine) ...[
-                                  SizedBox(
-                                    width: boardSize,
-                                    child: HorizontalEvalBarWidget(
-                                      eval: _currentRawEval,
-                                      evalString: currentEngineEval,
-                                      depth: _currentEvalDepth,
-                                      orientation: boardOrientation,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.sm),
-                                ],
-                                _buildChessBoardWithOverlay(boardSize),
-                                if (_isStudentSeat)
-                                  SizedBox(
-                                      width: boardSize,
-                                      child: _buildStudentStrip()),
-                                const SizedBox(height: AppSpacing.md),
-                                // PGN navigators
-                                SizedBox(
-                                  width: boardSize,
-                                  child: buildNavigationControls(),
+                        // The board takes the height its own column has (B):
+                        // the strip and, for a student, the answers are laid
+                        // out first, and the board is sized from what they
+                        // leave — read from the constraint, not from a guess
+                        // at how tall the bar is. The engine is in the Moves
+                        // column, so nothing under the board can push it off
+                        // the screen and the column never scrolls.
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: AppSpacing.sm),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Flexible(
+                                child: LayoutBuilder(
+                                  builder: (context, box) {
+                                    final showEval =
+                                        _showEvalBar && _mayUseEngine;
+                                    final evalRoom = showEval
+                                        ? _evalBarHeight + AppSpacing.sm
+                                        : 0.0;
+                                    // Tabla se meri po prostoru koji joj je
+                                    // stvarno ostao, ne po celom prozoru (v.
+                                    // istoriju: 0.42W je iznad praga od 840
+                                    // uvek trazilo vise nego sto srednja
+                                    // kolona ima). Sirina: ono sto kolona ima.
+                                    final byWidth =
+                                        max(240.0, box.maxWidth - 20) * 0.96;
+                                    final byHeight = box.maxHeight - evalRoom;
+                                    final side =
+                                        max(0.0, min(byHeight, byWidth)) *
+                                            AppSettingsService
+                                                .instance.boardSizeScale;
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (showEval) ...[
+                                          SizedBox(
+                                            width: side,
+                                            child: HorizontalEvalBarWidget(
+                                              eval: _currentRawEval,
+                                              evalString: currentEngineEval,
+                                              depth: _currentEvalDepth,
+                                              orientation: boardOrientation,
+                                            ),
+                                          ),
+                                          const SizedBox(height: AppSpacing.sm),
+                                        ],
+                                        _buildChessBoardWithOverlay(side),
+                                      ],
+                                    );
+                                  },
                                 ),
-                                const SizedBox(height: AppSpacing.sm),
-                                // Stockfish analysis widget directly UNDER board
-                                SizedBox(
-                                  width: boardSize,
-                                  child: _buildStockfishAnalysisWidget(),
-                                ),
-                              ],
-                            ),
+                              ),
+                              if (_isStudentSeat) _buildStudentStrip(),
+                              const SizedBox(height: AppSpacing.sm),
+                              // PGN navigators
+                              buildNavigationControls(),
+                            ],
                           ),
                         ),
                       ),
                       const VerticalDivider(width: 1, thickness: 1),
-                      buildRightSidebar(),
+                      buildWindowMovesColumn(),
                     ],
                   )
                 : isLandscape
@@ -3124,16 +3276,7 @@ class _ChessGamePageState extends State<ChessGamePage> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.lg,
                                   vertical: AppSpacing.sm),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  if (_isStudentSeat) _buildStudentStrip(),
-                                  buildNavigationControls(),
-                                  _buildStockfishAnalysisWidget(),
-                                  const SizedBox(height: AppSpacing.sm),
-                                  buildRightSidebar(),
-                                ],
-                              ),
+                              child: buildPhoneColumn(),
                             ),
                           ),
                         ],
@@ -3347,6 +3490,8 @@ class _ChessGamePageState extends State<ChessGamePage> {
         runSpacing: 6,
         alignment: WrapAlignment.center,
         children: [
+          // The one button that keeps an edge: it is the student's own door,
+          // and the three answers beside it are plain words (R4).
           OutlinedButton.icon(
             onPressed: _showShareStudentPositionModal,
             icon: const Icon(Icons.share, size: 16),
@@ -3355,9 +3500,9 @@ class _ChessGamePageState extends State<ChessGamePage> {
                 OutlinedButton.styleFrom(foregroundColor: colors.textPrimary),
           ),
           for (final entry in _quickAnswers.entries)
-            OutlinedButton(
+            TextButton(
               onPressed: () => _sendQuickAnswer(entry.key),
-              style: OutlinedButton.styleFrom(foregroundColor: colors.info),
+              style: TextButton.styleFrom(foregroundColor: colors.info),
               child: Text(entry.value),
             ),
         ],
@@ -3469,3 +3614,46 @@ class _ChessGamePageState extends State<ChessGamePage> {
 }
 
 enum _RoomPanel { voice, session }
+
+/// Lets a flexible child say it is 150 tall when the question is how tall its
+/// column has to be at least, without asking its own scroll view.
+///
+/// The Moves column's contents are laid out by a sliver that fills what is left
+/// of the viewport and is as tall as its contents when those are taller; it
+/// asks the column for its intrinsic height, and a move tree's answer to that
+/// is the height of every move it holds. The tree is the part that gives, so
+/// its answer is its floor.
+class _FloorHeight extends SingleChildRenderObjectWidget {
+  const _FloorHeight({required this.floor, required Widget child})
+      : super(child: child);
+
+  final double floor;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderFloorHeight(floor);
+
+  @override
+  void updateRenderObject(
+      BuildContext context, covariant _RenderFloorHeight renderObject) {
+    renderObject.floor = floor;
+  }
+}
+
+class _RenderFloorHeight extends RenderProxyBox {
+  _RenderFloorHeight(this._floor);
+
+  double _floor;
+
+  set floor(double value) {
+    if (value == _floor) return;
+    _floor = value;
+    markNeedsLayout();
+  }
+
+  @override
+  double computeMinIntrinsicHeight(double width) => _floor;
+
+  @override
+  double computeMaxIntrinsicHeight(double width) => _floor;
+}

@@ -108,12 +108,18 @@ class MakeExerciseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A quiet row of the room's Board column (PLAN-EKRANI phase 4, R4): the
+    // door is a word, aligned with its neighbours, and nothing is filled.
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
+      child: TextButton.icon(
         onPressed: () => _open(context),
-        icon: const Icon(Icons.task_alt, size: 16),
+        icon: const Icon(Icons.task_alt, size: 18),
         label: const Text('Make exercise'),
+        style: TextButton.styleFrom(
+          alignment: Alignment.centerLeft,
+          minimumSize: const Size.fromHeight(40),
+        ),
       ),
     );
   }

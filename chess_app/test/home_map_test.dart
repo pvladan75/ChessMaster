@@ -192,8 +192,11 @@ void main() {
         'Open a room and invite your student.',
         'Scan a book',
         'New session',
-        'Set up position',
-        'Import PGN',
+        // Phase 4 of docs/PLAN-EKRANI.md renamed the room's two doors to the
+        // names Preparation and Analysis use, with the ellipsis of a door that
+        // opens a dialog; the bare words are no longer a label anywhere.
+        'Set up position…',
+        'Import PGN…',
       ]) {
         expect(literals, contains(there), reason: '„$there" is missing');
       }
