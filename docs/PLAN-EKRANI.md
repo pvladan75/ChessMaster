@@ -314,7 +314,19 @@ the fold). First, finds out whether „Moves needed: 1 · found 0" after a solve
 is real (§2.5) with a case against the real session — fixed if it is, the
 render's rig named if it is not.
 
+**Gate:** `T/tactics_trainer_panel_test.dart` (lead, 3.10.2026), 12 cases,
+all red on `4cebfe89` for the right reason — among them the counter, measured
+real: `solvedMoveCount` floors an odd cursor, so a one-move puzzle solved says
+„found 0" and a two-move one „found 1". Brief `docs/briefs/BRIEF-EKRANI-FAZA2.md`.
+
 ### Phase 3 — My mistakes `[implementer]`
+
+**Gate:** `T/mistake_drill_panel_test.dart` (lead, 3.10.2026), 13 cases, all
+red on `4cebfe89`. R4 for a row of four peer grades is read as: the grade the
+reader most likely wants is filled — `Again` after a wrong or shown answer,
+`Good` after a right one — the others outlined; **the lead's reading, put to
+the owner**, and kept to one condition so it is one line to change. Brief
+`docs/briefs/BRIEF-EKRANI-FAZA3.md`.
 
 `APP/features/archive/screens/mistake_drill_screen.dart`, onto §4.1: the
 game's header (opponent, date, opening) as the panel's chips, the verdict and
