@@ -1,5 +1,5 @@
 // Tactics writes every outcome through `TacticsApiService.submitAttempt`
-// (docs/PLAN-NAPREDAK-VEZBI.md §4): a hinted solve, a skip on an unfinished
+// (docs/PLAN-NAPREDAK-VEZBI.md §4): a retried solve, a skip on an unfinished
 // free puzzle, and — in retry mode — the failed queue served by id.
 //
 // Fake the client, assert the request (rule 7). `TacticsApiService` and
@@ -57,7 +57,10 @@ Map<String, dynamic> bodyOf(http.Request r) =>
     jsonDecode(r.body) as Map<String, dynamic>;
 
 void main() {
-  testWidgets('a hinted solve records solved:false, hinted:true',
+  // Rewritten 3.10.2026 (docs/PLAN-GOVOR-IZ-KLIPOVA.md, phase 4a): the Hint
+  // button is gone on the owner's word, so the unaided-solve rule is held by
+  // the one thing that remains of it, a mistake before the solve.
+  testWidgets('a solve after a mistake records solved:false, hinted:false',
       (tester) async {
     final sent = <http.Request>[];
     await tester.pumpWidget(wrap(TacticsTrainerScreen(
@@ -72,9 +75,14 @@ void main() {
     )));
     await tester.pumpAndSettle();
 
-    // White to move after the setup move, board not flipped.
-    await tester.tap(find.text('Hint'));
+    // White to move after the setup move, board not flipped. A wrong move
+    // first (the king steps aside), then the mate.
+    expect(find.text('Hint'), findsNothing);
+    await tester.tapAt(squareAt(tester, 'g1', flipped: false));
     await tester.pumpAndSettle();
+    await tester.tapAt(squareAt(tester, 'h1', flipped: false));
+    await tester.pumpAndSettle();
+    expect(sent, isEmpty, reason: 'a wrong move in practice is not an attempt');
 
     await tester.tapAt(squareAt(tester, 'a1', flipped: false));
     await tester.pumpAndSettle();
@@ -85,8 +93,8 @@ void main() {
     expect(sent.single.url.path, endsWith('/api/puzzles/attempt'));
     final body = bodyOf(sent.single);
     expect(body['puzzleId'], 'p1');
-    expect(body['solved'], false, reason: 'a hinted solve does not count');
-    expect(body['hinted'], true);
+    expect(body['solved'], false, reason: 'a retried solve does not count');
+    expect(body['hinted'], false);
     expect(body['skipped'], false);
   });
 

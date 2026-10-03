@@ -146,6 +146,11 @@ class SpeechVocabulary {
   static SpeechToken get puzzleSolved => _must('puzzle_solved');
   static SpeechToken get stockfishWinsTryAgain =>
       _must('stockfish_wins_try_again');
+  static SpeechToken get findBestMove => _must('find_best_move');
+  static SpeechToken get solved => _must('solved');
+  static SpeechToken get solvedWithHelp => _must('solved_with_help');
+  static SpeechToken get notSolved => _must('not_solved');
+  static SpeechToken get oneAttempt => _must('one_attempt');
   static SpeechToken get whiteCastlesKingside =>
       _must('white_castles_kingside');
   static SpeechToken get whiteCastlesQueenside =>
@@ -218,6 +223,12 @@ class SpeechVocabulary {
     phrase('draw_fiftyMoves',
         'Draw: fifty moves without a capture or a pawn move. Try again.');
     phrase('draw_moveLimit', 'Draw: the move limit was reached. Try again.');
+    // The tactics trainer (phase 4a, 3.10.2026).
+    phrase('find_best_move', 'Find the best move.');
+    phrase('solved', 'Solved.');
+    phrase('solved_with_help', 'Solved with help.');
+    phrase('not_solved', 'Not solved.');
+    phrase('one_attempt', 'Incorrect. The assignment allows one attempt.');
 
     // The frame of a move sentence (D12).
     const frame = 'Black plays bishop e5.';

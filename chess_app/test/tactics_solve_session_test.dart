@@ -113,20 +113,6 @@ void main() {
       expect(session.status, SolveStatus.solved);
     });
 
-    test('a hinted solve does not count towards rating', () {
-      final session = TacticsSolveSession(realPuzzle());
-
-      expect(session.revealHint(), 'e6',
-          reason: 'the hint is the origin square, not the move');
-      session.submit('e6e7');
-      session.submit('b3c1');
-      session.submit('h6c1');
-
-      expect(session.status, SolveStatus.solved);
-      // Solved, but not evidence the user could find it unaided.
-      expect(session.countsAsSolved, isFalse);
-    });
-
     test('a solve after a mistake does not count towards rating', () {
       final session = TacticsSolveSession(realPuzzle());
 

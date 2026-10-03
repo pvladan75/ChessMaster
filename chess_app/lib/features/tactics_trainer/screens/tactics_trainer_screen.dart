@@ -5,12 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/core/services/puzzle_attempt_api.dart';
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_logger.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
+import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
@@ -36,6 +40,7 @@ class TacticsTrainerScreen extends StatefulWidget {
     this.retryIds,
     this.api,
     this.attemptApi,
+    this.speech,
   });
 
   final UserSession session;
@@ -64,6 +69,10 @@ class TacticsTrainerScreen extends StatefulWidget {
   /// the retry queue and, indirectly, the request `api` builds (§4).
   final PuzzleAttemptApi? attemptApi;
 
+  /// Injected in tests, which must not reach the machine's own voice. Null is
+  /// the app's one `SpeechService`.
+  final SpeechService? speech;
+
   bool get isAssignment => puzzleIds != null && puzzleIds!.isNotEmpty;
 
   /// Assignment and retry both serve one puzzle at a time from a fixed list
@@ -86,9 +95,20 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   bool _loading = true;
   bool _boardLocked = true;
   String? _error;
-  String? _feedback;
+
+  /// The verdict, one sentence per line. Each is a [SpokenLine]: the text
+  /// drawn is the text of the line that was spoken (D4), and nothing else on
+  /// this screen speaks.
+  List<SpokenLine>? _feedback;
   bool _feedbackIsGood = false;
-  String? _hintSquare;
+
+  /// The side the reader plays. Fixed when the puzzle starts: flipping the
+  /// board must not change whose move the task says it is.
+  PlayerColor _userSide = PlayerColor.white;
+
+  /// Bumped whenever a puzzle is put on the board, so the task line is a new
+  /// widget and says its sentence again.
+  int _taskSerial = 0;
   AttemptResult? _lastResult;
   DateTime? _startedAt;
 
@@ -165,9 +185,44 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
   void dispose() {
     // The reader is leaving, which is one of the three things that may cut a
     // sentence off. See SpeechService.stop.
-    SpeechService.instance.stop();
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
     _boardController.dispose();
     super.dispose();
+  }
+
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  /// Says [line] through the one speech service. Forced, because the same
+  /// verdict twice in a row is two verdicts, and guarded, because a voice that
+  /// throws must never be able to stop a move, a reply or the finish.
+  void _say(SpokenLine line) {
+    if (!mounted) return;
+    try {
+      unawaited(_speech.speakLine(line, force: true).catchError((Object _) {}));
+    } catch (_) {}
+  }
+
+  /// A move played in [fenBefore], said as a move and read off the position it
+  /// was played in — never off a string of squares.
+  void _sayMove(String fenBefore, String uci) {
+    if (uci.length < 4) return;
+    try {
+      final facts = MoveWords.factsOf(
+          fenBefore, uci.substring(0, 2), uci.substring(2, 4),
+          promotion: uci.length > 4 ? uci[4].toLowerCase() : 'q');
+      if (facts != null) _say(MoveWords.line(facts));
+    } catch (_) {}
+  }
+
+  /// Draws and says the verdict, line by line, in order.
+  void _verdict(List<SpokenLine> lines, {required bool good}) {
+    setState(() {
+      _feedback = lines;
+      _feedbackIsGood = good;
+    });
+    lines.forEach(_say);
   }
 
   Future<void> _loadNext() async {
@@ -196,15 +251,16 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     // Moving to the next puzzle is the reader saying they are done with the
     // last verdict; and forgetting it means the same sentence is read again
     // when it comes round on a later puzzle.
-    SpeechService.instance.stop();
-    SpeechService.instance.forget();
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
+    _speech.forget();
 
     final token = ++_puzzleToken;
     setState(() {
       _loading = true;
       _error = null;
       _feedback = null;
-      _hintSquare = null;
       _lastResult = null;
       _boardLocked = true;
     });
@@ -262,6 +318,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
   void _startPuzzle(TacticsPuzzle puzzle, PuzzleSelection selection) {
     final game = chess.Chess.fromFEN(puzzle.fen);
+    final fenBeforeSetup = game.fen;
 
     // The stored FEN is the position before the opponent's mistake. Playing the
     // setup move is what produces the position the user is actually asked about.
@@ -281,6 +338,8 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       _orientation = game.turn == chess.Color.WHITE
           ? PlayerColor.white
           : PlayerColor.black;
+      _userSide = _orientation;
+      _taskSerial++;
       _loading = false;
       _boardLocked = false;
       _startedAt = DateTime.now();
@@ -289,6 +348,10 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     });
 
     _boardController.loadFen(game.fen);
+    // What the opponent just played comes first — the reader is asked about
+    // the position it made — and the task follows from the line under the
+    // board, built after this frame.
+    _sayMove(fenBeforeSetup, setup);
     AppLogger.log(
         '[Tactics] Puzzle ${puzzle.id} (rating ${puzzle.rating}) loaded.');
   }
@@ -355,12 +418,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         // first attempt, so offering another try would show a second chance
         // that changes nothing — the trainer sees the first move either way.
         // Better to say so and move on.
-        setState(() {
-          _feedback =
-              'That is not it. The assignment allows one attempt, your move has been recorded.';
-          _feedbackIsGood = false;
-        });
-        await _finish(solved: false, note: 'Not solved.');
+        await _finish(
+          solved: false,
+          note: [
+            SpokenLine([SpeechVocabulary.oneAttempt]),
+            SpokenLine([SpeechVocabulary.notSolved]),
+          ],
+        );
         return;
       }
 
@@ -368,21 +432,25 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       // mistake stays on the session's record, so a retried puzzle still does
       // not count as a clean solve and the rating is unaffected.
       session.retryAfterMistake();
-      setState(() {
-        _feedback = 'That is not it. Try another move.';
-        _feedbackIsGood = false;
-      });
+      _verdict([
+        SpokenLine([SpeechVocabulary.incorrectTryAnother])
+      ], good: false);
       return;
     }
 
     game.move({'from': from, 'to': to, 'promotion': piece});
     _boardController.loadFen(game.fen);
 
-    setState(() {
-      _hintSquare = null;
-      _feedback = verdict.puzzleSolved ? null : 'Correct — continue.';
-      _feedbackIsGood = true;
-    });
+    if (verdict.puzzleSolved) {
+      setState(() {
+        _feedback = null;
+        _feedbackIsGood = true;
+      });
+    } else {
+      _verdict([
+        SpokenLine([SpeechVocabulary.correctKeepGoing])
+      ], good: true);
+    }
 
     if (verdict.opponentReply != null) {
       await _playOpponentReply(verdict.opponentReply!);
@@ -424,12 +492,14 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     final game = _game;
     if (game == null) return;
 
+    final fenBefore = game.fen;
     game.move({
       'from': uci.substring(0, 2),
       'to': uci.substring(2, 4),
       if (uci.length > 4) 'promotion': uci[4],
     });
     _boardController.loadFen(game.fen);
+    _sayMove(fenBefore, uci);
 
     if (!mounted || token != _puzzleToken) return;
     setState(() => _boardLocked = _session?.isComplete ?? true);
@@ -437,18 +507,29 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
   /// Records the attempt and closes the puzzle.
   ///
-  /// [note] replaces the message when neither "solved" nor "solved with help"
+  /// [note] replaces the verdict when neither "solved" nor "solved with help"
   /// is the truth — a wrong answer to homework, which has one attempt, is
-  /// finished too.
-  Future<void> _finish({required bool solved, String? note}) async {
+  /// finished too. [say] is false where the screen has just said its own
+  /// words (the solution played out) and the verdict would only be drawn.
+  Future<void> _finish({
+    required bool solved,
+    List<SpokenLine>? note,
+  }) async {
     final puzzle = _puzzle;
     if (puzzle == null) return;
 
+    final lines = note ??
+        [
+          SpokenLine([
+            solved ? SpeechVocabulary.solved : SpeechVocabulary.solvedWithHelp
+          ])
+        ];
     setState(() {
       _boardLocked = true;
-      _feedback = note ?? (solved ? 'Solved!' : 'Solved with help.');
+      _feedback = lines;
       _feedbackIsGood = solved;
     });
+    lines.forEach(_say);
 
     final elapsed = _startedAt == null
         ? null
@@ -460,7 +541,6 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       msTaken: elapsed,
       // What they tried before they found it — or instead of finding it.
       playedSan: _session?.firstWrongSan,
-      hinted: _session?.usedHint == true,
     );
 
     if (!mounted) return;
@@ -490,12 +570,14 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       await Future.delayed(const Duration(milliseconds: 450));
       if (!mounted || token != _puzzleToken) return;
 
+      final fenBefore = game.fen;
       game.move({
         'from': move.substring(0, 2),
         'to': move.substring(2, 4),
         if (move.length > 4) 'promotion': move[4],
       });
       _boardController.loadFen(game.fen);
+      _sayMove(fenBefore, move);
       setState(() {});
     }
 
@@ -506,17 +588,9 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
       setState(() => _boardLocked = true);
       return;
     }
+    // Said as well as drawn: the screen never draws a sentence it does not
+    // say (the walkthrough's rule, kept by every spoken screen).
     await _finish(solved: false);
-  }
-
-  void _useHint() {
-    final square = _session?.revealHint();
-    if (square == null) return;
-    setState(() {
-      _hintSquare = square;
-      _feedback = 'Move the piece from $square.';
-      _feedbackIsGood = true;
-    });
   }
 
   @override
@@ -788,7 +862,14 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     final session = _session;
     if (puzzle == null || session == null) return const SizedBox.shrink();
 
-    final toMove = _orientation == PlayerColor.white ? 'White' : 'Black';
+    // The sentence the task line draws is the sentence it speaks (D4): one
+    // SpokenLine, read for both.
+    final task = SpokenLine([
+      _userSide == PlayerColor.white
+          ? SpeechVocabulary.whiteToMove
+          : SpeechVocabulary.blackToMove,
+      SpeechVocabulary.findBestMove,
+    ]);
 
     return Card(
       color: context.colors.surface,
@@ -800,8 +881,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    '$toMove to move — find the best move',
+                  child: SpeakableInfo(
+                    key: ValueKey('task-$_taskSerial'),
+                    text: task.text,
+                    line: task,
+                    autoSpeak: true,
+                    compact: true,
+                    speech: widget.speech,
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold),
                   ),
@@ -877,7 +963,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 
     if (message == null) return const SizedBox(height: AppSpacing.sm);
 
-    return _SpokenFeedback(message: message, isGood: _feedbackIsGood);
+    return _FeedbackBox(lines: message, isGood: _feedbackIsGood);
   }
 
   Widget _buildControls() {
@@ -896,12 +982,6 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         // accepted drags while it waited for an answer nobody needed to give.
         // Homework is the other half of the same rule: one attempt, already
         // recorded, so there is nothing to retry.
-        if (!complete)
-          OutlinedButton.icon(
-            onPressed: _hintSquare == null ? _useHint : null,
-            icon: const Icon(Icons.lightbulb_outline),
-            label: const Text('Hint'),
-          ),
         if (!complete || failedNow)
           OutlinedButton.icon(
             onPressed: _showSolution,
@@ -923,42 +1003,18 @@ String puzzleCountLabel(int count) {
   return count == 1 ? '1 puzzle' : '$count puzzles';
 }
 
-/// The verdict, shown and — when speech is switched on — read out.
-///
-/// Speaking from the widget that shows the sentence rather than from the eight
-/// places the screen sets one, for the reason the endgame panel gives: a screen
-/// that has to remember to speak at every one of them will eventually forget at
-/// one. What is on screen is what is said, and there is no second list to keep
-/// in step.
-class _SpokenFeedback extends StatefulWidget {
-  final String message;
+/// The verdict as it is drawn: the text of the lines that were spoken, one
+/// under the other. Speaking is the screen's own `_verdict`, which draws and
+/// says the same `SpokenLine`s, so there is no second list to keep in step.
+class _FeedbackBox extends StatelessWidget {
+  final List<SpokenLine> lines;
   final bool isGood;
 
-  const _SpokenFeedback({required this.message, required this.isGood});
-
-  @override
-  State<_SpokenFeedback> createState() => _SpokenFeedbackState();
-}
-
-class _SpokenFeedbackState extends State<_SpokenFeedback> {
-  @override
-  void initState() {
-    super.initState();
-    SpeechService.instance.speak(widget.message);
-  }
-
-  @override
-  void didUpdateWidget(_SpokenFeedback old) {
-    super.didUpdateWidget(old);
-    if (old.message != widget.message) {
-      SpeechService.instance.speak(widget.message);
-    }
-  }
+  const _FeedbackBox({required this.lines, required this.isGood});
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        widget.isGood ? context.colors.success : context.colors.warning;
+    final accent = isGood ? context.colors.success : context.colors.warning;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -969,12 +1025,17 @@ class _SpokenFeedbackState extends State<_SpokenFeedback> {
       child: Row(
         children: [
           Icon(
-            widget.isGood ? Icons.check_circle_outline : Icons.error_outline,
+            isGood ? Icons.check_circle_outline : Icons.error_outline,
             size: 18,
             color: accent,
           ),
           const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(widget.message)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [for (final line in lines) Text(line.text)],
+            ),
+          ),
         ],
       ),
     );

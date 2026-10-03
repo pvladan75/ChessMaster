@@ -109,6 +109,36 @@
       "carrier": "Draw: the move limit was reached. Try again."
     },
     {
+      "id": "find_best_move",
+      "kind": "phrase",
+      "text": "Find the best move.",
+      "carrier": "Find the best move."
+    },
+    {
+      "id": "solved",
+      "kind": "phrase",
+      "text": "Solved.",
+      "carrier": "Solved."
+    },
+    {
+      "id": "solved_with_help",
+      "kind": "phrase",
+      "text": "Solved with help.",
+      "carrier": "Solved with help."
+    },
+    {
+      "id": "not_solved",
+      "kind": "phrase",
+      "text": "Not solved.",
+      "carrier": "Not solved."
+    },
+    {
+      "id": "one_attempt",
+      "kind": "phrase",
+      "text": "Incorrect. The assignment allows one attempt.",
+      "carrier": "Incorrect. The assignment allows one attempt."
+    },
+    {
       "id": "black_plays",
       "kind": "cut",
       "text": "Black plays",

@@ -118,6 +118,41 @@
     "wordTo": null,
     "voice": "en-US-AndrewNeural"
   },
+  "find_best_move": {
+    "kind": "phrase",
+    "carrier": "Find the best move.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "solved": {
+    "kind": "phrase",
+    "carrier": "Solved.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "solved_with_help": {
+    "kind": "phrase",
+    "carrier": "Solved with help.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "not_solved": {
+    "kind": "phrase",
+    "carrier": "Not solved.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "one_attempt": {
+    "kind": "phrase",
+    "carrier": "Incorrect. The assignment allows one attempt.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
   "black_plays": {
     "kind": "cut",
     "carrier": "Black plays bishop e5.",

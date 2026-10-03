@@ -95,13 +95,11 @@ class TacticsSolveSession {
 
   int _cursor = 0;
   SolveStatus _status = SolveStatus.solving;
-  bool _usedHint = false;
   int _mistakes = 0;
   String? _firstWrongSan;
 
   SolveStatus get status => _status;
   bool get isComplete => _status != SolveStatus.solving;
-  bool get usedHint => _usedHint;
   int get mistakes => _mistakes;
 
   /// The first move the user tried that was not the one the puzzle wanted.
@@ -122,15 +120,6 @@ class TacticsSolveSession {
   /// The move currently expected from the user, or null when the puzzle is over.
   String? get expectedMove =>
       _cursor < puzzle.solution.length ? puzzle.solution[_cursor] : null;
-
-  /// The origin square of the expected move — enough to unstick someone without
-  /// handing them the answer. Marks the attempt as hinted so scoring can tell.
-  String? revealHint() {
-    final expected = expectedMove;
-    if (expected == null) return null;
-    _usedHint = true;
-    return expected.substring(0, 2);
-  }
 
   /// UCI moves carry an optional promotion suffix, and the same move can arrive
   /// as `e7e8` or `e7e8q` depending on who generated it. Comparing raw strings
@@ -208,8 +197,7 @@ class TacticsSolveSession {
   }
 
   /// True when the attempt should count as solved for rating purposes.
-  /// A hinted or retried solve teaches something, but it is not evidence the
-  /// user can find the move unaided, so it must not raise their rating.
-  bool get countsAsSolved =>
-      _status == SolveStatus.solved && !_usedHint && _mistakes == 0;
+  /// A retried solve teaches something, but it is not evidence the user can
+  /// find the move unaided, so it must not raise their rating.
+  bool get countsAsSolved => _status == SolveStatus.solved && _mistakes == 0;
 }
