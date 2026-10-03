@@ -157,7 +157,17 @@ and pushed over another (red today: 0); the screen still detaches when covered
 and attaches when shown again; Preparation's own tests unchanged. Live: lines
 appear the first time the switch is turned on.
 
-**Phase 2 — `PositionLookups`, and Analysis onto it** `[implementer]`. Gate,
+**Phase 2 — `PositionLookups`, and Analysis onto it** `[implementer]` — built
+3.10.2026 (worker's `8f88cb93`; the lead's gate fixes `d624a0fb` — Analysis's
+board is `SkinnedChessBoard`, played by taps, and the app writes the en passant
+square after every double push — both faults the worker stopped on). Gate
+`T/position_lookups_test.dart` (8) and `T/analysis_lookups_test.dart` (4);
+mutations: six of seven caught, the seventh inert (a second dispose guard
+behind the first). Full suite 5746. With it, before phases 3–5, the lead's
+`writingPanels` / `writingPanelShown` in `analysis_panels.dart` and
+`isPanelShownIn` / `setPanelShownIn` in `AppSettingsService` — the rows and
+memory both screens use (`T/writing_panels_test.dart`, 4).
+ Gate,
 with fake clients: a stale answer is dropped; a hidden panel asks nothing; the
 two look-ups for one FEN go out once; a guest's explorer says why. Analysis's
 own tests unchanged and green; a request count on Analysis with the two

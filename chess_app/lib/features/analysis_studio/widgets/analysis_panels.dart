@@ -42,15 +42,30 @@ List<PopupMenuEntry<void>> analysisPanelMenuEntries(BuildContext context) => [
         PopupMenuItem<void>(
           enabled: false,
           padding: EdgeInsets.zero,
-          child: _PanelCheck(label: label, panel: key),
+          child: _PanelCheck(
+            label: label,
+            keyPrefix: 'analysis-panel',
+            isShown: () => AppSettingsService.instance.isPanelVisible(key),
+            toggle: (shown) =>
+                AppSettingsService.instance.setPanelVisible(key, shown),
+          ),
         ),
     ];
 
 class _PanelCheck extends StatelessWidget {
-  const _PanelCheck({required this.label, required this.panel});
+  const _PanelCheck({
+    required this.label,
+    required this.keyPrefix,
+    required this.isShown,
+    required this.toggle,
+  });
 
   final String label;
-  final String panel;
+
+  /// `analysis-panel` for Analysis, `<scope>-panel` for a writing screen.
+  final String keyPrefix;
+  final bool Function() isShown;
+  final void Function(bool shown) toggle;
 
   @override
   Widget build(BuildContext context) {
@@ -58,10 +73,10 @@ class _PanelCheck extends StatelessWidget {
     return ListenableBuilder(
       listenable: settings,
       builder: (context, _) {
-        final shown = settings.isPanelVisible(panel);
+        final shown = isShown();
         return InkWell(
-          key: Key('analysis-panel-$label'),
-          onTap: () => settings.setPanelVisible(panel, !shown),
+          key: Key('$keyPrefix-$label'),
+          onTap: () => toggle(!shown),
           child: Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
@@ -92,3 +107,58 @@ class _PanelCheck extends StatelessWidget {
     );
   }
 }
+
+/// The screens where a tutorial is written, each remembering its own panels
+/// (`docs/PLAN-MOTOR-I-PANELI.md`, D1–D2).
+enum PanelScope { preparation, studio }
+
+/// The board panels a writing screen offers: Analysis's rows and words, so
+/// one tick means one thing everywhere (D1). The move tree is not one of
+/// them — both screens always show their own.
+const writingPanels = <(String, String)>[
+  ('Engine analysis panel', 'engine_analysis'),
+  ('Opening Explorer', 'opening_explorer'),
+  ('Tablebase (Syzygy)', 'syzygy'),
+];
+
+/// What each writing screen shows before its reader ticks anything (D2):
+/// Preparation its engine, as before the plan; the studio nothing.
+const writingPanelDefaults = <PanelScope, Set<String>>{
+  PanelScope.preparation: {'engine_analysis'},
+  PanelScope.studio: {},
+};
+
+/// Whether [scope] shows the panel [key] — remembered, or its default.
+bool writingPanelShown(PanelScope scope, String key) =>
+    AppSettingsService.instance.isPanelShownIn(scope.name, key) ??
+    writingPanelDefaults[scope]!.contains(key);
+
+/// Ticks [key] on or off in [scope], for this screen alone.
+Future<void> setWritingPanelShown(PanelScope scope, String key, bool shown) =>
+    AppSettingsService.instance.setPanelShownIn(scope.name, key, shown,
+        defaults: writingPanelDefaults[scope]!);
+
+/// [scope]'s panels as entries of the board view menu — a heading and a
+/// checkbox a row, as Analysis's ([analysisPanelMenuEntries]).
+List<PopupMenuEntry<void>> writingPanelMenuEntries(
+        BuildContext context, PanelScope scope) =>
+    [
+      PopupMenuItem<void>(
+        enabled: false,
+        height: 32,
+        child: Text('Panels',
+            style:
+                AppText.captionBold.copyWith(color: context.colors.textMuted)),
+      ),
+      for (final (label, key) in writingPanels)
+        PopupMenuItem<void>(
+          enabled: false,
+          padding: EdgeInsets.zero,
+          child: _PanelCheck(
+            label: label,
+            keyPrefix: '${scope.name}-panel',
+            isShown: () => writingPanelShown(scope, key),
+            toggle: (shown) => setWritingPanelShown(scope, key, shown),
+          ),
+        ),
+    ];

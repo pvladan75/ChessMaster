@@ -45,6 +45,14 @@ void main() {
       if (code.contains('setPanelVisible(') && rel != writer) {
         offenders.add('$rel sets a panel switch');
       }
+      // Widened in phase 3 of docs/PLAN-MOTOR-I-PANELI.md: the writing
+      // screens' own panels (one set per screen) have the same one home —
+      // a screen asks `writingPanelShown`, never the settings directly.
+      if ((code.contains('isPanelShownIn(') ||
+              code.contains('setPanelShownIn(')) &&
+          rel != writer) {
+        offenders.add('$rel reads or sets a writing screen panel directly');
+      }
     }
     expect(offenders, isEmpty, reason: offenders.join('\n'));
   });

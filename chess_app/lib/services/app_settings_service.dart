@@ -39,6 +39,13 @@ class AppSettingsService extends ChangeNotifier {
   double _boardSizeScale = 1.0;
   Set<String> _hiddenPanels = {};
 
+  /// The board panels a writing screen shows, per screen
+  /// (`docs/PLAN-MOTOR-I-PANELI.md`, D2): stored as the set that is shown,
+  /// under `app_panels_<scope>`, and absent until the reader ticks anything
+  /// there — then the screen's defaults answer. Read and written only through
+  /// `writingPanelShown` / `setWritingPanelShown` in `analysis_panels.dart`.
+  final Map<String, Set<String>> _shownPanelsByScope = {};
+
   /// How long a piece takes to slide from its origin to destination square
   /// after a move. 0 disables the animation (piece snaps instantly, as
   /// flutter_chess_board does natively).
@@ -212,6 +219,10 @@ class AppSettingsService extends ChangeNotifier {
   /// new panels added later don't need a migration to stay visible.
   bool isPanelVisible(String key) => !_hiddenPanels.contains(key);
 
+  /// What [scope] remembers about [key]; null while it remembers nothing.
+  bool? isPanelShownIn(String scope, String key) =>
+      _shownPanelsByScope[scope]?.contains(key);
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _themeMode = _themeModeFromString(prefs.getString('app_theme_mode'));
@@ -241,6 +252,12 @@ class AppSettingsService extends ChangeNotifier {
     _boardSizeScale =
         (prefs.getDouble('app_board_scale') ?? 1.0).clamp(0.6, 1.0);
     _hiddenPanels = (prefs.getStringList('app_hidden_panels') ?? []).toSet();
+    _shownPanelsByScope.clear();
+    for (final k in prefs.getKeys()) {
+      if (!k.startsWith('app_panels_')) continue;
+      _shownPanelsByScope[k.substring('app_panels_'.length)] =
+          (prefs.getStringList(k) ?? const <String>[]).toSet();
+    }
     // A personal Lichess token some devices still hold from when the opening
     // book was Lichess's. Nothing reads it any more, and a secret nothing uses
     // is not kept.
@@ -350,6 +367,20 @@ class AppSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('app_hidden_panels', _hiddenPanels.toList());
+  }
+
+  /// Ticks [key] on or off in [scope]; the first tick starts from [defaults].
+  Future<void> setPanelShownIn(String scope, String key, bool shown,
+      {required Set<String> defaults}) async {
+    final set = _shownPanelsByScope.putIfAbsent(scope, () => {...defaults});
+    if (shown) {
+      set.add(key);
+    } else {
+      set.remove(key);
+    }
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('app_panels_$scope', set.toList());
   }
 
   Future<void> setMoveAnimationDurationMs(int ms) async {
