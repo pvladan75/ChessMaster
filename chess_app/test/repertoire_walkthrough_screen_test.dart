@@ -159,7 +159,13 @@ void main() {
     final api = _FakeApi(treeToReturn: buildTestTree());
     await pump(tester, api);
 
-    expect(find.text('Your move — main line.'), findsOneWidget);
+    // Superseded (phase 4d, 3.10.2026): the sentence is now one line of clip
+    // tokens, so the fork's names are part of the same drawn text and the
+    // exact wording is `Your move. Main line.` followed by the fork clause.
+    expect(
+        find.textContaining(
+            'Your move. Main line. From here the opponent has 3 replies.'),
+        findsOneWidget);
 
     // Scroll down manually
     await tester.drag(find.byType(ListView), const Offset(0, -300));
@@ -169,12 +175,13 @@ void main() {
     await tester.tap(chip);
     await tester.pumpAndSettle();
 
-    expect(find.text('Opponent plays e5 — 55% of games.'), findsOneWidget);
+    expect(
+        find.text('Black plays pawn e5. In 55 of 100 games.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Your move — main line.'), findsOneWidget);
+    expect(find.text('Your move. Main line.'), findsOneWidget);
 
     // Nf3 ends the first line, so the next press is the tour coming back to
     // e4 rather than a move. Asserted here rather than skipped past: this walk
@@ -183,22 +190,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-        find.text('We saw the line after e5. Now comes e6.'), findsOneWidget);
+        find.textContaining(
+            'We saw the line after pawn e5. Now comes pawn e6.'),
+        findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Opponent plays e6 — 14% of games.'), findsOneWidget);
+    expect(
+        find.text('Black plays pawn e6. In 14 of 100 games.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Your move — main line.'), findsOneWidget);
+    expect(find.text('Your move. Main line.'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Against d5, in 60% of games, you have no reply.'),
+    expect(
+        find.text(
+            'Black plays pawn d5. In 60 of 100 games. You have no reply here.'),
         findsOneWidget);
 
     // And the second climb, back to the same fork for the last reply.
@@ -206,12 +218,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-        find.text('We saw the line after e6. Now comes c5.'), findsOneWidget);
+        find.textContaining(
+            'We saw the line after pawn e6. Now comes pawn c5.'),
+        findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
-    expect(find.text('Against c5, in 31% of games, you have no reply.'),
+    expect(
+        find.text(
+            'Black plays pawn c5. In 31 of 100 games. You have no reply here.'),
         findsOneWidget);
   });
 
@@ -247,68 +263,46 @@ void main() {
   testWidgets(
       'mutated 10: At Size(360, 640) nothing overflows on a fork with five replies',
       (tester) async {
+    // Rewritten openly (phase 4d, 3.10.2026). The replies used to be five
+    // holes with made-up moves, and the tour leaves out every hole once there
+    // are two of them — so the fork this case is named for was never drawn, and
+    // it passed for that reason. Now they are five answered replies with real
+    // moves, which the card names and counts in its longest form.
+    const afterE4 =
+        'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
+    RepertoireTreeMove reply(
+            String uci, String san, double share, String fen) =>
+        RepertoireTreeMove(
+            uci: uci,
+            san: san,
+            fen: fen,
+            mine: false,
+            role: null,
+            share: share,
+            state: 'decided',
+            children: const []);
     final manyRepliesTree = RepertoireTree(
       rootFen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
       children: [
         RepertoireTreeMove(
           uci: 'e2e4',
           san: 'e4',
-          fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1',
+          fen: afterE4,
           mine: true,
           role: 'primary',
           share: 1.0,
           state: 'decided',
           children: [
-            RepertoireTreeMove(
-                uci: 'a',
-                san: 'a',
-                fen:
-                    'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
-                mine: false,
-                role: null,
-                share: 0.1,
-                state: 'open',
-                children: []),
-            RepertoireTreeMove(
-                uci: 'b',
-                san: 'b',
-                fen:
-                    'rnbqkbnr/pppp2pp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
-                mine: false,
-                role: null,
-                share: 0.1,
-                state: 'open',
-                children: []),
-            RepertoireTreeMove(
-                uci: 'c',
-                san: 'c',
-                fen:
-                    'rnbqkbnr/pppp3p/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
-                mine: false,
-                role: null,
-                share: 0.1,
-                state: 'open',
-                children: []),
-            RepertoireTreeMove(
-                uci: 'd',
-                san: 'd',
-                fen:
-                    'rnbqkbnr/pppp4/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
-                mine: false,
-                role: null,
-                share: 0.1,
-                state: 'open',
-                children: []),
-            RepertoireTreeMove(
-                uci: 'e',
-                san: 'e',
-                fen:
-                    'rnbqkbnr/pppp5/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2',
-                mine: false,
-                role: null,
-                share: 0.1,
-                state: 'open',
-                children: []),
+            reply('e7e5', 'e5', 0.30,
+                'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2'),
+            reply('c7c5', 'c5', 0.25,
+                'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2'),
+            reply('e7e6', 'e6', 0.20,
+                'rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2'),
+            reply('c7c6', 'c6', 0.15,
+                'rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2'),
+            reply('d7d5', 'd5', 0.10,
+                'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2'),
           ],
         ),
       ],
@@ -317,6 +311,8 @@ void main() {
     final api = _FakeApi(treeToReturn: manyRepliesTree);
     await pump(tester, api, size: const Size(360, 640));
 
+    expect(find.byType(ActionChip), findsNWidgets(5),
+        reason: 'the fork is really drawn, with a chip for every reply');
     expect(tester.takeException(), isNull);
   });
 
@@ -361,6 +357,9 @@ void main() {
         .toList();
 
     expect(speakable.text, isNotEmpty);
+    // Phase 4d: the voice plays the same tokens the card draws.
+    expect(speakable.line, isNotNull);
+    expect(speakable.line!.text, speakable.text);
     for (final part in speakable.text.split(' ')) {
       expect(shown.any((line) => line.contains(part)), isTrue,
           reason: 'spoken but not shown anywhere on the card: $part');
@@ -431,7 +430,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.chevron_right));
       await tester.pumpAndSettle();
     }
-    expect(find.text('Your move — main line.'), findsOneWidget);
+    expect(find.text('Your move. Main line.'), findsOneWidget);
 
     final board = tester
         .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
@@ -452,14 +451,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
-    expect(find.text('Your move — main line.'), findsOneWidget);
+    expect(find.text('Your move. Main line.'), findsOneWidget);
 
     // One more press ends the line and comes back to e4.
     await tester.tap(find.byIcon(Icons.chevron_right));
     await tester.pumpAndSettle();
 
     expect(
-        find.text('We saw the line after e5. Now comes e6.'), findsOneWidget);
+        find.textContaining(
+            'We saw the line after pawn e5. Now comes pawn e6.'),
+        findsOneWidget);
     // Standing at the fork means the fork's own replies are on the board.
     final board = tester
         .widget<ChessBoardWithOverlay>(find.byType(ChessBoardWithOverlay));
@@ -536,7 +537,7 @@ void main() {
       final api = _FakeApi(treeToReturn: buildTestTree());
       await pump(tester, api, size: size);
       expectBoardBeside(tester, size);
-      expect(find.text('Your move — main line.'), findsOneWidget);
+      expect(find.textContaining('Your move. Main line.'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Next move'));
       await tester.pumpAndSettle();

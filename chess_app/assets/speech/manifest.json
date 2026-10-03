@@ -445,6 +445,54 @@
       "carrier": "Nothing to drill in this branch."
     },
     {
+      "id": "your_move_main_line",
+      "kind": "phrase",
+      "text": "Your move. Main line.",
+      "carrier": "Your move. Main line."
+    },
+    {
+      "id": "your_move_alternative",
+      "kind": "phrase",
+      "text": "Your move. The alternative.",
+      "carrier": "Your move. The alternative."
+    },
+    {
+      "id": "less_than_one_in_100",
+      "kind": "phrase",
+      "text": "In less than one of 100 games.",
+      "carrier": "In less than one of 100 games."
+    },
+    {
+      "id": "no_reply_here",
+      "kind": "phrase",
+      "text": "You have no reply here.",
+      "carrier": "You have no reply here."
+    },
+    {
+      "id": "no_reply",
+      "kind": "phrase",
+      "text": "No reply.",
+      "carrier": "No reply."
+    },
+    {
+      "id": "one_more_reply",
+      "kind": "phrase",
+      "text": "And one more reply.",
+      "carrier": "And one more reply."
+    },
+    {
+      "id": "left_note",
+      "kind": "phrase",
+      "text": "You left a note here.",
+      "carrier": "You left a note here."
+    },
+    {
+      "id": "back_to_fork",
+      "kind": "phrase",
+      "text": "Back to the fork.",
+      "carrier": "Back to the fork."
+    },
+    {
       "id": "black_plays",
       "kind": "cut",
       "text": "Black plays",
@@ -771,6 +819,86 @@
       "carrier": "Nothing to drill after bishop e5 yet.",
       "wordFrom": 7,
       "wordTo": 7
+    },
+    {
+      "id": "in_head",
+      "kind": "cut",
+      "text": "In",
+      "carrier": "In 42 of 100 games.",
+      "wordFrom": 1,
+      "wordTo": 1
+    },
+    {
+      "id": "of_100_games",
+      "kind": "cut",
+      "text": "of 100 games.",
+      "carrier": "In 42 of 100 games.",
+      "wordFrom": 3,
+      "wordTo": 5
+    },
+    {
+      "id": "in_games",
+      "kind": "cut",
+      "text": "in",
+      "carrier": "Knight f3 in 42 of 100 games.",
+      "wordFrom": 3,
+      "wordTo": 3
+    },
+    {
+      "id": "opponent_has_replies",
+      "kind": "cut",
+      "text": "From here the opponent has",
+      "carrier": "From here the opponent has 3 replies.",
+      "wordFrom": 1,
+      "wordTo": 5
+    },
+    {
+      "id": "replies_tail",
+      "kind": "cut",
+      "text": "replies.",
+      "carrier": "From here the opponent has 3 replies.",
+      "wordFrom": 7,
+      "wordTo": 7
+    },
+    {
+      "id": "and_head",
+      "kind": "cut",
+      "text": "And",
+      "carrier": "And 2 more replies.",
+      "wordFrom": 1,
+      "wordTo": 1
+    },
+    {
+      "id": "more_replies_tail",
+      "kind": "cut",
+      "text": "more replies.",
+      "carrier": "And 2 more replies.",
+      "wordFrom": 3,
+      "wordTo": 4
+    },
+    {
+      "id": "we_saw_line_after",
+      "kind": "cut",
+      "text": "We saw the line after",
+      "carrier": "We saw the line after knight f3. Now comes pawn d4.",
+      "wordFrom": 1,
+      "wordTo": 5
+    },
+    {
+      "id": "now_comes",
+      "kind": "cut",
+      "text": "Now comes",
+      "carrier": "We saw the line after knight f3. Now comes pawn d4.",
+      "wordFrom": 8,
+      "wordTo": 9
+    },
+    {
+      "id": "nmid_100",
+      "kind": "cut",
+      "text": "100",
+      "carrier": "In 100 of 100 games.",
+      "wordFrom": 2,
+      "wordTo": 2
     },
     {
       "id": "nmid_0",

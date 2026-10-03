@@ -242,8 +242,27 @@ class SpeechVocabulary {
   /// The rank, said only where the file does not settle it: „rook 1 a8".
   static SpeechToken rank(int rank) => _must('rank_$rank');
 
-  /// 0–99 inside a sentence („Found 3 of 5"), cut from that position.
+  /// 0–100 inside a sentence („Found 3 of 5"), cut from that position.
   static SpeechToken numberInside(int n) => _must('nmid_$n');
+
+  // The repertoire walkthrough (phase 4d).
+  static SpeechToken get yourMoveMainLine => _must('your_move_main_line');
+  static SpeechToken get yourMoveAlternative => _must('your_move_alternative');
+  static SpeechToken get inHead => _must('in_head');
+  static SpeechToken get of100Games => _must('of_100_games');
+  static SpeechToken get inGames => _must('in_games');
+  static SpeechToken get lessThanOneIn100 => _must('less_than_one_in_100');
+  static SpeechToken get noReplyHere => _must('no_reply_here');
+  static SpeechToken get noReply => _must('no_reply');
+  static SpeechToken get opponentHasReplies => _must('opponent_has_replies');
+  static SpeechToken get repliesTail => _must('replies_tail');
+  static SpeechToken get andHead => _must('and_head');
+  static SpeechToken get moreRepliesTail => _must('more_replies_tail');
+  static SpeechToken get oneMoreReply => _must('one_more_reply');
+  static SpeechToken get leftNote => _must('left_note');
+  static SpeechToken get weSawLineAfter => _must('we_saw_line_after');
+  static SpeechToken get nowComes => _must('now_comes');
+  static SpeechToken get backToFork => _must('back_to_fork');
 
   // The repertoire, build and drill (phase 4c).
   static SpeechToken whatDoYouPlay(String side) => _must('what_play_$side');
@@ -389,6 +408,15 @@ class SpeechVocabulary {
     phrase('nothing_to_drill_yet', 'Nothing to drill yet.');
     phrase('nothing_due_branch', 'Nothing due in this branch.');
     phrase('nothing_to_drill_branch', 'Nothing to drill in this branch.');
+    // The repertoire walkthrough (phase 4d, 3.10.2026).
+    phrase('your_move_main_line', 'Your move. Main line.');
+    phrase('your_move_alternative', 'Your move. The alternative.');
+    phrase('less_than_one_in_100', 'In less than one of 100 games.');
+    phrase('no_reply_here', 'You have no reply here.');
+    phrase('no_reply', 'No reply.');
+    phrase('one_more_reply', 'And one more reply.');
+    phrase('left_note', 'You left a note here.');
+    phrase('back_to_fork', 'Back to the fork.');
 
     // The frame of a move sentence (D12).
     const frame = 'Black plays bishop e5.';
@@ -477,6 +505,24 @@ class SpeechVocabulary {
     cut('nothing_to_drill_after', 'Nothing to drill after',
         'Nothing to drill after bishop e5 yet.', 1, 4);
     cut('yet_tail', 'yet.', 'Nothing to drill after bishop e5 yet.', 7, 7);
+    // The walkthrough (phase 4d). „42 percent" is one word to the SDK, as
+    // „3 days" was, and so is „42 per cent"; „42 of 100 games" splits
+    // (measured 3.10.2026), so a share is said as „in 42 of 100 games".
+    cut('in_head', 'In', 'In 42 of 100 games.', 1, 1);
+    cut('of_100_games', 'of 100 games.', 'In 42 of 100 games.', 3, 5);
+    cut('in_games', 'in', 'Knight f3 in 42 of 100 games.', 3, 3);
+    cut('opponent_has_replies', 'From here the opponent has',
+        'From here the opponent has 3 replies.', 1, 5);
+    cut('replies_tail', 'replies.', 'From here the opponent has 3 replies.', 7,
+        7);
+    cut('and_head', 'And', 'And 2 more replies.', 1, 1);
+    cut('more_replies_tail', 'more replies.', 'And 2 more replies.', 3, 4);
+    cut('we_saw_line_after', 'We saw the line after',
+        'We saw the line after knight f3. Now comes pawn d4.', 1, 5);
+    cut('now_comes', 'Now comes',
+        'We saw the line after knight f3. Now comes pawn d4.', 8, 9);
+    // A share can be the whole hundred.
+    cut('nmid_100', '100', 'In 100 of 100 games.', 2, 2);
     // A number inside a sentence („Found 3 of 5") is cut from that position;
     // the plain numbers end a sentence („Mate in 3.").
     for (var n = 0; n <= 99; n++) {

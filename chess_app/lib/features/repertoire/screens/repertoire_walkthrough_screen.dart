@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
@@ -32,6 +35,7 @@ class RepertoireWalkthroughScreen extends StatefulWidget {
     this.rootPath = const [],
     this.gateUci,
     this.onBuildHere,
+    this.speech,
   });
 
   final String name;
@@ -41,6 +45,10 @@ class RepertoireWalkthroughScreen extends StatefulWidget {
   final String? gateUci;
   final RepertoireApiService api;
   final void Function(String fen)? onBuildHere;
+
+  /// The voice the card is said through, the one speech service by default.
+  /// A seam so a test can hand it one that remembers what it was asked.
+  final SpeechService? speech;
 
   @override
   State<RepertoireWalkthroughScreen> createState() =>
@@ -136,6 +144,22 @@ class _RepertoireWalkthroughScreenState
     _syncBoard();
   }
 
+  SpeechService get _speech => widget.speech ?? SpeechService.instance;
+
+  @override
+  void dispose() {
+    // A sentence that outlives its screen is how somebody decides the whole
+    // feature is more trouble than it is worth. Only leaving ends one: moving
+    // along the tour does not (see the card). `SpeechService.stop` does
+    // nothing before the first sentence has been said, which is what the
+    // Windows fault noted on the card was about. Guarded: a voice that throws
+    // must not be able to stop the screen's own teardown.
+    try {
+      unawaited(_speech.stop().catchError((Object _) {}));
+    } catch (_) {}
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final tree = _tree;
@@ -170,9 +194,9 @@ class _RepertoireWalkthroughScreenState
         // speaker under the board only ever silenced the sentence in front of
         // it: the next stop with something to say spoke again, because that is
         // a fresh `autoSpeak`. This one writes the setting.
-        actions: const [
-          SpeechToggleButton(),
-          BoardViewMenu(statistics: true),
+        actions: [
+          SpeechToggleButton(speech: widget.speech),
+          const BoardViewMenu(statistics: true),
         ],
       ),
       body: _buildBody(context, tree),
@@ -293,7 +317,7 @@ class _RepertoireWalkthroughScreenState
           panels: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildCard(context, cursor),
+              _buildCard(context, tree, cursor),
               if (_root != null) ...[
                 const SizedBox(height: AppSpacing.md),
                 treePanel(),
@@ -316,7 +340,7 @@ class _RepertoireWalkthroughScreenState
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
-              _buildCard(context, cursor),
+              _buildCard(context, tree, cursor),
             ],
           ),
         ),
@@ -390,36 +414,48 @@ class _RepertoireWalkthroughScreenState
     return arrows;
   }
 
-  Widget _buildCard(BuildContext context, WalkthroughCursor cursor) {
+  Widget _buildCard(
+      BuildContext context, RepertoireTree tree, WalkthroughCursor cursor) {
     final beat = cursor.beat;
     if (beat == null) return const SizedBox.shrink();
 
     final replies = cursor.forwardMoves;
     final stop = beat.stopIndex >= 0 ? _stops[beat.stopIndex] : null;
 
-    // One composition, drawn twice. `line.parts` become the lines on the card
-    // and `line.spoken` is those same words joined for the voice, so what is
-    // read aloud is what is on screen by construction rather than by two
-    // functions agreeing. Two registers, one shape: a move, or the tour coming
-    // back to the fork it is about to branch from.
+    // One composition, drawn and played. `line.text` is what the card draws
+    // and `line.line` is the same tokens handed to the clips, so what is read
+    // aloud is what is on screen by construction rather than by two functions
+    // agreeing. Two registers, one shape: a move, or the tour coming back to
+    // the fork it is about to branch from.
     final WalkthroughLine line;
     if (beat.returning) {
-      line = walkthroughReturn(beat, replies: replies);
+      final forkFen =
+          beat.stopIndex < 0 ? tree.rootFen : _stops[beat.stopIndex].move.fen;
+      line = walkthroughReturn(beat, forkFen: forkFen, replies: replies);
     } else {
       final comment = _comments?[fenKeyOf(stop!.move.fen)];
-      line = walkthroughLine(stop!, replies: replies, note: comment?.body);
+      line = walkthroughLine(
+        stop!,
+        fenBefore: fenBeforeStop(_stops, beat.stopIndex, tree.rootFen),
+        replies: replies,
+        note: comment?.body,
+      );
     }
 
     final parts = <Widget>[];
-    for (var i = 0; i < line.parts.length; i++) {
-      if (i > 0) parts.add(const SizedBox(height: AppSpacing.xs));
+    if (line.text.isNotEmpty) {
       parts.add(Text(
-        line.parts[i],
-        style: AppText.body.copyWith(
-          color: i == 0
-              ? context.colors.textPrimary
-              : context.colors.textSecondary,
-        ),
+        line.text,
+        style: AppText.body.copyWith(color: context.colors.textPrimary),
+      ));
+    }
+    // The student's own words: drawn, never spoken.
+    final note = line.note;
+    if (note != null) {
+      if (parts.isNotEmpty) parts.add(const SizedBox(height: AppSpacing.xs));
+      parts.add(Text(
+        note,
+        style: AppText.body.copyWith(color: context.colors.textSecondary),
       ));
     }
 
@@ -470,7 +506,9 @@ class _RepertoireWalkthroughScreenState
       // moving, and on Windows a `stop()` before anything was said takes the
       // process with it.
       child: SpeakableInfo(
-        text: line.spoken,
+        text: line.text,
+        line: line.line,
+        speech: widget.speech,
         autoSpeak: line.speak,
         // With the switch above off there is no speaker here at all. Two
         // speakers on one screen, one of which does nothing until the other is

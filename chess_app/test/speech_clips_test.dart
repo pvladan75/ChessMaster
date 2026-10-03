@@ -62,7 +62,7 @@ void main() {
   final tokens = SpeechVocabulary.tokens;
 
   test('the vocabulary is what it was designed to be', () {
-    expect(tokens.length, 470);
+    expect(tokens.length, 488);
     expect(tokens.map((t) => t.id).toSet().length, tokens.length,
         reason: 'ids are unique');
     for (final f in kFiles.split('')) {

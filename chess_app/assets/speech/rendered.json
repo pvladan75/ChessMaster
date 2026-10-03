@@ -510,6 +510,62 @@
     "wordTo": null,
     "voice": "en-US-AndrewNeural"
   },
+  "your_move_main_line": {
+    "kind": "phrase",
+    "carrier": "Your move. Main line.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "your_move_alternative": {
+    "kind": "phrase",
+    "carrier": "Your move. The alternative.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "less_than_one_in_100": {
+    "kind": "phrase",
+    "carrier": "In less than one of 100 games.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "no_reply_here": {
+    "kind": "phrase",
+    "carrier": "You have no reply here.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "no_reply": {
+    "kind": "phrase",
+    "carrier": "No reply.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "one_more_reply": {
+    "kind": "phrase",
+    "carrier": "And one more reply.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "left_note": {
+    "kind": "phrase",
+    "carrier": "You left a note here.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
+  "back_to_fork": {
+    "kind": "phrase",
+    "carrier": "Back to the fork.",
+    "wordFrom": null,
+    "wordTo": null,
+    "voice": "en-US-AndrewNeural"
+  },
   "black_plays": {
     "kind": "cut",
     "carrier": "Black plays bishop e5.",
@@ -795,6 +851,76 @@
     "carrier": "Nothing to drill after bishop e5 yet.",
     "wordFrom": 7,
     "wordTo": 7,
+    "voice": "en-US-AndrewNeural"
+  },
+  "in_head": {
+    "kind": "cut",
+    "carrier": "In 42 of 100 games.",
+    "wordFrom": 1,
+    "wordTo": 1,
+    "voice": "en-US-AndrewNeural"
+  },
+  "of_100_games": {
+    "kind": "cut",
+    "carrier": "In 42 of 100 games.",
+    "wordFrom": 3,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "in_games": {
+    "kind": "cut",
+    "carrier": "Knight f3 in 42 of 100 games.",
+    "wordFrom": 3,
+    "wordTo": 3,
+    "voice": "en-US-AndrewNeural"
+  },
+  "opponent_has_replies": {
+    "kind": "cut",
+    "carrier": "From here the opponent has 3 replies.",
+    "wordFrom": 1,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "replies_tail": {
+    "kind": "cut",
+    "carrier": "From here the opponent has 3 replies.",
+    "wordFrom": 7,
+    "wordTo": 7,
+    "voice": "en-US-AndrewNeural"
+  },
+  "and_head": {
+    "kind": "cut",
+    "carrier": "And 2 more replies.",
+    "wordFrom": 1,
+    "wordTo": 1,
+    "voice": "en-US-AndrewNeural"
+  },
+  "more_replies_tail": {
+    "kind": "cut",
+    "carrier": "And 2 more replies.",
+    "wordFrom": 3,
+    "wordTo": 4,
+    "voice": "en-US-AndrewNeural"
+  },
+  "we_saw_line_after": {
+    "kind": "cut",
+    "carrier": "We saw the line after knight f3. Now comes pawn d4.",
+    "wordFrom": 1,
+    "wordTo": 5,
+    "voice": "en-US-AndrewNeural"
+  },
+  "now_comes": {
+    "kind": "cut",
+    "carrier": "We saw the line after knight f3. Now comes pawn d4.",
+    "wordFrom": 8,
+    "wordTo": 9,
+    "voice": "en-US-AndrewNeural"
+  },
+  "nmid_100": {
+    "kind": "cut",
+    "carrier": "In 100 of 100 games.",
+    "wordFrom": 2,
+    "wordTo": 2,
     "voice": "en-US-AndrewNeural"
   },
   "nmid_0": {

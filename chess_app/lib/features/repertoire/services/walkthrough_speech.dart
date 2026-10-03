@@ -1,3 +1,6 @@
+import 'package:chess_app/core/speech/move_words.dart';
+import 'package:chess_app/core/speech/spoken_line.dart';
+import 'package:chess_app/core/speech/vocabulary.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
@@ -6,36 +9,61 @@ import 'package:chess_app/features/repertoire/widgets/repertoire_tree_panel.dart
 
 /// What the tour says at one stop.
 ///
-/// Phase 5 of `docs/PLAN-UPOZNAJ-REPERTOAR.md`. The failure mode of a talking
-/// screen is not silence, it is a voice that reads every ply — so this carries
-/// two answers, not one: the sentences, and whether this stop has earned a
-/// voice at all.
+/// Phase 5 of `docs/PLAN-UPOZNAJ-REPERTOAR.md`, spoken from the shipped clips
+/// since phase 4d of `docs/PLAN-GOVOR-IZ-KLIPOVA.md`. The failure mode of a
+/// talking screen is not silence, it is a voice that reads every ply — so this
+/// carries two answers, not one: the sentence, and whether this stop has earned
+/// a voice at all.
 class WalkthroughLine {
-  const WalkthroughLine({required this.parts, required this.speak});
+  const WalkthroughLine({required this.line, required this.speak, this.note});
 
-  /// The sentences, in order.
-  ///
-  /// A list rather than one string because the card draws them as separate
-  /// lines and the voice is handed them joined — **two renderings of one
-  /// list**, which is what keeps the rule the plan asks for: the sentence
-  /// spoken is the sentence on screen, and a reader who turns speech off loses
-  /// nothing but the sound. Composing them twice, once for the eye and once
-  /// for the ear, is how a screen grows a second narration track that drifts.
-  final List<String> parts;
+  /// The stop's sentence. One list of tokens, two renderings: [text] is drawn
+  /// and the same tokens are played, so the sentence heard is the sentence
+  /// seen by construction — the rule the plan asks for, and the reason there is
+  /// no second composition for the ear.
+  final SpokenLine line;
 
   /// Whether this stop is worth interrupting the reader for.
   final bool speak;
 
-  /// What the voice is handed.
-  String get spoken => parts.join(' ');
+  /// What the student wrote about this position. **Drawn under the line and
+  /// never spoken**: it is the student's own free text, which no clip can say.
+  final String? note;
+
+  /// What is drawn.
+  String get text => line.text;
+}
+
+/// The position before the move of stop [index]: the root for a first move,
+/// otherwise the stop it follows. Read from the tour's own paths, never by
+/// undoing a move.
+String fenBeforeStop(List<WalkthroughStop> stops, int index, String rootFen) {
+  final path = stops[index].path;
+  if (path.length <= 1) return rootFen;
+  final parent = path.sublist(0, path.length - 1);
+  for (var j = index - 1; j >= 0; j--) {
+    final other = stops[j].path;
+    if (other.length != parent.length) continue;
+    var same = true;
+    for (var k = 0; k < parent.length; k++) {
+      if (other[k] != parent[k]) {
+        same = false;
+        break;
+      }
+    }
+    if (same) return stops[j].move.fen;
+  }
+  throw StateError('Stop $index has no parent stop in the tour.');
 }
 
 /// The tour's sentence, and whether it is said out loud.
 ///
-/// [replies] are the moves out of this stop **in tour order** — the caller
-/// takes them from the cursor, which derives them from the walk, so this
-/// function never re-decides an order that was settled in phase 3. [note] is
-/// what the student wrote about the position this move leads to.
+/// [fenBefore] is the position the stop's own move is played from, and
+/// [replies] are the moves out of this stop **in tour order** (played from the
+/// stop's own position) — the caller takes them from the cursor, which derives
+/// them from the walk, so this function never re-decides an order that was
+/// settled in phase 3. [note] is what the student wrote about the position
+/// this move leads to.
 ///
 /// A stop earns a voice when it is a fork, a hole, or carries a note. An
 /// ordinary move on the trunk is silent: the board moves, the card says what it
@@ -48,31 +76,31 @@ class WalkthroughLine {
 /// announcements is twelve sentences — so the announcement is the card's own
 /// line and the strip's counter, and the voice keeps quiet. Said here because
 /// the next person will read §4 and wonder.
+///
+/// A move the position does not allow is a fault in the data and throws: a
+/// sentence with the move left out would be a different sentence said as if it
+/// were this one.
 WalkthroughLine walkthroughLine(
   WalkthroughStop stop, {
+  required String fenBefore,
   List<RepertoireTreeMove> replies = const [],
   String? note,
 }) {
   final move = stop.move;
-  final parts = <String>[];
+  final tokens = <SpeechToken>[];
 
   switch (stop.kind) {
     case MoveTreeNodeLook.authored:
-      parts.add(move.isPrimary
-          ? 'Your move — main line.'
-          : 'Your move — alternative.');
+      tokens.add(move.isPrimary
+          ? SpeechVocabulary.yourMoveMainLine
+          : SpeechVocabulary.yourMoveAlternative);
       break;
     case MoveTreeNodeLook.covered:
-      final share = shareLabel(move.share);
-      parts.add(share == null
-          ? 'Opponent plays ${move.san}.'
-          : 'Opponent plays ${move.san} — $share of games.');
+      tokens.addAll(_moveAndShare(fenBefore, move));
       break;
     case MoveTreeNodeLook.gap:
-      final share = shareLabel(move.share);
-      parts.add(share == null
-          ? 'Against ${move.san}, you have no reply.'
-          : 'Against ${move.san}, in $share of games, you have no reply.');
+      tokens.addAll(_moveAndShare(fenBefore, move));
+      tokens.add(SpeechVocabulary.noReplyHere);
       break;
     case MoveTreeNodeLook.refused:
       // No repertoire card is drawn this way any more — the cut is gone — but
@@ -81,28 +109,17 @@ WalkthroughLine walkthroughLine(
       break;
   }
 
-  // The opponent's replies, named. A listener who cannot see the chips must
-  // still learn what is coming and which of it is unanswered — that is the
-  // reason this clause exists rather than „ovde ima više odgovora".
-  final theirs = [
-    for (final reply in replies)
-      if (!reply.mine) reply,
-  ];
-  final fork = theirs.length > 1;
-  if (fork) {
-    parts.add('From here the opponent has ${theirs.length} replies: '
-        '${_named(theirs)}.');
-  }
+  final fork = _forkClause(move.fen, replies);
+  tokens.addAll(fork);
 
-  if (note != null && note.trim().isNotEmpty) {
-    parts.add('Your note: ${note.trim()}');
-  }
+  final trimmed = note?.trim();
+  final hasNote = trimmed != null && trimmed.isNotEmpty;
+  if (hasNote) tokens.add(SpeechVocabulary.leftNote);
 
   return WalkthroughLine(
-    parts: parts,
-    speak: fork ||
-        stop.kind == MoveTreeNodeLook.gap ||
-        (note != null && note.trim().isNotEmpty),
+    line: SpokenLine(tokens),
+    speak: fork.isNotEmpty || stop.kind == MoveTreeNodeLook.gap || hasNote,
+    note: hasNote ? trimmed : null,
   );
 }
 
@@ -115,59 +132,115 @@ WalkthroughLine walkthroughLine(
 /// on its own does not tell a reader *which* fork out of the several they have
 /// walked through.
 ///
-/// Always spoken. It is the one beat that exists purely to stop the reader
-/// being lost, so saying it only when the sound happens to be on would be
-/// saying it at the wrong times.
+/// [forkFen] is the fork's own position, which both named moves are played
+/// from. Always spoken. It is the one beat that exists purely to stop the
+/// reader being lost, so saying it only when the sound happens to be on would
+/// be saying it at the wrong times.
 WalkthroughLine walkthroughReturn(
   WalkthroughBeat beat, {
+  required String forkFen,
   List<RepertoireTreeMove> replies = const [],
 }) {
-  final parts = <String>[];
-  final done = beat.done?.san;
-  final next = beat.next?.san;
+  final tokens = <SpeechToken>[];
+  final done = beat.done;
+  final next = beat.next;
 
   if (done != null && next != null) {
-    parts.add('We saw the line after $done. Now comes $next.');
+    tokens
+      ..add(SpeechVocabulary.weSawLineAfter)
+      ..addAll(MoveWords.bare(_facts(forkFen, done)))
+      ..add(SpeechVocabulary.nowComes)
+      ..addAll(MoveWords.bare(_facts(forkFen, next)));
   } else if (next != null) {
-    parts.add('Now comes $next.');
+    tokens
+      ..add(SpeechVocabulary.nowComes)
+      ..addAll(MoveWords.bare(_facts(forkFen, next)));
   } else {
-    parts.add('Back to the fork.');
+    tokens.add(SpeechVocabulary.backToFork);
   }
 
+  tokens.addAll(_forkClause(forkFen, replies));
+  return WalkthroughLine(line: SpokenLine(tokens), speak: true);
+}
+
+/// The facts of [move] played from [fen].
+MoveFacts _facts(String fen, RepertoireTreeMove move) {
+  final uci = move.uci;
+  final facts = uci.length < 4
+      ? null
+      : MoveWords.factsOf(
+          fen,
+          uci.substring(0, 2),
+          uci.substring(2, 4),
+          promotion: uci.length > 4 ? uci.substring(4, 5) : null,
+        );
+  if (facts == null) {
+    throw StateError('The tour cannot say ${move.san} ($uci) from $fen.');
+  }
+  return facts;
+}
+
+/// The share as „in 42 of 100 games", or nothing when the move has none.
+/// Under one in a hundred it is said as such rather than as „0". [head] is the
+/// opening „In" of a sentence of its own; without it the share follows a move
+/// inside the same sentence.
+List<SpeechToken> _share(double share, {required bool head}) {
+  final percent = share * 100;
+  if (percent <= 0) return const [];
+  if (percent < 1) return [SpeechVocabulary.lessThanOneIn100];
+  return [
+    head ? SpeechVocabulary.inHead : SpeechVocabulary.inGames,
+    SpeechVocabulary.numberInside(percent.round().clamp(1, 100)),
+    SpeechVocabulary.of100Games,
+  ];
+}
+
+List<SpeechToken> _moveAndShare(String fenBefore, RepertoireTreeMove move) => [
+      ...MoveWords.line(_facts(fenBefore, move)).tokens,
+      ..._share(move.share, head: true),
+    ];
+
+/// The opponent's replies, named, or nothing when there is no fork. A listener
+/// who cannot see the chips must still learn what is coming and which of it is
+/// unanswered — that is the reason this clause exists rather than „ovde ima
+/// više odgovora".
+///
+/// At most three are named, then a count for the rest. Three because the
+/// tour's order already puts what matters first — the student's own work never
+/// ranks below an empty branch — so the tail of a wide fork is the part they
+/// are least likely to be listening for, and an eight-item spoken list is
+/// exactly the noise this phase exists to avoid. They are all on the card as
+/// chips either way; this is only what is said.
+///
+/// A reply that has no share is named alone, and two such replies in a row run
+/// together as one sentence: the table has no token to close the first.
+List<SpeechToken> _forkClause(String fen, List<RepertoireTreeMove> replies) {
   final theirs = [
     for (final reply in replies)
       if (!reply.mine) reply,
   ];
-  if (theirs.length > 1) {
-    parts.add('From here the opponent has ${theirs.length} replies: '
-        '${_named(theirs)}.');
+  if (theirs.length < 2) return const [];
+
+  final tokens = <SpeechToken>[
+    SpeechVocabulary.opponentHasReplies,
+    SpeechVocabulary.numberInside(theirs.length),
+    SpeechVocabulary.repliesTail,
+  ];
+  for (final reply in theirs.take(3)) {
+    tokens.addAll(MoveWords.bare(_facts(fen, reply)));
+    tokens.addAll(_share(reply.share, head: false));
+    if (lookOfRepertoireMove(reply) == MoveTreeNodeLook.gap) {
+      tokens.add(SpeechVocabulary.noReply);
+    }
   }
-
-  return WalkthroughLine(parts: parts, speak: true);
-}
-
-/// The replies as prose: at most three, then a count for the rest.
-///
-/// Three because the tour's order already puts what matters first — the
-/// student's own work never ranks below an empty branch — so the tail of a
-/// wide fork is the part they are least likely to be listening for, and an
-/// eight-item spoken list is exactly the noise this phase exists to avoid.
-/// They are all on the card as chips either way; this is only what is said.
-String _named(List<RepertoireTreeMove> theirs) {
-  final shown = theirs.take(3).map(_reply).toList();
-  final rest = theirs.length - shown.length;
-  if (rest > 0) {
-    shown.add(rest == 1 ? '1 more reply' : '$rest more replies');
+  final rest = theirs.length - 3;
+  if (rest == 1) {
+    tokens.add(SpeechVocabulary.oneMoreReply);
+  } else if (rest >= 2) {
+    tokens
+      ..add(SpeechVocabulary.andHead)
+      ..add(SpeechVocabulary.numberInside(rest))
+      ..add(SpeechVocabulary.moreRepliesTail);
   }
-  if (shown.length == 1) return shown.first;
-  return '${shown.sublist(0, shown.length - 1).join(", ")} and ${shown.last}';
-}
-
-/// One reply, said the way the card writes it.
-String _reply(RepertoireTreeMove move) {
-  final share = shareLabel(move.share);
-  final head = share == null ? move.san : '${move.san} in $share';
-  return lookOfRepertoireMove(move) == MoveTreeNodeLook.gap
-      ? '$head, no reply'
-      : head;
+  return tokens;
 }
