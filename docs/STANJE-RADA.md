@@ -140,7 +140,7 @@ vlasnikova reč od 3.10.2026, počinje ekranom zagonetki (`ai_studio_screen.dart
    prvi čas trenera na Home koja se sama štiklira iz pravih podataka, i „?"
    koji otvara stranicu priručnika za taj ekran (priručnik je već vezan
    testom za nazive).
-3. **Motor, tablebase i otvaranja u ekranu za tutorijal.** **Isplanirano 3.10.2026: `PLAN-MOTOR-I-PANELI.md`** (ništa u kodu; faza 0 je crtež za vlasnika, odluke D1–D9 sa preporukom; pri čitanju nađeno i izmereno: Preparation ne priključuje motor pri ulasku, pa linije verovatno ne stižu dok se ekran ne napusti i vrati — faza 1). Preparation ima
+3. **Motor, tablebase i otvaranja u ekranu za tutorijal.** **Isplanirano 3.10.2026: `PLAN-MOTOR-I-PANELI.md`** (ništa u kodu; faza 0 je crtež za vlasnika, odluke D1–D9 sa preporukom; pri čitanju nađeno i izmereno: Preparation ne priključuje motor pri ulasku, pa linije verovatno ne stižu dok se ekran ne napusti i vrati — faza 1). **Vlasnik 3.10.2026: D1–D9 po preporuci, A za studio. Faza 1 urađena 3.10.2026** (`BoardEngine`, motor se priključuje pri ulasku; provera uživo [267.1]); sledeća je faza 2, `PositionLookups`. Preparation ima
    motor (`PreparationEngine`, treća kopija lepka), studio nema ništa od
    troje. Preporuka: isti paneli koje crta Analysis, iza jedne reči u traci,
    ugašeno po podrazumevanom, nikad upisano u deo samo od sebe; prvo

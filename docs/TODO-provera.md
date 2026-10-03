@@ -10370,6 +10370,13 @@ odlazi na kraj spiska u alatu.
    dijalog za izbor koje partije da učita.
    Potrebno: Windows i telefon; PGN fajl.
 
+13. [ ] **Preparation: linije motora stižu odmah.** [267.1]
+   O čemu se radi: Faza 1 plana `PLAN-MOTOR-I-PANELI.md` (3.10.2026): Preparation do sad nije priključivao motor pri ulasku na ekran (izmereno u testu: nijednom), pa linije verovatno nisu stizale dok se ekran ne napusti i vrati. Sad se priključuje odmah.
+   Gde: `Teach` → `Preparation`.
+   Uradi: Odmah po ulasku uključi `Show evaluation` u panelu `Engine`, odigraj potez.
+   Treba da vidiš: Linije motora i ocena se pojavljuju odmah i prate potez, bez izlaska sa ekrana.
+   Potrebno: Windows (i telefon, kartica `Engine`).
+
 ### Sesija — Soba
 
 1. [ ] **Soba za lekciju ima prekidače za strelice motora.** [93.12]

@@ -69,7 +69,7 @@ import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
 import 'package:chess_app/features/analysis_studio/widgets/visual_move_tree_widget.dart';
 import 'package:chess_app/features/preparation/screens/preparation_screen.dart';
-import 'package:chess_app/features/preparation/services/preparation_engine.dart';
+import 'package:chess_app/core/services/board_engine.dart';
 import 'package:chess_app/features/tutorial_studio/services/step_tree.dart';
 import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/models/user_session.dart';
@@ -112,7 +112,7 @@ UserSession _session() => UserSession(
 /// The real one is a process on the machine, and a widget test has none: a
 /// switch that asks the engine nothing looks, in a test, exactly like one
 /// that asks. The worker of phase 1 shipped that, and every case was green.
-class _AskedEngine extends PreparationEngine {
+class _AskedEngine extends BoardEngine {
   final List<String> asked = [];
   int stopped = 0;
 
@@ -131,7 +131,7 @@ Future<void> _open(
   Size size, {
   String? fen,
   AnalysisNode? tree,
-  PreparationEngine? engine,
+  BoardEngine? engine,
 }) async {
   SharedPreferences.setMockInitialValues({});
   tester.view.physicalSize = size;
@@ -1035,7 +1035,7 @@ void main() {
     // Phase 2 of `docs/PLAN-PRIPREMA.md`: the engine's own dials, left out of
     // phase 1 and wired here „as the room does"
     // (`chess_game_screen._buildStockfishAnalysisWidget`) — through
-    // `PreparationEngine`, which is why the cases are written against
+    // `BoardEngine`, which is why the cases are written against
     // `_AskedEngine` rather than `StockfishAnalysisWidget`'s own fields: a
     // dial that changed nothing on the engine it drives would still show the
     // right number on the panel.

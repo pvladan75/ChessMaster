@@ -1,12 +1,17 @@
-/// The engine glue Preparation's screen needs from [StockfishService]:
-/// attach while the screen is shown and either switch is on, release when it
-/// is not, and keep the last evaluation and lines it was told.
+/// The engine glue a board screen needs from [StockfishService]: attach while
+/// the screen is shown, release when it is not, and keep the last evaluation
+/// and lines it was told.
 ///
-/// A third copy of what `AnalysisStudioScreen` and the room's
-/// `chess_game_screen.dart` each hold privately inside their own `State`.
-/// Kept in this one small class, under `lib/features/preparation/`, so it can
-/// be lifted to a shared home later — deliberately not attempted in this
-/// batch, and said in the phase 1 report rather than done quietly.
+/// Written for Preparation, and moved here in phase 1 of
+/// `docs/PLAN-MOTOR-I-PANELI.md` so the tutorial studio takes this one rather
+/// than a fifth copy. `AnalysisStudioScreen`, the room's
+/// `chess_game_screen.dart` and the puzzle screen still hold their own inside
+/// their `State`; moving them is named for the owner's simplification batch,
+/// not done here.
+///
+/// A screen attaches it **on arrival**, not only when its `TickerMode`
+/// changes: on arrival it does not change, and an engine nobody attached
+/// answers to no one (`test/board_engine_attach_test.dart`).
 library;
 
 import 'package:chess_app/core/services/eval_parsing.dart';
@@ -14,8 +19,8 @@ import 'package:chess_app/models/analysis_models.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
 
-class PreparationEngine {
-  PreparationEngine([StockfishService? service])
+class BoardEngine {
+  BoardEngine([StockfishService? service])
       : _service = service ?? StockfishService();
 
   final StockfishService _service;

@@ -41,7 +41,7 @@ import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/widgets/app_slider.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/features/preparation/screens/preparation_screen.dart';
-import 'package:chess_app/features/preparation/services/preparation_engine.dart';
+import 'package:chess_app/core/services/board_engine.dart';
 import 'package:chess_app/screens/login_screen.dart';
 import 'package:chess_app/services/saved_sign_ins.dart';
 import 'package:chess_app/services/session_service.dart';
@@ -224,7 +224,7 @@ Future<List<String>> _hoverEveryTooltip(WidgetTester tester) async {
 const _start = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 /// Preparation's engine, with no process behind it: a widget test has none.
-class _SilentEngine extends PreparationEngine {
+class _SilentEngine extends BoardEngine {
   @override
   void triggerAnalysis(String fen) {}
 }

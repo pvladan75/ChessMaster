@@ -42,7 +42,7 @@ import 'package:chess_app/features/analysis_studio/services/pgn_exporter_service
 import 'package:chess_app/features/analysis_studio/services/pgn_import.dart';
 import 'package:chess_app/features/analysis_studio/widgets/board_setup_dialog.dart';
 import 'package:chess_app/features/analysis_studio/widgets/move_tree_widget.dart';
-import 'package:chess_app/features/preparation/services/preparation_engine.dart';
+import 'package:chess_app/core/services/board_engine.dart';
 import 'package:chess_app/features/preparation/services/preparation_layout.dart';
 import 'package:chess_app/features/tutorial_studio/services/lesson_take.dart';
 import 'package:chess_app/features/tutorial_studio/services/narration_take.dart'
@@ -123,7 +123,7 @@ class PreparationScreen extends StatefulWidget {
 
   /// The engine's glue. Injected by a test, which has no engine to ask and
   /// needs to see what was asked of one; built by the screen otherwise.
-  final PreparationEngine? engine;
+  final BoardEngine? engine;
 
   // The seams of phase 2 of `docs/PLAN-PRIPREMA.md`, fixed by the lead so
   // the gate (`test/preparation_material_test.dart`) compiles. Each is built
@@ -166,7 +166,7 @@ class _PreparationScreenState extends State<PreparationScreen>
     with SingleTickerProviderStateMixin {
   final ChessBoardController _boardController = ChessBoardController();
   final BoardAnnotationController _annotation = BoardAnnotationController();
-  late final PreparationEngine _engine = widget.engine ?? PreparationEngine();
+  late final BoardEngine _engine = widget.engine ?? BoardEngine();
   late final TabController _phoneTabs = TabController(length: 4, vsync: this);
   late final LessonApiService _lessonApi =
       widget.lessonApi ?? LessonApiService(authToken: widget.userSession.token);
@@ -254,6 +254,10 @@ class _PreparationScreenState extends State<PreparationScreen>
     if (!identical(shown, _shown)) {
       _shown?.removeListener(_onShownChanged);
       _shown = shown..addListener(_onShownChanged);
+      // On arrival the notifier does not change, so the listener alone never
+      // attached the engine and its answers went to no one (phase 1 of
+      // docs/PLAN-MOTOR-I-PANELI.md). Attaching is idempotent.
+      if (shown.value.enabled) _attachEngine();
     }
   }
 

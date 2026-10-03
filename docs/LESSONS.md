@@ -10482,3 +10482,26 @@ quiet list put the room's tutorial list 15 px under the fold of 1200 × 800,
 and `part_titles_shown_test` — which names neither the room nor the column —
 found it by tapping a row it could no longer reach. The ninth-file lesson
 again, from the room's side.
+
+## 3.10.2026 — PLAN-MOTOR-I-PANELI phase 1: Preparation's engine was never attached (app 5731 → 5734)
+
+Arithmetic: 5731 + 3 (`board_engine_attach_test`) = 5734, a full run with
+nothing else running; analyze the same 10.
+
+Found while reading for the plan, not reported by anyone. `PreparationScreen`
+attached its engine from `_onShownChanged`, a listener on
+`TickerMode.getValuesNotifier` — and a listener runs on a *change*. On arrival
+the value is already `enabled`, so nothing ran: a spy counted **0 attaches**,
+as the first screen and pushed over another. With no subscriber the service's
+answer callbacks are `null`; the switch asked the engine, and the answer went
+to no one until the trainer left the screen and came back.
+
+**A fake that replaces the step being tested cannot see that step never run.**
+Every engine in Preparation's 40-odd cases overrides `triggerAnalysis` and
+records what it was asked — which proves the screen *asks*, and says nothing
+about whether anybody is *listening*. The gate counts attaches instead.
+
+**A listener is not an initial read.** Wherever state is followed through a
+notifier, the value it holds at subscription is a case of its own; Analysis
+attaches in `initState` and so never had this fault, which is why a copy of
+its glue could lose it unnoticed.

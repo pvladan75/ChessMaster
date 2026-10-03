@@ -8,7 +8,8 @@ written into a part on their own; Preparation first, then the studio.
 
 Written 3.10.2026. Nothing in code. Phase 0, the drawing, is done
 (`docs/skice/paneli/compare_panels.png`); the decisions below carry a
-recommendation each and wait for the owner's answer.
+recommendation each. **The owner's answer, 3.10.2026: D1–D9 as recommended,
+A for the studio.**
 
 `APP` = `chess_app/lib`, `T` = `chess_app/test`.
 
@@ -147,7 +148,11 @@ look-ups beside the engine; the studio as D6 A and B. Sent to the owner as
 PNGs; he answers D1–D9 from them.
 
 **Phase 1 — Preparation's engine attaches on arrival, as `BoardEngine`**
-`[implementer]`. Gate: a spy counts one attach on arrival, as the first screen
+`[lead]` — built 3.10.2026. `PreparationEngine` moved to
+`APP/core/services/board_engine.dart` as `BoardEngine`; the screen attaches it
+in `didChangeDependencies` when it is shown. Gate
+`T/board_engine_attach_test.dart`, 3 cases, red on master with 0 attaches,
+red again with the one new line removed. Live check [267.1]. Gate: a spy counts one attach on arrival, as the first screen
 and pushed over another (red today: 0); the screen still detaches when covered
 and attaches when shown again; Preparation's own tests unchanged. Live: lines
 appear the first time the switch is turned on.
