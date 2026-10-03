@@ -263,7 +263,7 @@ stoji uz nju.
    se ponovo gledaju posle prvog meseca sa pravim pretplatnicima. „Učenik
    Plus" i „Klub" iz §6 su odloženi, ne odbačeni. Tabela najgoreg slučaja — svaka
    količina, njena jedinična cena, zbir, i cena koja ga pokriva dvaput posle
-   udela — je u `STUDIJA-CENA-I-AKVIZICIJA.md`, §1–§4.
+   udela — je u `STUDIJA-CENA-I-AKVIZICIJA.md`, §1–§5.
 6. **Otpalo.** `checkUserLimits` je obrisan 16.9.2026 (§2); nema šta da se
    priključi.
 7. **Besplatan nalog dobija mali mesečni broj izvoza filma**, sa naracijom.
@@ -274,6 +274,43 @@ stoji uz nju.
 
 Uz ovo, istog dana: **Paddle za Windows** (`STANJE-RADA.md`, stavka 1
 vlasnikovog spiska) — Android ostaje na Play-u.
+
+**Dopuna iste večeri — model kredita (vlasnik, 3.10.2026).** Umesto posebne
+količine za svaku stvar, nalog ima **jedno stanje kredita** i troši ga na
+plaćene servise po svom izboru; svaki tip naloga može da dokupi kredit, po
+ceni koja zavisi od tipa naloga i od veličine paketa; cene se određuju po
+tome šta servis vredi korisniku, a trošak ostaje donja granica. Time se
+menjaju tri odluke odozgo:
+
+- **4** — posebna količina glasa postaje deo stanja. Minut po osobi ostaje
+  jedinica cene, a „sesija u glasu se ne prekida" ostaje uz pravilo: glas se
+  ne pokreće na nuli, započeta sesija se završava, manjak se skida sa kredita
+  sledećeg meseca. Dokup više nije „kasnije" nego deo modela, drugi po redu
+  gradnje.
+- **5** — cena se ne izvodi iz najgoreg slučaja nego iz vrednosti; najgori
+  slučaj ostaje provera (krediti naloga × najveći trošak po kreditu).
+- **7** — broj izvoza filma za besplatan nalog postaje mesečni kredit
+  besplatnog naloga.
+
+Odluke 1, 2 i 3 ostaju. Granica sačuvanih snimaka (3) ostaje posebna, jer se
+snimci gomilaju, a ne troše. Pet izbora koje je vlasnik potvrdio („sve po
+preporuci"): jedno stanje umesto pojedinačnih količina; jedan proizvod po
+veličini paketa, a broj kredita zavisi od plana kupca; pravilo za glas na
+nuli kao gore; prvo planovi sa mesečnim kreditom, pa paketi; jedan plaćeni
+plan na početku. Brojevi — cenovnik u kreditima, veličina planova i paketa —
+su predlog u `STUDIJA-CENA-I-AKVIZICIJA.md` §3–§4 i **nisu odlučeni**.
+
+**Gde se kupuje na Windows-u je ponovo otvoreno.** Vlasnik je tražio
+alternative za Paddle, čija pravila zabranjuju virtuelnu valutu i uskladištenu
+vrednost, bez reči o kreditima za sopstveni softver. Studija §6 ih poredi;
+preporuka sesije je kupovina kroz sam Microsoft Store (pretplata i potrošni
+dodaci), a veb-prodavac samo za platformu koja nema prodavnicu. Čeka dva
+odgovora: Microsoft (tip naloga, uz dopunu pitanja o prodaji kroz Store) i
+Paddle (krediti, korisnici od 13 do 17 godina). **Oba pitanja su poslata
+3.10.2026**: Microsoftu kroz zahtev za podršku u Partner Center-u, sa
+dopunom; Paddle-u kroz podršku za prodavce, za šta je vlasnik otvorio
+besplatan nalog prodavca — provera domena nije pokrenuta i ništa drugo na
+tom nalogu nije popunjeno.
 
 ### Pitanja kako su bila postavljena
 

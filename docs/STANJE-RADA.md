@@ -138,12 +138,19 @@ vlasnikova reč od 3.10.2026, počinje ekranom zagonetki (`ai_studio_screen.dart
    **Istog dana: ime „Mislisha" je rezervisano u Partner Center-u (MSIX
    aplikacija, nacrt), pitanje o tipu naloga je poslato Microsoft podršci, i
    odluke iz `CENA-I-PRETPLATA.md` §7 su donete** — tamo su zapisane sa
-   poslom koji svaka traži; ništa od toga još nije u kodu. Tabela najgoreg
-   slučaja, predlog količina po tipu naloga, dokup, zarada po nalogu i
-   akvizicija (kanali, reklamne platforme) su u
-   `STUDIJA-CENA-I-AKVIZICIJA.md` — njen §9 ima sedam odluka za vlasnika, a
-   nalaz koji ne čeka odluku je da `USAGE_UNIT_COSTS` uopšte nije postavljen
-   u `.env`, pa procena troška na serveru danas čita nulu.
+   poslom koji svaka traži; ništa od toga još nije u kodu. Iste večeri vlasnik
+   je usvojio **model kredita** — jedno stanje umesto količine po stvari,
+   dokup za svaki tip naloga, cene po vrednosti a ne po trošku
+   (`CENA-I-PRETPLATA.md` §7, dopuna) — i tražio alternative za Paddle, pa je
+   **„Paddle za Windows" ponovo otvoreno**: Paddle-ova pravila zabranjuju
+   uskladištenu vrednost, a preporuka sesije je kupovina kroz sam Microsoft
+   Store. Sve je u `STUDIJA-CENA-I-AKVIZICIJA.md`: §1 jedinični troškovi, §2–§5
+   krediti, planovi, paketi i zarada po nalogu, §6 gde se kupuje, §7–§8
+   akvizicija i reklamne platforme, §9 iOS, macOS i Linux, §12 devet odluka
+   za vlasnika. Dva nalaza koja ne čekaju odluku: `USAGE_UNIT_COSTS` uopšte
+   nije postavljen u `.env`, pa procena troška na serveru danas čita nulu; i
+   ruta kojom korisnik briše svoj nalog ne postoji, a traže je i Google Play
+   i App Store.
 2. **Interaktivni vodič.** Protiv prekrivača preko svakog ekrana (zastareva
    sa svakom izmenom). Za: kartica „čemu služi ovaj tab" prvi put, lista za
    prvi čas trenera na Home koja se sama štiklira iz pravih podataka, i „?"
