@@ -364,16 +364,60 @@ three private copies of the inverse (`_sanToUci` in
 `_uciOfSan` in `endgame_analysis_tree.dart`); grep again before writing, and
 put the new one beside `uciOfSan` rather than in the screen.
 
-### Phase 4 — the room `[implementer]`, after a sketch the owner approves
+### Phase 4 — the room `[implementer]` — drawn 3.10.2026, the owner chose B
 
 `APP/screens/chess_game_screen.dart` (`ChessGamePage`). The room was laid out
-by `docs/PLAN-SESIJA.md` phase 6 on the owner's word, so this phase does not
-move its columns. What R4 asks of it: the Board column's coloured slabs (`Set
-up position`, `Import PGN`, `Export PGN`, `Save position`, `Save analysis`)
-become one quiet list of actions; the Moves column's outlined buttons the
-same. **The lead renders the room as it is, draws it, and the owner answers
-before this phase is briefed** — the only phase here whose drawing he has not
-yet seen.
+by `docs/PLAN-SESIJA.md` phase 6 on the owner's word, so its three columns stay.
+The lead rendered it as it is and drew two proposals, `SK/compare_room.png`;
+the owner answered on 3.10.2026: **„B, and the student's column as drawn"**.
+
+Measured today at 1536 × 792 (the trainer's seat): the board 471–491, the
+engine panel under it, so the middle column scrolls and the board slides under
+the bar; the Board column five filled slabs in four colours and a FEN field;
+the Moves column a fixed 150 px tree, stacked outlined buttons and a violet
+„Draw arrows" slab, and already about 37 px longer than the window. On a phone
+held upright the engine comes before the moves, then the tree, the comment
+field and the arrows — about two screens of scrolling.
+
+What B asks:
+
+- **The window.** The engine panel moves from under the board to the top of
+  the Moves column (same widget, same switches; the student has none, as
+  today). The board takes the height the middle column has — at least 600 at
+  1536 × 792 — and the middle column does not scroll; at 900 × 700, where the
+  board is bound by the width, that stays true. The tree takes what the Moves
+  column leaves (more than 150); the column scrolls only when what it holds
+  is taller than the window (the engine's lines, the arrow colours).
+- **The Board column (R4, R6).** One quiet list of words, none filled:
+  `Set up position…`, `Paste FEN…` (the setup dialog on its FEN tab, as
+  Analysis opens it — the FEN field goes), `Import PGN…` — the three named as
+  Preparation and Analysis name them — then `Export PGN`, `Save position`,
+  `Save analysis` and `Make exercise` with today's words, because the manual
+  and the tests quote them.
+- **The Moves column.** `To main line`, `Delete variation` and `Insert
+  evaluation into comment` as text buttons; the arrow controls as quiet
+  buttons with today's words (`Draw arrows` / `Done drawing`, `Undo arrow`,
+  `Clear all arrows`) and the colours while drawing. The words stay so that
+  nothing a reader has learned or the manual says changes; only the look and
+  the place do.
+- **The student's seat** (the owner's answer to the drawing's question): the
+  Board column keeps only what saves — `Export PGN`, `Save position`,
+  `Save analysis` — and the Library; `Set up position…`, `Paste FEN…` and
+  `Import PGN…` are a leader's (`isLeader`, the one answer to who leads).
+  The four answers stand on one row under the board.
+- **The phone held upright.** Under the board: the strip, the tree, one row of
+  the same words (`To main line`, `Delete variation`, `Comment…`, `Draw
+  arrows`), then the engine last. `Comment…` opens the comment on its own (a
+  sheet that stays above the keyboard); the arrows stay inline, not in a
+  sheet, because drawing needs the board — a change from the drawing, said to
+  the owner. A move's comment stays readable without a tap for every seat.
+  Held sideways nothing changes but the quieter buttons.
+
+Gate: `T/room_layout_test.dart`, 15 cases — ten red on master for the reason
+each names, five green on master by design (the smallest window's „no scroll"
+and the four „one engine panel" cases, which hold that moving the engine does
+not draw it twice or lose it sideways or on a phone). Brief:
+`docs/briefs/BRIEF-EKRANI-FAZA4.md`.
 
 ### Phase 5 — the exercise editor `[implementer]` — built 3.10.2026
 
