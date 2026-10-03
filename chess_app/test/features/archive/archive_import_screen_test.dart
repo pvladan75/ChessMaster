@@ -171,7 +171,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('test_user'), findsOneWidget);
-    expect(find.byType(ElevatedButton), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
   });
 
   testWidgets(
@@ -218,7 +218,7 @@ void main() {
     await tester.pumpWidget(buildScreen());
 
     await tester.enterText(find.byType(TextField), 'test_user');
-    await tester.tap(find.byType(ElevatedButton).first);
+    await tester.tap(find.byType(FilledButton).first);
 
     for (int i = 0; i < 5; i++) {
       await tester.pump(const Duration(seconds: 1));
