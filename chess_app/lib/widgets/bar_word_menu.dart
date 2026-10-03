@@ -39,3 +39,33 @@ class BarWordMenu<T> extends StatelessWidget {
         ),
       );
 }
+
+/// A word of an app bar that does one thing — „Open in Analysis", „Share…" —
+/// drawn exactly as [BarWordMenu] draws its word, so that a bar of menus and
+/// actions reads as one row of words rather than two kinds of control.
+class BarWordButton extends StatelessWidget {
+  const BarWordButton({
+    super.key,
+    required this.word,
+    required this.onPressed,
+  });
+
+  final String word;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(4),
+        child: SizedBox(
+          height: BarWordMenu.height,
+          child: Center(
+            widthFactor: 1,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+              child: Text(word),
+            ),
+          ),
+        ),
+      );
+}

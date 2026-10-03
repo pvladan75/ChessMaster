@@ -22,6 +22,7 @@ import 'package:chess_app/services/recording_transcript_api.dart';
 import 'package:chess_app/core/services/tutorial_language.dart';
 import 'package:chess_app/features/tutorial_studio/services/recording_tutorial_flow.dart';
 import 'package:chess_app/widgets/action_key_shortcuts.dart';
+import 'package:chess_app/widgets/bar_word_menu.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
@@ -883,41 +884,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.biotech, color: context.colors.accent),
-            tooltip: 'Export to Analysis 🔬',
-            onPressed: () {
-              final fen = _boardController.getFen();
-              context.push(AppRoutes.analysisPath(fen: fen));
-            },
-          ),
-          // Only a lesson recorded alone in Preparation, and only by its host:
-          // a room recording had other people in it (phase 5b.4).
-          if (_isHost && rec.source == 'preparation')
-            IconButton(
-              key: const Key('replay-share'),
-              tooltip: 'Share with students…',
-              icon: Icon(Icons.person_add, color: context.colors.accent),
-              onPressed: _share,
-            ),
-          // The host has a video to download once they rendered one; a
-          // reader always has the button, and is told when there is none.
-          if (!_isHost || rec.videoUrl != null)
-            IconButton(
-              key: const Key('replay-download-video'),
-              tooltip: 'Download video',
-              icon: Icon(Icons.download_for_offline,
-                  color: context.colors.accent),
-              onPressed: _downloadVideo,
-            ),
-          // Rendering is the host's: it costs their quota, and the server
-          // refuses anybody else.
-          if (_isHost)
-            IconButton(
-              tooltip: 'Export to MP4 Video',
-              icon: Icon(Icons.video_call, color: context.colors.brand),
-              onPressed: _showExportMp4Dialog,
-            ),
+          ..._barActions(rec, isWide: isWide),
           const BoardViewMenu(),
           BoardFlipButton(
             onPressed: () {
@@ -955,8 +922,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                     )
                   : panelVisible && isWide
                       // From 840 wide: a column right of the board, which never
-                      // shrinks it — the board is bound by height at every
-                      // desktop size, so the row takes width the board never had.
+                      // shrinks it — the board is bound by height, so the row
+                      // takes width the board never had.
                       // The control deck stays full width, under both, exactly as
                       // it is without the panel: nested inside the narrower board
                       // column it wrapped its caption onto a second line, which
@@ -964,31 +931,44 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                       ? Column(
                           children: [
                             Expanded(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Expanded(
-                                    child: Center(
-                                      child: Padding(
-                                        padding:
-                                            const EdgeInsets.all(AppSpacing.md),
-                                        child: AspectRatio(
-                                          aspectRatio: 1.0,
-                                          child: LayoutBuilder(
-                                            builder: (ctx, constraints) =>
-                                                _buildBoard(
-                                                    constraints.maxWidth),
+                              // The column gives up what the board — square,
+                              // as tall as this row — leaves of the width, down
+                              // to 300: at 900 wide a fixed 390 took 18 px of
+                              // the board the controls' lost line had given it.
+                              child: LayoutBuilder(
+                                builder: (ctx, row) => Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(
+                                              AppSpacing.md),
+                                          child: AspectRatio(
+                                            aspectRatio: 1.0,
+                                            child: LayoutBuilder(
+                                              builder: (ctx, constraints) =>
+                                                  _buildBoard(
+                                                      constraints.maxWidth),
+                                            ),
                                           ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: AppSpacing.md),
-                                  SizedBox(
-                                    width: LandscapeBoardLayout.minPanelWidth,
-                                    child: _buildTranscriptPanel(),
-                                  ),
-                                ],
+                                    const SizedBox(width: AppSpacing.md),
+                                    SizedBox(
+                                      width: (row.maxWidth -
+                                              AppSpacing.md -
+                                              row.maxHeight)
+                                          .clamp(
+                                              300.0,
+                                              LandscapeBoardLayout
+                                                  .minPanelWidth),
+                                      child: _buildTranscriptPanel(),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                             _buildControlDeck(),
@@ -1024,7 +1004,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                                       top: 0,
                                       height:
                                           panelVisible && _transcriptSheetOpen
-                                              ? area.maxHeight * 0.45
+                                              ? area.maxHeight * 0.4
                                               : area.maxHeight,
                                       child: Center(
                                         child: Padding(
@@ -1046,7 +1026,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                                         left: 0,
                                         right: 0,
                                         bottom: 0,
-                                        height: area.maxHeight * 0.55,
+                                        height: area.maxHeight * 0.6,
                                         child: Material(
                                           elevation: 8,
                                           child: _buildTranscriptPanel(),
@@ -1067,6 +1047,110 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         ),
       ),
     );
+  }
+
+  /// What the bar offers, as words (R5): on a window `Open in Analysis`,
+  /// `Share…` and a `Video` menu; on a phone the same things behind one ⋮.
+  /// Each is drawn only where it was drawn as an icon before.
+  List<Widget> _barActions(SessionRecording rec, {required bool isWide}) {
+    // Only a lesson recorded alone in Preparation, and only by its host: a
+    // room recording had other people in it (phase 5b.4).
+    final mayShare = _isHost && rec.source == 'preparation';
+    // The host has a video to download once they rendered one; a reader
+    // always has the item, and is told when there is none.
+    final mayDownload = !_isHost || rec.videoUrl != null;
+    // Rendering is the host's: it costs their quota, and the server refuses
+    // anybody else.
+    final mayExport = _isHost;
+    void openAnalysis() {
+      final fen = _boardController.getFen();
+      context.push(AppRoutes.analysisPath(fen: fen));
+    }
+
+    if (isWide) {
+      return [
+        // Words of one look with „Video" beside them: a bar's words are its
+        // menus and its actions alike, as in Analysis (grading, 3.10.2026 —
+        // two teal buttons beside one plain word read as two kinds of thing).
+        BarWordButton(
+          key: const Key('replay-analysis'),
+          word: 'Open in Analysis',
+          onPressed: openAnalysis,
+        ),
+        if (mayShare)
+          BarWordButton(
+            key: const Key('replay-share'),
+            word: 'Share…',
+            onPressed: _share,
+          ),
+        if (mayDownload || mayExport)
+          BarWordMenu<String>(
+            key: const Key('replay-video-menu'),
+            word: 'Video',
+            onSelected: _onVideoAction,
+            itemBuilder: (_) => [
+              if (mayDownload)
+                const PopupMenuItem(
+                  key: Key('replay-download-video'),
+                  value: 'download',
+                  child: Text('Download video'),
+                ),
+              if (mayExport)
+                const PopupMenuItem(
+                  key: Key('replay-export-mp4'),
+                  value: 'export',
+                  child: Text('Export to MP4…'),
+                ),
+            ],
+          ),
+      ];
+    }
+    return [
+      PopupMenuButton<String>(
+        key: const Key('replay-more'),
+        icon: const Icon(Icons.more_vert),
+        tooltip: 'More',
+        onSelected: (v) {
+          if (v == 'analysis') {
+            openAnalysis();
+          } else if (v == 'share') {
+            _share();
+          } else {
+            _onVideoAction(v);
+          }
+        },
+        itemBuilder: (_) => [
+          const PopupMenuItem(
+              value: 'analysis', child: Text('Open in Analysis')),
+          if (mayShare)
+            const PopupMenuItem(
+              key: Key('replay-share'),
+              value: 'share',
+              child: Text('Share…'),
+            ),
+          if (mayDownload)
+            const PopupMenuItem(
+              key: Key('replay-download-video'),
+              value: 'download',
+              child: Text('Download video'),
+            ),
+          if (mayExport)
+            const PopupMenuItem(
+              key: Key('replay-export-mp4'),
+              value: 'export',
+              child: Text('Export to MP4…'),
+            ),
+        ],
+      ),
+    ];
+  }
+
+  void _onVideoAction(String v) {
+    if (v == 'download') {
+      _downloadVideo();
+    } else if (v == 'export') {
+      _showExportMp4Dialog();
+    }
   }
 
   /// The least height the upright player is laid out in; under it, it scrolls.
@@ -1136,7 +1220,8 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
     final canRequest = _transcriptAvailability.available;
     return Container(
       key: const Key('replay-transcript-panel'),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding:
+          EdgeInsets.all(_compactTranscript ? AppSpacing.sm : AppSpacing.md),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(8),
@@ -1150,15 +1235,15 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
         builder: (context, constraints) => Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: _transcriptPanelChildren(
-              transcript, canRequest, constraints.hasBoundedHeight),
+          children: _transcriptPanelChildren(transcript, canRequest,
+              constraints.hasBoundedHeight, _compactTranscript),
         ),
       ),
     );
   }
 
-  List<Widget> _transcriptPanelChildren(
-      RecordingTranscript? transcript, bool canRequest, bool bounded) {
+  List<Widget> _transcriptPanelChildren(RecordingTranscript? transcript,
+      bool canRequest, bool bounded, bool compact) {
     // A long transcript (some 400 sentences for a 30-minute take) is a lazy
     // list, never a Column of every row.
     Widget list(RecordingTranscript t) => ListView.builder(
@@ -1168,7 +1253,7 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           itemBuilder: (ctx, i) => _buildSentence(t, i),
         );
     return [
-      Text('Transcript', style: AppText.bodyBold),
+      _transcriptHead(transcript, canRequest, compact),
       const SizedBox(height: AppSpacing.sm),
       if (transcript == null)
         Text('No transcript yet.',
@@ -1180,50 +1265,114 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
           constraints: const BoxConstraints(maxHeight: 420),
           child: list(transcript),
         ),
-      const SizedBox(height: AppSpacing.sm),
-      // Under the list, so it exists exactly where the panel does — beside
-      // the board, in the phone's sheet and in the sideways column. Only the
-      // host of a Preparation recording ever sees it (`_mayTranscribe`); the
-      // server would refuse anybody else, and a student's player has no
-      // business making the request at all.
-      if (_mayTranscribe)
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            key: const Key('transcript-make-tutorial'),
-            onPressed: _makeTutorial,
-            icon: const Icon(Icons.auto_stories_outlined, size: 18),
-            label: const Text(
-              'Make a tutorial',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ),
-      const SizedBox(height: AppSpacing.sm),
-      if (_transcribing)
-        Text('Transcribing…',
-            style: AppText.bodyBold.copyWith(color: context.colors.textMuted))
-      else if (canRequest)
-        ElevatedButton(
-          key: const Key('transcript-transcribe'),
-          onPressed: _openTranscribeFlow,
-          child: Text(transcript == null ? 'Transcribe…' : 'Transcribe again…'),
-        ),
     ];
+  }
+
+  /// On a phone — upright in the sheet or on its side in the column — the
+  /// transcript is drawn close: four sentences have to be read at 360 x 640
+  /// (§2.2 of the plan), where one was.
+  bool get _compactTranscript =>
+      LandscapeBoardLayout.applies(context) || !Breakpoints.isWide(context);
+
+  /// The title and the two actions, above the sentences so the list has what
+  /// is left of the column (R4): on a window the actions are text buttons in
+  /// one row, on a phone — in the sheet and in the sideways column — they are
+  /// behind a ⋮. „Make a tutorial" is only the host's of a Preparation
+  /// recording (`_mayTranscribe`; the server would refuse anybody else, and a
+  /// student's player has no business making the request at all), and
+  /// transcribing is drawn only when the server offers it.
+  Widget _transcriptHead(
+      RecordingTranscript? transcript, bool canRequest, bool compact) {
+    final transcribeLabel =
+        transcript == null ? 'Transcribe…' : 'Transcribe again…';
+    final showTutorial = _mayTranscribe;
+    final showTranscribe = canRequest && !_transcribing;
+    final title = Text('Transcript', style: AppText.bodyBold);
+    final busy = _transcribing
+        ? Text('Transcribing…',
+            style: AppText.bodyBold.copyWith(color: context.colors.textMuted))
+        : null;
+    if (compact) {
+      return Row(
+        children: [
+          Expanded(child: title),
+          if (busy != null) ...[busy, const SizedBox(width: AppSpacing.xs)],
+          if (showTutorial || showTranscribe)
+            PopupMenuButton<String>(
+              key: const Key('transcript-actions'),
+              icon: const Icon(Icons.more_vert),
+              padding: EdgeInsets.zero,
+              style: IconButton.styleFrom(
+                minimumSize: const Size(40, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              tooltip: 'Transcript actions',
+              onSelected: (v) {
+                if (v == 'tutorial') {
+                  _makeTutorial();
+                } else {
+                  _openTranscribeFlow();
+                }
+              },
+              itemBuilder: (_) => [
+                if (showTutorial)
+                  const PopupMenuItem(
+                    key: Key('transcript-make-tutorial'),
+                    value: 'tutorial',
+                    child: Text('Make a tutorial'),
+                  ),
+                if (showTranscribe)
+                  PopupMenuItem(
+                    key: const Key('transcript-transcribe'),
+                    value: 'transcribe',
+                    child: Text(transcribeLabel),
+                  ),
+              ],
+            ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        title,
+        if (showTutorial || showTranscribe || busy != null)
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.xs,
+            children: [
+              if (showTutorial)
+                TextButton.icon(
+                  key: const Key('transcript-make-tutorial'),
+                  onPressed: _makeTutorial,
+                  icon: const Icon(Icons.auto_stories_outlined, size: 18),
+                  label: const Text('Make a tutorial'),
+                ),
+              if (showTranscribe)
+                TextButton(
+                  key: const Key('transcript-transcribe'),
+                  onPressed: _openTranscribeFlow,
+                  child: Text(transcribeLabel),
+                ),
+              if (busy != null) busy,
+            ],
+          ),
+      ],
+    );
   }
 
   Widget _buildSentence(RecordingTranscript transcript, int index) {
     final sentence = transcript.sentences[index];
     final isCurrent = sentenceAt(transcript.sentences, currentMs) == index;
     final isEditing = _editingIndex == index;
+    final compact = _compactTranscript;
     return Padding(
       key: Key('transcript-sentence-$index'),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+      padding: EdgeInsets.symmetric(vertical: compact ? 1 : AppSpacing.xxs),
       child: InkWell(
         onTap: isEditing ? null : () => _seekTo(sentence.startMs),
         child: Container(
-          padding: const EdgeInsets.all(AppSpacing.sm),
+          padding: EdgeInsets.all(compact ? AppSpacing.xs + 2 : AppSpacing.sm),
           decoration: BoxDecoration(
             // Never by colour alone (the owner does not see hue): a current
             // sentence is both a wider border and its own marker below.
@@ -1279,6 +1428,13 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
                   key: Key('transcript-edit-$index'),
                   icon: const Icon(Icons.edit, size: 16),
                   tooltip: 'Correct this sentence',
+                  padding: compact ? EdgeInsets.zero : const EdgeInsets.all(8),
+                  style: compact
+                      ? IconButton.styleFrom(
+                          minimumSize: const Size(32, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        )
+                      : null,
                   onPressed: () => _startEdit(index),
                 ),
             ],
@@ -1437,36 +1593,6 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isAudioAvailable ? Icons.volume_up : Icons.graphic_eq,
-                size: 14,
-                color: isPlaying
-                    ? context.colors.accent
-                    : context.colors.textMuted,
-              ),
-              const SizedBox(width: 6),
-              // Flexible: beside the board on a phone on its side the deck is
-              // a column about 440 dp wide, and a Row clips in release.
-              Flexible(
-                child: Text(
-                  isAudioAvailable
-                      ? 'Audio track in sync'
-                      : 'Synchronized playback of moves and arrows',
-                  style: (isPlaying ? AppText.captionBold : AppText.caption)
-                      .copyWith(
-                    color: isPlaying
-                        ? context.colors.accent
-                        : context.colors.textMuted,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
           // Scrubber Timeline
           Row(
             children: [
