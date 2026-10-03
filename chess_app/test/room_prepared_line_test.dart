@@ -276,9 +276,14 @@ void main() {
       const laptop = Size(1200, 800);
       await openPreparation(tester, size: laptop);
 
+      // Renamed in phase 4 of docs/PLAN-EKRANI.md: the Board column's doors are
+      // named as Preparation and Analysis name them („Set up position…",
+      // „Import PGN…"), and the FEN field became „Paste FEN…". The rule is the
+      // same one — every door and the tutorial list stay above the fold.
       for (final door in const [
-        'Set up position',
-        'Import PGN',
+        'Set up position…',
+        'Paste FEN…',
+        'Import PGN…',
         'Export PGN',
         'Save position',
         'Save analysis',
