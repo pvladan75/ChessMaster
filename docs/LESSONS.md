@@ -10503,5 +10503,6 @@ about whether anybody is *listening*. The gate counts attaches instead.
 
 **A listener is not an initial read.** Wherever state is followed through a
 notifier, the value it holds at subscription is a case of its own; Analysis
-attaches in `initState` and so never had this fault, which is why a copy of
+attaches from `_initEngine`, which `initState` calls, and so never had this
+fault, which is why a copy of
 its glue could lose it unnoticed.
