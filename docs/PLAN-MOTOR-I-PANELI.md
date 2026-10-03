@@ -6,8 +6,9 @@ u ekranu za tutorijal."* The session's one-line recommendation then: the same
 panels Analysis draws, switched on from one place, off by default, never
 written into a part on their own; Preparation first, then the studio.
 
-Written 3.10.2026. Nothing in code. Phase 0 is a drawing for the owner; the
-decisions below carry a recommendation each and can be overturned.
+Written 3.10.2026. Nothing in code. Phase 0, the drawing, is done
+(`docs/skice/paneli/compare_panels.png`); the decisions below carry a
+recommendation each and wait for the owner's answer.
 
 `APP` = `chess_app/lib`, `T` = `chess_app/test`.
 
@@ -63,6 +64,12 @@ of parts (380), the board (616 at 1536 × 792), the authoring pane (460) with
 the tabs Flow · Tree · PGN. On a phone: the board, a row of moves and the tabs
 Line · Parts.
 
+**A second fault, found while drawing, measured.** At 1536 × 792 in Roboto the
+studio's board column is 32 px taller than its space: the board is
+`maxHeight − 120` (616), and the marks row and the strip under it need more
+than 120, so the strip ends 20 px below the window and is a scroll away. Phase
+4 fixes it — the board about 584 — before anything is added beside it.
+
 ## 2. Decisions
 
 **D1 — Where the panels are switched on: rows of the board view menu (▦), the
@@ -97,8 +104,8 @@ explorer and the tablebase. Can be widened later on the owner's word.
 **D5 — The board keeps its size.** Whatever is switched on, the board does not
 grow or shrink (Preparation's rule, `preparation_layout.dart`). The studio
 reserves the evaluation bar's slot beside the board as Preparation does
-(30 px); measured at 1536 × 792 the map still stands beside the board
-(424 − 30 = 394 ≥ 392), by 2 px — the drawing in phase 0 shows it.
+(30 px). With the strip back on the screen (the board about 584, see §1) the map
+still stands beside the board at 1536 × 792: 1040 − 584 − 30 = 426 ≥ 392.
 
 **D6 — Where the panels stand in the studio on a window: to be chosen from
 the drawing.** Not an end drawer as in the room: a drawer is modal and blocks
@@ -134,7 +141,7 @@ arrows; this plan does not change the recorder.
 
 ## 3. Phases
 
-**Phase 0 — the drawing** `[lead]`. Preparation and the studio rendered as
+**Phase 0 — the drawing** `[lead]` — done 3.10.2026. Preparation and the studio rendered as
 they are at 1536 × 792 and 360 × 640, and after: Preparation with the two
 look-ups beside the engine; the studio as D6 A and B. Sent to the owner as
 PNGs; he answers D1–D9 from them.
@@ -158,7 +165,8 @@ openly: zero requests at 1536 × 792 **while the look-ups are hidden**, which
 is the rule it protected. The board's size is the same with every panel on
 and off.
 
-**Phase 4 — the studio on a window** `[implementer]`. ▦ in its strip, the
+**Phase 4 — the studio on a window** `[implementer]`. First the strip back on
+the screen at 1536 × 792 (§1, red today by 20 px); then ▦ in its strip, the
 evaluation slot (D5), the panels by D6, moves through `playMove` (D3), the
 engine read-only (D4). Gate: the board's size with every row on and off, the
 map still beside the board at 1536 × 792, a tapped book move that would open a
