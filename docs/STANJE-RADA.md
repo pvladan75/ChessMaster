@@ -65,8 +65,12 @@ dijaloga (A), panel motora tek posle rešenja ili promašaja (B), ekrani 1–3
 Plan ima osam pravila (R1–R8: jedan raspored za ekran sa tablom — onaj iz
 trenera završnica; zadatak i presuda u panelu; jedno popunjeno dugme; svaka
 radnja na jednom mestu; liste koriste širinu; ništa ne lebdi preko sadržaja) i
-faze 0–13. **Sledeća je faza 0** (lead): `EndgameBoardLayout` /
-`EndgameInfoPanel` → `TrainerBoardLayout` / `TrainerInfoPanel`. Pomoćnik za
+faze 0–13. **Faza 0 urađena 3.10.2026** (`65ef31a3`): `EndgameBoardLayout` /
+`EndgameInfoPanel` → `TrainerBoardLayout` / `TrainerInfoPanel` u
+`lib/widgets/trainer_board_layout.dart`, aplikacija 5605 / 1 preskočen, analyze
+istih 22; uz nju `a1a646a2` — `speech_clips_test` je padao na svakom svežem
+checkout-u na Windowsu (CRLF u `manifest.json`). **Sledeća je faza 1**, ekran
+zagonetki, `[implementer]` uz kapiju koju lead piše. Pomoćnik za
 render sa pravim fontom je već u `test/support/render_look.dart` (§4.3 plana;
 nije test, suite ga ne uvozi). Faza 4 (soba) čeka da vlasnik vidi crtež. Renderovanje je našlo pet
 kvarova koji postoje danas (§2 plana): „New group" pokriva dugmad poslednje
