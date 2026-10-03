@@ -242,8 +242,10 @@ variants. As `SK/puzzle_proposal_1536.png` and `_360.png`:
   (`_showFailureDialog`) and its choices; `_showDrillEndedDialog`
   (loss / draw in Basic checkmate); `_showEndgameWinDialog` („VICTORY!").
   Their choices become the panel's buttons. `_showEngineGameEndedDialog`
-  stays a dialog only for an **assigned** game (where „Back" is the only way
-  on) and is drawn in the panel as well; one's own game says it in the panel.
+  stays a dialog only for an **assigned** game, where „Back" is the only way
+  on — and there it is the dialog alone, not drawn in the panel as well
+  (corrected 3.10.2026 while writing the gate: five tests hold „Goal met" to
+  one widget, and twice is one too many); one's own game says it in the panel.
   What is spoken does not change: every verdict is the same `SpokenLine` it is
   today, said when it is drawn (the speech plan's D4).
 - **Engine (B):** `StockfishAnalysisWidget` is built only when the puzzle is
@@ -264,10 +266,19 @@ Gate (beyond §5's list): a wrong move, a right move, a solve, a failure and a
 draw in Basic checkmate each leave `find.byType(AlertDialog)`,
 `find.byType(BottomSheet)` and `find.byType(SnackBar)` empty and the verdict's
 text in the panel; the engine panel is absent before the end and present after
-it on Find the winning path; the speech pilot's cases
-(`T/speech_pilot_test.dart`) stay green **unchanged** — the voice is not this
-phase's to move. Fixtures that tapped „Next Position" or „Try Again" are
-rewritten openly, with what they protected kept.
+it on Find the winning path; the speech pilot's **voice** assertions
+(`T/speech_pilot_test.dart`, every `rig.voice` line) stay as they are — the
+voice is not this phase's to move. Two of its literal expectations name the
+old screen (it taps „Next Position" and finds „Incorrect Move!") and are
+rewritten openly, with what they protected kept; so is
+`landscape_screens_test`'s `byTooltip('Next Position')`.
+
+**The gate is `T/puzzle_screen_panel_test.dart`**, written by the lead on
+3.10.2026: 22 cases, 20 red on `e0c870da` for the right reason (no
+`TrainerBoardLayout`, a bottom sheet, the dialogs, the engine panel while
+solving, no filled button) and none throwing; two green there on purpose, as
+guards of what must not change (Mate in N never shows the engine panel; an
+assigned game keeps its dialog).
 
 ### Phase 2 — the tactics trainer `[implementer]`
 
