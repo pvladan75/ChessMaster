@@ -10686,6 +10686,13 @@ odlazi na kraj spiska u alatu.
    Treneru stiže obaveštenje da učenik „wants to speak“.
    Potrebno: Windows i telefon; nalog trenera i učenika; drugi uređaj.
 
+27. [ ] **Soba: veća tabla, motor u koloni Moves, tihe radnje.** [266.14]
+   O čemu se radi: Faza 4 plana `PLAN-EKRANI.md` (3.10.2026, varijanta B): na prozoru je panel motora na vrhu desne kolone, pa tabla zauzima visinu (na 1536 × 792 oko 620 umesto 491) i srednja kolona se ne skroluje. Leva kolona je spisak reči: `Set up position…`, `Paste FEN…` (otvara postavku na kartici FEN; polje za FEN je uklonjeno), `Import PGN…`, `Export PGN`, `Save position`, `Save analysis`, `Make exercise`. Učenik vidi samo `Export PGN`, `Save position`, `Save analysis` i biblioteku, a četiri odgovora su u jednom redu ispod table. Na uspravnom telefonu ispod table su traka, potezi, red reči, pa motor; `Comment…` otvara komentar odozdo, iznad tastature; strelice ostaju na strani (ne u prozorčiću), jer se crtaju po tabli.
+   Gde: `Home` → `New session` (kao trener); drugi nalog ulazi kao učenik.
+   Uradi: Odigraj nekoliko poteza, uključi motor, nacrtaj strelicu, napiši komentar; na telefonu otvori `Comment…`; kao učenik pogledaj levu kolonu i odgovore.
+   Treba da vidiš: Tabla velika i cela bez skrolovanja; motor iznad poteza; dugmad bez obojenih ploča; učenik nema `Set up position…` ni `Import PGN…`; komentar na telefonu nije pokriven tastaturom.
+   Potrebno: Windows i telefon; server; dva naloga.
+
 ## Podešavanja i izgled
 
 ### Podešavanja i izgled — Settings

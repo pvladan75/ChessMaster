@@ -233,6 +233,18 @@ void main() {
     });
   });
 
+  // Added at grading: „never less than 150" is half of the tree's rule, and
+  // the case above only sees the half where the column has room to give. At
+  // the smallest window the column is taller than the window and scrolls;
+  // there the tree must keep its floor rather than give it all away.
+  testWidgets('the tree keeps 150 where the Moves column is short',
+      (tester) async {
+    await _room(tester, _smallest, role: 'trener');
+    await _play(tester, 'e2', 'e4');
+    expect(_rect(_tree).height, greaterThanOrEqualTo(150),
+        reason: 'the tree gave its floor away at ${sizeLabel(_smallest)}');
+  });
+
   // ── 2. the Board column ────────────────────────────────────────────────
 
   group('the Board column', () {

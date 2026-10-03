@@ -364,7 +364,9 @@ three private copies of the inverse (`_sanToUci` in
 `_uciOfSan` in `endgame_analysis_tree.dart`); grep again before writing, and
 put the new one beside `uciOfSan` rather than in the screen.
 
-### Phase 4 — the room `[implementer]` — drawn 3.10.2026, the owner chose B
+### Phase 4 — the room `[implementer]` — drawn 3.10.2026, the owner chose B — built 3.10.2026
+
+**Done** (worker's `9413aaec`, the lead's `9d00c26a` and the floor case): at 1536 × 792 the board 620 (471 before), the tree 194, the engine at the top of the Moves column, the middle column sized by a `LayoutBuilder` from what the strip leaves; the Moves column a `CustomScrollView` whose tree fills what is left and keeps 150 through its intrinsic height; the Board column `TextButton.icon` rows, a leader's three loaders hidden from a student; the student's answers one row; on a phone the tree 100 (150 put `Comment…` under a 640 fold), one wrap of words, the engine last, `Comment…` a sheet. `Set up position…` opens the dialog on its pieces tab, as Analysis does — the room had opened it on FEN. The Board column's paddings were tightened, because seven 40 px rows put the tutorial list 15 px under the fold of 1200 × 800 (`part_titles_shown_test`). The manual's live-session page names the new words. At grading: the gate's sheet case was the lead's fault (one pump after a pop draws only the first frame of the sheet's way out), and a case for the tree's floor at 900 × 700 was added, red at 102 with the floor at 0. Gate `T/room_layout_test.dart`, 16 cases. Live check [266.14].
 
 `APP/screens/chess_game_screen.dart` (`ChessGamePage`). The room was laid out
 by `docs/PLAN-SESIJA.md` phase 6 on the owner's word, so its three columns stay.

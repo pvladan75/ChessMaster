@@ -10449,3 +10449,36 @@ one sends.
 **A worker's render shows what the worker chose to render.** The review's
 worker rendered puzzle items and said it had not rendered a game item; the
 lead's render of one was the first look anybody had at it.
+
+## 3.10.2026 — PLAN-EKRANI phase 4, the room (app 5715 → 5731)
+
+Arithmetic: 5715 + 15 (the gate) + 1 (the tree's floor at the smallest window,
+added at grading) = 5731, measured once on master after the merge with nothing
+else running; analyze the same 10. The case added at grading was written while
+that run was under way — the suite compiles a file when it reaches it — and
+the log shows it ran (`the tree keeps 150 where the Moves column is short`).
+
+**Measure the budget before promising the layout.** B put a 180 px engine
+panel into a column that was already 37 px longer than the window. The gate's
+„the tree is taller than 150" was checked against a sum of measured heights
+before it was handed over (about 172 left), and the worker landed at 194. A
+gate case that cannot pass is worth no more than one that cannot fail.
+
+**A sheet's way out starts on the frame after the pop.** The lead's case
+popped the comment sheet and pumped 400 ms once, then asked that the field be
+gone; one pump after a pop draws frame 0 of the reverse animation, so the
+route is still there. The worker proved it on a bare `showModalBottomSheet`
+and stopped, rather than turn the animation off to pass. `pump()` and then
+the duration.
+
+**A rule has two halves, and a case on one of them cannot see the other.**
+„The tree takes what the column leaves, never less than 150": the gate held
+the first half at 1536 × 792, where there was room to give, and a floor of 0
+would have passed every case. The case for the floor stands where the column
+is short (900 × 700), red at 102.
+
+**Seven rows of 40 cost what three rows of 48 and a field did, almost.** The
+quiet list put the room's tutorial list 15 px under the fold of 1200 × 800,
+and `part_titles_shown_test` — which names neither the room nor the column —
+found it by tapping a row it could no longer reach. The ninth-file lesson
+again, from the room's side.
