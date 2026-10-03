@@ -1069,16 +1069,19 @@ class _ReplayPlayerScreenState extends State<ReplayPlayerScreen> {
 
     if (isWide) {
       return [
-        TextButton(
+        // Words of one look with „Video" beside them: a bar's words are its
+        // menus and its actions alike, as in Analysis (grading, 3.10.2026 —
+        // two teal buttons beside one plain word read as two kinds of thing).
+        BarWordButton(
           key: const Key('replay-analysis'),
+          word: 'Open in Analysis',
           onPressed: openAnalysis,
-          child: const Text('Open in Analysis'),
         ),
         if (mayShare)
-          TextButton(
+          BarWordButton(
             key: const Key('replay-share'),
+            word: 'Share…',
             onPressed: _share,
-            child: const Text('Share…'),
           ),
         if (mayDownload || mayExport)
           BarWordMenu<String>(
