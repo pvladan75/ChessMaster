@@ -375,7 +375,9 @@ same. **The lead renders the room as it is, draws it, and the owner answers
 before this phase is briefed** — the only phase here whose drawing he has not
 yet seen.
 
-### Phase 5 — the exercise editor `[implementer]`
+### Phase 5 — the exercise editor `[implementer]` — built 3.10.2026
+
+**Done** (worker's `d7b370be`): `TrainerScreenLayout`, both panels a `TrainerInfoPanel` (the task drawn, not spoken), `Save` a button of its own width in the panel; on a phone board, `Save`, panel. „Assign to student" is offered nowhere on this screen today, so nothing was added. Gate `T/exercise_editor_layout_test.dart`, 4 cases. Live check [266.9].
 
 `APP/features/exercises/screens/exercise_editor_screen.dart`, as
 `SK/compare_editor.png`: the board by the window's height, the task and the
@@ -414,7 +416,9 @@ alone on a phone with a group on its own page; `New group` in the bar on both
 (R8). The gate holds §2.1: with more groups than fit, every group's actions
 can be hit (`hitTestable`).
 
-### Phase 9 — My games and Import games `[implementer]`
+### Phase 9 — My games and Import games `[implementer]` — built 3.10.2026
+
+**Done** (worker's `49cb46e2`, the lead's `680c327d`): `Import games` in the bar, the doors one `ArchiveDoors` widget used by both screens, the import a centred column with its result in a card and no snackbar; the manual's „Import more games" corrected. At grading the cards on `AdaptiveCardGrid` had a fixed 208 px cell and some 65 px of empty band under their doors at 1536 × 792 — PLAN-LISTE 3a's fault again; now `AdaptiveCardRows`, and the gate holds the rule (the last door within 40 px of its card's bottom), red at 65 on the grid. Gate `T/archive_screens_layout_test.dart`, 5 cases. Live check [266.10].
 
 `APP/features/archive/screens/archive_home_screen.dart` and
 `archive_import_screen.dart`, as `SK/compare_games.png` and
@@ -424,7 +428,9 @@ small table; the import screen one centred column with the result in a card
 („Import completed", the four figures, the skipped reasons, the three doors)
 instead of a snackbar.
 
-### Phase 10 — the repertoire comparison `[implementer]`
+### Phase 10 — the repertoire comparison `[implementer]` — built 3.10.2026
+
+**Done** (worker's `0b16545e`, the lead's `b706eaf3`): a table and a `BoardThumbnail` pane on a window, the first deviation chosen, the pane asking nothing; on a phone the position under the tapped row. At grading two cases for the doors nobody had tapped — `Open in Analysis` on the chosen row's position, `Games through this position` on its key and side (red with the side swapped). Gate `T/repertoire_diff_layout_test.dart`, 5 cases. Live check [266.11].
 
 `APP/features/archive/screens/repertoire_diff_screen.dart`, as
 `SK/compare_diff.png`: White / Black and the three figures on one row, the
@@ -435,7 +441,9 @@ Every row already carries its FEN; **the gate counts requests** and holds the
 pane to none (the Repertoire's pane lesson of 21.9.2026). On a phone a tap
 opens the position under the list.
 
-### Phase 11 — My Assignments and a homework's items `[implementer]`
+### Phase 11 — My Assignments and a homework's items `[implementer]` — built 3.10.2026
+
+**Done** (worker's `8fabb572`, the lead's `249243fb`): `Open` / `Done` / `All` from one predicate, opening on `All`; the progress card one wrapping row (the pinned sentence of `progress_report_figures_test` kept); a homework's items one list of 820, `Continue` the one filled button for the student only. At grading the cards' fixed 148 px cell cut every title and the trainer's instruction to one line; now `AdaptiveCardRows`, and the gate holds a long instruction drawn whole (`didExceedMaxLines`), red on the grid. Gate `T/assignments_layout_test.dart`, 5 cases. Live check [266.12].
 
 `APP/features/assignments/screens/my_assignments_screen.dart` and
 `APP/features/homework/screens/homework_assignment_screen.dart`, as
@@ -447,7 +455,9 @@ reading width, one line per step, its state and its action beside it, the one
 step that can be done now the one filled `Continue`. A trainer's view of the
 same list keeps `Unlock for student` on a locked row, as a text button.
 
-### Phase 12 — the homework review `[implementer]`
+### Phase 12 — the homework review `[implementer]` — built 3.10.2026
+
+**Done** (worker's `87433755`): the items left (with the discussion under them), the chosen one right with a board up to 360, its task, what was played, the solution, the time and its comments; a game item's boards, moves, verdict and `Mark as met` in the pane; on a phone the item opens under its row, and a single-item review opens by itself. The lead rendered a game item in the pane, which the worker had not. Gate `T/assignment_review_layout_test.dart`, 3 cases. Live check [266.13].
 
 `APP/features/assignments/screens/assignment_review_screen.dart`, as
 `SK/compare_review.png`: pattern B — the items left (thumbnail, title, verdict

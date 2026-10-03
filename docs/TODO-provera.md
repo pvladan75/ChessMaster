@@ -515,6 +515,13 @@ odlazi na kraj spiska u alatu.
    pojavljuje dugme za novi pokušaj.
    Potrebno: Windows i telefon; nalog trenera i učenika.
 
+12. [ ] **My Assignments u kolonama, domaći kao spisak koraka.** [266.12]
+   O čemu se radi: Faza 11 plana `PLAN-EKRANI.md` (3.10.2026): zadaci su kartice u kolonama, sa filterima `Open` / `Done` / `All`, a uputstvo trenera se vidi celo. Domaći je jedan numerisan spisak, jedan red po koraku, a korak koji može sad ima jedino popunjeno dugme `Continue`.
+   Gde: `Home` → `My Assignments` (kao učenik); pa otvori domaći.
+   Uradi: Probaj tri filtera; otvori domaći sa bar jednim zaključanim korakom.
+   Treba da vidiš: Brojevi u filterima tačni; ceo tekst uputstva; u domaćem `Continue` samo na koraku koji je otvoren.
+   Potrebno: Windows i telefon; server; nalog učenika sa zadacima.
+
 ### Home — Reprodukcija snimka
 
 1. [ ] **Izvoz snimljenog časa dobija iste koordinate van table.** [155.2]
@@ -3932,6 +3939,20 @@ odlazi na kraj spiska u alatu.
     Potrebno: Windows i telefon; server; sopstvene partije (partije
     pripremljenog protivnika se ne otvaraju, i ekran to kaže).
 
+31. [ ] **My games u kolonama, uvoz u jednoj koloni.** [266.10]
+   O čemu se radi: Faza 9 plana `PLAN-EKRANI.md` (3.10.2026): igrači su kartice u kolonama, svaka visoka koliko joj treba; tri vrata na kartici su tiha dugmad iste vrste; `Import games` je u traci (dugme „Import more games" na dnu je uklonjeno). Uvoz je jedna kolona po sredini, a završen uvoz se kaže u kartici rezultata sa brojkama i vratima, ne u zelenoj traci na dnu.
+   Gde: `Practise` → `My games`; pa `Import games`.
+   Uradi: Pogledaj karticu igrača; uvezi jednu datoteku PGN.
+   Treba da vidiš: Kartice bez praznog pojasa ispod vrata; posle uvoza „Import completed." u kartici sa brojkama i tri vrata.
+   Potrebno: Windows i telefon; server; datoteka PGN.
+
+32. [ ] **Poređenje repertoara: tabela i pozicija pored nje.** [266.11]
+   O čemu se radi: Faza 10 plana `PLAN-EKRANI.md` (3.10.2026): odstupanja od repertoara su tabela (potez, pripremljeno, odigrano umesto toga, partije), a pozicija izabranog reda je na tabli pored nje sa `Open in Analysis` i `Games through this position`. Na telefonu dodir otvara poziciju ispod reda.
+   Gde: `Practise` → `My games` → (igrač) → `Repertoire from games`.
+   Uradi: Izaberi drugi red; pritisni oba dugmeta.
+   Treba da vidiš: Tabla prati izabrani red; `Open in Analysis` otvara tu poziciju, `Games through this position` njene partije za pravu stranu.
+   Potrebno: Windows i telefon; uvezene partije i repertoar.
+
 ### Practise — My mistakes
 
 1. [ ] **„Open this game in Analysis“ iz My mistakes i dalje radi.** [195.6]
@@ -7232,6 +7253,13 @@ odlazi na kraj spiska u alatu.
     Potrebno: Windows; server restartovan posle spajanja, u `.env`
     `DEEPSEEK_API_KEY`.
 
+36. [ ] **Editor zadatka: tabla velika, zadatak i `Save` pored nje.** [266.9]
+   O čemu se radi: Faza 5 plana `PLAN-EKRANI.md` (3.10.2026): na prozoru tabla zauzima visinu prozora, a zadatak, odgovori i `Save` (dugme svoje širine, ne traka preko celog prozora) su u panelu pored nje. Na telefonu: tabla, `Save`, pa zadatak.
+   Gde: `Teach` → `Library` → (zadatak) → otvori.
+   Uradi: Otvori „Find" zadatak i zadatak igre; dodaj alternativni potez i sačuvaj.
+   Treba da vidiš: Tabla velika, panel desno, `Save` u panelu; čuvanje radi kao pre.
+   Potrebno: Windows i telefon; server.
+
 ### Teach — Position Scanner
 
 1. [ ] **PDF bez dijagrama ili zaštićen lozinkom.** [13.b602]
@@ -9725,6 +9753,13 @@ odlazi na kraj spiska u alatu.
    Uradi: U `Assign drill` ostavi štikliran samo „rook endgame" i pošalji; kao učenik otvori taj domaći. Pa u uređivaču domaćeg dodaj `A puzzle set` sa samo „pawn endgame" i pošalji domaći učeniku.
    Treba da vidiš: U prvom domaćem na svakoj tabli su samo kraljevi, topovi i pešaci, u drugom samo kraljevi i pešaci (tako Lichess označava te završnice). Ako učenikova slaba tema nije među uobičajenim čipovima (npr. „zugzwang"), u `Assign drill` je njen čip vidljiv i štikliran i može da se skine. Među čipovima `A puzzle set` su „Anastasia's mate" i ostalih pet matnih motiva; nigde sirova oznaka kao „anastasiaMate".
    Potrebno: Windows; nalog trenera i učenika; server (restartovan posle izmene — nodemon to radi sam).
+
+19. [ ] **Pregled domaćeg: spisak levo, izabrana stavka velika desno.** [266.13]
+   O čemu se radi: Faza 12 plana `PLAN-EKRANI.md` (3.10.2026): stavke domaćeg su spisak levo (mala tabla, naslov, presuda, broj komentara), a izabrana je desno sa velikom tablom, zadatkom, odigranim potezom, rešenjem, vremenom i komentarima; igra ima svoje table, poteze i `Mark as met`. Na telefonu dodir otvara stavku ispod reda.
+   Gde: `Teach` → (učenik) → (domaći) → `Review`.
+   Uradi: Izaberi drugu stavku; napiši komentar; za igru označi presudu.
+   Treba da vidiš: Sve stavke vidljive levo bez skrolovanja; desno velika tabla izabrane; komentari i dugmad kao pre.
+   Potrebno: Windows i telefon; server; predat domaći.
 
 ### Teach — Preparation
 

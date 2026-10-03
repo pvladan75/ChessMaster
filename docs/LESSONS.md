@@ -10420,3 +10420,32 @@ one run, which it re-ran rather than read.
 **What a worker says it did not test is the grading's first case.** The groups
 worker reported that nothing drove the new pane's Rename and Delete on a
 window; the two cases written for it were proved by deleting the wrong group.
+
+## 3.10.2026 — PLAN-EKRANI, phases 5, 9, 10, 11 and 12 (app 5693 → 5715)
+
+Arithmetic: 5693 + 4 (the editor's gate) + 5 (the archive's, one of them the
+no-air rule added at grading) + 5 (the comparison's, two of them the doors
+added at grading) + 5 (the assignments', one of them the long instruction
+added at grading) + 3 (the review's) = 5715, measured once on master after the
+five merges, with nothing else running; analyze the same 10.
+
+**A grid of fixed cells is wrong both ways for cards whose text varies.**
+Two workers put cards on `AdaptiveCardGrid`, whose cells are one height: in
+My games the cell was 208 px and about 65 px of it sat empty under the doors at
+1536 × 792; in My Assignments the cell was 148 px and every title and the
+trainer's instruction were cut to one line. Both gates were green, because both
+fixtures had text the cell happened to hold and neither asked about the air.
+Both screens are `AdaptiveCardRows` now, and each gate holds the rule that
+caught it — the last door within 40 px of its card's bottom, red at 65 on the
+grid; a long instruction drawn whole (`didExceedMaxLines`), red on the grid.
+PLAN-LISTE 3a's complaint word for word, again: **for peer cards, ask the
+fixture's longest text and the empty band, not only "fits".**
+
+**A door nobody taps is a door nobody tested.** The comparison's pane had
+`Open in Analysis` and `Games through this position`, and no case pressed
+either; the two written at grading were proved by swapping the side the second
+one sends.
+
+**A worker's render shows what the worker chose to render.** The review's
+worker rendered puzzle items and said it had not rendered a game item; the
+lead's render of one was the first look anybody had at it.
