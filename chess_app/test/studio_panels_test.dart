@@ -108,9 +108,13 @@ Future<_Spy> _open(WidgetTester tester, Size size, {Set<String>? shown}) async {
   await AppSettingsService.instance.init();
   await TutorialDraftService.instance.clear();
   _asked.clear();
-  final phone = size.width < 600;
-  if (phone) debugDefaultTargetPlatformOverride = TargetPlatform.android;
-  addTearDown(() => debugDefaultTargetPlatformOverride = null);
+  // The phone's layout is chosen by the platform as well as the width. The
+  // override is reset by [_onPhone] inside the test body: the framework checks
+  // its debug variables before any tearDown runs.
+  if (size.width < 600) {
+    expect(debugDefaultTargetPlatformOverride, TargetPlatform.android,
+        reason: 'open a phone through _onPhone');
+  }
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -137,6 +141,16 @@ Future<_Spy> _open(WidgetTester tester, Size size, {Set<String>? shown}) async {
     await tester.pump(const Duration(milliseconds: 100));
   }
   return spy;
+}
+
+/// Runs [body] as Android, and puts the platform back before the test ends.
+Future<void> _onPhone(Future<void> Function() body) async {
+  debugDefaultTargetPlatformOverride = TargetPlatform.android;
+  try {
+    await body();
+  } finally {
+    debugDefaultTargetPlatformOverride = null;
+  }
 }
 
 Future<void> _play(WidgetTester tester, String from, String to) async {
@@ -284,18 +298,24 @@ void main() {
 
   group('the studio on a phone', () {
     testWidgets('a third tab, Engine, beside Line and Parts', (tester) async {
-      await _open(tester, _phone, shown: {'opening_explorer'});
-      for (final tab in ['Line', 'Parts']) {
-        expect(find.text(tab), findsOneWidget, reason: tab);
-      }
-      await _openEngineTab(tester);
-      expect(_explorer, findsOneWidget);
+      await _onPhone(() async {
+        await _open(tester, _phone, shown: {'opening_explorer'});
+        for (final tab in ['Line', 'Parts']) {
+          expect(find.text(tab), findsOneWidget, reason: tab);
+        }
+        await _openEngineTab(tester);
+        expect(_explorer, findsOneWidget);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
     });
 
     testWidgets('nothing ticked, no Engine tab', (tester) async {
-      await _open(tester, _phone);
-      expect(_engineTab, findsNothing);
-      expect(_asked, isEmpty);
+      await _onPhone(() async {
+        await _open(tester, _phone);
+        expect(_engineTab, findsNothing);
+        expect(_asked, isEmpty);
+        await tester.pumpWidget(const SizedBox.shrink());
+      });
     });
   });
 }
