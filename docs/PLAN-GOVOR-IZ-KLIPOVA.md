@@ -454,11 +454,60 @@ starts a sentence**, so the run before it closes first — a rule for every
 screen, proved on `spoken_line_test` by mutation. The manual quotes none of
 the deleted sentences. Live items [265.14]–[265.17].
 
+### Phase 4d — the repertoire walkthrough `[implementer]` — built 3.10.2026
+
+The owner approved the table in chat on 3.10.2026 („Idemo sa fiksnom
+rečenicom, kreni sa šetnjom" — the fixed sentence for a note, the first of
+the two decisions left to this phase). **The rule of when a stop speaks is
+unchanged**: a fork, a hole, a note and the return beat speak; an ordinary
+move on the trunk is drawn and silent, which is the plan's budget. The
+table, as built:
+
+| Stop | Spoken where the stop speaks, and drawn |
+|---|---|
+| Your move | „Your move. Main line." / „Your move. The alternative." — silent |
+| The opponent's reply | „Black plays knight f3. In 42 of 100 games." — silent; under one percent „In less than one of 100 games."; no share: the move alone |
+| A hole | the same, then „You have no reply here." — spoken; `Prepare reply` stays, unspoken |
+| A fork | „From here the opponent has 3 replies. Knight f3 in 42 of 100 games. Pawn d4 in 30 of 100 games. No reply. And one more reply." / „And 2 more replies." — spoken, one line, the first three in tour order |
+| A note | „You left a note here." — spoken; the note's text drawn under the line, never spoken |
+| The return beat | „We saw the line after knight f3. Now comes pawn d4." / „Now comes pawn d4." / „Back to the fork.", then the fork clause — always spoken |
+| Drawn, never spoken | the reply chips, the strip's counter, the arrows, the note's text |
+
+**One wording changed on measurement.** The owner approved „in 42 percent
+of games"; Azure's SDK reports „42 percent" and „42 per cent" as **one
+word**, which the cutter cannot split, and „42 of 100 games" as separate
+words (a six-sentence probe, 3.10.2026), so a share is said „in 42 of 100
+games", with `nmid_100` added because a share can be the whole hundred.
+Eighteen tokens (488 clips, 15.9 MB; 14 carriers, 342 characters).
+
+The builder (`walkthrough_speech.dart`) produces a `SpokenLine` from the
+position **before** the move (`fenBeforeStop`, read from the tour's paths;
+a fork's replies and the return beat from the fork's own position), and
+**throws on a move it cannot say** — a sentence with the move left out would
+be another sentence said as this one. Two reach-limits recorded by the
+worker: the return beat's two short forms are not reachable through the
+screen (the tour never makes a beat without a `done` move) and are held in
+the pure cases; and two share-less replies in one fork run together, since
+no token closes a bare move — rare, a reply with no share being one not in
+a book. The screen stops the voice on `dispose` (the file's old reason, a
+`stop()` before anything was said, is already guarded in the service) and
+still calls no `stop()` on moving. Gate `test/speech_walkthrough_test.dart`,
+17 cases, and the builder's 24 pure cases; 20 mutations, one survivor (the
+1% boundary, no fixture between 1 and 2 percent) given its case and re-run
+red. A pre-existing screen case had never drawn the fork it was written for
+(five holes, which the tour folds); rewritten openly. Live items
+[265.18]–[265.20].
+
+**With this every module speaks from the clips.** What is left of phase 4
+is its last step, put to the owner as its own question: delete
+`flutter_tts`, `speak(String)`, `app_speech_language`, and decide the rate
+slider.
+
 ### Phase 4 — the other modules, one table each `[briefed after phase 3]`
 
 In the order of what already speaks: the tactics trainer (4a, built); the
 endgame trainer and the blunder walk (4b, built); the repertoire build and
-drill (4c, built); the walkthrough. Each gets its own table in the shape of D3, approved before
+drill (4c, built); the walkthrough (4d, built). Each gets its own table in the shape of D3, approved before
 it is built, because the owner has said the words on the screens are not
 final and settling them is a walk through the app, module by module.
 

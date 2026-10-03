@@ -10271,3 +10271,16 @@ brief asks — and the fix is a general rule (a capital starts a sentence),
 not the special case the table would have suggested. And **a survivor given
 its case is a catch, not a workaround**: the worker's D14 (the bar's switch
 bypassing the seam) survived, got the case it lacked, and went red.
+
+Phase 4d, the repertoire walkthrough: 5596 → **5627** (+17 in
+`speech_walkthrough_test`, +14 pure cases in `walkthrough_speech_test`).
+**An approved wording is a claim about the instrument**: „in 42 percent of
+games" was approved and cannot be cut, because the SDK hears „42 percent"
+as one word — the probe found it before the renderer was asked, and the
+wording changed to one the cutter can make, with the owner's ear as the
+judge. **A fixture that the feature folds away tests nothing**: a screen
+case written for a five-reply fork had five holes, which the tour's order
+drops to none, so the fork it measured at 360 x 640 was never drawn — found
+only because the new gate asked for the chips. And **a boundary nobody put
+a fixture on is a mutation's first find**: `<1` became `<2` and survived,
+because no share between 1 and 2 percent existed anywhere in the tests.

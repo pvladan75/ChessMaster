@@ -240,10 +240,30 @@ bez tačke) — implementer je to izmerio i ostavio lead-u. Kapija
 [265.14]–[265.17]. Sledeće: šetnja („Your note" odluka), pa brisanje
 `flutter_tts` i `speak(String)`.
 
-**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4c: **5596** (1
-preskočen; 5557 pre nje), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova
-provera uživo [265.1]–[265.17]; pa faza 4 — tabela reči za šetnju („Your
-note" odluka), odobrena pre gradnje; pa brisanje `flutter_tts`.
+**Faza 4d, šetnja kroz repertoar, 3.10.2026** (implementer na odobrenu
+tabelu, lead ocenio; vlasnik izabrao fiksnu rečenicu „You left a note
+here." — beleška se crta, ne čita): pravilo kad stanica govori je
+nepromenjeno (račva, rupa, beleška, povratak na račvu; običan potez ćuti);
+„Your move. Main line.", „Black plays knight f3. In 42 of 100 games.",
+„…You have no reply here.", „From here the opponent has 3 replies. Knight
+f3 in 42 of 100 games. … No reply. And one more reply.", „We saw the line
+after knight f3. Now comes pawn d4.". **Izmereno: SDK čuje „42 percent" i
+„42 per cent" kao jednu reč**, a „42 of 100 games" razdvaja, pa se udeo
+kaže „in N of 100 games" (odobreno je bilo „percent" — vlasnik čuje u
+proveri). 18 novih klipova (488 ukupno, 15,9 MB), `nmid_100` jer udeo može
+biti ceo. Graditelj rečenice radi iz pozicije pre poteza (`fenBeforeStop`)
+i **baca grešku na potez koji ne ume da kaže**; ekran gasi glas u
+`dispose`, a pri kretanju i dalje ne zove `stop()`. Kapija
+`speech_walkthrough_test` 17 slučajeva + 24 čista; 20 mutacija, jedna
+preživela (granica 1%) dobila slučaj. Provera uživo [265.18]–[265.20].
+**Svi moduli sad govore iz klipova**; ostaje poslednji korak faze 4 —
+brisanje `flutter_tts`, `speak(String)`, `app_speech_language` i odluka o
+klizaču brzine — kao pitanje vlasniku.
+
+**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4d: **5627** (1
+preskočen; 5596 pre nje), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova
+provera uživo [265.1]–[265.20]; pa poslednji korak faze 4 — brisanje
+`flutter_tts` i glasa uređaja, posle vlasnikovog odgovora o klizaču brzine.
 
 ## Teme u domaćem: čip radi ono što piše — 1.10.2026, komitovano na `master` i gurnuto; provera uživo [263.2]
 

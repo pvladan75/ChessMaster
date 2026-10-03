@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5596 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5627 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1340,7 +1340,14 @@ drill's verdict as one line said when it is drawn, the reply as a move,
 the carrier**; and the first line with a bare move before a sentence head
 drew as one sentence — **a rule proved for one shape of line is not proved
 for the next** — so `SpokenLine` closes a run before a cut token that starts
-with a capital.
+with a capital. Then phase 4d, the walkthrough (→ **5627**, a full run
+the same day with nothing else running; analyze the same 22): the last
+screen on the device voice — a fork, a hole, a note („You left a note
+here.", the note drawn) and the return beat speak, a trunk move stays
+silent. „42 percent" is one word to the SDK and „42 of 100 games" is four,
+so **an approved wording is a claim about the instrument** and the share is
+said „in 42 of 100 games"; and a five-reply fixture the tour folds to
+nothing had never drawn the fork its case measured.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

@@ -1498,6 +1498,27 @@ odlazi na kraj spiska u alatu.
    `Server is unavailable — check if the backend is running.`.
    Potrebno: Windows i telefon.
 
+48. [ ] **Tura kroz repertoar govori iz klipova: račva, rupa, beleška i povratak; običan potez ćuti.** [265.18]
+   O čemu se radi: Faza 4d plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026): kartica ture crta i govori iz ugrađenih klipova — „Your move. Main line.", „Black plays knight f3. In 42 of 100 games." (ćute), rupa „…You have no reply here." (govori), račva „From here the opponent has 3 replies. Knight f3 in 42 of 100 games. … No reply. And one more reply." (govori), povratak „We saw the line after knight f3. Now comes pawn d4." (uvek govori). Pravilo kad stanica govori je isto kao pre.
+   Gde: `Practise` → (faza „Opening") → `Opening repertoire` → `Open repertoire` → na repertoaru ⋮ `More` → `Explore repertoire`.
+   Uradi: Prođi turu kroz repertoar sa bar jednom račvom i jednom rupom do kraja prve linije i nazad na račvu.
+   Treba da vidiš: Običan potez ne govori; račva, rupa i povratak govore tačno ono što kartica crta, jednom; glas je Andrew iz klipova, nigde sistemski glas.
+   Potrebno: Windows i telefon; server; repertoar sa račvom i rupom.
+
+49. [ ] **„In 42 of 100 games" umesto „42 percent" — za uho.** [265.19]
+   O čemu se radi: Odobreno je „in 42 percent of games", ali Azure čuje „42 percent" (i „42 per cent") kao jednu reč koju sekač ne može da razdvoji, a „42 of 100 games" razdvaja — pa se udeo kaže tako. Broj je isti klip kao u „Found 3 of 5."; `100` je nov klip. Ako ti rečenica ne leži, reci — drugi oblik traži drugi nosač i novo merenje.
+   Gde: ista tura (`Explore repertoire`), na odgovoru protivnika sa udelom; na račvi.
+   Uradi: Slušaj udele na tri-četiri stanice, uključujući jedan ispod 1% („In less than one of 100 games.") ako ga ima.
+   Treba da vidiš: Broj i „of 100 games" zvuče kao jedna rečenica, bez skoka; na račvi se potezi nižu redom kao čipovi ispod.
+   Potrebno: Windows i telefon; server.
+
+50. [ ] **Beleška: „You left a note here." se čuje, a tekst beleške se samo crta.** [265.20]
+   O čemu se radi: Na tvoju reč od 3.10.2026 beleška na poziciji dobija fiksnu rečenicu „You left a note here." (govori se, stanica zbog nje govori), a tekst beleške stoji ispod rečenice bez „Your note:" i nikad se ne čita. Odlazak sa ekrana prekida glas; kretanje po turi ga ne prekida.
+   Gde: ista tura (`Explore repertoire`), na poziciji sa tvojim komentarom.
+   Uradi: Napiši komentar na jednu poziciju repertoara, pa prođi turu preko nje; izađi usred rečenice.
+   Treba da vidiš: Čuje se „You left a note here.", ispod je tekst beleške; izlazak prekida glas.
+   Potrebno: Windows i telefon; server.
+
 ### Practise — Repertoar — pitanje o poziciji (Ask AI about position)
 
 1. [ ] **`Ask AI about position` piše DeepSeek, iz analize pozicije.**
