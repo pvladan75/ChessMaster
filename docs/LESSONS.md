@@ -10228,3 +10228,10 @@ that resolves when the thing is done** — the move drawn „when the sentence i
 over“ landed under the verdict still playing, until the queued slot carried a
 completer. And a fixture with two defences answered by the same move is one
 defence: the screen folds them, so the gate's two needed two answers.
+
+Phase 4a, the tactics trainer: 5499 → **5515** (+17 in `speech_tactics_test`,
+−1 hinted-solve case deleted with the Hint). Two things: **a drawn sentence is
+never left unsaid** — the worker left „Solved with help.“ drawn and silent after
+Show solution because the table listed only the moves; the rule outranks the
+table. And **`pumpAndSettle` does not wait out a `Future.delayed`**: a screen
+that beats before a reply needs the gate to wait that beat by name.

@@ -4746,6 +4746,20 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Posle „Correct. Keep going." tabla se vrati; čuješ „Now suppose Black plays pawn d4." (figura i polje te odbrane); potez se nacrta tek po kraju rečenice; posle toga rešavaš drugu granu kao do sada. Rokada kao odbrana se kaže kao „Black castles kingside.", bez „Now suppose".
    Potrebno: Windows i telefon; zvučnik.
 
+23. [ ] **Taktika govori iz klipova: potez protivnika koji pravi poziciju, pa zadatak, pa presude.** [265.8]
+   O čemu se radi: Od 3.10.2026 trening taktike govori istim glasom kao zagonetke (Andrew, iz klipova; `PLAN-GOVOR-IZ-KLIPOVA.md` faza 4a). Na dolasku se kaže protivnikov potez koji je napravio poziciju („Black plays knight f6."), pa „White to move. Find the best move."; posle tačnog poteza „Correct. Keep going." i protivnikov odgovor kao potez; pogrešan je „Incorrect. Try another move."; kraj je „Solved." ili „Solved with help.". Tekst na ekranu je isti koji se kaže. Glas uređaja se na ovom ekranu više ne koristi.
+   Gde: `Practise` → `Tactics tailored to you` → zvučnik pored zadatka.
+   Uradi: Reši jednu zagonetku tačno, jednu sa greškom pa tačno; na jednoj pritisni `Show solution`.
+   Treba da vidiš: Rečenice iz tabele, svaka jednom, u trenutku kad se poruka pojavi; `Show solution` izgovara svaki potez kako ga odigra, pa „Solved with help."; okretanje table ne menja i ne ponavlja zadatak.
+   Potrebno: Windows i telefon; server; zvučnik.
+
+24. [ ] **Dugmeta `Hint` više nema u taktici.** [265.9]
+   O čemu se radi: Na tvoju reč od 3.10.2026 („Hint nam uopšte ne treba") taktika nema `Hint` — `Show solution` je dovoljno. Završnice zadržavaju svoj `Hint`. U izveštaju i listi zagonetki stari redovi sa „Solved with a hint" ostaju kakvi su.
+   Gde: `Practise` → `Tactics tailored to you`.
+   Uradi: Pogledaj dugmad ispod table; pa otvori `Endgames from real games`.
+   Treba da vidiš: U taktici samo `Show solution` (i `Skip`/`Back` kako je bilo); u završnicama `Hint` i dalje postoji.
+   Potrebno: Windows.
+
 ### Practise — Practise — ostalo
 
 1. [ ] **Isti panel stabla radi i u Analizi.** [70.9]

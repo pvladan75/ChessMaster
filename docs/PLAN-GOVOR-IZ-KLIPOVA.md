@@ -343,6 +343,33 @@ reply as a move, the three verdicts, the speaker turning speech on, the
 pause by ear on the phone's speaker and on Windows, and the bundle's size in
 the APK against the number phase 1 measured.
 
+### Phase 4a — the tactics trainer `[implementer]` — built 3.10.2026
+
+The owner approved the table in chat on 3.10.2026 and, with it, **deleted the
+Hint** („Hint nam uopšte ne treba. Ako ima Show solution dugme, to je
+dovoljno."): the button, `_useHint`, `_hintSquare`, and `revealHint` /
+`usedHint` in the tactics model; `hinted` stays on the wire, always false,
+because it is a server contract. The table, as built:
+
+| When | Spoken, and drawn |
+|---|---|
+| A puzzle appears | the setup move as a move, then „White to move. Find the best move." — the side fixed when the puzzle starts, so flipping the board no longer changes or re-speaks the task |
+| A right move that continues | „Correct. Keep going." (was „Correct — continue.") |
+| The opponent replies | the move |
+| A wrong move in practice | „Incorrect. Try another move." (was „That is not it…") |
+| A wrong move in a one-attempt homework | „Incorrect. The assignment allows one attempt." then „Not solved." |
+| Solved | „Solved." / „Solved with help." — the latter still reachable: a solve after a mistake in practice |
+| Show solution | each remaining move as a move, then „Solved with help.", which the screen draws — the lead's one grading change: **a drawn sentence is never left unsaid** |
+| Not spoken | rating, rating chip, Back, Retry skipped, Back to assignments |
+
+Five phrase tokens (284 clips, 7.6 MB); every sentence on the screen through
+`speakLine`, and a case holds that the device voice is never asked anything
+there. Gate `test/speech_tactics_test.dart`, 17 cases; seven mutations, each
+red on named cases. `pumpAndSettle` does not wait out a `Future.delayed`, so
+the gate waits the reply's and the solution's beats explicitly. The manual's
+tactics sentence no longer names the Hint; the endgame trainer keeps its
+own. Live items [265.8]–[265.9].
+
 ### Phase 4 — the other modules, one table each `[briefed after phase 3]`
 
 In the order of what already speaks: the tactics trainer; the endgame trainer

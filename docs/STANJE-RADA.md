@@ -185,9 +185,22 @@ Keep going." još traje kad se traži pretpostavka. Pitanje umesto tvrdnje je
 odbijeno: polja su isečena iz tvrdnji i padaju. Tri mutacije crvene na svom
 slučaju; provera uživo [265.7].
 
-**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026: **5495** (1 preskočen) pre
-druge odbrane, upisano u `CLAUDE.md` i `LESSONS.md`; sa drugom odbranom **5499**,
-izmereno 3.10.2026 i upisano u `CLAUDE.md`; vlasnikova provera uživo [265.1]–[265.7]; pa faza 4 — tabela
+**Faza 4a, taktika, 3.10.2026** (implementer na odobrenu tabelu, lead ocenio):
+trening taktike govori iz klipova — protivnikov potez koji pravi poziciju,
+pa „White to move. Find the best move.", presude, odgovor i „Show solution"
+kao potezi; **`Hint` obrisan na vlasnikovu reč** (dugme, `_useHint`,
+`revealHint` u modelu; `hinted` na žici ostaje uvek false); pet novih fraza
+(284 klipa, 7,6 MB); glas uređaja se na tom ekranu više ne pita ništa (slučaj
+to drži). Jedna lead-ova ispravka pri ocenjivanju: „Show solution" crta
+„Solved with help." i sad je i kaže — nacrtana rečenica se nikad ne ostavlja
+neizgovorena. Priručnik više ne pominje `Hint` za taktiku. Kapija
+`speech_tactics_test` 17 slučajeva, sedam mutacija crvene; analyze istih 22;
+provera uživo [265.8], [265.9]. Sledeći modul: završnice i `EndgameInfoPanel`
+(tabela reči pre gradnje).
+
+**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4a: **5515** (1
+preskočen; 5499 pre nje, +17 kapija, −1 obrisan slučaj sa hintom), upisano u
+`CLAUDE.md` i `LESSONS.md`; vlasnikova provera uživo [265.1]–[265.7]; pa faza 4 — tabela
 reči za sledeći modul (taktika, pa završnice i `EndgameInfoPanel`, pa
 repertoar, pa šetnja), svaka odobrena pre gradnje; `flutter_tts` se briše tek
 na kraju.
