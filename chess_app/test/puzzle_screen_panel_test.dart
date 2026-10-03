@@ -31,13 +31,14 @@ import 'package:chess_app/screens/ai_studio_screen.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/services/stockfish_service.dart';
-import 'package:chess_app/theme/app_colors.dart';
+import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
 import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/widgets/trainer_board_layout.dart';
 
 import 'support/landscape.dart';
+import 'support/render_look.dart';
 
 final _session = UserSession(
     id: 1, token: 'tok', email: 'e@x.com', name: 'N', role: 'ucenik');
@@ -129,7 +130,7 @@ Future<void> _pump(
   addTearDown(tester.view.reset);
   await tester.pumpWidget(ProviderScope(
     child: MaterialApp(
-      theme: ThemeData.dark().copyWith(extensions: const [AppColorTokens.dark]),
+      theme: robotoTheme(AppTheme.dark),
       home: AiStudioScreen(
         // A fresh State per pump: the same widget type pumped twice in one
         // case would otherwise keep the first case's puzzle.
@@ -243,7 +244,10 @@ void main() {
   // ── 1. one layout (R1) ────────────────────────────────────────────────
 
   group('the board and the panel', () {
-    for (final (size, minBoard) in [(_window, 520.0), (_small, 440.0)]) {
+    // 440 at 900 x 700 assumed the buttons fit one line under the board; in
+    // the app's own theme they do not (507 px against a 465 column), and the
+    // second line's height is the board's — 408 measured, 3.10.2026.
+    for (final (size, minBoard) in [(_window, 520.0), (_small, 400.0)]) {
       testWidgets(
           'on a window of ${sizeLabel(size)}: the shared layout, the panel '
           'beside a square board of at least $minBoard', (tester) async {
@@ -556,8 +560,7 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(ProviderScope(
         child: MaterialApp(
-          theme: ThemeData.dark()
-              .copyWith(extensions: const [AppColorTokens.dark]),
+          theme: robotoTheme(AppTheme.dark),
           home: AiStudioScreen(
             userSession: _session,
             initialCategory: 'engine_game',

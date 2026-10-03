@@ -308,6 +308,8 @@ class TrainerBoardLayout extends StatelessWidget {
     this.maxBoard = 720,
     this.scale = 1.0,
     this.panelWidth = TrainerInfoPanel.sideWidth,
+    this.controlsWidth,
+    this.wrapReserve = 56,
   });
 
   final bool wide;
@@ -334,11 +336,22 @@ class TrainerBoardLayout extends StatelessWidget {
   /// screen's solution tree is a card with a header row that needs about 300.
   final double panelWidth;
 
+  /// How wide the screen's row of buttons under the board is, laid out on one
+  /// line, on a window. Where the board's column is narrower the row wraps,
+  /// and the board gives up [wrapReserve] more of the height for the second
+  /// line — so the last button is never a scroll away (measured 3.10.2026: at
+  /// 900 x 700 the puzzle screen's „Next" was half under the window). Null:
+  /// the screen's buttons never outgrow the column.
+  final double? controlsWidth;
+
+  /// The height a second line of buttons takes: a 48 px button and the gap.
+  final double wrapReserve;
+
   static const double _gap = 16;
   static const double _minColumn = 380;
 
-  @override
-  Widget build(BuildContext context) {
+  /// The board's side with [reserve] kept under it.
+  double _boardFor(double reserve) {
     final aside = wide ? panelWidth + _gap : 0.0;
     // The board is square, so the tighter axis bounds it. Both are needed: a
     // short wide window and a tall narrow one fail in opposite directions, and
@@ -346,15 +359,31 @@ class TrainerBoardLayout extends StatelessWidget {
     final widthBased =
         (constraints.maxWidth - aside - 24).clamp(160.0, maxBoard);
     final heightBased =
-        (constraints.maxHeight - reserveHeight).clamp(160.0, maxBoard);
+        (constraints.maxHeight - reserve).clamp(160.0, maxBoard);
     final fitted = heightBased < widthBased ? heightBased : widthBased;
-    final boardSize = scale >= 1.0 ? fitted : fitted * scale.clamp(0.0, 1.0);
+    return scale >= 1.0 ? fitted : fitted * scale.clamp(0.0, 1.0);
+  }
+
+  /// The column is at least wide enough for the navigation strip, which does
+  /// not shrink with the board.
+  static double _columnFor(double board) =>
+      board < _minColumn ? _minColumn : board;
+
+  @override
+  Widget build(BuildContext context) {
+    var boardSize = _boardFor(reserveHeight);
 
     if (!wide) return builder(boardSize);
 
-    // The column is at least wide enough for the navigation strip, which does
-    // not shrink with the board.
-    final columnWidth = boardSize < _minColumn ? _minColumn : boardSize;
+    // A column narrower than the buttons wraps them onto a second line, and
+    // that line is height the board gives up. Shrinking the board only
+    // narrows the column further, so one line more is the whole answer.
+    final buttons = controlsWidth;
+    if (buttons != null && _columnFor(boardSize) < buttons) {
+      boardSize = _boardFor(reserveHeight + wrapReserve);
+    }
+
+    final columnWidth = _columnFor(boardSize);
     return Center(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -398,7 +427,12 @@ class TrainerScreenLayout extends StatelessWidget {
     this.panelWidth = TrainerInfoPanel.sideWidth,
     this.wideReserve = 140,
     this.phoneReserve = 280,
+    this.controlsWidth,
   });
+
+  /// The row of buttons laid out on one line; see
+  /// [TrainerBoardLayout.controlsWidth].
+  final double? controlsWidth;
 
   /// Draws the board at the side it is given.
   final Widget Function(double side) board;
@@ -470,6 +504,7 @@ class TrainerScreenLayout extends StatelessWidget {
             panel: asidePanel ?? panel,
             scale: scale,
             panelWidth: panelWidth,
+            controlsWidth: controlsWidth,
             // The buttons under the board; on a phone the panel as well.
             reserveHeight: wide ? wideReserve : phoneReserve,
             builder: (boardSize) {

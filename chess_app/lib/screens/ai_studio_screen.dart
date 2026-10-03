@@ -3395,6 +3395,10 @@ class _AiStudioScreenState extends ConsumerState<AiStudioScreen> {
       // board; on a phone the panel as well.
       wideReserve: 160,
       phoneReserve: 300,
+      // Try again, Show solution, Open in Analysis and Next on one line:
+      // 507 px measured in the app's theme and Roboto (3.10.2026). A narrower
+      // column wraps them, and the layout keeps a second line's height for it.
+      controlsWidth: 520,
     );
   }
 
