@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import 'package:chess_app/services/speech_service.dart';
+import 'package:chess_app/features/preparation/services/preparation_layout.dart';
 import 'package:chess_app/features/repertoire/services/repertoire_api_service.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/features/repertoire/services/walkthrough_beats.dart';
@@ -273,21 +275,24 @@ class _RepertoireWalkthroughScreenState
           ),
         );
 
-    final strip = MoveKeyboardShortcuts(
-      cursor: cursor,
-      onChanged: () {},
-      child: MoveNavigationControls(
-        cursor: cursor,
-        // Numbered by the move, not by the beat: a returning beat is not a new
-        // move and the counter going back to it is the truth — that is the
-        // position the reader has been brought back to.
-        centerLabel: _stops.length > 1 && at >= 0
-            ? 'Move ${at + 1} of ${_stops.length}'
-            : null,
-        canNavigate: _beats.length > 1,
-        onFlipBoard: () => setState(() => _flipped = !_flipped),
-      ),
-    );
+    Widget stripOf({bool? dense}) => MoveKeyboardShortcuts(
+          cursor: cursor,
+          onChanged: () {},
+          child: MoveNavigationControls(
+            cursor: cursor,
+            // Numbered by the move, not by the beat: a returning beat is not a new
+            // move and the counter going back to it is the truth — that is the
+            // position the reader has been brought back to.
+            centerLabel: _stops.length > 1 && at >= 0
+                ? 'Move ${at + 1} of ${_stops.length}'
+                : null,
+            canNavigate: _beats.length > 1,
+            dense: dense,
+            onFlipBoard: () => setState(() => _flipped = !_flipped),
+          ),
+        );
+
+    final strip = stripOf();
 
     AnalysisNode? activeNode() {
       final currentFen = cursor.currentFen;
@@ -348,22 +353,58 @@ class _RepertoireWalkthroughScreenState
     );
 
     if (isWide && _root != null) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(flex: 1, child: boardCol),
-          Container(
-            width: 1,
-            color: context.colors.border,
-          ),
-          Expanded(
-            flex: 1,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: treePanel(),
+      // A window: the board and its strip alone on the left, taking the height
+      // the window has left; the card at the top of the right column with the
+      // tree under it, so the reply chips are on the screen at the window's
+      // own height instead of a scroll below the board (§2.3 of
+      // `docs/PLAN-EKRANI.md`). The right column is never narrower than the
+      // tree's minimum, and the board gives up width before the column does.
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          const pad = PreparationLayout.padding;
+          const gap = PreparationLayout.gap;
+          final byHeight = constraints.maxHeight -
+              2 * pad -
+              PreparationLayout.rowGap -
+              PreparationLayout.stripRow;
+          final minPane = constraints.maxWidth < PreparationLayout.narrowWindow
+              ? PreparationLayout.minPaneNarrow
+              : PreparationLayout.minPane;
+          final byWidth = constraints.maxWidth - 2 * pad - gap - minPane;
+          final side = math.max(0.0, math.min(byHeight, byWidth));
+          return Padding(
+            padding: const EdgeInsets.all(pad),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: side,
+                  child: Column(
+                    children: [
+                      board(side),
+                      const SizedBox(height: PreparationLayout.rowGap),
+                      // Dense, as `PreparationLayout.stripRow` counts it.
+                      stripOf(dense: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: gap),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildCard(context, tree, cursor),
+                        const SizedBox(height: AppSpacing.md),
+                        treePanel(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+          );
+        },
       );
     } else {
       return boardCol;
@@ -484,11 +525,7 @@ class _RepertoireWalkthroughScreenState
         stop!.kind == MoveTreeNodeLook.gap &&
         widget.onBuildHere != null) {
       parts.add(const SizedBox(height: AppSpacing.sm));
-      parts.add(ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: context.colors.brand,
-          foregroundColor: context.colors.canvas,
-        ),
+      parts.add(FilledButton(
         onPressed: () => widget.onBuildHere!(stop.move.fen),
         child: const Text('Prepare reply'),
       ));
