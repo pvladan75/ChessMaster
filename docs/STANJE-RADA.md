@@ -115,6 +115,26 @@ vlasnikova reč od 3.10.2026, počinje ekranom zagonetki (`ai_studio_screen.dart
    PRETPLATA.md` §7 ima sedam odluka, nijedna doneta; preporuka: besplatno je
    sve što ga ništa ne košta, plaćeno je sve što se meri (glas iz oblaka, AI
    reči, minuti glasa, snimci, izvoz filma), jedna plaćena klasa za početak.
+   **Odluka vlasnika od 3.10.2026: Paddle za Windows.** Android ostaje na
+   Play Billing-u kako je predviđeno; korisnik koji nema Android plaća na
+   vebu kroz Paddle (merchant of record: naplata, PDV, sporovi), a Windows
+   aplikacija i dalje samo čita pravo pristupa sa servera. Zašto Paddle:
+   Srbija nije na njegovom spisku nepodržanih zemalja i fizičko lice prolazi
+   bez provere firme (ostaju pregled domena i provera identiteta); Stripe
+   Managed Payments ne otvara nalog prodavcu iz Srbije, a Lemon Squeezy se
+   seli upravo u njega. Provizija 5% + 0,50 USD po transakciji, isplata
+   jednom mesečno od 100 USD (banka ili Payoneer). Šta iz toga sledi:
+   (a) Paddle pre odobrenja gleda javni sajt sa cenom, uslovima, politikom
+   privatnosti i politikom povraćaja — to mora da postoji pre prijave;
+   (b) na serveru je to drugi adapter iza `entitlementService.js` i webhook,
+   uz pravilo šta biva kad isti nalog plati i na Play-u i na vebu;
+   (c) rečenica „posetite naš sajt" crta se samo na Windows-u — na Androidu
+   bi bila upućivanje mimo Play-a; (d) fiksnih 0,50 USD je 15% plana od
+   5 USD, pa godišnji plan vredi više nego što izgleda. Nije provereno:
+   da li se SWIFT naknada od 15 USD odnosi na Srbiju (pitanje za Paddle),
+   da li plaćena aplikacija sa „individualnog" Store naloga prolazi rečenicu
+   politike o „licu koje deluje u vezi sa svojim zanimanjem" (pitanje za
+   Microsoft, pismeno), i poreski režim prihoda (pitanje za knjigovođu).
 2. **Interaktivni vodič.** Protiv prekrivača preko svakog ekrana (zastareva
    sa svakom izmenom). Za: kartica „čemu služi ovaj tab" prvi put, lista za
    prvi čas trenera na Home koja se sama štiklira iz pravih podataka, i „?"
@@ -10635,7 +10655,9 @@ Zašto je to bitno, a ne anegdota:
   stare putanje izgleda kao da nedostaje.
 - **Naplata ide preko Google Play-a**, jer je korisnik fizičko lice u Srbiji bez
   firme; Stripe tamo ne radi, a PayPal Srbija ne može rezident–rezident. Play je
-  merchant of record i plaća prekogranično.
+  merchant of record i plaća prekogranično. Od 3.10.2026 uz to: **Paddle za
+  Windows** (veb naplata za korisnika bez Androida) — obrazloženje je u
+  stavci 1 vlasnikovog spiska na vrhu ovog dokumenta.
 - **Animacija se zadržava** tamo gde figura *nije* putovala pod prstom: tap
   potezi, protivnikov odgovor, replay, autoplay rešenja, koračanje kroz stablo.
 - **`chess_backend/uploads/` je u `.gitignore`** — sadrži prave snimke časova.
