@@ -165,6 +165,15 @@ void main() {
       final board = _board;
       expect(board.width, closeTo(board.height, 0.01));
       expect(_rectOfFinder(_panel).top, greaterThanOrEqualTo(board.bottom));
+      // The owner's word of 3.10.2026: on a phone the buttons come right
+      // under the board — before an answer Show answer, after it the grades.
+      _expectSeen(tester, _phone, _filled);
+      expect(_rectOfFinder(_filled).top, lessThan(_rectOfFinder(_panel).top));
+      await _move(tester, 'd2', 'd3');
+      expect(_rectOfFinder(_filled).top, lessThan(_rectOfFinder(_panel).top));
+      for (final grade in _grades) {
+        _expectSeen(tester, _phone, find.text(grade));
+      }
     });
 
     for (final size in landscapePhones) {

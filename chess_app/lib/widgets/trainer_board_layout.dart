@@ -515,12 +515,16 @@ class TrainerScreenLayout extends StatelessWidget {
                     const SizedBox(height: AppSpacing.sm),
                     strip!,
                   ],
+                  // The buttons right under the board, and on a phone held
+                  // upright before the panel: the owner's word of
+                  // 3.10.2026, after the main button was a scroll away on
+                  // every board screen whose panel grew with its verdict.
+                  const SizedBox(height: AppSpacing.md),
+                  controls,
                   if (!wide) ...[
                     const SizedBox(height: AppSpacing.md),
                     panel,
                   ],
-                  const SizedBox(height: AppSpacing.md),
-                  controls,
                   if (!wide && extras != null) ...[
                     const SizedBox(height: AppSpacing.md),
                     extras!,

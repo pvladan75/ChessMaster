@@ -270,19 +270,25 @@ void main() {
           greaterThan(tester.getTopLeft(find.byKey(const Key('strip'))).dy));
     });
 
+    // Rewritten 3.10.2026 on the owner's word: on a phone held upright the
+    // buttons come right under the board (and its strip), before the panel —
+    // until then the panel came first and the main button was a scroll away
+    // on every board screen. What the old case protected, that the panel and
+    // the extras are under the board and in a fixed order, it still does.
     testWidgets(
-        'a phone upright: the panel under the board, the buttons, then '
-        'the extras', (tester) async {
+        'a phone upright: the strip and the buttons right under the board, '
+        'then the panel, then the extras', (tester) async {
       await pump(tester, const Size(360, 640));
       expect(find.byType(LandscapeBoardLayout), findsNothing);
       final ys = [
-        for (final k in ['panel', 'controls', 'extras'])
+        for (final k in ['strip', 'controls', 'panel', 'extras'])
           tester.getTopLeft(find.byKey(Key(k))).dy
       ];
       expect(find.byKey(const Key('aside')), findsNothing);
       expect(ys[0], greaterThan(tester.getRect(find.byKey(_boardKey)).bottom));
       expect(ys[1], greaterThan(ys[0]));
       expect(ys[2], greaterThan(ys[1]));
+      expect(ys[3], greaterThan(ys[2]));
     });
 
     testWidgets(

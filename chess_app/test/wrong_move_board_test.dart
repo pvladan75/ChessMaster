@@ -145,6 +145,13 @@ void main() {
     await move(tester, 'a1', 'a2');
     await move(tester, 'a1', 'f1');
 
+    // Since 3.10.2026 the panel stands under the buttons on a layout this
+    // narrow (800 x 600 is not a window by `Breakpoints.wide`), so the verdict
+    // is drawn a scroll down: brought into view first, then held to be there
+    // and reachable, as before.
+    expect(find.textContaining('Correct'), findsWidgets);
+    await tester.ensureVisible(find.textContaining('Correct').first);
+    await tester.pumpAndSettle();
     expect(find.textContaining('Correct').hitTestable(), findsWidgets,
         reason: 'pozicija je rešena i posle greške');
   });

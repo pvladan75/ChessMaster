@@ -231,6 +231,14 @@ void main() {
       expect(board.width, closeTo(board.height, 0.01));
       expect(_rectOfFinder(_panel).top, greaterThanOrEqualTo(board.bottom));
       expect(_inPanel(find.text(_task)), findsOneWidget);
+      // The owner's word of 3.10.2026: on a phone the buttons come right
+      // under the board, so the main one is never a scroll away.
+      // The order is the rule, not whether this fixture's panel happens to
+      // leave room: the main button stands above the panel.
+      expect(_rectOfFinder(_filled).top, lessThan(_rectOfFinder(_panel).top));
+      await _move(tester, 'a1', 'a8');
+      _expectSeen(tester, _phone, _button<FilledButton>('Next'));
+      expect(_rectOfFinder(_filled).top, lessThan(_rectOfFinder(_panel).top));
       await _leave(tester);
     });
 

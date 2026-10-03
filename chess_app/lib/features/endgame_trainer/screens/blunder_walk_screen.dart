@@ -742,12 +742,16 @@ class _BlunderWalkScreenState extends State<BlunderWalkScreen> {
                     Center(child: board(boardSize)),
                     const SizedBox(height: AppSpacing.sm),
                     if (strip != null) strip,
+                    // The buttons right under the board, before the panel
+                    // on a phone held upright — as `TrainerScreenLayout`
+                    // orders every other board screen (the owner's word of
+                    // 3.10.2026).
+                    const SizedBox(height: 10),
+                    _buildControls(walk),
                     if (!wide) ...[
                       const SizedBox(height: AppSpacing.sm),
                       panel,
                     ],
-                    const SizedBox(height: 10),
-                    _buildControls(walk),
                   ],
                 ),
               );

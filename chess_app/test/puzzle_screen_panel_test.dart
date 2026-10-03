@@ -292,6 +292,18 @@ void main() {
             reason: 'the panel is under the board');
         expect(
             _inPanel(find.text('White to move. Mate in 1.')), findsOneWidget);
+        // The owner's word of 3.10.2026: on a phone the buttons come right
+        // under the board, so Next is never a scroll away.
+        // The order is the rule, not whether this fixture's panel happens to
+        // leave room: Next stands above the panel, before and after a move.
+        expect(_rectOfFinder(_button<FilledButton>('Next')).top,
+            lessThan(_rectOfFinder(_panel).top));
+        await _move(tester, 'g2', 'g3');
+        expect(_inPanel(find.text('Incorrect. Try another move.')),
+            findsOneWidget);
+        _expectSeen(tester, _phone, _button<FilledButton>('Next'));
+        expect(_rectOfFinder(_button<FilledButton>('Next')).top,
+            lessThan(_rectOfFinder(_panel).top));
         await _leave(tester);
       }, () => server.client);
     });

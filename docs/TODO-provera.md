@@ -4033,7 +4033,7 @@ odlazi na kraj spiska u alatu.
    O čemu se radi: Faza 3 plana `PLAN-EKRANI.md` (3.10.2026): partija iz koje je greška (protivnik, datum, otvaranje, rezultat) i zadatak su u panelu pored table; presuda je u panelu, kratka rečenica po redu, i svaki potez je u notaciji („The best move was O-O.", „You tried d3.", „In the game you played Ng5.") umesto `e1g1` / `f3g5`; posle odgovora su ocene na ekranu bez skrolovanja na prozoru. Ocena koju verovatno želiš je popunjena — `Again` posle pogrešnog ili prikazanog odgovora, `Good` posle tačnog (tvoja reč od 3.10.2026); ostale tri su uokvirene.
    Gde: `Practise` → `My mistakes`.
    Uradi: Odigraj pogrešan potez; pa na sledećoj grešci pravi; pa na trećoj samo `Show answer`.
-   Treba da vidiš: Potezi kao u knjizi (rokada „O-O", uzimanje „exd5"); `Again` popunjeno posle pogrešnog i prikazanog, `Good` posle tačnog; ocene vidljive bez skrolovanja na Windowsu (na telefonu uspravno su ispod, skrol).
+   Treba da vidiš: Potezi kao u knjizi (rokada „O-O", uzimanje „exd5"); `Again` popunjeno posle pogrešnog i prikazanog, `Good` posle tačnog; ocene vidljive bez skrolovanja na Windowsu, a na telefonu uspravno odmah ispod table, iznad panela (tvoja reč od 3.10.2026).
    Potrebno: Windows i telefon; uvezene partije sa greškama.
 
 ### Practise — Završnice i greške iz partija
@@ -4868,7 +4868,7 @@ odlazi na kraj spiska u alatu.
    O čemu se radi: Faza 1 plana `PLAN-EKRANI.md` (3.10.2026): ekran zagonetki ima isti raspored kao trener završnica — tabla velika koliko visina prozora dozvoljava, panel pored nje sa zadatkom, presudom i (posle rešenja) stablom rešenja. Gornja traka nema više ikonice za Analysis / Try again / Next, a ispod table je jedno popunjeno dugme `Next` i tiha dugmad `Try again`, `Show solution`, `Open in Analysis`. Zamenjuje ono što stavke [44.b1683] i [44.b1686] kažu o dijalogu „VICTORY!" i dugmetu `Next Position`.
    Gde: `Practise` → `Mate in 1, 2, or 3` (i `Find the winning path`, `Basic checkmate`).
    Uradi: Otvori zagonetku na svom prozoru; smanji prozor na najmanji koji Windows dozvoljava; pa isto na telefonu, uspravno i položeno.
-   Treba da vidiš: Zadatak („White to move. Mate in 1.") je u panelu, krupnim slovima, ne u traci; `Next` je na ekranu bez skrolovanja na prozoru (na telefonu uspravno je ispod panela, skrol); nema dugmadi preko cele širine.
+   Treba da vidiš: Zadatak („White to move. Mate in 1.") je u panelu, krupnim slovima, ne u traci; `Next` je na ekranu bez skrolovanja na prozoru; na telefonu uspravno dugmad su odmah ispod table, iznad panela (tvoja reč od 3.10.2026 — na najmanjem telefonu, 360 × 640, presuda u panelu je tad skrol niže); nema dugmadi preko cele širine.
    Potrebno: Windows i telefon; server.
 
 26. [ ] **Presuda se kaže u panelu, ne u dijalogu.** [266.2]
