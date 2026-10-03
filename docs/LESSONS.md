@@ -10506,3 +10506,36 @@ notifier, the value it holds at subscription is a case of its own; Analysis
 attaches from `_initEngine`, which `initState` calls, and so never had this
 fault, which is why a copy of
 its glue could lose it unnoticed.
+
+## 3.10.2026 — PLAN-MOTOR-I-PANELI phases 2–5: the look-ups in Preparation and the studio (app 5734 → 5766)
+
+Arithmetic: 5734 + 8 (`position_lookups_test`) + 4 (`analysis_lookups_test`)
+= 5746 after phase 2; + 4 (`writing_panels_test`) = 5750; + 8
+(`preparation_panels_test`) + 8 (`studio_panels_test`) = 5766. Measured
+5766, a full run on the merged tree with nothing else running; analyze
+the same 10.
+
+**Every fault the workers stopped on was the lead's gate, and each came from
+writing the gate from memory of the app.** Phase 2's case played on a board widget
+Analysis does not use (it is `SkinnedChessBoard`, played by taps), and its FEN
+lacked the en passant square the app's `chess` package writes after every
+double push — the same detail that cost phase 2 of `PLAN-PRIPREMA.md`. The
+studio gate's phone cases reset `debugDefaultTargetPlatformOverride` in
+`addTearDown`, and **the framework checks its debug variables before any
+tearDown runs**, so both failed on that check and on no assertion: a debug
+override is put back inside the test body (`try`/`finally`), never in a
+tearDown. Both workers stopped and said so rather than edit the gate.
+
+**A constant under a board is a guess until it is measured.** The studio's
+board was `H − 120`; the two rows under it measure 56 + 72, so 120 left the
+move strip 20 px below a 1536 × 792 window — found by measuring for §1 of
+the plan, not by any report. The board is 584 there now (was 616), with
+30 px beside it held for the evaluation bar whether it is drawn or not, so
+turning the bar on moves nothing.
+
+**A mutation that does not compile proves nothing about the case it names.**
+The first form of „a panel's move goes past `_onMove`" called a method the
+controller does not have; red, but red at loading. Rewritten as a real
+`playMove` that may not open a part, it was caught by the one case it was
+meant for. Eight of eight on the studio, five of five on Preparation, each by
+its own case.

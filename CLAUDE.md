@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5734 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5766 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 10 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1377,6 +1377,14 @@ cursor), and every move in My mistakes in SAN (`sanOfUci`, beside
 Then phases 5, 9, 10, 11 and 12 — the exercise editor, My games and the import, the repertoire comparison, My Assignments and a homework's items, the homework review — five workers, merged one by one (→ **5715**, measured once after the five merges; analyze the same 10). **A grid of fixed cells is wrong both ways for cards whose text varies**: the archive's cards left 65 px of empty band under their doors and the assignments' cut the trainer's instruction to one line, both green in the workers' gates — both are `AdaptiveCardRows` now, and each gate holds the rule that caught it.
 Then its phase 4, the room, drawn first and chosen by the owner as „B" (→ **5731**, a full run with nothing else running; analyze the same 10): the engine at the top of the Moves column so the board takes the height (620 where it was 471 at 1536 × 792), the Board column a quiet list named as Preparation names it, a student's column only what saves, and on a phone the moves under the board with the comment on its own. **A gate that closes a sheet must pump twice**: the first frame after a pop only starts the way out, and the worker stopped on it rather than turn the animation off.
 Then `docs/PLAN-MOTOR-I-PANELI.md` — the engine, the tablebase and the opening explorer in Preparation and the tutorial studio, chosen by the owner from a drawing — and its phase 1 (→ **5734**; analyze the same 10): Preparation had **never attached its engine on arrival** — it attached only when its `TickerMode` changed, which on arrival it does not — so the lines a trainer switched on went to no one; no test saw it, because every engine in its tests overrides `triggerAnalysis`. The glue is `BoardEngine` in `lib/core/services/` now. **A fake that replaces the step being tested cannot see that step never run.**
+Then its phases 2–5 (→ **5766**, a full run on the merged tree with nothing else
+running; analyze the same 10): `PositionLookups` for the tablebase and the
+opening explorer, Analysis onto it; ▦ rows each writing screen remembers for
+itself; Preparation with both beside the engine; the studio with an `Engine`
+tab on a window and a phone, and its move strip back on a 1536 × 792 window
+(the board 616 → 584, measured rows instead of a guessed 120). **A debug
+override is reset inside the test body**: the framework checks its debug
+variables before any tearDown runs.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

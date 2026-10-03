@@ -9554,6 +9554,27 @@ odlazi na kraj spiska u alatu.
     što si je povukao.
     Potrebno: Windows; server (restartovan posle spajanja).
 
+77. [ ] **Studio: traka sa potezima pod tablom je cela na ekranu.** [267.5]
+   O čemu se radi: Faza 4 plana `PLAN-MOTOR-I-PANELI.md` (3.10.2026): na prozoru 1536 × 792 traka sa potezima (`Part 1 of 1`, strelice, ▦) bila je 20 px ispod ivice prozora. Tabla je sad 584 umesto 616, sa mestom za traku ocene levo od nje; mapa delova i dalje stoji u svojoj koloni.
+   Gde: `Teach` → `New tutorial` (ceo prozor na 1536 × 792).
+   Uradi: Pogledaj donju ivicu, ne skroluj.
+   Treba da vidiš: Cela traka sa potezima vidljiva; mapa delova levo od table.
+   Potrebno: Windows.
+
+78. [ ] **Studio: kartica `Engine` sa motorom, priručnikom i tablebase-om.** [267.6]
+   O čemu se radi: Faza 4 plana `PLAN-MOTOR-I-PANELI.md` (izbor A): ▦ u traci studija ima tri reda kao Analysis; čim je jedan štikliran, pored `Flow · Tree · PGN` pojavi se četvrta kartica `Engine` sa uključenim panelima. Ništa štiklirano — nema kartice i server se ništa ne pita. Motor je na početku isključen; linije se samo čitaju, ne ubacuju se u tutorijal.
+   Gde: `Teach` → `New tutorial` → `Board view` (▦ pod tablom).
+   Uradi: Štikliraj sva tri reda; otvori `Engine`; uključi `Show evaluation` i `Show evaluation bar`; odigraj nekoliko poteza; odštikliraj sve.
+   Treba da vidiš: Linije, priručnik i tablebase prate tablu; traka ocene se pojavi levo od table a tabla se ne pomeri; kad odštikliraš sve, kartica nestane i otvori se `Flow`.
+   Potrebno: Windows; server.
+
+79. [ ] **Studio: potez iz priručnika poštuje pravila delova.** [267.7]
+   O čemu se radi: Faza 4–5 plana `PLAN-MOTOR-I-PANELI.md` (D3): potez kliknut u priručniku ide istim putem kao potez na tabli — drugi potez u delu otvara novi deo, a dok kartica `PGN` ima neprimenjen tekst potez se zadrži, sa istom porukom. Na telefonu je `Engine` treća kartica pored `Line · Parts`.
+   Gde: `Teach` → `New tutorial`, štikliran `Opening Explorer`.
+   Uradi: Odigraj `1. e4 e5`, vrati se jedan potez, u kartici `Engine` klikni drugi odgovor crnog; zatim isto na telefonu.
+   Treba da vidiš: Poruka da potez počinje novi deo, i mapa pokaže deo 2; na telefonu kartica `Engine` pored `Line` i `Parts`, traka pod tablom u jednom redu.
+   Potrebno: Windows i telefon; server.
+
 ### Teach — Domaći i napredak učenika
 
 1. [ ] **`Send a video` na stranici učenika.** [246.7]
@@ -10376,6 +10397,27 @@ odlazi na kraj spiska u alatu.
    Uradi: Odmah po ulasku uključi `Show evaluation` u panelu `Engine`, odigraj potez.
    Treba da vidiš: Linije motora i ocena se pojavljuju odmah i prate potez, bez izlaska sa ekrana.
    Potrebno: Windows (i telefon, kartica `Engine`).
+
+14. [ ] **Preparation: otvarački priručnik i tablebase uključuju se u meniju table.** [267.2]
+   O čemu se radi: Faza 3 plana `PLAN-MOTOR-I-PANELI.md` (3.10.2026): `Board view` (▦) u Preparation ima tri reda kao u Analysis — `Engine analysis panel`, `Opening Explorer`, `Tablebase (Syzygy)`. Ekran ih pamti za sebe; na početku je prikazan samo motor (isključen), dva panela su sakrivena i ne pitaju server ništa.
+   Gde: `Teach` → `Preparation` → `Board view` (▦ u traci pod tablom).
+   Uradi: Štikliraj `Opening Explorer`, pa `Tablebase (Syzygy)`; izađi sa ekrana i vrati se.
+   Treba da vidiš: Priručnik (sa imenom otvaranja) i tablebase se pojave ispod motora u okviru pored komentara; tabla ne promeni ni veličinu ni mesto; posle povratka su i dalje uključeni.
+   Potrebno: Windows; server (za tablebase).
+
+15. [ ] **Preparation: potez iz priručnika ili tablebase-a odigra se na tabli.** [267.3]
+   O čemu se radi: Faza 3 plana `PLAN-MOTOR-I-PANELI.md`: potez kliknut u panelu je trenerov potez, kao da je odigran na tabli; paneli prate svaki potez, skok i deo.
+   Gde: `Teach` → `Preparation`, sa uključenim `Opening Explorer`.
+   Uradi: Klikni potez u priručniku; pa postavi završnicu sa pet figura i klikni potez u tablebase-u.
+   Treba da vidiš: Potez se odigra na tabli i upiše u stablo; priručnik i tablebase odmah pokažu novu poziciju; u tablebase-u piše mat u N gde ga ima.
+   Potrebno: Windows; server.
+
+16. [ ] **Preparation na telefonu: priručnik i tablebase u kartici `Engine`.** [267.4]
+   O čemu se radi: Faza 3 plana `PLAN-MOTOR-I-PANELI.md` (D7): na telefonu uključeni paneli stoje jedan ispod drugog u kartici `Engine`, ispod motora.
+   Gde: `Teach` → `Preparation` → `Board view` → štikliraj `Opening Explorer` → kartica `Engine`.
+   Uradi: Otvori karticu, odigraj potez.
+   Treba da vidiš: Motor, pa ispod njega priručnik; prati potez; ništa nije odsečeno.
+   Potrebno: Telefon; server.
 
 ### Sesija — Soba
 

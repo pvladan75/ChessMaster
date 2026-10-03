@@ -173,14 +173,14 @@ two look-ups for one FEN go out once; a guest's explorer says why. Analysis's
 own tests unchanged and green; a request count on Analysis with the two
 panels hidden falls to zero (today it is not).
 
-**Phase 3 — Preparation's look-ups** `[implementer]`. ▦ rows by D1/D2, the
+**Phase 3 — Preparation's look-ups** `[implementer]` — built 3.10.2026 (worker's `361c1697`). Gate `T/preparation_panels_test.dart`, 8 cases; mutations: five of five caught, each by its own case (the explorer always asked, no look-up after a move, no ▦ rows, the engine drawn when unticked, the explorer playing nothing). Live [267.2]–[267.4]. ▦ rows by D1/D2, the
 panels by the drawing, a tapped move played as the trainer's, the phone's
 `Engine` tab by D7. `preparation_screen_test`'s „no server" group is rewritten
 openly: zero requests at 1536 × 792 **while the look-ups are hidden**, which
 is the rule it protected. The board's size is the same with every panel on
 and off.
 
-**Phase 4 — the studio on a window** `[implementer]`. First the strip back on
+**Phase 4 — the studio on a window** `[implementer]` — built 3.10.2026 with phase 5 (worker's `2253901a`; the lead's gate fix `15b03245` — the phone cases reset the platform override in `addTearDown`, which runs after the framework's check of its debug variables, and the worker stopped on it). The board is `min(W − 526, H − 152)` of the body: the 120 under it was a guess, the two rows measure 56 + 72, so at 1536 × 792 the board is 584 (was 616) and the strip ends at 780 (was 812); 30 px beside it are the evaluation bar's, drawn or not; the map keeps its column from W = 1502. Gate `T/studio_panels_test.dart`, 8 cases; mutations: eight of eight caught, each by its own case (the strip's rows at 0, the tab always, the explorer always asked, no attach on arrival, a panel move that bypasses `_onMove`, no ▦ rows, no phone tab, the look-ups not following the cursor). The held-back move has no case of its own: it is `_onMove`'s, and the bypass mutation shows the panels go through it. Live [267.5]–[267.7]. First the strip back on
 the screen at 1536 × 792 (§1, red today by 20 px); then ▦ in its strip, the
 evaluation slot (D5), the panels by D6, moves through `playMove` (D3), the
 engine read-only (D4). Gate: the board's size with every row on and off, the
@@ -188,7 +188,7 @@ map still beside the board at 1536 × 792, a tapped book move that would open a
 part opens one, a tapped move held back while the PGN tab has text, nothing
 asked while the rows are off.
 
-**Phase 5 — the studio on a phone** `[implementer]`. The `Engine` tab by D7.
+**Phase 5 — the studio on a phone** `[implementer]` — built 3.10.2026 with phase 4. The `Engine` tab by D7; the portrait strip now takes the full width, which at six buttons had wrapped to two rows under the small board.
 
 **Phase 6 — the owner's live pass.**
 
