@@ -339,12 +339,23 @@ UCI (2); „takes" dropped on a capture (2); the letter dropped on an
 ambiguous move (2); White and Black swapped (1); `stop` forgotten on dispose
 (7); the dedupe removed (1); a token's clip deleted from the fake bundle (9).
 
-### Phase 3 — the live pass `[owner]`
+### Phase 3 — the live pass `[owner]` — done 3.10.2026
 
 Items `[265.1]`–`[265.6]` in `TODO-provera.md`: the task on arrival, the
 reply as a move, the three verdicts, the speaker turning speech on, the
 pause by ear on the phone's speaker and on Windows, and the bundle's size in
 the APK against the number phase 1 measured.
+
+**The owner passed all 21 items, `[265.1]`–`[265.21]`, on 3.10.2026**, with
+one report on `[265.7]`: at the fork of the other defence the voice said
+„Correct. Keep going." before „Now suppose Black plays pawn d4.", and „Keep
+going" to him means *play at once* — which is not the case there, since the
+board first goes back and the opponent moves. Fixed the same day: at the
+fork the verdict is „Correct." alone (one token in `ai_studio_screen.dart`,
+held by `speech_pilot_test`). The three things left to his ear — the number
+clips reused in „Returns in N days", „in 42 of 100 games", the seams on a
+phone's speaker — passed as they are, so no third set of numbers is cut.
+**The plan is closed.**
 
 ### Phase 4a — the tactics trainer `[implementer]` — built 3.10.2026
 

@@ -55,7 +55,7 @@ faza 4 zatvorena, ostaje faza 5, provera uživo).
 
 ---
 
-## Govor iz spojenih klipova — plan, i vlasnikov spisak od 2.10.2026 — ništa u kodu
+## Govor iz spojenih klipova — plan, i vlasnikov spisak od 2.10.2026 — ceo plan u kodu, provera uživo [265.1]–[265.21] potvrđena 3.10.2026
 
 Vlasnik je 2.10.2026 prošao aplikaciju i nije našao nijedan nov problem;
 stavke u `TODO-provera.md` kroz koje je prošao **nije štiklirao**, pa one
@@ -279,6 +279,18 @@ uživo [265.1]–[265.21] i, po njoj, eventualno treći set brojeva.
 uređaja: **5605** (1 preskočen; 5627 pre njega — pada za slučajeve
 obrisanog koda), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova provera
 uživo [265.1]–[265.21]; plan je ceo u kodu.
+
+**Vlasnikova provera uživo, 3.10.2026 — svih 21 stavki [265.1]–[265.21]
+potvrđeno** (QA alat, `mislisha-test\qa\stanje.json`), sa jednom prijavom
+na [265.7]: na račvanju druge odbrane čulo se „Correct. Keep going." pre
+„Now suppose Black plays pawn d4." — a „Keep going" po njemu znači „odmah
+odigraj potez", što tu nije slučaj jer tabla prvo ide nazad i protivnik
+igra. Ispravljeno istog dana: na račvanju se kaže samo „Correct."
+(`ai_studio_screen.dart`, jedan token; `speech_pilot_test` to drži, mutacija
+crvena). Ni jedna od tri stvari ostavljene njegovom uhu nije prijavljena:
+brojevi iz „Found N of 5" u „Returns in N days", „in 42 of 100 games", šavovi
+na zvučniku telefona — treći set brojeva se ne seče. **Plan
+`PLAN-GOVOR-IZ-KLIPOVA.md` je zatvoren.**
 
 ## Teme u domaćem: čip radi ono što piše — 1.10.2026, komitovano na `master` i gurnuto; provera uživo [263.2]
 

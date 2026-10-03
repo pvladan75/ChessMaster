@@ -1498,21 +1498,24 @@ odlazi na kraj spiska u alatu.
    `Server is unavailable — check if the backend is running.`.
    Potrebno: Windows i telefon.
 
-48. [ ] **Tura kroz repertoar govori iz klipova: račva, rupa, beleška i povratak; običan potez ćuti.** [265.18]
+48. [x] **Tura kroz repertoar govori iz klipova: račva, rupa, beleška i povratak; običan potez ćuti.** [265.18]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Faza 4d plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026): kartica ture crta i govori iz ugrađenih klipova — „Your move. Main line.", „Black plays knight f3. In 42 of 100 games." (ćute), rupa „…You have no reply here." (govori), račva „From here the opponent has 3 replies. Knight f3 in 42 of 100 games. … No reply. And one more reply." (govori), povratak „We saw the line after knight f3. Now comes pawn d4." (uvek govori). Pravilo kad stanica govori je isto kao pre.
    Gde: `Practise` → (faza „Opening") → `Opening repertoire` → `Open repertoire` → na repertoaru ⋮ `More` → `Explore repertoire`.
    Uradi: Prođi turu kroz repertoar sa bar jednom račvom i jednom rupom do kraja prve linije i nazad na račvu.
    Treba da vidiš: Običan potez ne govori; račva, rupa i povratak govore tačno ono što kartica crta, jednom; glas je Andrew iz klipova, nigde sistemski glas.
    Potrebno: Windows i telefon; server; repertoar sa račvom i rupom.
 
-49. [ ] **„In 42 of 100 games" umesto „42 percent" — za uho.** [265.19]
+49. [x] **„In 42 of 100 games" umesto „42 percent" — za uho.** [265.19]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Odobreno je „in 42 percent of games", ali Azure čuje „42 percent" (i „42 per cent") kao jednu reč koju sekač ne može da razdvoji, a „42 of 100 games" razdvaja — pa se udeo kaže tako. Broj je isti klip kao u „Found 3 of 5."; `100` je nov klip. Ako ti rečenica ne leži, reci — drugi oblik traži drugi nosač i novo merenje.
    Gde: ista tura (`Explore repertoire`), na odgovoru protivnika sa udelom; na račvi.
    Uradi: Slušaj udele na tri-četiri stanice, uključujući jedan ispod 1% („In less than one of 100 games.") ako ga ima.
    Treba da vidiš: Broj i „of 100 games" zvuče kao jedna rečenica, bez skoka; na račvi se potezi nižu redom kao čipovi ispod.
    Potrebno: Windows i telefon; server.
 
-50. [ ] **Beleška: „You left a note here." se čuje, a tekst beleške se samo crta.** [265.20]
+50. [x] **Beleška: „You left a note here." se čuje, a tekst beleške se samo crta.** [265.20]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Na tvoju reč od 3.10.2026 beleška na poziciji dobija fiksnu rečenicu „You left a note here." (govori se, stanica zbog nje govori), a tekst beleške stoji ispod rečenice bez „Your note:" i nikad se ne čita. Odlazak sa ekrana prekida glas; kretanje po turi ga ne prekida.
    Gde: ista tura (`Explore repertoire`), na poziciji sa tvojim komentarom.
    Uradi: Napiši komentar na jednu poziciju repertoara, pa prođi turu preko nje; izađi usred rečenice.
@@ -2530,7 +2533,8 @@ odlazi na kraj spiska u alatu.
    smanjuje tablu, a stablo dobija prostor.
    Potrebno: Windows; server; repertoar sa bar jednim tvojim potezom.
 
-79. [ ] **Izgradnja repertoara govori iz klipova: pitanje, potez u repertoaru, kraj, greške servera.** [265.14]
+79. [x] **Izgradnja repertoara govori iz klipova: pitanje, potez u repertoaru, kraj, greške servera.** [265.14]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Faza 4c plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026): ekran izgradnje govori iz ugrađenih klipova — „What do you play with White?" (kad se pitanje promeni), „After *potez* which opponent moves do you prepare?" kad stojiš na svom potezu, „*Potez* is in your repertoire. The most played reply is *potez*." (ili „…The book has no reply here. Play the opponent move you want to prepare."), na kraju „You have answered every position in this repertoire."; red „Everything is saved…" ispod je obrisan; greške servera i motora su kratke fraze. Nacrtano i izgovoreno su ista rečenica, bez crte i bez zareza.
    Gde: `Practise` → repertoar → `Build`.
    Uradi: Odigraj svoj potez, pa stani na njega i izaberi odgovor protivnika; dođi do kraja repertoara.
@@ -3439,21 +3443,24 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Linija iznad table se ne seče niti prelazi ivicu ekrana.
    Potrebno: telefon; server; release build.
 
-77. [ ] **Drill govori iz klipova: pitanje bez drugog reda, presuda kao jedna rečenica, odgovor protivnika kao potez.** [265.15]
+77. [x] **Drill govori iz klipova: pitanje bez drugog reda, presuda kao jedna rečenica, odgovor protivnika kao potez.** [265.15]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Ista faza: pitanje je samo „What do you play with White?" (red „Play the move you chose for this position." je obrisan); posle `Show` „Your move is *potez*. Play it."; presuda se kaže kad se nacrta: „Correct." / „Also yours. Your main move is *potez*." / „Incorrect. Your move is *potez*." / „You have not covered this position. Open build to decide what you play.", pa odgovor protivnika kao potez (ili potez pa „You have not covered this reply."), pa „Returns tomorrow." i sl.; vežba pre roka dodaje „Ahead of schedule. The rating is not recorded."; sažeta presuda „Correct — e4 · opponent c5 · returns tomorrow" kad linija ide dalje je obrisana — sledeće pitanje govori. Netačan odgovor ne nosi odgovor protivnika (tabela ga nije navela) — reci ako ga hoćeš.
    Gde: `Practise` → repertoar → `Drill`.
    Uradi: Odgovori tačno, pa alternativom, pa netačno; jednom `Show`; jednom pozicija koju nisi pokrio.
    Treba da vidiš: Jedna rečenica po presudi, i nacrtana i izgovorena, bez ponavljanja kad linija ide dalje; tačke između rečenica („Your move is knight c6. Returns in 3 days.").
    Potrebno: Windows i telefon; server; repertoar sa bar jednom linijom i dospelim pozicijama.
 
-78. [ ] **„Returns in 3 days" — broj iz sredine druge rečenice, za uho.** [265.16]
+78. [x] **„Returns in 3 days" — broj iz sredine druge rečenice, za uho.** [265.16]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Broj u „Returns in 3 days." je isti klip kao u „Found 3 of 5." (isečen iz sredine te rečenice), a „days." je isečeno iz „Returns in 3 more days." jer Azure čuje „3 days" kao jednu reč. Ako broj zvuči kao da je iz druge rečenice, treće sto klipova se seče iz „Returns in N days."; dok ne čuješ, ne.
    Gde: `Practise` → repertoar → `Drill`, posle tačnog odgovora na poziciju čiji rok nije sutra.
    Uradi: Slušaj „Returns in N days / weeks / months." bar tri puta sa različitim brojevima.
    Treba da vidiš: Broj se uklapa u rečenicu — ista visina i tempo kao reči oko njega, bez „skoka"; ako skače, prijavi.
    Potrebno: Windows i telefon; server.
 
-79. [ ] **„Nothing due" i srodne rečenice se čuju pri dolasku, i glas uređaja se u repertoaru više ne pita ništa.** [265.17]
+79. [x] **„Nothing due" i srodne rečenice se čuju pri dolasku, i glas uređaja se u repertoaru više ne pita ništa.** [265.17]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Šest rečenica „Nothing due." / „Nothing to drill yet." / „…in this branch." / „Nothing due after *potez*." / „Nothing to drill after *potez* yet." sad se izgovore kad se ekran otvori (ranije samo na zvučnik); objašnjenje ispod ostaje samo nacrtano. Na oba ekrana glas uređaja se više ne koristi (slučaj to drži), i odlazak sa ekrana prekida govor.
    Gde: `Practise` → repertoar → `Drill` kad ništa nije dospelo; pa `Build`.
    Uradi: Otvori drill bez dospelih pozicija; uključi/isključi govor zvučnikom; izađi usred rečenice.
@@ -4604,28 +4611,32 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Prvi red je potez sa najmanjim „mate in N"; uzimanje ili potez pešakom nije iznad bržeg mata; potezi koji gube stoje na dnu, onaj koji najduže drži prvi među njima („mated in N" najveće); remi potez nema broj. Kod sedam figura ispod liste piše „…DTZ is shown: … not to mate."
    Potrebno: Windows ili telefon; server (restartovan posle izmene — nodemon to radi sam); internet.
 
-52. [ ] **Završnice govore iz klipova: zadatak, priča iz partije, presude, odgovor protivnika kao potez.** [265.10]
+52. [x] **Završnice govore iz klipova: zadatak, priča iz partije, presude, odgovor protivnika kao potez.** [265.10]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Faza 4b plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026): trener završnica govori iz ugrađenih klipova kroz isti panel koji crta tekst — „White to move. Keep the win.", pa „In the game, White played *potez* and dropped the win.", presude („Correct. The win is kept. Other moves to find: 2."), „Play to the end" sa odgovorom protivnika kao potezom i „Good. Keep going. Moves left to hold: 7.", kraj „Checkmate. Drill completed.". Nacrtano i izgovoreno su ista rečenica; potez unutar rečenice se kaže bez „Check".
    Gde: `Practise` → `Endgames from real games` → `Win` → (izaberi vrste) → `Start`; zvučnik na zadatku uključuje govor.
    Uradi: Reši jednu poziciju pogrešnim pa tačnim potezom, pa `Play to the end` do kraja; pa jednu sa `Show solution`; pa jednu `Hold a draw` sa `Conclude draw`.
    Treba da vidiš: Svaka rečenica koju panel nacrta se i čuje, i obrnuto; potez protivnika se kaže kao „Black plays king e4."; „Show solution" kaže poteze redom i crta ih sa zarezima; nigde dupla tačka ni rečenica malim slovom; nema spojeva koji zvuče kao dva glasa.
    Potrebno: Windows i telefon; server; internet.
 
-53. [ ] **Šetnja kroz greške govori iz klipova, i „Game over" se čuje na poslednjoj grešci.** [265.11]
+53. [x] **Šetnja kroz greške govori iz klipova, i „Game over" se čuje na poslednjoj grešci.** [265.11]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Ista faza: na grešci „White played *potez* here and let the win go." pa „Play the move that holds the win."; tačno: „Correct. The game continues as played."; pogrešno: potez pa „also lets the win go. Try another move."; `Show` crta „Holding moves were: …" bez govora; kraj „Game finished. Found 3 of 5.". Rečenica „That was the last mistake. Game over." je do sada bila nedostižna (grana je poredila sa nulom, a kursor stoji na samoj grešci) — sad se čuje kad je odgovorena greška poslednji potez partije.
    Gde: `Practise` → `Endgames from real games` → `Game blunders` → partija.
    Uradi: Prođi partiju sa bar dve greške do kraja; pa nađi partiju čija je poslednja greška ujedno poslednji potez.
    Treba da vidiš: Rečenice iznad, svaka i nacrtana i izgovorena; posle presude zadatak „Go forward to the next mistake." se crta ali se ne ponavlja glasom; na poslednjoj grešci koja je i poslednji potez čuje se „Game over".
    Potrebno: Windows ili telefon; server; internet.
 
-54. [ ] **Dugmeta `Hint` više nema ni u završnicama, a dugi tekstovi su skraćeni.** [265.12]
+54. [x] **Dugmeta `Hint` više nema ni u završnicama, a dugi tekstovi su skraćeni.** [265.12]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Na tvoju reč od 3.10.2026 („Hint izbaci i u završnicama, skrati tekstove") trener završnica nema `Hint` ni prečicu H; objašnjenja zaključane table, uvodi u vežbu („Opponent plays tablebase-best…"), „you moved closer" i slična su izbačeni — ostaju samo rečenice koje se izgovaraju. Ovo zamenjuje drugu polovinu stavke [265.9] („u završnicama `Hint` i dalje postoji").
    Gde: `Practise` → `Endgames from real games` → bilo koja pozicija.
    Uradi: Pogledaj dugmad ispod table i panel iznad nje; pritisni H.
    Treba da vidiš: Nema `Hint`; H ne radi ništa; u panelu zadatak, priča i presuda — bez pasusa objašnjenja; ništa što nedostaje ti ne treba da bi znao šta se od tebe traži.
    Potrebno: Windows.
 
-55. [ ] **Panel završnica ima zvučnik, i glas uređaja se tu više ne pita ništa.** [265.13]
+55. [x] **Panel završnica ima zvučnik, i glas uređaja se tu više ne pita ništa.** [265.13]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: `EndgameInfoPanel` do sada nije imao zvučnik (govorio je sam, glasom uređaja); sad nosi isti zvučnik kao zagonetke. Sa isključenim govorom panel ćuti, a sa uključenim ne ponavlja presudu kad se zadatak ponovo nacrta.
    Gde: `Practise` → `Endgames from real games`, Settings za govor.
    Uradi: Isključi govor, reši potez — tišina; uključi zvučnikom na zadatku — čuje se zadatak jednom; reši potez — presuda jednom, zadatak se ne ponavlja.
@@ -4774,63 +4785,72 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Red kaže „Solved after a skip". Zagonetka rešena uz pomoć (`Hint`) kaže „Solved with a hint".
    Potrebno: Windows; server.
 
-16. [ ] **Zadatak zagonetke se izgovara iz ugrađenih klipova, i piše isto što i kaže.** [265.1]
+16. [x] **Zadatak zagonetke se izgovara iz ugrađenih klipova, i piše isto što i kaže.** [265.1]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Od 3.10.2026 ekran zagonetki govori glasom koji je u aplikaciji (Andrew, klipovi isečeni iz celih rečenica, `PLAN-GOVOR-IZ-KLIPOVA.md`), bez glasa uređaja i bez servera. Rečenica na ekranu je ista koju glas kaže; umesto ⚪/⚫ stoji ikona strane.
    Gde: `Practise` → `Puzzles: Mate in 1, 2 or 3 moves` (ili `Find the winning path`) → zvučnik pored zadatka.
    Uradi: Ako je govor isključen, pritisni zvučnik; pa `Next position` dva-tri puta.
    Treba da vidiš: Čuješ „White to move. Mate in 2." (ili „Black to move. Find the winning path."), tačno kako piše iznad table; svaka nova pozicija se izgovori jednom, ista pozicija se ne ponavlja sama.
    Potrebno: Windows i telefon; zvučnik uključen; nije potreban server.
 
-17. [ ] **Protivnikov odgovor se kaže kao potez: „Black plays knight d7."** [265.2]
+17. [x] **Protivnikov odgovor se kaže kao potez: „Black plays knight d7."** [265.2]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Posle tvog tačnog poteza protivnikov odgovor se izgovara kratko, kako igrači kažu: figura i polje; „takes" za uzimanje; „Check." / „Checkmate." posle; „castles kingside"; „pawn e8 promotes to queen"; slovo linije kad dve iste figure mogu na polje („rook a a8").
    Gde: Isti ekran, posle tačnog poteza u zagonetki sa više poteza (Mate in 2 ili 3).
    Uradi: Odigraj tačan potez i slušaj odgovor; nađi i jedan odgovor sa uzimanjem i jedan sa šahom.
    Treba da vidiš: Potez je rečen u sekundi posle što je odigran, bez zastoja table; reči se slažu sa potezom na tabli.
    Potrebno: Windows i telefon.
 
-18. [ ] **Presude se čuju: tačno, netačno, mat.** [265.3]
+18. [x] **Presude se čuju: tačno, netačno, mat.** [265.3]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: „Correct. Keep going." posle tačnog poteza koji ne završava zagonetku; „Incorrect. Try another move." posle pogrešnog; „Checkmate. Puzzle solved." kad daš mat. U vežbi protiv motora: „Checkmate. Stockfish wins. Try again." i „Draw by stalemate. Try again." (i druge remi rečenice).
    Gde: Isti ekran.
    Uradi: Pogreši namerno, pa reši; u osnovnom matu daj da te motor matira.
    Treba da vidiš: Svaka presuda se čuje jednom, u trenutku kad se pojavi i poruka/dijalog; ni jedna poruka ne kasni zbog glasa.
    Potrebno: Windows i telefon.
 
-19. [ ] **Zvučnik uključuje govor tu gde jesi, i ćuti kad je govor isključen.** [265.4]
+19. [x] **Zvučnik uključuje govor tu gde jesi, i ćuti kad je govor isključen.** [265.4]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Isti zvučnik kao na drugim ekranima: sa isključenim govorom pritisak ga uključi i kaže zadatak jednom (ne dvaput); sa uključenim govorom pritisak za vreme govora prekida, a u tišini ponavlja.
    Gde: Isti ekran; `Settings` → `Speech`.
    Uradi: Isključi govor u Settings, vrati se na zagonetke, pritisni zvučnik; pritisni ga ponovo dok govori.
    Treba da vidiš: Prvi pritisak — jedna rečenica; drugi — prekid. Dok je govor isključen, ni potezi ni presude se ne čuju.
    Potrebno: Windows i telefon.
 
-20. [ ] **Pauza pred poljem i šavovi zvuče kako si odobrio na probi, i na zvučniku telefona.** [265.5]
+20. [x] **Pauza pred poljem i šavovi zvuče kako si odobrio na probi, i na zvučniku telefona.** [265.5]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Klipovi su spojeni sa 50 ms tišine pred poljem i bez pauze drugde — isto što si čuo u fajlovima od 2.10.2026 (Andrew, kratak oblik). Ovo je ista provera na pravom uređaju.
    Gde: Isti ekran.
    Uradi: Odslušaj desetak odgovora na telefonu bez slušalica i na Windowsu.
    Treba da vidiš: Nema klika ni odsečenog početka reči na šavovima; polje se ne lepi za figuru; ako nešto smeta, zapiši koju rečenicu.
    Potrebno: Windows i telefon.
 
-21. [ ] **Veličina aplikacije porasla za klipove koliko je izmereno.** [265.6]
+21. [x] **Veličina aplikacije porasla za klipove koliko je izmereno.** [265.6]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: `assets/speech/` nosi 277 klipova, 7,2 MB nekomprimovano (faza 1). APK ih pakuje; očekivan rast je najviše toliko.
    Gde: Play Console / veličina APK-a posle gradnje, ili `Settings` → `About` ako piše veličina.
    Uradi: Uporedi veličinu APK-a pre i posle.
    Treba da vidiš: Rast do oko 7 MB; ako je znatno više, javi.
    Potrebno: Android build.
 
-22. [ ] **Druga odbrana: tabla se vrati, glas kaže „Now suppose Black plays pawn d4.", pa se potez nacrta.** [265.7]
+22. [x] **Druga odbrana: tabla se vrati, glas kaže „Now suppose Black plays pawn d4.", pa se potez nacrta.** [265.7]
+   ✅ Vlasnik potvrdio uživo 3.10.2026, sa jednom prijavom: „Posle „Correct. Keep going." tabla se vrati; čuješ „Now suppose Black plays pawn d4." — mislim da ovo Keep going u ovoj situaciji treba izbaciti (kad se pozicija vraća na račvanje)" — jer „Keep going" znači „odmah odigraj potez", a ovde tabla prvo ide nazad i protivnik igra. Ispravljeno istog dana: na račvanju se kaže samo „Correct." (`speech_pilot_test` to drži).
    O čemu se radi: Kad zagonetka ima više odgovora crnog na tvoj prvi potez (kao f3 sa ..Kd4 i ..d4 na tvojoj slici od 3.10.2026), posle mata u prvoj grani tabla se vraća na poziciju posle tvog poteza, glas prvo kaže koju drugu odbranu crni igra, i tek kad rečenica prođe potez se odigra na tabli. Sa isključenim govorom potez se odigra odmah, kao i do sada.
    Gde: `Practise` → `Puzzles: Mate in 1, 2 or 3 moves` → `Mate in 2` → zagonetka sa dve odbrane u stablu (desno, „Graphical Move Tree" sa dve grane).
    Uradi: Reši prvu granu do mata i sačekaj.
    Treba da vidiš: Posle „Correct. Keep going." tabla se vrati; čuješ „Now suppose Black plays pawn d4." (figura i polje te odbrane); potez se nacrta tek po kraju rečenice; posle toga rešavaš drugu granu kao do sada. Rokada kao odbrana se kaže kao „Black castles kingside.", bez „Now suppose".
    Potrebno: Windows i telefon; zvučnik.
 
-23. [ ] **Taktika govori iz klipova: potez protivnika koji pravi poziciju, pa zadatak, pa presude.** [265.8]
+23. [x] **Taktika govori iz klipova: potez protivnika koji pravi poziciju, pa zadatak, pa presude.** [265.8]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Od 3.10.2026 trening taktike govori istim glasom kao zagonetke (Andrew, iz klipova; `PLAN-GOVOR-IZ-KLIPOVA.md` faza 4a). Na dolasku se kaže protivnikov potez koji je napravio poziciju („Black plays knight f6."), pa „White to move. Find the best move."; posle tačnog poteza „Correct. Keep going." i protivnikov odgovor kao potez; pogrešan je „Incorrect. Try another move."; kraj je „Solved." ili „Solved with help.". Tekst na ekranu je isti koji se kaže. Glas uređaja se na ovom ekranu više ne koristi.
    Gde: `Practise` → `Tactics tailored to you` → zvučnik pored zadatka.
    Uradi: Reši jednu zagonetku tačno, jednu sa greškom pa tačno; na jednoj pritisni `Show solution`.
    Treba da vidiš: Rečenice iz tabele, svaka jednom, u trenutku kad se poruka pojavi; `Show solution` izgovara svaki potez kako ga odigra, pa „Solved with help."; okretanje table ne menja i ne ponavlja zadatak.
    Potrebno: Windows i telefon; server; zvučnik.
 
-24. [ ] **Dugmeta `Hint` više nema u taktici.** [265.9]
+24. [x] **Dugmeta `Hint` više nema u taktici.** [265.9]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Na tvoju reč od 3.10.2026 („Hint nam uopšte ne treba") taktika nema `Hint` — `Show solution` je dovoljno. Završnice zadržavaju svoj `Hint`. U izveštaju i listi zagonetki stari redovi sa „Solved with a hint" ostaju kakvi su.
    Gde: `Practise` → `Tactics tailored to you`.
    Uradi: Pogledaj dugmad ispod table; pa otvori `Endgames from real games`.
@@ -10778,7 +10798,8 @@ odlazi na kraj spiska u alatu.
     pritiska baš to dugme, i to dugme je na ekranu.
     Potrebno: Windows (tastatura).
 
-16. [ ] **Glas uređaja je obrisan: Settings ima samo `Speak messages` i `Test`, a svaki ekran govori iz klipova.** [265.21]
+16. [x] **Glas uređaja je obrisan: Settings ima samo `Speak messages` i `Test`, a svaki ekran govori iz klipova.** [265.21]
+   ✅ Vlasnik potvrdio uživo 3.10.2026.
    O čemu se radi: Poslednji korak plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026, na tvoju reč): `flutter_tts` je van aplikacije. U Settings nema liste jezika (`Speech language`), klizača brzine (`Speech rate`) ni `Check for voices again`; `Test` pušta „White plays rook a8. Checkmate." iz klipova. Ovo zamenjuje svaku stariju stavku koja pominje izbor glasa ili brzinu govora. Na uređaju bez sistemskog glasa (Windows bez instaliranih glasova) govor radi isto.
    Gde: `Settings` → kartica govora.
    Uradi: Pogledaj karticu; pritisni `Test`; isključi i uključi `Speak messages`; pa otvori zagonetku i završnicu i slušaj.
