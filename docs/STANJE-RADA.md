@@ -65,7 +65,9 @@ paket — jedna je da `My mistakes` ispisuje potez kao `d2d4`
 pozicije).
 
 Njegov spisak većih stvari pre privođenja kraju, sa preporukom sesije u
-jednoj rečenici (razgovor od 2.10.2026; odluke su njegove):
+jednoj rečenici (razgovor od 2.10.2026; odluke su njegove). **Stavka 4 je
+gotova 3.10.2026** (ovaj odeljak); **sledeća je stavka 5, u novoj sesiji** —
+vlasnikova reč od 3.10.2026, počinje ekranom zagonetki (`ai_studio_screen.dart`):
 
 1. **Naplata, tip naloga, Microsoft Store.** Pravo pristupa živi na nalogu na
    serveru i klijent ga samo crta, pa Windows ne treba nikakvu naplatu u
