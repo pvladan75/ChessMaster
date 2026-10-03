@@ -10390,3 +10390,33 @@ it, so after the reader's last move — an odd cursor — the count was one
 short; only a puzzle with no motif to name ever drew it, which is why it
 lived. Mid-line the cursor is even and up and down agree, so `ceil` changed
 nothing the solution replay reads.
+
+## 3.10.2026 — PLAN-EKRANI, phases 6, 7 and 8 at once, and buttons under the board on a phone (app 5678 → 5693)
+
+Arithmetic: 5678 + 3 (the tour's gate) + 5 (the player's) + 5 (the groups')
++ 2 (the groups pane's Delete and Rename, added at grading) = 5693, measured
+once on master after the three merges, with nothing else running; analyze the
+same 10. The phone order before it changed no count: its three gates got
+assertions, not cases.
+
+**A layout check that passes because this fixture happens to fit is not a
+check of the rule.** The owner's rule was an order — the buttons right under
+the board on a phone — and the first gate cases asked whether the button was
+on screen. Two of three were green on the old order, because before a move the
+panel was short enough. Asserting the order itself (the main button's top
+above the panel's) went red on all three. **When the rule is an order, assert
+the order.**
+
+**Moving one thing above another moves the scroll, it does not remove it.**
+With the buttons above the panel, a 360 × 640 phone shows the buttons and
+scrolls the verdict instead; on a 393 × 852 phone both fit. Measured on two
+phones and said to the owner, rather than claimed for all.
+
+**Three workers at once is three full runs on one machine**: each was told to
+re-run alone any test it did not touch that failed, and the lead measured once
+after the merges. No test needed it; a 580 s timeout of a worker's own killed
+one run, which it re-ran rather than read.
+
+**What a worker says it did not test is the grading's first case.** The groups
+worker reported that nothing drove the new pane's Rename and Delete on a
+window; the two cases written for it were proved by deleting the wrong group.

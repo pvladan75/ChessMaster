@@ -705,6 +705,13 @@ odlazi na kraj spiska u alatu.
    (npr. „Lekcija sa Milom - 2026-09-29.mp4").
    Potrebno: Windows; server.
 
+17. [ ] **Plejer snimka: reči u traci, transkript koji ima mesta.** [266.7]
+   O čemu se radi: Faza 7 plana `PLAN-EKRANI.md` (3.10.2026): traka na prozoru kaže `Open in Analysis`, `Share…` i `Video` (meni sa `Download video` i `Export to MP4…`) umesto šest ikonica bez imena; na telefonu su iza ⋮. `Make a tutorial` i `Transcribe again…` su tiha dugmad iznad rečenica (na telefonu iza ⋮ u transkriptu); red „Synchronized playback of moves and arrows" je uklonjen. Na telefonu sa otvorenim transkriptom vide se bar 4 rečenice (ranije 1); na najmanjem telefonu tabla je tad mala, a olovka za ispravku ima manju metu (32 px).
+   Gde: `Library` → (snimak) → plejer.
+   Uradi: Otvori snimak sa transkriptom na prozoru, pa na telefonu otvori transkript.
+   Treba da vidiš: Tri reči u traci istog izgleda; više rečenica nego ranije; olovku je lako pogoditi i na telefonu.
+   Potrebno: Windows i telefon; snimak iz Preparation sa transkriptom.
+
 ### Home — Home i obaveštenja
 
 1. [ ] **Na Home-u više nema ponavljanja iz tutorijala.** [246.10]
@@ -1521,6 +1528,13 @@ odlazi na kraj spiska u alatu.
    Uradi: Napiši komentar na jednu poziciju repertoara, pa prođi turu preko nje; izađi usred rečenice.
    Treba da vidiš: Čuje se „You left a note here.", ispod je tekst beleške; izlazak prekida glas.
    Potrebno: Windows i telefon; server.
+
+51. [ ] **Tura repertoara: kartica sa odgovorima gore desno, cela na ekranu.** [266.6]
+   O čemu se radi: Faza 6 plana `PLAN-EKRANI.md` (3.10.2026): na prozoru je kartica koja kaže šta tura govori, sa čipovima odgovora, na vrhu desne kolone, a stablo ispod nje; tabla je levo i velika koliko visina dozvoljava. Ranije je kartica bila ispod table i na 1536 × 792 izlazila iz prozora, pa se čipovi nisu videli.
+   Gde: `Practise` → (repertoar) → `Tour`.
+   Uradi: Pokreni turu na svom prozoru i idi do prve račve.
+   Treba da vidiš: Rečenica i svi čipovi odgovora vidljivi bez skrolovanja, desno od table, stablo ispod; na telefonu sve kao pre.
+   Potrebno: Windows i telefon; repertoar sa račvom.
 
 ### Practise — Repertoar — pitanje o poziciji (Ask AI about position)
 
@@ -10062,6 +10076,13 @@ odlazi na kraj spiska u alatu.
    Treba da vidiš: Nijedna od te tri stranice više ne kaže da je Windows uslov
    za rad u studiju.
    Potrebno: Windows i telefon; internet.
+
+9. [ ] **Grupe: spisak levo, izabrana grupa desno, „New group" u traci.** [266.8]
+   O čemu se radi: Faza 8 plana `PLAN-EKRANI.md` (3.10.2026): na prozoru su grupe levo, a izabrana grupa desno sa članovima u kolonama i dugmadima `Rename`, `Delete group`, `Add students`; prva grupa je izabrana kad se ekran otvori. `New group` je u traci — plutajuće dugme koje je pokrivalo ✎ i 🗑 poslednje grupe je uklonjeno. Na telefonu dodir otvara grupu na svojoj strani.
+   Gde: `Teach` → `Student groups`.
+   Uradi: Na prozoru izaberi drugu grupu, preimenuj je, dodaj i ukloni jednog učenika; na telefonu otvori grupu dodirom.
+   Treba da vidiš: Ništa ne leži preko spiska; članovi se menjaju u istom oknu; na telefonu ista dugmad na strani grupe.
+   Potrebno: Windows i telefon; server; bar dve grupe.
 
 ## Sesija
 

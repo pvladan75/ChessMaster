@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5678 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5693 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 10 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1373,7 +1373,7 @@ phases 2 and 3, the tactics trainer and My mistakes on the same layout
 the tactics counter that said „found 0" after a solve (`floor` of an odd
 cursor), and every move in My mistakes in SAN (`sanOfUci`, beside
 `uciOfSan`). **A render finds what a text assertion cannot**: the gate held
-„O-O" and was green while the panel broke it at its hyphen.
+„O-O" and was green while the panel broke it at its hyphen. Then phases 6, 7 and 8 — the repertoire tour, the recording player and Student groups — built by three workers at once and merged together (→ **5693**, measured once after the three merges; analyze the same 10). Grading added what the workers' reports named as untested (the groups pane's own Delete and Rename) and drew the player's plain bar actions like its menus (`BarWordButton`).
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

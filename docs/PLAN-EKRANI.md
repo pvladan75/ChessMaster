@@ -383,14 +383,18 @@ accepted answers in the panel, `Save` the one filled button in the panel,
 `Assign to student` a text button beside it where it is offered now. On the
 phone, `Save` an ordinary button under the panel.
 
-### Phase 6 — the repertoire tour `[implementer]`
+### Phase 6 — the repertoire tour `[implementer]` — built 3.10.2026
+
+**Done** (worker's `9752f126`): on a window the card — sentence, chips, „Prepare reply" (now a `FilledButton`) — at the top of the right column, the tree under it, the board alone on the left and as tall as the window allows (bounded by the column's `PreparationLayout.minPane`); the strip dense on a window only. Gate `T/repertoire_walkthrough_layout_test.dart`, 3 cases, red before at x = 24. Live check [266.6].
 
 `APP/features/repertoire/screens/repertoire_walkthrough_screen.dart`, as
 `SK/compare_walk.png`: the card with what the tour says, its reply chips and
 `Next` at the top of the right column, the tree under it. The gate holds §2.3:
 at 1536 × 792 every reply chip is on screen. The phone is unchanged.
 
-### Phase 7 — the recording player `[implementer]`
+### Phase 7 — the recording player `[implementer]` — built 3.10.2026
+
+**Done** (worker's `5ea753ac`, the lead's `74b8b8dd`): the bar's words on a window (`Open in Analysis`, `Share…`, `Video` with Download / Export), one ⋮ on a phone; the transcript's actions as text buttons above the sentences, behind a ⋮ on a phone; the deck's filler line gone; the panel's width now what the board leaves (300–390), which a full board at 900 × 700 needed. Four sentences on a 360 × 640 phone cost the sheet a larger share (0.6) and a 32 px pencil target; on a 393 × 852 phone seven fit over a normal board. At grading the two plain words were drawn as teal buttons beside the plain word `Video`: `BarWordButton` beside `BarWordMenu` draws them alike. Seven existing tests rewritten openly; the manual's labels corrected. Gate `T/replay_player_layout_test.dart`, 5 cases. Live check [266.7].
 
 `APP/screens/replay_player_screen.dart`, as `SK/compare_player.png`: the bar's
 five icons as words (`BarWordMenu` where a word opens a menu); `Make a
@@ -399,7 +403,9 @@ window and behind ⋮ on a phone; the „Synchronized playback of moves and arro
 line goes. The gate holds §2.2: on a 360 × 640 phone with the transcript open,
 at least four sentences are on screen.
 
-### Phase 8 — Student groups `[implementer]`
+### Phase 8 — Student groups `[implementer]` — built 3.10.2026
+
+**Done** (worker's `25bf33d8`, the lead's `69f63fff`): `New group` in the bar and no floating button; on a window the groups left and the chosen one right (`_GroupDetail`, members on `AdaptiveCardGrid`), the first chosen on opening; on a phone a pushed page with the same detail; the delete dialog's `Delete` a `FilledButton`; the manual's Groups paragraph rewritten. At grading two cases for the pane's own Delete and Rename on a window, which nothing drove — Delete proved red when it deletes another group. Gate `T/groups_screen_layout_test.dart`, 7 cases. Live check [266.8].
 
 `APP/features/groups/screens/groups_screen.dart`, as `SK/compare_groups.png`:
 pattern B on a window (groups left, the chosen group's members in columns

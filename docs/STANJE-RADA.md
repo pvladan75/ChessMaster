@@ -80,8 +80,7 @@ notaciji; ocena koju verovatno želiš je popunjena, na vlasnikovu reč; red
 zadatka posle rešenja kaže kako se završilo, na vlasnikovu reč; aplikacija
 5678 / 1 preskočen, analyze istih 10; provera uživo [266.4], [266.5]).
 Otvoreno pitanje za vlasnika: na uspravnom telefonu su dugmad (Next, ocene)
-ispod panela, skrol — isto na tri ekrana. **Sledeće po planu: faze 8, 7, 6**
-(grupe, plejer snimka, tura repertoara), pa faza 4 (soba) kad vlasnik vidi crtež. Pomoćnik za
+ispod panela, skrol — isto na tri ekrana. Posle toga, na vlasnikovu reč: na uspravnom telefonu dugmad su odmah ispod table, pre panela (svih pet ekrana sa tablom). **Faze 6, 7 i 8 urađene 3.10.2026** (tura repertoara, plejer snimka, grupe; aplikacija 5693 / 1 preskočen, analyze istih 10; provera uživo [266.6]–[266.8]). **Sledeće: faze 5, 9, 10, 11, 12** (editor zadatka, My games i uvoz, poređenje repertoara, My Assignments i stavke domaćeg, pregled domaćeg), pa faza 4 (soba) kad vlasnik vidi crtež. Pomoćnik za
 render sa pravim fontom je već u `test/support/render_look.dart` (§4.3 plana;
 nije test, suite ga ne uvozi). Faza 4 (soba) čeka da vlasnik vidi crtež. Renderovanje je našlo pet
 kvarova koji postoje danas (§2 plana): „New group" pokriva dugmad poslednje
