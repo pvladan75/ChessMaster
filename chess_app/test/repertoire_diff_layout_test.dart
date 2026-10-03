@@ -10,10 +10,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/features/archive/models/repertoire_diff.dart';
+import 'package:chess_app/features/archive/screens/position_games_screen.dart';
 import 'package:chess_app/features/archive/screens/repertoire_diff_screen.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
+import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_theme.dart';
 import 'package:chess_app/widgets/board_thumbnail.dart';
 
@@ -138,5 +141,50 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(_boardFen(tester), _afterNc6);
+  });
+
+  // Grading, 3.10.2026: the worker's report said no test tapped the doors.
+  group('the two doors open the chosen position', () {
+    Future<void> pumpRouted(WidgetTester tester) async {
+      ArchiveApiService.setMock(_Api());
+      tester.view.physicalSize = _window;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+      final router = GoRouter(routes: [
+        GoRoute(
+            path: '/',
+            builder: (_, __) => const RepertoireDiffScreen(subject: 'pvladan')),
+        GoRoute(
+            path: AppRoutes.analysis,
+            builder: (_, state) => Scaffold(
+                body: Text('analysis ${state.uri.queryParameters['fen']}'))),
+      ]);
+      await tester.pumpWidget(MaterialApp.router(
+          theme: robotoTheme(AppTheme.dark), routerConfig: router));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Open in Analysis opens Analysis on the chosen position',
+        (tester) async {
+      await pumpRouted(tester);
+      await tester.tap(find.text('Bb5').first);
+      await tester.pumpAndSettle();
+      await tester.tap(_button<TextButton>('Open in Analysis'));
+      await tester.pumpAndSettle();
+      expect(find.text('analysis $_afterNc6'), findsOneWidget);
+    });
+
+    testWidgets('Games through this position opens that position, for White',
+        (tester) async {
+      await pumpRouted(tester);
+      await tester.tap(_button<TextButton>('Games through this position'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      final games =
+          tester.widget<PositionGamesScreen>(find.byType(PositionGamesScreen));
+      expect(games.fenKey, 'k1');
+      expect(games.fen, _italian);
+      expect(games.color, 'w');
+    });
   });
 }
