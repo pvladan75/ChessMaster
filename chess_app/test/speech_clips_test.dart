@@ -93,7 +93,13 @@ void main() {
   });
 
   test('manifest.json is the vocabulary, regenerated', () {
-    final onDisk = File('${_assets.path}/manifest.json').readAsStringSync();
+    // Line endings are the checkout's, not the vocabulary's: a fresh clone on
+    // Windows writes this file with CRLF (.gitattributes, `text=auto`), and
+    // the generator writes LF. Measured 3.10.2026 — every fresh worktree failed
+    // here while the tree the tool had rewritten passed.
+    final onDisk = File('${_assets.path}/manifest.json')
+        .readAsStringSync()
+        .replaceAll('\r\n', '\n');
     expect(onDisk, SpeechVocabulary.manifestText(),
         reason: 'run `dart run tool/speech_manifest.dart`');
   });
