@@ -162,7 +162,10 @@ says the old word.
 
 **D8. The rate slider is untouched** until the device engine goes (phase 4).
 The clips are one rate; the slider keeps meaning what it means for the
-modules still on the device voice.
+modules still on the device voice. *Settled 3.10.2026 with the device voice's
+deletion: the slider went with it, on the owner's word — the clips were cut
+at one tempo, and stretching them is the kind of thing his ear refused in
+phase 0.*
 
 **D9. The clip voice and the device voice share one queue.** `SpeechService`
 has one `speaking` state and one `_lastSpoken`; a stitched line and a
@@ -498,10 +501,31 @@ red. A pre-existing screen case had never drawn the fork it was written for
 (five holes, which the tour folds); rewritten openly. Live items
 [265.18]–[265.20].
 
-**With this every module speaks from the clips.** What is left of phase 4
-is its last step, put to the owner as its own question: delete
-`flutter_tts`, `speak(String)`, `app_speech_language`, and decide the rate
-slider.
+**With this every module speaks from the clips.**
+
+### Phase 4, the last step — the device voice deleted `[lead]` — done 3.10.2026
+
+On the owner's word („Slažem se sa tvojim preporukama oko brisanja glasa iz
+uredjaja, podešavanja"): `flutter_tts` is out of `pubspec.yaml` and the
+generated plugin registrants; `TtsEngine`, `FlutterTtsEngine`,
+`speak(String)`, the voice list, `pickLanguage` / `fitsAppLanguage`, the
+`noVoice` state, `refresh`, `setLanguage`, `setRate` and the measured
+reading speed (`charsPerSecond`) are gone from `SpeechService`, which is
+clips only now — `init(enabled:, clipVoice:, clipBundle:)`, `speakLine`,
+`stop`, `forget`, and the one queued slot; `SpeakableInfo` takes a required
+`line`; Settings keeps `Speak messages` and `Test` (a stitched move and
+„Checkmate."), and loses the language list, the rate slider and „Check for
+voices again"; `app_speech_rate` and `app_speech_language` are read by
+nobody (a stored value is left where it is); the manual's voice paragraph
+says the voice ships with the app. `speech_service_test` was rewritten for
+the clips (15 cases; its device cases — which voice is picked, a listed but
+uninstalled language, the rate, the reading speed — went with the code,
+`git log -S FakeTts`), and every gate's fake engine with it. Three lead
+mutations, each red on its case. `lib/core/services/speech_text.dart`
+(`speakable`, notation to words for a string voice) stays, because
+`tutorial_language.dart` still imports it. Live item [265.21].
+
+The deletion is a deletion, so it was done by the lead, not a worker.
 
 ### Phase 4 — the other modules, one table each `[briefed after phase 3]`
 
@@ -511,13 +535,11 @@ drill (4c, built); the walkthrough (4d, built). Each gets its own table in the s
 it is built, because the owner has said the words on the screens are not
 final and settling them is a walk through the app, module by module.
 
-Two decisions belong to this phase and are not made now: the walkthrough's
-„Your note: …" (the lead's recommendation is the fixed sentence „You left a
-note here." with the note on the screen; the alternative is the open door of
-§2, rendered when the note is saved, by its author's account, the way a
-narration is); and the last step, where `flutter_tts` and `speak(String)` are
-deleted, `app_speech_language` with them, and the rate slider either goes or
-becomes a playback speed.
+Two decisions belonged to this phase, and both are made (3.10.2026): the
+walkthrough's „Your note: …" is the fixed sentence „You left a note here."
+with the note on the screen (4d); and the last step deleted `flutter_tts`,
+`speak(String)` and `app_speech_language`, and the rate slider with them
+rather than as a playback speed (the record above).
 
 ## 5. Not in this plan
 

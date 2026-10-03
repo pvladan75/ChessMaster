@@ -21,7 +21,7 @@ some countries), so many users are minors, which decides several rules below.
 ## Commands
 
 ```bash
-cd chess_app && flutter test          # 5627 tests, 1 skipped, rest green (measured 3.10.2026)
+cd chess_app && flutter test          # 5605 tests, 1 skipped, rest green (measured 3.10.2026)
 cd chess_app && flutter analyze       # exits 1 on 22 known infos — read the list
 cd chess_backend && npm test          # node --test, 2050 without TEST_DATABASE_URL, 2214 with it (both measured 1.10.2026)
 cd chess_backend && npm run dev       # nodemon, port 3000
@@ -1347,7 +1347,15 @@ here.", the note drawn) and the return beat speak, a trunk move stays
 silent. „42 percent" is one word to the SDK and „42 of 100 games" is four,
 so **an approved wording is a claim about the instrument** and the share is
 said „in 42 of 100 games"; and a five-reply fixture the tour folds to
-nothing had never drawn the fork its case measured.
+nothing had never drawn the fork its case measured. Then the device voice
+deleted (→ **5605**, a full run the same day with nothing else running;
+analyze the same 22; the count falls by the service's device cases):
+`flutter_tts` out of the app, `SpeechService` clips only, `SpeakableInfo`
+with a required line, Settings down to the switch and `Test`, the rate
+slider deleted rather than turned into a playback speed. **A deletion's
+first grep is for the fakes** — six test files implemented the engine's
+interface, each with a case whose only load-bearing half was its source
+check.
 Phase 6 of
 `docs/PLAN-EXERCISE.md` (a verdict from the device's engine) was closed unbuilt
 by the owner on 19.9.2026: where no tablebase answers, the trainer judges. Every change of these numbers,

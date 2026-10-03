@@ -10778,6 +10778,13 @@ odlazi na kraj spiska u alatu.
     pritiska baš to dugme, i to dugme je na ekranu.
     Potrebno: Windows (tastatura).
 
+16. [ ] **Glas uređaja je obrisan: Settings ima samo `Speak messages` i `Test`, a svaki ekran govori iz klipova.** [265.21]
+   O čemu se radi: Poslednji korak plana `PLAN-GOVOR-IZ-KLIPOVA.md` (3.10.2026, na tvoju reč): `flutter_tts` je van aplikacije. U Settings nema liste jezika (`Speech language`), klizača brzine (`Speech rate`) ni `Check for voices again`; `Test` pušta „White plays rook a8. Checkmate." iz klipova. Ovo zamenjuje svaku stariju stavku koja pominje izbor glasa ili brzinu govora. Na uređaju bez sistemskog glasa (Windows bez instaliranih glasova) govor radi isto.
+   Gde: `Settings` → kartica govora.
+   Uradi: Pogledaj karticu; pritisni `Test`; isključi i uključi `Speak messages`; pa otvori zagonetku i završnicu i slušaj.
+   Treba da vidiš: Kartica ima prekidač, tekst i `Test`, ništa drugo; `Test` govori Andrewovim glasom iz klipova; nigde u aplikaciji sistemski glas telefona ili Windowsa; Windows bez instaliranih glasova govori isto kao sa njima.
+   Potrebno: Windows i telefon.
+
 ### Podešavanja i izgled — Cela aplikacija
 
 1. [ ] **Reč „studio” se sreće samo u imenu „Tutorial studio”** [131.5]

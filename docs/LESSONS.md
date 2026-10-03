@@ -10284,3 +10284,18 @@ drops to none, so the fork it measured at 360 x 640 was never drawn — found
 only because the new gate asked for the chips. And **a boundary nobody put
 a fixture on is a mutation's first find**: `<1` became `<2` and survived,
 because no share between 1 and 2 percent existed anywhere in the tests.
+
+The device voice deleted, the last step of `PLAN-GOVOR-IZ-KLIPOVA.md`:
+5627 → **5605** (the service's 35 device cases out and 15 clip cases
+in; the two D9 cases of a String beside a line out; the rest unchanged, the
+gates' fake engines deleted with nothing to assert). **A deletion's first
+grep is for the fakes**: six test files implemented `TtsEngine`, and each
+had a case named „the device voice is never asked" whose assertion was on
+the fake — once the type is gone, those cases keep only their source check,
+which is the half that was ever load-bearing. **A class-removing script
+that takes „the comment above" takes the file's header** when the class
+is the first thing after it: two of the seven files would have lost their
+doc comment, caught because the script asserted on a sentence in that
+comment afterwards. And **an assertion that a word is gone is an assertion
+about the word's neighbours too**: „no `device` left" tripped on
+`devicePixelRatio`, and the fix is a word boundary, not a shorter check.

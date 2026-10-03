@@ -256,14 +256,29 @@ i **baca grešku na potez koji ne ume da kaže**; ekran gasi glas u
 `dispose`, a pri kretanju i dalje ne zove `stop()`. Kapija
 `speech_walkthrough_test` 17 slučajeva + 24 čista; 20 mutacija, jedna
 preživela (granica 1%) dobila slučaj. Provera uživo [265.18]–[265.20].
-**Svi moduli sad govore iz klipova**; ostaje poslednji korak faze 4 —
-brisanje `flutter_tts`, `speak(String)`, `app_speech_language` i odluka o
-klizaču brzine — kao pitanje vlasniku.
+**Svi moduli sad govore iz klipova.**
 
-**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle faze 4d: **5627** (1
-preskočen; 5596 pre nje), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova
-provera uživo [265.1]–[265.20]; pa poslednji korak faze 4 — brisanje
-`flutter_tts` i glasa uređaja, posle vlasnikovog odgovora o klizaču brzine.
+**Poslednji korak faze 4, glas uređaja obrisan, 3.10.2026** (lead, na
+vlasnikovu reč — brisanje se ne delegira): `flutter_tts` van `pubspec.yaml`
+i generisanih registara dodataka; `SpeechService` je samo klipovi
+(`init(enabled:, clipVoice:)`, `speakLine`, `stop`, `forget`, jedno mesto u
+redu) — bez `speak(String)`, liste glasova, `noVoice` stanja, `refresh`,
+`setLanguage`, `setRate` i izmerene brzine čitanja; `SpeakableInfo` traži
+`line`; Settings zadržava `Speak messages` i `Test` (spojen potez i
+„Checkmate."), a gubi listu jezika, klizač brzine i „Check for voices
+again" (klizač obrisan, ne pretvoren u brzinu reprodukcije — klipovi su
+sečeni u jednom tempu); `app_speech_rate` i `app_speech_language` niko ne
+čita; priručnik kaže da glas ide uz aplikaciju. `speech_service_test`
+prepisan za klipove (15 slučajeva), fejk motor izbačen iz svih kapija; tri
+lead-ove mutacije crvene; analyze istih 22. `speech_text.dart` ostaje jer ga
+`tutorial_language.dart` uvozi. Provera uživo [265.21]. **Plan
+`PLAN-GOVOR-IZ-KLIPOVA.md` je time ceo u kodu**; ostaje vlasnikova provera
+uživo [265.1]–[265.21] i, po njoj, eventualno treći set brojeva.
+
+**ODAKLE DALJE:** puni prolaz aplikacije 3.10.2026 posle brisanja glasa
+uređaja: **5605** (1 preskočen; 5627 pre njega — pada za slučajeve
+obrisanog koda), upisano u `CLAUDE.md` i `LESSONS.md`; vlasnikova provera
+uživo [265.1]–[265.21]; plan je ceo u kodu.
 
 ## Teme u domaćem: čip radi ono što piše — 1.10.2026, komitovano na `master` i gurnuto; provera uživo [263.2]
 
