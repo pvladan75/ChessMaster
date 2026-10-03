@@ -8,8 +8,16 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Roboto from test/fonts, and the Material icon font from the SDK.
-/// Call from setUpAll.
+/// Roboto from test/fonts, and the Material icon font from the SDK when the
+/// SDK has it. Call from setUpAll.
+///
+/// Roboto is strict: it travels with the tests, and a missing file is a
+/// checkout without it. The icon font is not, because the CI runner's SDK has
+/// no `material_fonts` (both CI runs of 3.10.2026 failed every gate that
+/// loaded it in `setUpAll`) — a font read from the machine is a test of the
+/// machine. It changes no measurement: an `Icon` is a box of its own size
+/// whatever its glyph, so without the font a picture shows squares where the
+/// icons are and every rectangle a gate asserts is the same.
 Future<void> loadRenderFonts() async {
   final roboto = FontLoader('Roboto');
   for (final n in [
@@ -21,13 +29,12 @@ Future<void> loadRenderFonts() async {
         File('test/fonts/$n').readAsBytesSync().buffer.asByteData()));
   }
   await roboto.load();
-  final root = Platform.environment['FLUTTER_ROOT']!;
+  final root = Platform.environment['FLUTTER_ROOT'];
+  final iconFile = File(
+      '$root/bin/cache/artifacts/material_fonts/materialicons-regular.otf');
+  if (root == null || !iconFile.existsSync()) return;
   final icons = FontLoader('MaterialIcons')
-    ..addFont(Future.value(File(
-            '$root/bin/cache/artifacts/material_fonts/materialicons-regular.otf')
-        .readAsBytesSync()
-        .buffer
-        .asByteData()));
+    ..addFont(Future.value(iconFile.readAsBytesSync().buffer.asByteData()));
   await icons.load();
 }
 
