@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:chess_app/widgets/adaptive_card_grid.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
+import 'package:chess_app/features/archive/widgets/archive_doors.dart';
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/models/archive_subject.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
@@ -169,17 +171,34 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
         title: const Text('My games'),
         backgroundColor: context.colors.surface,
         foregroundColor: context.colors.textPrimary,
+        actions: [
+          // In the bar on a phone too: the button that closed the list sat
+          // below every card and every import, out of reach on a long one.
+          TextButton.icon(
+            onPressed: () => context.push(AppRoutes.archiveImport),
+            icon: const Icon(Icons.file_upload),
+            label: const Text('Import games'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          for (final subject in subjects)
-            _SubjectCard(
-              subject: subject,
-              onDelete: () => _deleteSubject(subject),
-            ),
-          const SizedBox(height: AppSpacing.lg),
+          // Peer cards row by row, each row as tall as its tallest card: a
+          // grid's one cell height left every card some 65 px of empty band
+          // under its doors at 1536 (grading, 3.10.2026).
+          AdaptiveCardRows(
+            children: [
+              for (final subject in subjects)
+                _SubjectCard(
+                  subject: subject,
+                  onDelete: () => _deleteSubject(subject),
+                ),
+            ],
+          ),
           if (runs.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Recent imports',
               style: AppText.title.copyWith(color: context.colors.textPrimary),
@@ -187,14 +206,6 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
             const SizedBox(height: AppSpacing.sm),
             for (final run in runs) _RunRow(run: run),
           ],
-          const SizedBox(height: AppSpacing.xl),
-          Center(
-            child: FilledButton.icon(
-              onPressed: () => context.push(AppRoutes.archiveImport),
-              icon: const Icon(Icons.file_upload),
-              label: const Text('Import more games'),
-            ),
-          ),
         ],
       ),
     );
@@ -211,7 +222,7 @@ class _SubjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: context.colors.surface,
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadii.lg),
         side: BorderSide(color: context.colors.border),
@@ -239,41 +250,12 @@ class _SubjectCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: AppSpacing.xs),
             Text(
               'Games: ${subject.games}',
               style: AppText.body.copyWith(color: context.colors.textSecondary),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
-              children: [
-                FilledButton.icon(
-                  onPressed: () =>
-                      context.push(AppRoutes.archiveLeaksPath(subject.subject)),
-                  icon: const Icon(Icons.search),
-                  label: const Text('View opening leaks'),
-                ),
-                FilledButton.icon(
-                  onPressed: () => context.push(
-                      '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(subject.subject)}'),
-                  icon: const Icon(Icons.account_tree_outlined),
-                  label: const Text('Repertoire from games'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor:
-                        context.colors.brand.withValues(alpha: 0.08),
-                    foregroundColor: context.colors.brand,
-                  ),
-                ),
-                FilledButton.icon(
-                  onPressed: () => context
-                      .push(AppRoutes.archiveProfilePath(subject.subject)),
-                  icon: const Icon(Icons.person_outline),
-                  label: const Text('Profile and habits'),
-                ),
-              ],
-            ),
+            const SizedBox(height: AppSpacing.xs),
+            ArchiveDoors(subject: subject.subject),
           ],
         ),
       ),

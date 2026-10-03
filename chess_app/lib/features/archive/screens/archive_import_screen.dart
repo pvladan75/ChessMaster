@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:chess_app/features/archive/models/archive_run.dart';
 import 'package:chess_app/features/archive/services/archive_api_service.dart';
+import 'package:chess_app/features/archive/widgets/archive_doors.dart';
 import 'package:chess_app/features/archive/widgets/import_counters.dart';
-import 'package:chess_app/routing/app_routes.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/app_feedback.dart';
@@ -82,10 +81,10 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
           setState(() {
             _isUploading = false;
           });
+          // A finished import is said in the result card (R3). A failed one
+          // that names its cause still says it as a message, as before.
           if (run.status == 'failed' && run.error != null) {
             AppFeedback.error(context, run.error!);
-          } else if (run.status == 'done') {
-            AppFeedback.success(context, 'Import completed.');
           }
         }
       } catch (e) {
@@ -104,6 +103,7 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final run = _run;
     return Scaffold(
       backgroundColor: context.colors.canvas,
       appBar: AppBar(
@@ -111,69 +111,107 @@ class _ArchiveImportScreenState extends State<ArchiveImportScreen> {
         backgroundColor: context.colors.surface,
         foregroundColor: context.colors.textPrimary,
       ),
-      body: Padding(
+      // One column of reading width in the middle of the window, not a field
+      // the width of the window (R1 of docs/PLAN-EKRANI.md).
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Username on Lichess / Chess.com:',
+                    style: AppText.bodyBold
+                        .copyWith(color: context.colors.textPrimary)),
+                const SizedBox(height: AppSpacing.sm),
+                TextField(
+                  controller: _usernameController,
+                  enabled: !_isUploading,
+                  style:
+                      AppText.body.copyWith(color: context.colors.textPrimary),
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    hintText: 'e.g. magnuscarlsen',
+                    hintStyle:
+                        AppText.body.copyWith(color: context.colors.textMuted),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: _isUploading ? null : _pickAndUpload,
+                    icon: const Icon(Icons.file_upload),
+                    label:
+                        Text(_isUploading ? 'Importing...' : 'Select PGN file'),
+                  ),
+                ),
+                if (run != null) ...[
+                  const SizedBox(height: AppSpacing.lg),
+                  _ResultCard(run: run, running: _isUploading),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The running and the finished import, said where the result is (R3): until
+/// phase 9 „Import completed." was a snackbar that went away in a few seconds
+/// over four figures that stayed.
+class _ResultCard extends StatelessWidget {
+  const _ResultCard({required this.run, required this.running});
+
+  final ArchiveRun run;
+  final bool running;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = run.status == 'done';
+    // Offered rather than jumped to. The four counters are the answer this
+    // screen exists to give, and navigating past them the moment a run
+    // finishes throws that away.
+    final offerDoors = done && (run.gamesStored + run.gamesDuplicate) > 0;
+    return Card(
+      color: context.colors.surface,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        side: BorderSide(color: context.colors.border),
+      ),
+      child: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Username on Lichess / Chess.com:',
-                style: AppText.bodyBold
-                    .copyWith(color: context.colors.textPrimary)),
-            const SizedBox(height: AppSpacing.sm),
-            TextField(
-              controller: _usernameController,
-              enabled: !_isUploading,
-              style: AppText.body.copyWith(color: context.colors.textPrimary),
-              decoration: InputDecoration(
-                border: const OutlineInputBorder(),
-                hintText: 'e.g. magnuscarlsen',
-                hintStyle:
-                    AppText.body.copyWith(color: context.colors.textMuted),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            ElevatedButton.icon(
-              onPressed: _isUploading ? null : _pickAndUpload,
-              icon: const Icon(Icons.file_upload),
-              label: Text(_isUploading ? 'Importing...' : 'Select PGN file'),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            if (_run != null) ...[
-              ImportCounters(run: _run!),
-              if (_run!.status == 'done' &&
-                  (_run!.gamesStored + _run!.gamesDuplicate) > 0) ...[
-                const SizedBox(height: AppSpacing.md),
-                // Offered rather than jumped to. The four counters above are
-                // the answer this screen exists to give, and navigating past
-                // them the moment a run finishes throws that away.
-                FilledButton.icon(
-                  onPressed: () =>
-                      context.push(AppRoutes.archiveLeaksPath(_run!.subject)),
-                  icon: const Icon(Icons.search),
-                  label: const Text('View opening leaks'),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                FilledButton.icon(
-                  onPressed: () => context.push(
-                      '${AppRoutes.archiveRepertoire}?subject=${Uri.encodeQueryComponent(_run!.subject)}'),
-                  icon: const Icon(Icons.account_tree_outlined),
-                  label: const Text('Repertoire from games'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor:
-                        context.colors.brand.withValues(alpha: 0.08),
-                    foregroundColor: context.colors.brand,
+            if (done) ...[
+              Row(
+                children: [
+                  Icon(Icons.check_circle_outline,
+                      color: context.colors.success),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text('Import completed.',
+                        style: AppText.headline
+                            .copyWith(color: context.colors.textPrimary)),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                FilledButton.icon(
-                  onPressed: () =>
-                      context.push(AppRoutes.archiveProfilePath(_run!.subject)),
-                  icon: const Icon(Icons.person_outline),
-                  label: const Text('Profile and habits'),
-                ),
-              ],
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            ImportCounters(run: run),
+            if (offerDoors) ...[
+              const SizedBox(height: AppSpacing.sm),
+              ArchiveDoors(subject: run.subject),
+            ],
+            if (running) ...[
               const SizedBox(height: AppSpacing.md),
-              if (_isUploading) const CircularProgressIndicator(),
+              const Center(child: CircularProgressIndicator()),
             ],
           ],
         ),
