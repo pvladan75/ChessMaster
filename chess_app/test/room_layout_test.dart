@@ -362,6 +362,9 @@ void main() {
       await tester.pump();
       // Closed and opened again: the text is the move's, not the sheet's.
       Navigator.of(tester.element(field)).pop();
+      // The first frame after a pop starts the sheet's way out; the second
+      // runs it. One pump of 400 ms only draws frame 0.
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
       expect(field, findsNothing);
       await tester.tap(find.text('Comment…'));
@@ -370,6 +373,9 @@ void main() {
       expect(tester.widget<TextField>(field).controller?.text, 'Castle next',
           reason: 'the comment belonged to the sheet, not to the move');
       Navigator.of(tester.element(field)).pop();
+      // The first frame after a pop starts the sheet's way out; the second
+      // runs it. One pump of 400 ms only draws frame 0.
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
     });
 
