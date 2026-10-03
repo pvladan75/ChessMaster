@@ -334,19 +334,28 @@ class _MistakeDrillScreenState extends State<MistakeDrillScreen> {
     final best = _san(item, item.bestUci!);
     final playedInGame = _san(item, item.playedUci);
     final tried = _playerMoveUci;
-    final String sentence;
+    // One short sentence a line: in one long sentence a move near the panel's
+    // edge broke at its hyphen — „O-" on one line and „O" on the next
+    // (rendered 3.10.2026 at 1536 x 792).
+    final List<String> sentences;
     if (good) {
-      sentence = 'Well done! You played the best move.';
+      sentences = ['Well done! You played the best move.'];
     } else if (tried == null) {
-      sentence = 'The best move was $best. In the game you played '
-          '$playedInGame.';
+      sentences = [
+        'The best move was $best.',
+        'In the game you played $playedInGame.',
+      ];
     } else {
-      sentence = 'Incorrect. The best move was $best, and you tried '
-          '${_san(item, tried)}. In the game you played $playedInGame.';
+      sentences = [
+        'Incorrect.',
+        'The best move was $best.',
+        'You tried ${_san(item, tried)}.',
+        'In the game you played $playedInGame.',
+      ];
     }
     return (
       lines: [
-        sentence,
+        ...sentences,
         if (item.kind == 'engine') ...[
           'Loss: ${item.swingCp != null ? "${item.swingCp} cp" : "?"}',
           if (item.theme != null) 'Theme: ${item.theme}',
