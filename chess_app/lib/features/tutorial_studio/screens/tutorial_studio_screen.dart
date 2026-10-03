@@ -1,13 +1,26 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart'
-    show debugDefaultTargetPlatformOverride, kIsWeb;
+    show ValueListenable, debugDefaultTargetPlatformOverride, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_chess_board/flutter_chess_board.dart';
 
+import 'package:chess_app/core/services/board_engine.dart';
+import 'package:chess_app/core/services/position_lookups.dart';
 import 'package:chess_app/core/services/tutorial_language.dart';
+import 'package:chess_app/features/analysis_studio/widgets/analysis_panels.dart';
+import 'package:chess_app/features/analysis_studio/widgets/opening_explorer_panel_widget.dart';
+import 'package:chess_app/features/analysis_studio/widgets/syzygy_panel_widget.dart';
+import 'package:chess_app/features/preparation/services/preparation_layout.dart';
+import 'package:chess_app/services/app_settings_service.dart';
+import 'package:chess_app/widgets/ai_studio/board_eval_widgets.dart';
+import 'package:chess_app/widgets/board_overlay_painter.dart' show EngineArrow;
+import 'package:chess_app/widgets/board_view_menu.dart';
+import 'package:chess_app/widgets/engine_settings_dialog.dart';
+import 'package:chess_app/widgets/stockfish_analysis_widget.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node.dart';
 import 'package:chess_app/features/analysis_studio/models/analysis_node_cursor.dart';
 import 'package:chess_app/features/analysis_studio/models/pgn_span.dart';
@@ -132,6 +145,8 @@ class TutorialStudioScreen extends StatefulWidget {
     this.lessonApi,
     this.narrationStore,
     this.positionLibrary,
+    this.engine,
+    this.lookups,
   });
 
   /// The map's own column, left of the board, where the window has room for
@@ -164,6 +179,13 @@ class TutorialStudioScreen extends StatefulWidget {
   /// room's column already takes, so a test answers for the shelf in one
   /// place rather than faking a picker.
   final PositionLibraryService? positionLibrary;
+
+  /// The engine's glue, and the tablebase and explorer look-ups, for the
+  /// `Engine` tab (`docs/PLAN-MOTOR-I-PANELI.md`, phases 4–5). A test passes
+  /// its own to see what is asked; the screen builds, owns and disposes the
+  /// ones it was not given.
+  final BoardEngine? engine;
+  final PositionLookups? lookups;
 
   @override
   State<TutorialStudioScreen> createState() => _TutorialStudioScreenState();
@@ -203,6 +225,35 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _labelsController = TextEditingController();
   int _selectedTab = 0;
+
+  // ── the board's panels (docs/PLAN-MOTOR-I-PANELI.md, phases 4–5) ─────
+  late final BoardEngine _engine = widget.engine ?? BoardEngine();
+  late final PositionLookups _lookups = widget.lookups ?? PositionLookups();
+  late final bool _ownsLookups = widget.lookups == null;
+  ValueListenable<TickerModeData>? _shown;
+  bool _engineStarted = false;
+
+  /// The reader's board-size setting, which only ever shrinks the board.
+  double get _boardScale =>
+      AppSettingsService.instance.boardSizeScale.clamp(0.0, 1.0).toDouble();
+
+  /// Index of the `Engine` tab in [_selectedTab] (Flow · Tree · PGN · Engine).
+  static const int _engineTab = 3;
+
+  /// Whether any row of ▦ is ticked — what brings the `Engine` tab.
+  bool get _anyPanelShown =>
+      writingPanels.any((p) => writingPanelShown(PanelScope.studio, p.$2));
+
+  bool get _engineShown =>
+      writingPanelShown(PanelScope.studio, 'engine_analysis');
+  bool get _explorerShown =>
+      writingPanelShown(PanelScope.studio, 'opening_explorer');
+  bool get _tablebaseShown => writingPanelShown(PanelScope.studio, 'syzygy');
+
+  /// The tab that is open: the `Engine` tab is only there while a row is
+  /// ticked, and when it goes the Flow opens.
+  int get _tab =>
+      _selectedTab == _engineTab && !_anyPanelShown ? 0 : _selectedTab;
 
   /// The PGN tab holds text that was not applied. Kept by the panel through
   /// `onEdited`; nothing draws from it, so it is a field and not state.
@@ -305,6 +356,79 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _refillFields();
     unawaited(_adoptStoredDraft());
     unawaited(_loadNarrationTake());
+    // Nothing is asked of the engine or the look-ups until a row of ▦ is
+    // ticked: [_syncPanels] tells the look-ups which are drawn, and the
+    // engine is started with its panel.
+    _syncPanels();
+    _lookups.addListener(_onLookupsChanged);
+    AppSettingsService.instance.addListener(_onPanelsChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final shown = TickerMode.getValuesNotifier(context);
+    if (!identical(shown, _shown)) {
+      _shown?.removeListener(_onShownChanged);
+      _shown = shown..addListener(_onShownChanged);
+      // Attaching is idempotent; on arrival the notifier does not change, so
+      // the listener alone would never attach (phase 1 of the same plan).
+      if (shown.value.enabled) _attachEngine();
+    }
+  }
+
+  void _onLookupsChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// A row of ▦ was ticked or cleared: tell the look-ups, start the engine
+  /// with its panel, and let the `Engine` tab come or go.
+  void _onPanelsChanged() {
+    if (!mounted) return;
+    _syncPanels();
+    setState(() {});
+  }
+
+  void _syncPanels() {
+    _lookups.show(tablebase: _tablebaseShown, explorer: _explorerShown);
+    if (_engineShown && !_engineStarted) {
+      _engineStarted = true;
+      unawaited(_engine.init());
+    }
+  }
+
+  /// Leaving this screen — a route over it, or `dispose` — switches the
+  /// engine off and releases it, as Analysis and Preparation do; coming back
+  /// leaves it off until asked again.
+  void _onShownChanged() {
+    final shown = _shown?.value.enabled ?? true;
+    if (shown) {
+      _attachEngine();
+      return;
+    }
+    if (_engine.isOn) {
+      setState(_engine.reset);
+    }
+    _engine.detach();
+  }
+
+  void _attachEngine() {
+    _engine.attach(
+      getFen: () => _c.cursor.fen,
+      onRefused: (reason) {
+        if (!mounted) return;
+        AppFeedback.error(context, 'Engine cannot calculate: $reason');
+      },
+      onChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
+  }
+
+  /// The board's position moved: ask the panels that are drawn about it.
+  void _askAbout(String fen) {
+    if (_engine.isOn) _engine.triggerAnalysis(fen);
+    _lookups.lookUp(fen);
   }
 
   /// This device's take for the open tutorial, for [_narrationBanner].
@@ -342,6 +466,11 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     if (!_leftWithoutWriting) unawaited(_c.flush());
     _c.removeListener(_onController);
     _c.dispose();
+    _shown?.removeListener(_onShownChanged);
+    AppSettingsService.instance.removeListener(_onPanelsChanged);
+    _lookups.removeListener(_onLookupsChanged);
+    if (_ownsLookups) _lookups.dispose();
+    _engine.detach();
     super.dispose();
   }
 
@@ -589,6 +718,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     } else if (!identical(_seenCursor, _c.cursor)) {
       _boardController.loadFen(_c.cursor.fen);
       _seenCursor = _c.cursor;
+      _askAbout(_c.cursor.fen);
     }
     setState(() {});
   }
@@ -602,6 +732,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
     _labelsController.text = _draft.tags.join(', ');
     _boardController.loadFen(_c.cursor.fen);
     _seenCursor = _c.cursor;
+    // initState has not built the look-ups' listener yet; asking is cheap
+    // and idempotent either way.
+    _askAbout(_c.cursor.fen);
   }
 
   void _undo() {
@@ -1014,22 +1147,29 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             // is the one that has the most to put in a row.
             final boardPaneWidth =
                 constraints.maxWidth - 460 - AppSpacing.md * 3;
-            final maxHeightLimit = (constraints.maxHeight - 120).clamp(
-              280.0,
-              double.infinity,
-            );
+            // What the window has left, not a guess: the height under the bar
+            // less the padding and the two rows that stand under the board
+            // ([_underBoard], measured); and the width the authoring pane
+            // leaves less the evaluation bar's place, which is kept whether
+            // the bar is drawn or not so that ticking it moves nothing (D5 of
+            // `docs/PLAN-MOTOR-I-PANELI.md`). The reader's board-size setting
+            // only ever shrinks it.
+            final scale = _boardScale;
+            final byHeight =
+                constraints.maxHeight - 2 * AppSpacing.md - _underBoard;
+            final byWidth = boardPaneWidth - PreparationLayout.evalSlot;
             final boardSize = wide
-                ? boardPaneWidth.clamp(280.0, maxHeightLimit)
-                : constraints.maxWidth - AppSpacing.lg * 2;
+                ? math.max(280.0, math.min(byHeight, byWidth)) * scale
+                : (constraints.maxWidth - AppSpacing.lg * 2) * scale;
 
             final board = _boardColumn(boardSize.toDouble());
             // The map gets a column of its own left of the board **when the
             // board keeps its size** — the room the board pane has beyond the
-            // board is the test, and the board's own formula is untouched, so
-            // no window makes the board smaller for the map's sake. Phase 4 of
-            // `docs/PLAN-MAPA-DELOVA.md`.
+            // board and its evaluation slot is the test, and the board's own
+            // formula is untouched, so no window makes the board smaller for
+            // the map's sake. Phase 4 of `docs/PLAN-MAPA-DELOVA.md`.
             final mapBeside = wide &&
-                boardPaneWidth - boardSize >=
+                boardPaneWidth - PreparationLayout.evalSlot - boardSize >=
                     TutorialStudioScreen.mapColumnWidth + AppSpacing.md;
             if (!wide) {
               // **The tab strip does not scroll.** The owner's report of
@@ -1100,7 +1240,18 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
                   ],
                   Expanded(
                     key: const Key('board-pane'),
-                    child: Center(child: SingleChildScrollView(child: board)),
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _evalSlot(boardSize.toDouble()),
+                            board,
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   _authoringPaneWide(mapInPane: !mapBeside),
@@ -1112,6 +1263,45 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       ),
     );
   }
+
+  /// What stands under the board in [_boardColumn]: the marking bar and the
+  /// move strip, **measured as Windows draws them** (1536 x 792, Roboto) and
+  /// held by `test/studio_panels_test.dart`, which fails when the strip is a
+  /// scroll away.
+  static const double _underBoard = 128;
+
+  /// The evaluation bar's place beside the board, there whether the bar is
+  /// drawn or not — so that switching the engine's bar on moves nothing.
+  Widget _evalSlot(double boardSize) {
+    return SizedBox(
+      key: const Key('eval-slot'),
+      width: PreparationLayout.evalSlot,
+      height: boardSize,
+      child: _engine.showEvalBar
+          ? Padding(
+              padding: const EdgeInsets.only(right: PreparationLayout.evalGap),
+              child: VerticalEvalBarWidget(
+                eval: _engine.eval,
+                evalString: _engine.evalString,
+                depth: _engine.evalDepth,
+                height: boardSize,
+                orientation: _orientation,
+              ),
+            )
+          : null,
+    );
+  }
+
+  /// The ▦ in the strip: arrows and board size as Preparation's, and the
+  /// three panel rows this screen remembers for itself.
+  static const Widget _viewMenu = BoardViewMenu(
+    arrows: true,
+    boardSize: true,
+    trailing: _studioPanelEntries,
+  );
+
+  static List<PopupMenuEntry<void>> _studioPanelEntries(BuildContext context) =>
+      writingPanelMenuEntries(context, PanelScope.studio);
 
   Widget _boardColumn(double boardSize) {
     return Column(
@@ -1138,7 +1328,9 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
             centerLabel:
                 'Part ${_draft.selected + 1} of ${_draft.sections.length}',
             iconSize: 20,
+            dense: boardSize < 480 ? true : null,
             onFlipBoard: _flipBoard,
+            trailing: const [_viewMenu],
           ),
         ),
       ],
@@ -1189,7 +1381,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         // `docs/PLAN-PRIPREMA.md`).
         arrows: _c.openBeat.arrows,
         squares: _c.openBeat.squares,
-        engineArrows: const [],
+        engineArrows: _engineArrows(),
         lastMoveFrom: _c.lastMove?.from,
         lastMoveTo: _c.lastMove?.to,
         onMove: _onMove,
@@ -2199,23 +2391,33 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
         _tabButton(
           key: const Key('tok-tab'),
           label: 'Flow',
-          isSelected: _selectedTab == 0,
+          isSelected: _tab == 0,
           onTap: () => setState(() => _selectedTab = 0),
         ),
         const SizedBox(width: AppSpacing.xs),
         _tabButton(
           key: const Key('stablo-tab'),
           label: 'Tree',
-          isSelected: _selectedTab == 1,
+          isSelected: _tab == 1,
           onTap: () => setState(() => _selectedTab = 1),
         ),
         const SizedBox(width: AppSpacing.xs),
         _tabButton(
           key: const Key('pgn-tab'),
           label: 'PGN',
-          isSelected: _selectedTab == 2,
+          isSelected: _tab == 2,
           onTap: () => setState(() => _selectedTab = 2),
         ),
+        // Only while a row of ▦ is ticked (D6 A): costs no height.
+        if (_anyPanelShown) ...[
+          const SizedBox(width: AppSpacing.xs),
+          _tabButton(
+            key: const Key('studio-tab-engine'),
+            label: 'Engine',
+            isSelected: _tab == _engineTab,
+            onTap: () => setState(() => _selectedTab = _engineTab),
+          ),
+        ],
       ],
     );
   }
@@ -2328,7 +2530,7 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         IndexedStack(
-          index: _selectedTab,
+          index: _tab,
           children: [
             TutorialFlowPanel(
               root: _root,
@@ -2374,8 +2576,119 @@ class _TutorialStudioScreenState extends State<TutorialStudioScreen> {
               onEditComment: _editCommentFromText,
               onEdited: (edited) => _pgnEdited = edited,
             ),
+            // Built only while it is the open tab: a panel nobody is looking
+            // at has no business asking anything.
+            if (_anyPanelShown)
+              _tab == _engineTab ? _boardPanels() : const SizedBox.shrink(),
           ],
         ),
+      ],
+    );
+  }
+
+  // ── the board's panels: the `Engine` tab (docs/PLAN-MOTOR-I-PANELI.md) ──
+
+  /// A move tapped in a panel is a move the trainer played: it goes through
+  /// [_onMove], so a second move in a part opens a part and one is held back
+  /// while the PGN tab holds text, with the same words (D3).
+  void _playUci(String uci) {
+    if (uci.length < 4) return;
+    _onMove(
+      uci.substring(0, 2),
+      uci.substring(2, 4),
+      uci.length > 4 ? uci.substring(4, 5) : '',
+    );
+  }
+
+  List<EngineArrow> _engineArrows() {
+    if (!AppSettingsService.instance.showEngineArrows || !_engine.isOn) {
+      return const [];
+    }
+    return [
+      for (final line in _engine.lines.values)
+        if (line.bestMoveLan.length >= 4)
+          EngineArrow(
+            from: line.bestMoveLan.substring(0, 2),
+            to: line.bestMoveLan.substring(2, 4),
+            evalText: line.evaluation,
+            rank: line.multipv,
+          ),
+    ];
+  }
+
+  Future<void> _openEngineSettingsDialog() async {
+    if (!mounted) return;
+    await showEngineSettingsDialog(
+      context,
+      stockfishService: _engine.service,
+      isEngineEnabled: _engine.isOn,
+    );
+    if (mounted) setState(() {});
+  }
+
+  /// The ticked panels, stacked: the engine's lines **read, not inserted** —
+  /// a whole line put in at once would open parts nobody played (D4) — then
+  /// the explorer with the opening's name, then the tablebase. Used by the
+  /// window's fourth tab and the phone's third.
+  Widget _boardPanels() {
+    final fen = _c.cursor.fen;
+    final lines = _engine.lines.keys.toList()..sort();
+    return Column(
+      key: const Key('board-panels'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_engineShown)
+          StockfishAnalysisWidget(
+            isEngineEnabled: _engine.showEvaluation,
+            isAllowedToUseEngine: true,
+            isOnline: _engine.isOnline,
+            isCustomEngineActive: _engine.isCustomEngineActive,
+            lines: [for (final k in lines) _engine.lines[k]!],
+            orientation: _orientation,
+            analysisDepth: _engine.analysisDepth,
+            analysisLines: _engine.analysisLines,
+            onAnalysisDepthChanged: (value) {
+              _engine.setAnalysisDepth(value);
+              _engine.triggerAnalysis(fen);
+              setState(() {});
+            },
+            onAnalysisLinesChanged: (value) {
+              _engine.setAnalysisLines(value);
+              _engine.triggerAnalysis(fen);
+              setState(() {});
+            },
+            onToggleEngine: () {
+              setState(() => _engine.showEvaluation = !_engine.showEvaluation);
+              _engine.triggerAnalysis(_c.cursor.fen);
+            },
+            isShowEvalBarEnabled: _engine.showEvalBar,
+            onToggleShowEvalBar: () {
+              setState(() => _engine.showEvalBar = !_engine.showEvalBar);
+              _engine.triggerAnalysis(_c.cursor.fen);
+            },
+            onOpenSettings: (!kIsWeb && Platform.isWindows)
+                ? _openEngineSettingsDialog
+                : null,
+            onForceRestart: () {
+              _engine.stopNow();
+              _engine.triggerAnalysis(_c.cursor.fen);
+            },
+          ),
+        if (_tablebaseShown)
+          SyzygyPanelWidget(
+            isEligible: _lookups.tablebaseEligible,
+            isLoading: _lookups.tablebaseLoading,
+            result: _lookups.tablebase,
+            onMoveSelected: _playUci,
+          ),
+        if (_explorerShown)
+          OpeningExplorerPanelWidget(
+            isLoading: _lookups.explorerLoading,
+            result: _lookups.explorer,
+            reason: _lookups.explorerReason,
+            openingName: PositionLookups.openingName(fen),
+            onMoveSelected: _playUci,
+          ),
       ],
     );
   }

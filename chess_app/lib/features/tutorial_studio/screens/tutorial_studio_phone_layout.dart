@@ -170,7 +170,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   Widget _phonePortraitBody(BoxConstraints constraints) {
     final byWidth = constraints.maxWidth - 2 * AppSpacing.md;
     final byHeight = constraints.maxHeight * 0.34;
-    final boardSize = byWidth < byHeight ? byWidth : byHeight;
+    final boardSize = (byWidth < byHeight ? byWidth : byHeight) * _boardScale;
 
     return CustomScrollView(
       slivers: [
@@ -226,7 +226,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
   Widget _phoneLandscapeBody() {
     return LandscapeBoardLayout(
       board: (side) => BoardWithCoordinates(
-        size: side,
+        size: side * _boardScale,
         orientation: _orientation,
         builder: _chessBoard,
       ),
@@ -244,6 +244,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
           centerLabel: null,
           iconSize: 20,
           onFlipBoard: _flipBoard,
+          trailing: const [_TutorialStudioScreenState._viewMenu],
         ),
       ],
     );
@@ -260,13 +261,14 @@ extension _PhoneLayout on _TutorialStudioScreenState {
         _boardCard(boardSize),
         SizedBox(width: boardSize, child: _phoneMoveList()),
         SizedBox(
-          width: boardSize,
+          width: double.infinity,
           child: MoveNavigationControls(
             cursor: _moveCursor(),
             centerLabel: null,
             iconSize: 20,
             dense: true,
             onFlipBoard: _flipBoard,
+            trailing: const [_TutorialStudioScreenState._viewMenu],
           ),
         ),
       ],
@@ -307,7 +309,7 @@ extension _PhoneLayout on _TutorialStudioScreenState {
         _tabButton(
           key: const Key('phone-tab-line'),
           label: 'Line',
-          isSelected: _phoneTab == 0,
+          isSelected: _phoneTabOpen == 0,
           onTap: () => _selectPhoneTab(0),
         ),
         const SizedBox(width: AppSpacing.xs),
@@ -316,17 +318,36 @@ extension _PhoneLayout on _TutorialStudioScreenState {
         _tabButton(
           key: const Key('phone-tab-parts'),
           label: 'Parts',
-          isSelected: _phoneTab == 1,
+          isSelected: _phoneTabOpen == 1,
           onTap: () => _selectPhoneTab(1),
         ),
+        // Only while a row of ▦ is ticked (D7).
+        if (_anyPanelShown) ...[
+          const SizedBox(width: AppSpacing.xs),
+          _tabButton(
+            key: const Key('studio-tab-engine'),
+            label: 'Engine',
+            isSelected: _phoneTabOpen == _phoneEngineTab,
+            onTap: () => _selectPhoneTab(_phoneEngineTab),
+          ),
+        ],
       ],
     );
   }
 
+  /// Index of the `Engine` tab in [_phoneTab] (Line · Parts · Engine).
+  static const int _phoneEngineTab = 2;
+
+  /// The tab that is open: with no row ticked there is no `Engine` tab, and
+  /// the Line opens.
+  int get _phoneTabOpen =>
+      _phoneTab == _phoneEngineTab && !_anyPanelShown ? 0 : _phoneTab;
+
   Widget _phoneTabContent() {
-    return switch (_phoneTab) {
+    return switch (_phoneTabOpen) {
       0 => _phoneLineTab(),
-      _ => _phonePartsTab(),
+      1 => _phonePartsTab(),
+      _ => _boardPanels(),
     };
   }
 

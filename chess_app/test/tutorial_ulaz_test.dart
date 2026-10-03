@@ -444,6 +444,9 @@ void main() {
         // dialog the room opens on Windows, wired for Preparation's own
         // engine panel.
         'lib/features/preparation/screens/preparation_screen.dart',
+        // Phases 4–5 of `docs/PLAN-MOTOR-I-PANELI.md`: the studio's `Engine`
+        // tab hands its engine panel the same settings dialog, Windows only.
+        'lib/features/tutorial_studio/screens/tutorial_studio_screen.dart',
         // `docs/PLAN-PRIJAVA-I-PODESAVANJA.md`, D3: only Windows has a store
         // the app can keep a „Remember me" password in (Credential Manager);
         // the one place that chooses it.

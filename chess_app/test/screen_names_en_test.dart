@@ -46,6 +46,9 @@ const _allowedStudio = <String>[
   '[TutorialStudio',
   // A PGN header, written into files other programs read.
   "'Analysis Studio Session'",
+  // A widget key, never drawn: the `Engine` tab of the tutorial studio, named
+  // by `test/studio_panels_test.dart`.
+  "'studio-tab-engine'",
 ];
 
 Iterable<File> _dartFiles(String root) sync* {
