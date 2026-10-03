@@ -131,7 +131,13 @@ void main() {
         'games in the bar', (tester) async {
       await _pumpGames(tester, _window);
       expect(tester.takeException(), isNull);
-      expect(find.byType(AdaptiveCardGrid), findsOneWidget);
+      // Either half of pattern A will do; what matters is columns and no air.
+      // Widened at grading (3.10.2026): the grid's one cell height left every
+      // card some 70 px of empty band under its doors — 3a's fault again.
+      expect(
+          find.byType(AdaptiveCardGrid).evaluate().length +
+              find.byType(AdaptiveCardRows).evaluate().length,
+          1);
       final first = tester.getRect(find.text('pvladan'));
       final second = tester.getRect(find.text('anapetrovic_sah'));
       expect(second.top, closeTo(first.top, 1),
@@ -141,6 +147,12 @@ void main() {
         expect(_button<FilledButton>(door), findsNothing, reason: door);
       }
       expect(_inBar(find.text('Import games')), findsOneWidget);
+      // No empty band: the last door sits near its card's bottom edge.
+      final door = find.text('Profile and habits').first;
+      final card = find.ancestor(of: door, matching: find.byType(Card)).first;
+      expect(tester.getRect(card).bottom - tester.getRect(door).bottom,
+          lessThan(40),
+          reason: 'a card as tall as what it holds, not a fixed cell');
     });
 
     testWidgets('on a 360 dp phone: nothing overflows, Import games in the bar',

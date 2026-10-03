@@ -185,18 +185,17 @@ class _ArchiveHomeScreenState extends State<ArchiveHomeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.md),
         children: [
-          // The cards scroll with the list under them, so the grid takes the
-          // height its rows need and does not scroll on its own.
-          AdaptiveCardGrid(
-            itemCount: subjects.length,
-            tileHeight: _SubjectCard.height,
-            padding: EdgeInsets.zero,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (context, i) => _SubjectCard(
-              subject: subjects[i],
-              onDelete: () => _deleteSubject(subjects[i]),
-            ),
+          // Peer cards row by row, each row as tall as its tallest card: a
+          // grid's one cell height left every card some 65 px of empty band
+          // under its doors at 1536 (grading, 3.10.2026).
+          AdaptiveCardRows(
+            children: [
+              for (final subject in subjects)
+                _SubjectCard(
+                  subject: subject,
+                  onDelete: () => _deleteSubject(subject),
+                ),
+            ],
           ),
           if (runs.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.lg),
@@ -218,10 +217,6 @@ class _SubjectCard extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _SubjectCard({required this.subject, required this.onDelete});
-
-  /// Name row, the count, and the doors, which wrap to as many as three lines
-  /// in the narrowest card the grid draws.
-  static const double height = 208;
 
   @override
   Widget build(BuildContext context) {
