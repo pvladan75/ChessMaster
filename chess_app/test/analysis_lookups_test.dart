@@ -26,11 +26,13 @@ import 'package:chess_app/models/user_session.dart';
 import 'package:chess_app/services/app_settings_service.dart';
 import 'package:chess_app/services/session_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
-import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
+import 'package:chess_app/widgets/board/skinned_chess_board.dart';
 
 import 'support/dart_source.dart';
 
-const _afterE4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1';
+// With the en passant square: the app's `chess` package writes it after every
+// double push (the server's chess.js only when a capture is possible).
+const _afterE4 = 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1';
 
 /// The look-ups' own network: every request to the tablebase or the book.
 final List<http.Request> _asked = [];
@@ -95,10 +97,22 @@ Future<void> _open(WidgetTester tester, {required List<String> hidden}) async {
   await tester.pumpAndSettle();
 }
 
+/// Analysis's board is played by taps (`SkinnedChessBoard`), as in
+/// `analysis_motifs_hidden_test`.
 Future<void> _play(WidgetTester tester, String from, String to) async {
-  final board = find.byType(ChessBoardWithOverlay);
-  expect(board, findsOneWidget, reason: 'there is no board on the screen');
-  tester.widget<ChessBoardWithOverlay>(board).onMove(from, to, '');
+  final found = find.byType(SkinnedChessBoard);
+  expect(found, findsOneWidget, reason: 'there is no board on the screen');
+  final board = tester.getRect(found);
+  Offset at(String square) {
+    final file = square.codeUnitAt(0) - 'a'.codeUnitAt(0);
+    final rank = square.codeUnitAt(1) - '1'.codeUnitAt(0);
+    final side = board.width / 8;
+    return board.topLeft + Offset((file + 0.5) * side, (7 - rank + 0.5) * side);
+  }
+
+  await tester.tapAt(at(from));
+  await tester.pumpAndSettle();
+  await tester.tapAt(at(to));
   await tester.pumpAndSettle();
 }
 
