@@ -135,6 +135,15 @@ vlasnikova reč od 3.10.2026, počinje ekranom zagonetki (`ai_studio_screen.dart
    da li plaćena aplikacija sa „individualnog" Store naloga prolazi rečenicu
    politike o „licu koje deluje u vezi sa svojim zanimanjem" (pitanje za
    Microsoft, pismeno), i poreski režim prihoda (pitanje za knjigovođu).
+   **Istog dana: ime „Mislisha" je rezervisano u Partner Center-u (MSIX
+   aplikacija, nacrt), pitanje o tipu naloga je poslato Microsoft podršci, i
+   odluke iz `CENA-I-PRETPLATA.md` §7 su donete** — tamo su zapisane sa
+   poslom koji svaka traži; ništa od toga još nije u kodu. Tabela najgoreg
+   slučaja, predlog količina po tipu naloga, dokup, zarada po nalogu i
+   akvizicija (kanali, reklamne platforme) su u
+   `STUDIJA-CENA-I-AKVIZICIJA.md` — njen §9 ima sedam odluka za vlasnika, a
+   nalaz koji ne čeka odluku je da `USAGE_UNIT_COSTS` uopšte nije postavljen
+   u `.env`, pa procena troška na serveru danas čita nulu.
 2. **Interaktivni vodič.** Protiv prekrivača preko svakog ekrana (zastareva
    sa svakom izmenom). Za: kartica „čemu služi ovaj tab" prvi put, lista za
    prvi čas trenera na Home koja se sama štiklira iz pravih podataka, i „?"

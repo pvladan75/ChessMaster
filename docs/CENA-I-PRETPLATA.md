@@ -214,7 +214,68 @@ zajedno, i da rastom broja korisnika to postaje naš problem, a ne njihov.
 
 ---
 
-## 7. Šta treba odlučiti
+## 7. Šta je odlučeno (vlasnik, 3.10.2026)
+
+Pitanja su ispod, kako su bila postavljena. Ovo su odgovori; brojevi prate
+pitanja. **Ništa od ovoga još nije u kodu** — posao koji svaka odluka traži
+stoji uz nju.
+
+1. **Besplatno je sve što nas ništa ne košta, uz malu mesečnu količinu onoga
+   što se meri.** Besplatan nalog ima celu stranu table: analizu sa motorom na
+   uređaju, zagonetke, završnice, repertoar, svoje partije, vežbe, domaći,
+   sesiju sa tablom. Mereno (glas, AI reči, film, snimci, skener) dobija malu
+   mesečnu količinu, a plaćeni nalog veću ili neograničenu. Jedna plaćena
+   klasa za početak. Odbačeno: besplatan nalog bez ičeg merenog (niko ne vidi
+   šta kupuje) i probni period pa zid (trener proba jedne nedelje, a prvi čas
+   drži mesec dana kasnije).
+2. **Trener plaća, učenici ulaze na njegov račun, a kapija je na glasu, ne na
+   sesiji.** Sesiju sa tablom sme da pokrene svako. Glas je plaćeni deo:
+   gleda se plan onoga ko je sesiju pokrenuo i njemu se broje minuti; učeniku
+   plan ne treba. **Ovo zamenjuje odluku od 26.8.2026** („pretplata je nužan
+   uslov za ulazak u sobu", `PITANJA-ZA-ODLUKU.md`): njen razlog je bio
+   trošak sobe, a od tada gostiju više nema, sesija se ne snima, i jedino što
+   sesija košta jeste glas. *Posao:* sekunde glasa se danas knjiže svakome na
+   njegov nalog (`agora_seconds`); treba da se knjiže pokretaču sesije.
+3. **Snimci: granica na ukupnu dužinu sačuvanih snimaka po planu; kad se
+   popuni, nov snimak se odbija; ništa se nikad ne briše samo.** Granica je u
+   minutima zvuka, ne u megabajtima. Besplatan nalog ima malu, plaćeni
+   veliku. Na granici „Record" kaže da je prostor pun i upućuje na spisak;
+   vlasnik bira šta briše. Istekla pretplata zadržava sve snimljeno, ali ne
+   snima dalje dok je iznad besplatne granice. Odbačen je rok čuvanja — to bi
+   bio prvi kod koji čisti `uploads/`. *Posao:* nov brojač (sačuvane sekunde
+   po nalogu) i provera pre početka snimanja. *Otvoreno:* koliko megabajta
+   zauzima minut snimka (nije izmereno), i da li brisanje naloga briše
+   njegove zvučne fajlove (nije provereno).
+4. **Glas: mesečna količina po planu; kad se potroši, glas ne može da se
+   pokrene, ali sesija koja je već u glasu se nikad ne prekida.** Upozorenje
+   pre kraja (na primer na četiri petine), na traci sesije i u „Usage this
+   month". Sesija sa tablom uvek ide dalje. **Minut je minut po osobi**
+   (person-minute), kako Agora naplaćuje i kako server već meri: sat sa
+   trenerom i pet učenika je šest sati. Ekran to mora da kaže, jer grupni čas
+   troši brže od časa jedan na jedan. Dokup minuta — tek kad neko stvarno
+   probije količinu.
+5. **Početna cena se određuje sada, iz najgoreg slučaja, ne posle meseca
+   merenja.** Vlasnik je jedini korisnik, pa bi mesec merenja izmerio njega.
+   Pošto odluke 3, 4 i 7 daju svakom trošku koji raste tvrdu granicu, cena se
+   računa iz pretplatnika koji potroši sve do kraja: količine se odmere tako
+   da takav pretplatnik košta najviše polovinu onoga što stvarno stigne posle
+   udela prodavnice. Jedna plaćena klasa, mesečno i godišnje; cena i količine
+   se ponovo gledaju posle prvog meseca sa pravim pretplatnicima. „Učenik
+   Plus" i „Klub" iz §6 su odloženi, ne odbačeni. Tabela najgoreg slučaja — svaka
+   količina, njena jedinična cena, zbir, i cena koja ga pokriva dvaput posle
+   udela — je u `STUDIJA-CENA-I-AKVIZICIJA.md`, §1–§4.
+6. **Otpalo.** `checkUserLimits` je obrisan 16.9.2026 (§2); nema šta da se
+   priključi.
+7. **Besplatan nalog dobija mali mesečni broj izvoza filma**, sa naracijom.
+   Kapija je broj izvoza (`mp4_renders` se već beleži); znakovi naracije se i
+   dalje mere i ulaze u tabelu najgoreg slučaja. Na granici „Export" kaže
+   koliko je ostalo i kada se broj vraća. *Posao:* `mp4_export` od prava
+   da/ne postaje mesečna kvota, istim mehanizmom kao AI reči.
+
+Uz ovo, istog dana: **Paddle za Windows** (`STANJE-RADA.md`, stavka 1
+vlasnikovog spiska) — Android ostaje na Play-u.
+
+### Pitanja kako su bila postavljena
 
 1. **Šta ulazi u besplatan nalog.** Danas je odgovor „skoro sve, jer ograničenja
    nisu priključena".
