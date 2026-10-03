@@ -30,9 +30,11 @@ import 'package:flutter_chess_board/flutter_chess_board.dart';
 
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
+import 'package:chess_app/theme/breakpoints.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 
 import '../models/exercise.dart';
 import '../models/exercise_line_edit.dart';
@@ -386,38 +388,32 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
       );
     }
 
-    return LandscapeBoardLayout.applies(context)
-        ? LandscapeBoardLayout(
-            board: _boardView,
-            panels: _panels(),
-            footer: _footer(),
-          )
-        : LayoutBuilder(
-            builder: (context, constraints) {
-              final heightBased = (constraints.maxHeight - 280).clamp(
-                200.0,
-                520.0,
-              );
-              final widthBased = (constraints.maxWidth - 24).clamp(
-                180.0,
-                520.0,
-              );
-              final boardSize =
-                  heightBased < widthBased ? heightBased : widthBased;
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  children: [
-                    _panels(),
-                    const SizedBox(height: 10),
-                    Center(child: _boardView(boardSize)),
-                    const SizedBox(height: AppSpacing.md),
-                    ..._footer(),
-                  ],
-                ),
-              );
-            },
-          );
+    // One layout for every board screen (rule R1 of `docs/PLAN-EKRANI.md`,
+    // phase 5): on a window the board sized by the window's height with the
+    // panel beside it, `Save` in that panel; on a phone upright the board, then
+    // `Save`, then the panel; on a phone on its side the landscape layout with
+    // `Save` pinned under the panel.
+    final wide =
+        Breakpoints.isWide(context) && !LandscapeBoardLayout.applies(context);
+    return TrainerScreenLayout(
+      board: _boardView,
+      panel: wide
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _panels(),
+                const SizedBox(height: AppSpacing.md),
+                ..._footer(fullWidth: false),
+              ],
+            )
+          : _panels(),
+      controls: wide
+          ? const SizedBox.shrink()
+          : Column(children: _footer(fullWidth: true)),
+      // Nothing stands under the board on a window, so it gives up only the
+      // body's own padding.
+      wideReserve: 24,
+    );
   }
 
   Widget _boardView(double boardSize) {
@@ -447,53 +443,11 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     final edit = _edit;
     final colors = context.colors;
     if (exercise == null) return _makingPanels(edit!, colors);
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            exerciseTaskWords(exercise.task),
-            style: AppText.bodyLargeBold,
-          ),
-          if (edit != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            if (edit.steps.isEmpty)
-              _askForAnswer(colors)
-            else ...[
-              Text(
-                exerciseSolutionText(edit.steps),
-                key: const Key('exercise-editor-line'),
-                style: AppText.body.copyWith(color: colors.textSecondary),
-              ),
-              if (_heldSan != null) ...[
-                const SizedBox(height: AppSpacing.xs),
-                _heldLine(colors),
-              ],
-              const SizedBox(height: AppSpacing.sm),
-              _alternatives(edit),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  /// While the exercise is being made: what to do, then what was played —
-  /// the answer, and the alternatives, each removable.
-  Widget _makingPanels(ExerciseLineEdit edit, AppColorTokens colors) {
-    final accept = edit.steps.isEmpty ? const <String>[] : edit.steps[0].accept;
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(exerciseTaskWords(const {'type': 'find'}),
-              style: AppText.bodyLargeBold),
-          const SizedBox(height: AppSpacing.sm),
-          if (accept.isEmpty)
+    return TrainerInfoPanel(
+      taskText: exerciseTaskWords(exercise.task),
+      children: [
+        if (edit != null)
+          if (edit.steps.isEmpty)
             _askForAnswer(colors)
           else ...[
             Text(
@@ -501,28 +455,53 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
               key: const Key('exercise-editor-line'),
               style: AppText.body.copyWith(color: colors.textSecondary),
             ),
-            const SizedBox(height: AppSpacing.xs),
-            if (_heldSan != null)
-              _heldLine(colors)
-            else
-              Text(
-                'Play another move that should also count, or Save.',
-                key: const Key('exercise-editor-next-hint'),
-                style: AppText.body.copyWith(color: colors.textSecondary),
-              ),
+            if (_heldSan != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              _heldLine(colors),
+            ],
             const SizedBox(height: AppSpacing.sm),
-            _alternatives(
-              edit,
-              trailing: TextButton.icon(
-                key: const Key('exercise-editor-start-over'),
-                onPressed: () => setState(edit.clear),
-                icon: const Icon(Icons.restart_alt, size: 16),
-                label: const Text('Start over'),
-              ),
-            ),
+            _alternatives(edit),
           ],
+      ],
+    );
+  }
+
+  /// While the exercise is being made: what to do, then what was played —
+  /// the answer, and the alternatives, each removable.
+  Widget _makingPanels(ExerciseLineEdit edit, AppColorTokens colors) {
+    final accept = edit.steps.isEmpty ? const <String>[] : edit.steps[0].accept;
+    return TrainerInfoPanel(
+      taskText: exerciseTaskWords(const {'type': 'find'}),
+      children: [
+        if (accept.isEmpty)
+          _askForAnswer(colors)
+        else ...[
+          Text(
+            exerciseSolutionText(edit.steps),
+            key: const Key('exercise-editor-line'),
+            style: AppText.body.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          if (_heldSan != null)
+            _heldLine(colors)
+          else
+            Text(
+              'Play another move that should also count, or Save.',
+              key: const Key('exercise-editor-next-hint'),
+              style: AppText.body.copyWith(color: colors.textSecondary),
+            ),
+          const SizedBox(height: AppSpacing.sm),
+          _alternatives(
+            edit,
+            trailing: TextButton.icon(
+              key: const Key('exercise-editor-start-over'),
+              onPressed: () => setState(edit.clear),
+              icon: const Icon(Icons.restart_alt, size: 16),
+              label: const Text('Start over'),
+            ),
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -567,7 +546,9 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
     );
   }
 
-  List<Widget> _footer() {
+  /// The variation hint, the error and `Save`. On a window `Save` is a button
+  /// of its own width in the panel (R4); on a phone it takes the width.
+  List<Widget> _footer({required bool fullWidth}) {
     final edit = _edit;
     final colors = context.colors;
     return [
@@ -589,8 +570,9 @@ class _ExerciseEditorScreenState extends State<ExerciseEditorScreen> {
         ],
         const SizedBox(height: AppSpacing.sm),
       ],
-      SizedBox(
-        width: double.infinity,
+      Align(
+        alignment: fullWidth ? Alignment.center : Alignment.centerLeft,
+        widthFactor: fullWidth ? null : 1,
         // A `FilledButton`, not an `ElevatedButton`: the sheet this opens has
         // its own "Save" `ElevatedButton`, and the two stack while the sheet
         // is a dialog over this screen rather than replacing it — a widget
