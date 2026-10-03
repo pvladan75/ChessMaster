@@ -114,8 +114,13 @@ class TacticsSolveSession {
   /// recorded" and must not be shown as such.
   String? get firstWrongSan => _firstWrongSan;
 
-  /// Moves the user has already found.
-  int get solvedMoveCount => (_cursor / 2).floor();
+  /// Moves the user has already found. The line is the reader's move, the
+  /// opponent's reply, the reader's move..., so the cursor after the reader's
+  /// last move of a line that ends there is odd — and it still counts: rounded
+  /// down, a one-move puzzle said „found 0" once it was solved (§2.5 of
+  /// `docs/PLAN-EKRANI.md`). Mid-line the cursor is even (a move and its
+  /// reply), where up and down agree.
+  int get solvedMoveCount => (_cursor / 2).ceil();
 
   /// The move currently expected from the user, or null when the puzzle is over.
   String? get expectedMove =>

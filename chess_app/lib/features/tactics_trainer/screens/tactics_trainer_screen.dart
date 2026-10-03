@@ -14,10 +14,10 @@ import 'package:chess_app/services/speech_service.dart';
 import 'package:chess_app/theme/app_colors.dart';
 import 'package:chess_app/theme/app_typography.dart';
 import 'package:chess_app/widgets/board_view_menu.dart';
-import 'package:chess_app/widgets/speakable_info.dart';
 import 'package:chess_app/widgets/board_flip_button.dart';
 import 'package:chess_app/widgets/board_with_coordinates.dart';
 import 'package:chess_app/widgets/landscape_board_layout.dart';
+import 'package:chess_app/widgets/trainer_board_layout.dart';
 import 'package:chess_app/widgets/game_screen/chess_board_with_overlay.dart';
 
 import '../models/tactics_puzzle.dart';
@@ -651,43 +651,13 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
           ),
         );
 
-    if (LandscapeBoardLayout.applies(context)) {
-      return LandscapeBoardLayout(
-        board: board,
-        panels: _buildHeader(),
-        footer: [
-          const SizedBox(height: AppSpacing.sm),
-          _buildFeedback(),
-          const SizedBox(height: AppSpacing.sm),
-          _buildControls(),
-        ],
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // The board is square, so it is bounded by whichever axis is tighter.
-        // Taking the minimum against the width matters on a short, narrow window
-        // where the height-derived size would otherwise exceed it and overflow.
-        final heightBased = (constraints.maxHeight - 240).clamp(220.0, 560.0);
-        final widthBased = (constraints.maxWidth - 24).clamp(180.0, 560.0);
-        final boardSize = heightBased < widthBased ? heightBased : widthBased;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            children: [
-              _buildHeader(),
-              const SizedBox(height: AppSpacing.md),
-              Center(child: board(boardSize)),
-              const SizedBox(height: AppSpacing.md),
-              _buildFeedback(),
-              const SizedBox(height: AppSpacing.md),
-              _buildControls(),
-            ],
-          ),
-        );
-      },
+    // One layout for every board screen (R1): the board sized by the window,
+    // the panel beside it on a window and under it on a phone, the buttons
+    // under the board. The choice is the window's, never the orientation.
+    return TrainerScreenLayout(
+      board: board,
+      panel: _buildPanel(),
+      controls: _buildControls(),
     );
   }
 
@@ -722,7 +692,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
               style: AppText.headline,
             ),
             const SizedBox(height: AppSpacing.xl),
-            OutlinedButton.icon(
+            FilledButton.icon(
               onPressed: () => Navigator.of(context).maybePop(),
               icon: const Icon(Icons.arrow_back),
               label: const Text('Back'),
@@ -767,7 +737,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
                 style: TextStyle(color: context.colors.textSecondary),
               ),
               const SizedBox(height: AppSpacing.xl),
-              OutlinedButton.icon(
+              FilledButton.icon(
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
@@ -817,16 +787,26 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
               alignment: WrapAlignment.center,
               children: [
                 if (unfinished)
-                  ElevatedButton.icon(
+                  FilledButton.icon(
                     onPressed: _retrySkipped,
                     icon: const Icon(Icons.playlist_add_check),
                     label: const Text('Retry skipped'),
                   ),
-                OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to assignments'),
-                ),
+                // The one main action is filled: where nothing was skipped
+                // the way back is that action, and where something was it is
+                // the outlined second.
+                if (unfinished)
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to assignments'),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to assignments'),
+                  ),
               ],
             ),
           ],
@@ -846,7 +826,7 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
             const SizedBox(height: AppSpacing.md),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.lg),
-            ElevatedButton.icon(
+            FilledButton.icon(
               onPressed: _loadNext,
               icon: const Icon(Icons.refresh),
               label: const Text('Try again'),
@@ -857,113 +837,80 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  /// What the screen says, in one place: the context as chips, the task, the
+  /// verdict and — after a solve — the new rating (R2, R3). The header card,
+  /// the verdict box and the rating card were three places.
+  Widget _buildPanel() {
     final puzzle = _puzzle;
     final session = _session;
     if (puzzle == null || session == null) return const SizedBox.shrink();
 
+    final result = _lastResult;
+    final feedback = _feedback ?? const <SpokenLine>[];
+
+    // Once the puzzle is over the task line no longer asks for a move: „White
+    // to move. Find the best move." over a board that will not answer reads
+    // as a frozen board (the endgame trainer's rule, the owner's word of
+    // 3.10.2026). It says how the puzzle ended — the verdict's last line,
+    // „Solved." or „Not solved." — and is not said again, because `_finish`
+    // has just said it. Any line before it stays in the box.
+    final over = session.isComplete && feedback.isNotEmpty;
+
     // The sentence the task line draws is the sentence it speaks (D4): one
     // SpokenLine, read for both.
-    final task = SpokenLine([
-      _userSide == PlayerColor.white
-          ? SpeechVocabulary.whiteToMove
-          : SpeechVocabulary.blackToMove,
-      SpeechVocabulary.findBestMove,
-    ]);
+    final task = over
+        ? feedback.last
+        : SpokenLine([
+            _userSide == PlayerColor.white
+                ? SpeechVocabulary.whiteToMove
+                : SpeechVocabulary.blackToMove,
+            SpeechVocabulary.findBestMove,
+          ]);
+    final lines = over ? feedback.sublist(0, feedback.length - 1) : feedback;
 
-    return Card(
-      color: context.colors.surface,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: SpeakableInfo(
-                    key: ValueKey('task-$_taskSerial'),
-                    text: task.text,
-                    line: task,
-                    autoSpeak: true,
-                    compact: true,
-                    speech: widget.speech,
-                    style: const TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Chip(
-                  visualDensity: VisualDensity.compact,
-                  label: Text('${puzzle.rating}'),
-                  avatar: const Icon(Icons.speed, size: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              // The motif is deliberately withheld until it is over: naming it
-              // upfront gives the puzzle away.
-              session.isComplete && puzzle.trainableThemes.isNotEmpty
-                  ? 'Motif: ${puzzle.trainableThemes.join(', ')}'
-                  : 'Moves needed: ${puzzle.userMoveCount} · '
-                      'found ${session.solvedMoveCount}',
-              style: AppText.body.copyWith(color: context.colors.textSecondary),
-            ),
-            if (widget.isAssignment) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Puzzle: $_assignmentIndex of ${widget.puzzleIds!.length}',
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted),
-              ),
-            ] else if (widget.retry) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Puzzle: $_assignmentIndex of ${_queue?.length ?? 0}',
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted),
-              ),
-            ] else if (_selection?.targetTheme != null &&
-                !session.isComplete) ...[
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Practicing your weakest theme.',
-                style:
-                    AppText.caption.copyWith(color: context.colors.textMuted),
-              ),
+    return TrainerInfoPanel(
+      // A new puzzle is a new panel: it says its task again (D4), which a
+      // panel kept across puzzles would not.
+      key: ValueKey('task-$_taskSerial'),
+      task: task,
+      autoSpeak: !over,
+      speech: widget.speech,
+      chips: [
+        'Rating ${puzzle.rating}',
+        // The motif is deliberately withheld until it is over: naming it
+        // upfront gives the puzzle away.
+        if (session.isComplete && puzzle.trainableThemes.isNotEmpty)
+          'Motif: ${puzzle.trainableThemes.join(', ')}'
+        else
+          'Moves needed: ${puzzle.userMoveCount} · '
+              'found ${session.solvedMoveCount}',
+        if (widget.isAssignment)
+          'Puzzle: $_assignmentIndex of ${widget.puzzleIds!.length}'
+        else if (widget.retry)
+          'Puzzle: $_assignmentIndex of ${_queue?.length ?? 0}'
+        else if (_selection?.targetTheme != null && !session.isComplete)
+          'Practicing your weakest theme.',
+      ],
+      message: lines,
+      // The rating card of old, said in the verdict's own box.
+      messageText: result == null
+          ? null
+          : [
+              'Rating: ${result.newRating} '
+                  '(${result.ratingChange >= 0 ? '+' : ''}'
+                  '${result.ratingChange})',
+              'Puzzle rating: ${result.puzzleRating}',
+              'Total solved: ${result.puzzlesSolved}',
             ],
-          ],
-        ),
-      ),
+      // Good and not good are said by the shape of the icon as well as in
+      // words — never by the colour of the box alone.
+      messageIcon: lines.isEmpty && result == null
+          ? null
+          : (_feedbackIsGood
+              ? Icons.check_circle_outline
+              : Icons.error_outline),
+      messageIsGood: _feedbackIsGood,
     );
-  }
-
-  Widget _buildFeedback() {
-    final result = _lastResult;
-    final message = _feedback;
-
-    if (result != null) {
-      final positive = result.ratingChange >= 0;
-      return Card(
-        color: positive
-            ? context.colors.success.withValues(alpha: 0.12)
-            : context.colors.danger.withValues(alpha: 0.12),
-        child: ListTile(
-          leading: Icon(
-            positive ? Icons.trending_up : Icons.trending_down,
-            color: positive ? context.colors.success : context.colors.danger,
-          ),
-          title: Text('Rating: ${result.newRating} '
-              '(${result.ratingChange >= 0 ? '+' : ''}${result.ratingChange})'),
-          subtitle: Text('Puzzle rating: ${result.puzzleRating} · '
-              'total solved: ${result.puzzlesSolved}'),
-        ),
-      );
-    }
-
-    if (message == null) return const SizedBox(height: AppSpacing.sm);
-
-    return _FeedbackBox(lines: message, isGood: _feedbackIsGood);
   }
 
   Widget _buildControls() {
@@ -983,15 +930,17 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
         // Homework is the other half of the same rule: one attempt, already
         // recorded, so there is nothing to retry.
         if (!complete || failedNow)
-          OutlinedButton.icon(
+          TextButton.icon(
             onPressed: _showSolution,
             icon: const Icon(Icons.visibility),
             label: const Text('Show solution'),
           ),
-        ElevatedButton.icon(
+        // One filled button per state (R4): Skip while solving, Next once the
+        // puzzle is over.
+        FilledButton.icon(
           onPressed: _loadNext,
           icon: const Icon(Icons.skip_next),
-          label: Text(complete ? 'Next puzzle' : 'Skip'),
+          label: Text(complete ? 'Next' : 'Skip'),
         ),
       ],
     );
@@ -1001,43 +950,4 @@ class _TacticsTrainerScreenState extends State<TacticsTrainerScreen> {
 /// "1 puzzle", "2 puzzles", "5 puzzles" — English uses two forms: singular and plural.
 String puzzleCountLabel(int count) {
   return count == 1 ? '1 puzzle' : '$count puzzles';
-}
-
-/// The verdict as it is drawn: the text of the lines that were spoken, one
-/// under the other. Speaking is the screen's own `_verdict`, which draws and
-/// says the same `SpokenLine`s, so there is no second list to keep in step.
-class _FeedbackBox extends StatelessWidget {
-  final List<SpokenLine> lines;
-  final bool isGood;
-
-  const _FeedbackBox({required this.lines, required this.isGood});
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = isGood ? context.colors.success : context.colors.warning;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: AppRadii.roundedSm,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            isGood ? Icons.check_circle_outline : Icons.error_outline,
-            size: 18,
-            color: accent,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [for (final line in lines) Text(line.text)],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
