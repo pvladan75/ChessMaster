@@ -488,7 +488,7 @@ void main() {
         await _pump(tester, rig, _server(_mateInOne));
         await _move(tester, 'g1', 'h1');
         await _move(tester, 'a1', 'a8');
-        await tester.tap(find.text('Next puzzle'));
+        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
         expect(rig.voice.lines, isNotEmpty);
         await _leave(tester);

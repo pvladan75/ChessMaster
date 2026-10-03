@@ -190,7 +190,13 @@ void main() {
         await http.runWithClient(() async {
           await pumpAt(tester, size, TacticsTrainerScreen(session: _session));
           expectBoardBeside(tester, size);
-          expectOnScreen(tester, size, find.byType(OutlinedButton));
+          // Both buttons under the board: „Show solution" (a text button
+          // since PLAN-EKRANI phase 2, an outlined one before it) and the
+          // one filled button, „Skip".
+          expectOnScreen(
+              tester, size, find.byWidgetPredicate((w) => w is TextButton));
+          expectOnScreen(
+              tester, size, find.byWidgetPredicate((w) => w is FilledButton));
         }, () => serve(server));
       });
     }
